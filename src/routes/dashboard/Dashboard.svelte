@@ -41,6 +41,7 @@
     Moon,
     MemoryStick,
     FileSearch,
+    FolderSearch,
     AppWindow,
     RotateCw,
     Server,
@@ -99,13 +100,15 @@
     ai_control: { label: 'AI Activity', icon: ChartNoAxesCombined },
     usage: { label: 'AI Activity', icon: ChartNoAxesCombined },
     awake: { label: 'Keep Awake', icon: Moon },
+    'developer-artifacts': { label: 'Developer Artifacts', icon: FolderSearch },
     'large-files': { label: 'Large Files', icon: FileSearch },
     applications: { label: 'Applications', icon: AppWindow },
   };
   const directTabs: Partial<Record<DashboardTab, Tab[]>> = {
-    storage: ['large-files', 'applications'],
+    storage: ['developer-artifacts', 'large-files', 'applications'],
     performance: ['memory'],
   };
+  const directTabIds = new Set<Tab>(Object.values(directTabs).flatMap((tabs) => tabs ?? []));
 
   /**
    * One capability per destination. A route whose adapter is missing stays
@@ -118,7 +121,7 @@
     storage: 'cleanup',
     'large-files': 'cleanup',
     applications: 'cleanup',
-    'developer-artifacts': 'cleanup',
+    'developer-artifacts': 'developer_artifacts',
     disks: 'cleanup',
     performance: 'memory_metrics',
     memory: 'memory_metrics',
@@ -315,7 +318,7 @@
                 (priorTabId) => tabGroups[priorTabId as DashboardTab] === currentGroup
               )}
             {@const showGroupHeader = !sidebarCollapsed && currentGroup && !groupShownEarlier}
-            {@const isTabActive = !['memory', 'large-files', 'applications'].includes(currentTab) && dashboardNavigationOwner(currentTab) === dashboardNavigationOwner(tabId)}
+            {@const isTabActive = !directTabIds.has(currentTab) && dashboardNavigationOwner(currentTab) === dashboardNavigationOwner(tabId)}
 
             {#if showGroupHeader}
               <div class="px-2.5 {i === 0 ? 'pt-1' : 'pt-3'} pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground select-none">

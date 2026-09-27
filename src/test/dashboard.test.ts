@@ -107,6 +107,7 @@ describe('Dashboard sidebar affordances', () => {
       expect(rendered.body.match(/>Tools<\/div>/g)).toHaveLength(1);
       expect(rendered.body).not.toContain('aria-label="Tools"');
       expect(rendered.body).toContain('aria-label="Memory"');
+      expect(rendered.body).toContain('aria-label="Developer Artifacts"');
       expect(rendered.body).toContain('aria-label="Large Files"');
       expect(rendered.body).toContain('aria-label="Applications"');
       expect(settingsStore.settings.dashboard_tabs[0]).toBe('overview');
@@ -123,12 +124,27 @@ describe('Cleanup-first navigation', () => {
     settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: ['overview', 'projects'] };
     try {
       const rendered = render(Dashboard);
-      for (const label of ['Memory', 'Large Files', 'Applications']) {
+      for (const label of ['Memory', 'Developer Artifacts', 'Large Files', 'Applications']) {
         expect(rendered.body).not.toContain(`aria-label="${label}"`);
       }
     } finally {
       settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: previousTabs };
     }
+  });
+
+  it('gates Developer Artifacts with its dedicated platform capability', () => {
+    platformCapabilitiesStore.capabilities = {
+      ...goldenCapabilitiesByPlatform.macos,
+      developer_artifacts: {
+        status: 'unavailable',
+        reason: 'Developer artifact cleanup is unavailable on this platform.',
+      },
+    };
+
+    const rendered = render(Dashboard);
+    expect(rendered.body).toMatch(
+      /<button(?=[^>]*disabled)(?=[^>]*aria-label="Developer Artifacts")(?=[^>]*title="Developer artifact cleanup is unavailable on this platform\.")[^>]*>/
+    );
   });
 
   it('opens Memory as a focused page without another section selector', () => {

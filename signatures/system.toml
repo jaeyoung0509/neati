@@ -1,6 +1,53 @@
 # Zenith Signatures - System & per-user temporary files
 
 [[signatures]]
+id = "system.chromium.component_downloads"
+name = "Browser Component Downloads"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "chromium.component_downloads"
+platforms = ["macos", "windows"]
+paths = []
+fail_if_running = [
+    "Google Chrome", "Google Chrome Helper", "chrome", "chrome.exe",
+    "Brave Browser", "Brave Browser Helper", "brave", "brave.exe",
+    "Microsoft Edge", "Microsoft Edge Helper", "msedge", "msedge.exe",
+    "Chromium", "Chromium Helper", "chromium", "chromium.exe",
+    "Vivaldi", "Vivaldi Helper", "vivaldi", "vivaldi.exe",
+    "Arc", "Arc Helper", "arc", "arc.exe"
+]
+owner = "Chromium browsers"
+provider = "Chromium component updater"
+artifact_kind = "download_cache"
+consequence = "Downloaded component update archives move to Trash. Empty Trash to free disk space; a browser may download them again when an update needs them."
+description = "The complete metadata-coupled component_crx_cache store for each supported browser. Installed components, extensions, browser models, credentials, and profile databases stay outside the unit; active or unknown browser process state blocks it."
+
+[[signatures]]
+id = "system.chromium.offline_cache_storage"
+name = "Browser Offline Website Cache"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "chromium.offline_cache_storage"
+platforms = ["macos", "windows"]
+paths = []
+fail_if_running = [
+    "Google Chrome", "Google Chrome Helper", "chrome", "chrome.exe",
+    "Brave Browser", "Brave Browser Helper", "brave", "brave.exe",
+    "Microsoft Edge", "Microsoft Edge Helper", "msedge", "msedge.exe",
+    "Chromium", "Chromium Helper", "chromium", "chromium.exe",
+    "Vivaldi", "Vivaldi Helper", "vivaldi", "vivaldi.exe",
+    "Arc", "Arc Helper", "arc", "arc.exe"
+]
+owner = "Chromium browsers"
+provider = "Chromium CacheStorage"
+consequence = "Offline website assets move to Trash and may need a network connection to download again. Cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
+description = "Only the exact Service Worker/CacheStorage subtree in a recognized browser profile is reviewed. This distinct, confirmed action preserves every neighboring profile database and Service Worker registration store."
+
+[[signatures]]
 id = "system.developer_temp"
 name = "Stale Developer Temporary Files"
 category = "system"

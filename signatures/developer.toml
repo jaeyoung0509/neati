@@ -33,7 +33,23 @@ fail_if_running = ["brew", "ruby"]
 provider = "Homebrew"
 artifact_kind = "download_cache"
 consequence = "Homebrew may download these archives again during a later install or upgrade."
-description = "Direct downloaded files in Homebrew's cache, verified and removed by a dedicated owner-scoped provider after explicit selection. This is separate from `brew cleanup`, which can also remove old installed formula versions."
+description = "Direct downloaded files in Homebrew's cache, verified and removed by a dedicated owner-scoped provider after explicit review. This deep download purge is separate from `brew cleanup`, which can also remove old installed formula versions."
+
+[[signatures]]
+id = "dev.homebrew.cleanup"
+name = "Homebrew Reviewed Cleanup"
+category = "developer"
+family = "package_managers"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "homebrew.cleanup"
+platforms = ["macos"]
+paths = []
+fail_if_running = ["brew", "ruby"]
+provider = "Homebrew"
+artifact_kind = "package_store"
+consequence = "Homebrew removes exactly the old formula versions, stale lock files, and outdated downloads shown by its 30-day dry-run. Needed downloads may be fetched again; current installed versions remain."
+description = "A separate reviewed action backed by `brew cleanup --dry-run --prune=30`. Zenith binds the review to the exact candidate list, repeats the preview immediately before the fixed-argument command, and refuses changed candidates."
 
 [[signatures]]
 id = "dev.homebrew.metadata"

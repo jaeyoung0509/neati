@@ -484,6 +484,12 @@ must not suggest that the account has exhausted its quota.
   and cleaned.
 - `Cleanup`: category rows with risk tiers, an actionable selection footer, and
   the existing backend eligibility, consent, and one-shot plan rules.
+- Owner-managed actions remain visually distinct by name and consequence.
+  Browser offline CacheStorage states that offline assets may need the network
+  again while preserved profile data is named; Homebrew deep downloads and
+  Homebrew's narrower reviewed cleanup are separate rows. These confirmed
+  actions stay out of Quick Clean and use the existing review dialog rather
+  than another tab or workflow screen.
 - `Developer Artifacts`: workspace/project list with generated-directory
   amounts aligned in a fixed value column, workspace authorization, and its
   own inventory freshness. Comparable projects share one list surface. Keep a

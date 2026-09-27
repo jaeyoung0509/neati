@@ -197,6 +197,31 @@ should first decide which actions solve a user problem and can be safely
 previewed on supported macOS versions; it should not copy the reference cleaner's catalog or
 its automatic-execution classification.
 
+## Owner-gap closure update — 2026-09-27
+
+The ranked user-space owner gaps from this audit are now implemented. The
+Homebrew direct-download purge remains separate and confirmed, while a new
+fixed-argument `brew cleanup --dry-run --prune=30` adapter binds the trusted
+executable, Homebrew version, exact candidates, and estimate into a private
+one-shot plan. Chromium's metadata-coupled component download stores and exact
+per-profile CacheStorage subtrees now have independent owner adapters with
+per-browser process guards.
+
+A later read-only full scan observed 344,117,248 bytes across two component
+stores, including the same 181,391,360-byte cleanable amount recorded in issue
+#317. It also observed 948,011,008 bytes across seven CacheStorage units, close
+to the 947,761,152-byte reference inventory in issue #318; 325,828,608 bytes
+belonged to an idle browser and the open-Chrome units remained blocked. The
+Homebrew owner preview reported 164,200,000 bytes. Exact aggregate evidence and
+the preserved non-targets are recorded in
+[`evidence/owner-cleanup-gap-0.3.67.md`](evidence/owner-cleanup-gap-0.3.67.md).
+
+This completes the actionable user-space gaps tracked by #294, #295, #317, and
+#318. It does not claim headline-number parity: system-owned maintenance,
+protected roots, stateful data, and advisory stores remain deliberately outside
+generic cleanup. Future gaps should begin with another paired read-only audit
+and a new owner-specific issue rather than broadening these authorizations.
+
 The reference cleaner's source is GPL-3.0 and Zenith is MIT. This audit records observed behavior
 and references pinned source; no implementation, test, table, or text from that source was
 copied into Zenith.

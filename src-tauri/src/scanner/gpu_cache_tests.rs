@@ -28,7 +28,9 @@ impl Fixture {
     fn new() -> Self {
         let directory = tempfile::tempdir().unwrap();
         let home = directory.path().join("home");
-        let roaming = home.join("AppData/Roaming");
+        // mklink treats forward slashes as switches, so fixture paths passed
+        // to that Windows command must use native separators throughout.
+        let roaming = home.join("AppData").join("Roaming");
         let profiles = if cfg!(target_os = "windows") {
             roaming.clone()
         } else {

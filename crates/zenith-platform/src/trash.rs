@@ -29,19 +29,22 @@ impl TrashBackend for NativeTrashBackend {
 }
 
 fn native_trash_context() -> trash::TrashContext {
-    let mut context = trash::TrashContext::new();
-
     #[cfg(target_os = "macos")]
     {
         use trash::macos::{DeleteMethod, TrashContextExtMacos};
 
+        let mut context = trash::TrashContext::new();
         // Finder's AppleScript delete can wait for minutes and eventually time
         // out on large cache directories. NSFileManager performs the same
         // recoverable Trash move without Finder automation or its prompt.
         context.set_delete_method(DeleteMethod::NsFileManager);
+        context
     }
 
-    context
+    #[cfg(not(target_os = "macos"))]
+    {
+        trash::TrashContext::new()
+    }
 }
 
 /// In-memory mock trash backend for tests, recording operations without mutating the filesystem.

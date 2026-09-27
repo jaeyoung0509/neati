@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
-#[cfg(not(target_os = "windows"))]
 use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
 use zenith_platform::description::PlatformEnvironment;
@@ -111,21 +110,22 @@ pub struct RunningApplications {
 impl RunningApplications {
     /// Asks the process table which application bundles are in use.
     ///
-    /// Bundle identifiers are a macOS fact, and so is this probe: elsewhere no
-    /// cache namespace is named after one, so the call costs nothing and
-    /// reports nothing.
+    /// Process names guard catalogued caches on every desktop platform;
+    /// bundle identifiers additionally identify macOS cache namespaces.
     pub fn probe() -> Self {
+        let mut system = System::new();
+        system.refresh_processes(ProcessesToUpdate::All, true);
+        let observed = Self::from_process_names(
+            system
+                .processes()
+                .values()
+                .map(|process| process.name().to_string_lossy().into_owned()),
+        );
         #[cfg(target_os = "macos")]
-        {
-            let mut system = System::new();
-            system.refresh_processes(ProcessesToUpdate::All, true);
-            if system.processes().is_empty() {
-                return Self::default();
-            }
+        let observed = {
+            let mut observed = observed;
             let mut bundle_ids = Vec::new();
-            let mut process_names = Vec::new();
             for process in system.processes().values() {
-                process_names.push(process.name().to_string_lossy().into_owned());
                 let Some(executable) = process.exe() else {
                     continue;
                 };
@@ -136,15 +136,22 @@ impl RunningApplications {
                     bundle_ids.push(identifier);
                 }
             }
-            let mut observed = Self::from_ids(bundle_ids);
-            observed.process_names = process_names;
-            observed.process_state_known = true;
+            observed.bundle_ids = Self::from_ids(bundle_ids).bundle_ids;
             observed
-        }
+        };
+        observed
+    }
 
-        #[cfg(not(target_os = "macos"))]
-        {
-            Self::default()
+    /// An empty process table is unknown, not evidence of an idle machine.
+    pub fn from_process_names(names: impl IntoIterator<Item = String>) -> Self {
+        let process_names = names
+            .into_iter()
+            .filter(|name| !name.is_empty())
+            .collect::<Vec<_>>();
+        Self {
+            process_state_known: !process_names.is_empty(),
+            process_names,
+            bundle_ids: Vec::new(),
         }
     }
 
@@ -171,6 +178,9 @@ impl RunningApplications {
         &self,
         policy: &zenith_core::domain::cleanup::RunningProcessPolicy,
     ) -> Option<Vec<String>> {
+        if policy.is_empty() {
+            return Some(Vec::new());
+        }
         if !self.process_state_known {
             return None;
         }
@@ -205,6 +215,15 @@ impl RunningApplications {
 
     pub fn is_empty(&self) -> bool {
         self.bundle_ids.is_empty()
+    }
+}
+
+impl zenith_core::domain::cleanup::RunningProcessProbe for RunningApplications {
+    fn running(
+        &self,
+        guard: &zenith_core::domain::cleanup::RunningProcessPolicy,
+    ) -> Option<Vec<String>> {
+        self.running_executables(guard)
     }
 }
 
@@ -1002,12 +1021,45 @@ mod tests {
             RunningApplications::default().running_executables(&guard),
             None
         );
-        let mut observed = RunningApplications::from_ids(Vec::new());
-        observed.process_names = vec!["Brave Browser Helper".into(), "unrelated".into()];
-        observed.process_state_known = true;
+        let observed = RunningApplications::from_process_names([
+            "Brave Browser Helper".into(),
+            "unrelated".into(),
+        ]);
         assert_eq!(
             observed.running_executables(&guard),
             Some(vec!["Brave Browser Helper".into()])
+        );
+    }
+
+    #[test]
+    fn process_snapshot_supports_windows_names_and_fails_closed_when_empty() {
+        let guard = RunningProcessPolicy::guarding(vec!["Cursor.exe".into()]);
+        let observed = RunningApplications::from_process_names([
+            "CURSOR.EXE".into(),
+            "Cursor.exe.backup".into(),
+            "other.exe".into(),
+        ]);
+        assert_eq!(
+            observed.running_executables(&guard),
+            Some(vec!["CURSOR.EXE".into()])
+        );
+        assert_eq!(
+            RunningApplications::from_process_names([String::new()]).running_executables(&guard),
+            None
+        );
+        assert_eq!(
+            observed.running_executables(&RunningProcessPolicy::guarding(vec!["Codex.exe".into()])),
+            Some(Vec::new())
+        );
+    }
+
+    #[test]
+    fn native_process_snapshot_reports_a_known_table_on_this_platform() {
+        let absent =
+            RunningProcessPolicy::guarding(vec!["zenith-fixture-nonexistent-owner".into()]);
+        assert_eq!(
+            RunningApplications::probe().running_executables(&absent),
+            Some(Vec::new())
         );
     }
     #[cfg(not(target_os = "windows"))]

@@ -587,3 +587,51 @@ paths = [
     "/Volumes/*/.Trashes/*",
 ]
 description = "Items that have been moved to the Trash and their per-volume counterparts, which occupy space until the Trash is emptied. Emptying it is a Finder operation with its own semantics (restore, put back, per-volume behaviour), so Zenith reports the space and leaves the operation to the system that owns it."
+
+# Exact exclusions keep known owners under the corresponding ai.toml rules;
+# unknown owners remain observation-only even when cache names are recognized.
+[[signatures]]
+id = "system.advisory.application_gpu_caches"
+name = "Application GPU Cache (Unverified Owner)"
+category = "system"
+family = "applications"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/*/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+exclusions = [
+    "~/Library/Application Support/Codex/DawnGraphiteCache",
+    "~/Library/Application Support/Codex/DawnWebGPUCache",
+    "~/Library/Application Support/Codex/GrShaderCache",
+    "~/Library/Application Support/Antigravity/DawnGraphiteCache",
+    "~/Library/Application Support/Antigravity/DawnWebGPUCache",
+    "~/Library/Application Support/Antigravity/GrShaderCache",
+    "~/Library/Application Support/Cursor/DawnGraphiteCache",
+    "~/Library/Application Support/Cursor/DawnWebGPUCache",
+    "~/Library/Application Support/Cursor/GrShaderCache",
+]
+artifact_kind = "compiled_kernel"
+description = "GPU cache-shaped subtrees reported for visibility. Without an owner-scoped cleanup signature, Zenith does not remove them."
+
+[[signatures]]
+id = "system.advisory.application_gpu_caches.windows"
+name = "Application GPU Cache (Unverified Owner)"
+category = "system"
+family = "applications"
+risk = "manual"
+strategy = "manual"
+platforms = ["windows"]
+paths = ["${ROAMING_APP_DATA}/*/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+exclusions = [
+    "${ROAMING_APP_DATA}/Codex/DawnGraphiteCache",
+    "${ROAMING_APP_DATA}/Codex/DawnWebGPUCache",
+    "${ROAMING_APP_DATA}/Codex/GrShaderCache",
+    "${ROAMING_APP_DATA}/Antigravity/DawnGraphiteCache",
+    "${ROAMING_APP_DATA}/Antigravity/DawnWebGPUCache",
+    "${ROAMING_APP_DATA}/Antigravity/GrShaderCache",
+    "${ROAMING_APP_DATA}/Cursor/DawnGraphiteCache",
+    "${ROAMING_APP_DATA}/Cursor/DawnWebGPUCache",
+    "${ROAMING_APP_DATA}/Cursor/GrShaderCache",
+]
+artifact_kind = "compiled_kernel"
+description = "GPU cache-shaped subtrees reported for visibility. Without an owner-scoped cleanup signature, Zenith does not remove them."

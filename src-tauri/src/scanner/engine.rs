@@ -214,6 +214,20 @@ fn apply_verified_cache_owner_state(item: &mut ScanItem, running: Option<bool>) 
     item.is_selected = item.is_pre_selectable();
 }
 
+pub(crate) fn apply_signature_owner_state(
+    items: &mut [ScanItem],
+    signature: &crate::models::Signature,
+    processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
+) {
+    let guard = signature.process_guard();
+    if !guard.is_empty() {
+        let running = processes.running(&guard).map(|names| !names.is_empty());
+        for item in items {
+            apply_verified_cache_owner_state(item, running);
+        }
+    }
+}
+
 /// The retained items and byte populations of one category.
 ///
 /// `total_bytes` is the observed footprint, including blocked/advisory rows;
@@ -504,16 +518,7 @@ impl ScanEngine {
                     gate,
                     &running_apps,
                 );
-                if sig.structured_state_policy()
-                    == crate::models::StructuredStatePolicy::VerifiedRegenerableCache
-                {
-                    let running = running_apps
-                        .running_executables(&sig.process_guard())
-                        .map(|names| !names.is_empty());
-                    for item in &mut scanned.items {
-                        apply_verified_cache_owner_state(item, running);
-                    }
-                }
+                apply_signature_owner_state(&mut scanned.items, sig, &running_apps);
                 spans.push(ScanSpan {
                     source_id: sig.id.clone(),
                     duration_ms: span_started.elapsed().as_millis().min(u128::from(u64::MAX))

@@ -211,6 +211,29 @@ impl CleanExecutor {
         providers: &crate::cleaner::LifecycleProviderRegistry,
         owner_providers: &crate::cleaner::OwnerProviderRegistry,
         trash_backend: &dyn zenith_platform::TrashBackend,
+        on_event: F,
+    ) -> CleanResult
+    where
+        F: FnMut(CleanEvent),
+    {
+        Self::execute_with_process_probe(
+            plan,
+            environment,
+            providers,
+            owner_providers,
+            trash_backend,
+            &crate::cleaner::SysinfoProcessProbe,
+            on_event,
+        )
+    }
+
+    pub(crate) fn execute_with_process_probe<F>(
+        plan: DeletePlan,
+        environment: &PlatformEnvironment,
+        providers: &crate::cleaner::LifecycleProviderRegistry,
+        owner_providers: &crate::cleaner::OwnerProviderRegistry,
+        trash_backend: &dyn zenith_platform::TrashBackend,
+        processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
         mut on_event: F,
     ) -> CleanResult
     where
@@ -254,7 +277,7 @@ impl CleanExecutor {
             // never mutate; every mutating plan then routes each target through
             // the channel its backend-owned target requires.
             let result = if plan_authorizes_execution {
-                Self::clean_target(target, environment, providers, trash_backend)
+                Self::clean_target(target, environment, providers, trash_backend, processes)
             } else {
                 let message = if plan.mode.is_mutating() {
                     format!(
@@ -404,6 +427,7 @@ impl CleanExecutor {
         environment: &PlatformEnvironment,
         providers: &crate::cleaner::LifecycleProviderRegistry,
         trash_backend: &dyn zenith_platform::TrashBackend,
+        processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
     ) -> CleanItemResult {
         // The classification decides what the target authorizes: a container
         // prune runs through the runtime's own CLI, a provider prune runs
@@ -429,10 +453,8 @@ impl CleanExecutor {
         // container prune asks the runtime itself, which is running by
         // definition when it answers.
         if !matches!(operation, CleanupOperation::Container(_)) {
-            let running = if target.structured_state_policy
-                == crate::models::StructuredStatePolicy::VerifiedRegenerableCache
-            {
-                match crate::cleaner::running_executables_if_known(&target.process_guard) {
+            let running = if !target.process_guard.is_empty() {
+                match processes.running(&target.process_guard) {
                     Some(running) => running,
                     None => {
                         return item_result(
@@ -447,7 +469,7 @@ impl CleanExecutor {
                     }
                 }
             } else {
-                crate::cleaner::running_executables(&target.process_guard)
+                Vec::new()
             };
             if !running.is_empty() {
                 let verified_cache = target.structured_state_policy

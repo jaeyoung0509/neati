@@ -182,6 +182,15 @@ impl DirectoryScanner {
                     break;
                 }
                 let root_path = root.path.clone();
+                // Catalog exclusions apply to selected roots as well as their
+                // contents, so advisory discovery can defer to an exact owner.
+                if crate::signatures::exclusions::is_excluded(
+                    &root_path,
+                    &signature.exclusions,
+                    context.environment,
+                ) {
+                    continue;
+                }
                 let flavor = context.environment.flavor();
                 let key = zenith_platform::path_algebra::fold(
                     &zenith_platform::path_algebra::normalize(&root_path.to_string_lossy(), flavor),

@@ -244,6 +244,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "cleanable_bytes": item.cleanable_bytes(),
                 "selected_bytes": if item.is_selected { item.cleanable_bytes() } else { 0 },
                 "eligibility": item.disposition.eligibility,
+                "eligibility_reason": item.disposition.reason,
                 "quality": item.quality,
                 "incomplete_reason": item.incomplete_reason,
                 "skipped_entries": item.skipped_entry_count,

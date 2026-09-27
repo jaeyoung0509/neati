@@ -4,6 +4,9 @@ pub mod relationship;
 pub mod size;
 pub mod walker;
 
+#[cfg(test)]
+mod gpu_cache_tests;
+
 pub use engine::ScanEngine;
 pub use observation::{
     NoRootProgress, RootProgressSink, ScanLimits, SignatureScan, TraversalCounters, WalkContext,

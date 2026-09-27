@@ -167,6 +167,22 @@ impl SafetyPlanner {
         environment: &PlatformEnvironment,
         owner_providers: &OwnerProviderRegistry,
     ) -> Result<DeletePlan, ZenithError> {
+        Self::create_plan_with_process_probe(
+            items,
+            registry,
+            environment,
+            owner_providers,
+            &crate::cleaner::SysinfoProcessProbe,
+        )
+    }
+
+    pub(crate) fn create_plan_with_process_probe(
+        items: &[ScanItem],
+        registry: &SignatureRegistry,
+        environment: &PlatformEnvironment,
+        owner_providers: &OwnerProviderRegistry,
+        processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
+    ) -> Result<DeletePlan, ZenithError> {
         let mut targets = Vec::new();
         let mut refusals: Vec<PlanItemRefusal> = Vec::new();
         let mut owner_authorizations = Vec::new();
@@ -486,17 +502,15 @@ impl SafetyPlanner {
                     }
                 }
 
-                if structured_state_policy
-                    == crate::models::StructuredStatePolicy::VerifiedRegenerableCache
-                {
-                    match crate::cleaner::running_executables_if_known(&signature.process_guard()) {
+                if !signature.process_guard().is_empty() {
+                    match processes.running(&signature.process_guard()) {
                         Some(running) if running.is_empty() => {}
                         Some(running) => {
                             refusals.push(safety_refusal(
                                 item,
                                 CleanFailureReason::SafetyBoundary,
                                 format!(
-                                    "Close the cache owner before review: {}",
+                                    "Close the cache owner before cleanup: {}",
                                     running.join(", ")
                                 ),
                             ));

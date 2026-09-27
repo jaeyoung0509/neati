@@ -4,8 +4,9 @@ This matrix is the source of truth for cache ownership. `full` means Zenith can
 delete a narrowly scoped generated directory, `project_only` requires direct
 project markers, `tool_managed` invokes an owner CLI with fixed arguments, and
 `advisory` is inventory/documentation only. `not_applicable` means there is no
-generic language-owned cache worth guessing. Rebuildable entries are never
-selected by default.
+generic language-owned cache worth guessing. Default selection follows the
+backend's measured eligibility, not the matrix label: fully measured idle cache
+units may be selected, while advisory, blocked, and stateful resources may not.
 
 Physical allocated bytes are shown where the filesystem exposes them. Values
 are typed as physical reclaimable, conservative lower bound, or informational.
@@ -20,16 +21,25 @@ Broad temporary-directory prefixes remain advisory because a matching name and
 age do not establish who owns the contents or whether they are recoverable.
 On macOS, Homebrew is excluded from the broad application-cache rule. A
 dedicated owner-scoped provider offers direct, single-linked downloaded files
-under the default `~/Library/Caches/Homebrew/downloads` for explicit Rebuild
-review. It re-enumerates each selected file, checks identity and the running
+under the default `~/Library/Caches/Homebrew/downloads`. It re-enumerates each
+selected file, checks identity and the running
 owner, and reports the removal outcome. `api`, `bootsnap`, unfamiliar entries,
 and the rest of the cache stay advisory. Homebrew's `brew cleanup` also manages
 old installed formula versions, so its dry-run is a different operation and
-must not be presented as the estimate for the download-file review. The
-DotSlash stays excluded from broad cache deletion. Its separate owner-scoped
-adapter offers only completely measured hash-addressed artifacts unchanged for
-30 days, when Intensive cleanup is enabled and the user reviews each item.
-The default is off, and an overridden `DOTSLASH_CACHE` root is unsupported.
+must not be presented as the estimate for the download-file cleanup.
+DotSlash stays excluded from broad cache deletion. Its separate macOS adapter
+offers completely measured, idle, hash-addressed artifacts as whole-unit Trash
+operations, without an age or Intensive-scope gate. Discovery never creates lock
+metadata. At execution the adapter opens or creates DotSlash's exact download
+lock through held, no-follow directory handles, acquires it without truncating
+or unlinking the file, and rechecks identities and running owners. The lock is
+advisory and does not serialize every possible DotSlash launch.
+Archive symlinks are preserved as nodes, never traversed; only forward-relative
+targets are accepted. Absolute targets, parent traversal, linked artifact roots,
+hardlinked payload files, unsafe lock metadata, special nodes, incomplete
+measurement, and running owners refuse cleanup. An overridden `DOTSLASH_CACHE`
+root remains unsupported. See [the 0.3.66 evidence](evidence/cleanup-navigation-0.3.66.md)
+for the pinned upstream contract and measured same-unit eligibility change.
 
 The cross-workstream application, browser, automation, package-manager, and AI
 decision record is maintained in

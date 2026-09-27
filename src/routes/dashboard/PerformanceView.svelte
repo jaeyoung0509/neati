@@ -13,11 +13,12 @@
 
   interface Props {
     initialTab?: PerformanceTab;
+    standaloneMemory?: boolean;
     /** The shell supplies its own tab selector; this page keeps its sections local. */
     onNavigateTab?: (route: string) => void;
   }
 
-  let { initialTab = 'cpu' }: Props = $props();
+  let { initialTab = 'cpu', standaloneMemory = false, onNavigateTab }: Props = $props();
 
   // The shell remounts this page per section, so the requested section is the
   // starting value; the strip owns the choice after that.
@@ -84,32 +85,32 @@
   });
 
   function selectTab(id: string) {
+    if (id === 'memory' && onNavigateTab) {
+      onNavigateTab('memory');
+      return;
+    }
     activeTab = id as PerformanceTab;
   }
 </script>
 
 <div class="space-y-5">
   <PageHeader
-    title="Performance"
-    subtitle="CPU, memory, and battery readings measured on this machine."
-    icon={Activity}
+    title={standaloneMemory ? 'Memory' : 'Performance'}
+    subtitle={standaloneMemory ? undefined : 'CPU, memory, and battery readings measured on this machine.'}
+    icon={standaloneMemory ? MemoryStick : Activity}
   />
 
-  <SegmentedTabs
-    tabs={tabs}
-    activeTab={activeTab}
-    panelId={panelId}
-    ariaLabel="Performance sections"
-    onSelect={selectTab}
-  />
+  {#if !standaloneMemory}
+    <SegmentedTabs
+      tabs={tabs}
+      activeTab={activeTab}
+      panelId={panelId}
+      ariaLabel="Performance sections"
+      onSelect={selectTab}
+    />
+  {/if}
 
-  <div
-    id={panelId}
-    role="tabpanel"
-    tabindex="0"
-    aria-label={panelLabels[activeTab]}
-    class="space-y-5 rounded-xl outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2"
-  >
+  {#snippet readings()}
     {#if activeTab === 'cpu'}
       <CpuPanel />
     {:else if activeTab === 'memory'}
@@ -117,5 +118,21 @@
     {:else}
       <BatteryPanel />
     {/if}
-  </div>
+  {/snippet}
+
+  {#if standaloneMemory}
+    <section id={panelId} aria-label={panelLabels[activeTab]} class="space-y-5">
+      {@render readings()}
+    </section>
+  {:else}
+    <div
+      id={panelId}
+      role="tabpanel"
+      tabindex="0"
+      aria-label={panelLabels[activeTab]}
+      class="space-y-5 rounded-xl outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
+      {@render readings()}
+    </div>
+  {/if}
 </div>

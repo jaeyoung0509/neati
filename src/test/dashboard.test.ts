@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { render } from 'svelte/server';
 import Dashboard from '../routes/dashboard/Dashboard.svelte';
+import PerformanceView from '../routes/dashboard/PerformanceView.svelte';
 import { scanStore } from '../lib/stores/scan.svelte';
 import { platformCapabilitiesStore } from '../lib/stores/platformCapabilities.svelte';
 import { platformContextStore } from '../lib/stores/platformContext.svelte';
 import { settingsStore } from '../lib/stores/settings.svelte';
 import { goldenCapabilitiesByPlatform } from '../lib/models/platformCapabilities';
 import { mockApi } from '../lib/api/mock';
+import { DEFAULT_DASHBOARD_TABS, dashboardNavigationOwner, initialDashboardTab } from '../lib/utils/dashboardNavigation';
 
 beforeEach(() => {
   scanStore.lastScan = {
@@ -90,7 +92,7 @@ describe('Dashboard sidebar affordances', () => {
     expect(rendered.body).toContain('AI Activity');
   });
 
-  it('shows a Tools heading only once when saved tabs split the group', () => {
+  it('keeps tools visible with one heading and a direct Memory shortcut', () => {
     const previousTabs = settingsStore.settings.dashboard_tabs;
     settingsStore.settings = {
       ...settingsStore.settings,
@@ -103,9 +105,58 @@ describe('Dashboard sidebar affordances', () => {
     try {
       const rendered = render(Dashboard);
       expect(rendered.body.match(/>Tools<\/div>/g)).toHaveLength(1);
+      expect(rendered.body).not.toContain('aria-label="Tools"');
+      expect(rendered.body).toContain('aria-label="Memory"');
+      expect(rendered.body).toContain('aria-label="Large Files"');
+      expect(rendered.body).toContain('aria-label="Applications"');
+      expect(settingsStore.settings.dashboard_tabs[0]).toBe('overview');
+      expect(rendered.body.indexOf('aria-label="Containers"')).toBeLessThan(rendered.body.indexOf('aria-label="Local Models"'));
     } finally {
       settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: previousTabs };
     }
+  });
+});
+
+describe('Cleanup-first navigation', () => {
+  it('hides direct shortcuts when their owning destinations are disabled', () => {
+    const previousTabs = settingsStore.settings.dashboard_tabs;
+    settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: ['overview', 'projects'] };
+    try {
+      const rendered = render(Dashboard);
+      for (const label of ['Memory', 'Large Files', 'Applications']) {
+        expect(rendered.body).not.toContain(`aria-label="${label}"`);
+      }
+    } finally {
+      settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: previousTabs };
+    }
+  });
+
+  it('opens Memory as a focused page without another section selector', () => {
+    const rendered = render(PerformanceView, { props: { initialTab: 'memory', standaloneMemory: true } });
+    expect(rendered.body).toContain('Memory readings');
+    expect(rendered.body).not.toContain('aria-label="Performance sections"');
+    expect(rendered.body).not.toContain('role="tablist"');
+    expect(rendered.body).not.toContain('>Performance</h1>');
+  });
+  it('opens enabled cleanup ahead of overview without changing the saved order', () => {
+    const tabs = [...DEFAULT_DASHBOARD_TABS];
+    expect(initialDashboardTab(tabs, () => true)).toBe('storage');
+    expect(tabs).toEqual(DEFAULT_DASHBOARD_TABS);
+  });
+
+  it('respects hidden and unavailable destinations, including a capability failure', () => {
+    expect(initialDashboardTab(['models', 'performance'], () => true)).toBe('models');
+    expect(initialDashboardTab(['storage', 'performance'], tab => tab !== 'storage')).toBe('performance');
+    expect(initialDashboardTab(DEFAULT_DASHBOARD_TABS, () => false)).toBe('settings');
+    expect(initialDashboardTab([], () => true)).toBe('settings');
+  });
+
+  it('keeps detail routes associated with their visible navigation destination', () => {
+    for (const tab of ['disks', 'disk', 'applications', 'large-files', 'developer-artifacts']) {
+      expect(dashboardNavigationOwner(tab)).toBe('storage');
+    }
+    for (const tab of ['cpu', 'battery', 'memory']) expect(dashboardNavigationOwner(tab)).toBe('performance');
+    for (const tab of ['projects', 'ai_control', 'usage']) expect(dashboardNavigationOwner(tab)).toBe('projects');
   });
 });
 

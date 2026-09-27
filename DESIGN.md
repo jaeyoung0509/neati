@@ -476,8 +476,11 @@ must not suggest that the account has exhausted its quota.
 - Category rows share one bordered surface, with aligned value columns and
   descending cleanable-byte order. Storage tools use one native select in the
   page header instead of five peer tabs. Its selected workflow and return action
-  stay synchronized with the shell route. The cleanup toolbar follows the list in keyboard
-  order and remains visible while scrolling.
+  stay synchronized with the shell route. Developer Artifacts, Large Files, and
+  Applications also appear as direct child destinations beneath Storage so the
+  primary cleanup and deletion workflows remain one click away; hiding Storage
+  hides those shortcuts together. The cleanup toolbar follows the list in
+  keyboard order and remains visible while scrolling.
 
 - Top summary separates disk capacity, observed store size, the known cleanup
   estimate, and the selected amount. Unknown prune size can still be reviewed

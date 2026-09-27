@@ -828,10 +828,11 @@ describe('risk classification versus current eligibility', () => {
     expect(overview).toContain('1 tool-managed cleanup has');
     expect(detail).toContain('pnpm decides what is unused');
 
-    scanStore.lastScan!.categories[0].items.push(scanItem({
+    publishScan([...category.items, scanItem({
       id: 'known-cache',
       disposition: { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: 1024 },
-    }));
+    })], 'scan-mixed-estimates');
+    scanStore.setItemSelected('owner-store', true);
     scanStore.setItemSelected('known-cache', true);
     const mixed = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
     expect(mixed).toContain('1 without a size estimate');

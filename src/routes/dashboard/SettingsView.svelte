@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
+  import { dashboardGroup, groupedDashboardTabs } from '../../lib/utils/dashboardNavigation';
   import { frontendErrorStore } from '../../lib/stores/frontendErrors.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
@@ -232,7 +233,7 @@
   }
 
   function orderedDashboardTabs() {
-    const selected = (settings.dashboard_tabs ?? [])
+    const selected = groupedDashboardTabs(settings.dashboard_tabs ?? [])
       .map((id) => tabOptions.find((option) => option.id === id))
       .filter((option): option is (typeof tabOptions)[number] => Boolean(option));
     return [...selected, ...tabOptions.filter((option) => !(settings.dashboard_tabs ?? []).includes(option.id))];
@@ -303,7 +304,7 @@
         Dashboard Navigation Menu
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
-        Customize the tabs displayed in the left sidebar. Drag or use the arrow buttons to reorder.
+        Choose sidebar destinations. Drag or use arrows to reorder within each task group.
       </p>
     </div>
     <Card class="p-4 bg-card/70 space-y-3">
@@ -312,7 +313,8 @@
       </div>
       {#each orderedDashboardTabs() as tabOption (tabOption.id)}
         {@const enabled = (settings.dashboard_tabs ?? []).includes(tabOption.id)}
-        {@const enabledIndex = (settings.dashboard_tabs ?? []).indexOf(tabOption.id)}
+        {@const peers = (settings.dashboard_tabs ?? []).filter(tab => dashboardGroup(tab) === dashboardGroup(tabOption.id))}
+        {@const enabledIndex = peers.indexOf(tabOption.id)}
         <div
           role="listitem"
           draggable={enabled}
@@ -320,7 +322,7 @@
             if (enabled) draggedTab = tabOption.id;
           }}
           ondragover={(e) => {
-            if (enabled && draggedTab) {
+            if (enabled && draggedTab && dashboardGroup(draggedTab) === dashboardGroup(tabOption.id)) {
               e.preventDefault();
               dragOverTab = tabOption.id;
             }
@@ -350,14 +352,14 @@
             ariaLabel={`Show ${tabOption.label} in sidebar`}
           />
           <div class="min-w-0 flex-1 select-none">
-            <div class="text-xs font-medium text-foreground">{tabOption.label}</div>
+            <div class="text-xs font-medium text-foreground">{tabOption.label} <span class="text-muted-foreground">· {dashboardGroup(tabOption.id) ?? 'Overview'}</span></div>
             <div class="text-caption text-muted-foreground">{tabOption.description}</div>
           </div>
           {#if enabled}
             <ReorderControls
               label={tabOption.label}
               index={enabledIndex}
-              count={(settings.dashboard_tabs ?? []).length}
+              count={peers.length}
               onMove={(direction) => settingsStore.moveDashboardTab(tabOption.id, direction)}
             />
           {/if}

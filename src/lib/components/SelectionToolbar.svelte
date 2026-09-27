@@ -8,6 +8,7 @@
     selectedCount: number;
     totalCount?: number;
     selectedBytes?: number;
+    unestimatedCount?: number;
     safeBytes?: number;
     rebuildBytes?: number;
     manualBytes?: number;
@@ -28,6 +29,7 @@
     selectedCount,
     totalCount,
     selectedBytes = 0,
+    unestimatedCount = 0,
     safeBytes = 0,
     rebuildBytes = 0,
     manualBytes = 0,
@@ -102,7 +104,10 @@
       {#if selectedBytes > 0}
         · <span class="font-mono font-semibold text-foreground"><ByteValue bytes={selectedBytes} /></span>
       {:else if selectedCount > manualCount}
-        · <span>Amount varies by owner</span>
+        · <span>Reclaim size not estimated</span>
+      {/if}
+      {#if selectedBytes > 0 && unestimatedCount > 0}
+        · <span>{unestimatedCount} without a size estimate</span>
       {/if}
     </span>
 

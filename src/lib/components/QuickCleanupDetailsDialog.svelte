@@ -36,9 +36,9 @@
   <h2 id={id + '-title'} class="text-body font-semibold">Cleanup details</h2>
   <p id={id + '-description'} class="mt-2 text-meta leading-snug text-muted-foreground">
     {#if quickEligibleCount === 0}
-      No items currently qualify for Quick Clean. Only verified automatic Safe items can be cleaned here.
+      No items currently qualify for Quick Clean. Only verified Safe and Rebuild caches can be cleaned here.
     {:else}
-      {quickEligibleCount} Safe {quickEligibleCount === 1 ? 'item is' : 'items are'} available for review in this panel.
+      {quickEligibleCount} cache {quickEligibleCount === 1 ? 'item is' : 'items are'} available for direct cleanup.
     {/if}
   </p>
   {#if details.reviewCount > 0}
@@ -47,7 +47,7 @@
     </p>
   {/if}
   {#if details.excludedAutomaticCount > 0}
-    <p class="mt-2 text-meta text-muted-foreground">{details.excludedAutomaticCount} automatic Safe {details.excludedAutomaticCount === 1 ? 'item is' : 'items are'} excluded by your cleanup category settings.</p>
+    <p class="mt-2 text-meta text-muted-foreground">{details.excludedAutomaticCount} automatic {details.excludedAutomaticCount === 1 ? 'item is' : 'items are'} excluded by your cleanup category settings.</p>
   {/if}
   <ul class="mt-3 space-y-1 text-meta text-muted-foreground" aria-label="Items excluded from Quick Clean">
     {#if details.blockedCount > 0}<li>{details.blockedCount} blocked by safety or access checks</li>{/if}

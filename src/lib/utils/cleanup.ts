@@ -112,6 +112,8 @@ export interface CategorySummary {
   visible_count: number;
   cleanable_count: number;
   selected_count: number;
+  unestimated_count: number;
+  selected_unestimated_count: number;
   blocked_count: number;
   advisory_count: number;
   recent_count: number;
@@ -137,6 +139,8 @@ export function summarizeCategory(
   let visible_count = 0;
   let cleanable_count = 0;
   let selected_count = 0;
+  let unestimated_count = 0;
+  let selected_unestimated_count = 0;
   let blocked_count = 0;
   let advisory_count = 0;
   let recent_count = 0;
@@ -166,9 +170,11 @@ export function summarizeCategory(
     if (isActionable(item)) {
       cleanable_count++;
       const cln = cleanableBytes(item);
+      if (cln === 0) unestimated_count++;
       cleanable_bytes_sum += cln;
       if (selectedMap[item.id]) {
         selected_count++;
+        if (cln === 0) selected_unestimated_count++;
         selected_bytes += cln;
       }
     }
@@ -182,6 +188,8 @@ export function summarizeCategory(
     visible_count,
     cleanable_count,
     selected_count,
+    unestimated_count,
+    selected_unestimated_count,
     blocked_count,
     advisory_count,
     recent_count,

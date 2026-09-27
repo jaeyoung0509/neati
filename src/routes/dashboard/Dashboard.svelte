@@ -23,7 +23,7 @@
   import SettingsView from './SettingsView.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import { formatBytes } from '../../lib/utils/format';
-  import { DEFAULT_DASHBOARD_TABS, dashboardNavigationOwner, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
+  import { DEFAULT_DASHBOARD_TABS, dashboardGroup, groupedDashboardTabs, dashboardNavigationOwner, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
   import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation } from '../../lib/utils/tauri';
   import Button from '../../lib/components/Button.svelte';
   import BrandIcon from '../../lib/components/BrandIcon.svelte';
@@ -75,7 +75,7 @@
   let workflowsMounted = false;
   let stopFreshness: (() => void) | undefined;
   let settings = $derived(settingsStore.settings);
-  let visibleTabs = $derived(settings.dashboard_tabs ?? DEFAULT_DASHBOARD_TABS);
+  let visibleTabs = $derived(groupedDashboardTabs(settings.dashboard_tabs ?? DEFAULT_DASHBOARD_TABS));
   let sidebarCollapsed = $derived(settings.sidebar_collapsed ?? false);
   // Only the platform that actually draws an overlay title bar reserves the top
   // band or gets a drag strip; a native caption bar would otherwise show dead
@@ -138,20 +138,7 @@
 
   // `null` keeps a destination ungrouped; each named group receives one
   // heading even when saved navigation order separates its destinations.
-  const tabGroups: Partial<Record<Tab, string | null>> = {
-    overview: null,
-    storage: null,
-    disk: null,
-    performance: null,
-    memory: null,
-    projects: null,
-    ai_control: null,
-    usage: null,
-    docker: 'Tools',
-    models: 'Tools',
-    development_servers: 'Tools',
-    awake: 'Tools',
-  };
+  const tabGroups = Object.fromEntries(Object.keys(tabDefs).map(tab => [tab, dashboardGroup(tab)]));
 
   /** Whether a destination can run on this platform right now. */
   function isRouteAvailable(route: string): boolean {
@@ -377,7 +364,8 @@
                 aria-current={currentTab === shortcut ? 'page' : undefined}
                 aria-label={shortcutDef.label}
                 title={shortcutAvailable ? (sidebarCollapsed ? shortcutDef.label : undefined) : (shortcutCapability ? platformCapabilitiesStore.feature(shortcutCapability)?.reason : null) ?? `${shortcutDef.label} is unavailable`}
-                class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-140 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {currentTab === shortcut ? 'bg-accent text-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-card'}"
+                data-navigation-parent={tabId}
+                class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2 pl-6 pr-2'} py-1.5 rounded-md text-meta font-medium transition-[background-color,color] duration-140 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {currentTab === shortcut ? 'bg-accent text-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-card'}"
               >
                 {#if currentTab === shortcut}<span aria-hidden="true" class="absolute left-0 inset-y-2 w-0.5 rounded-full bg-primary"></span>{/if}
                 <shortcutDef.icon size={17} strokeWidth={1.75} class="shrink-0" />

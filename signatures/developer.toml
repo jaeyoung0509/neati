@@ -343,6 +343,23 @@ artifact_kind = "package_store"
 consequence = "Removing a required revision breaks that Playwright installation until its browsers are installed again."
 
 [[signatures]]
+id = "dev.clang.module_cache"
+name = "Clang Module Cache"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_contents"
+platforms = ["macos"]
+paths = ["${DARWIN_USER_CACHE}/clang"]
+min_age_days = 0
+owner = "Clang"
+fail_if_running = ["Xcode", "xcodebuild", "xctest", "XCTRunner", "XCBBuildService", "swift-frontend", "clang", "clangd", "swiftc", "sourcekit-lsp", "SourceKitService"]
+provider = "Clang"
+artifact_kind = "build_artifact"
+consequence = "Clang and Swift rebuild compiled module caches during the next build."
+description = "Regenerable compiler cache in the OS-resolved per-user Clang cache root. No age cutoff is required when compiler, indexing, and Xcode processes are idle; active or unknown owners and structured state remain protected."
+
+[[signatures]]
 id = "dev.xcode.derived_data"
 name = "Xcode DerivedData"
 category = "developer"

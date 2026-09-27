@@ -295,8 +295,9 @@ Settings          anchored at the bottom
   exact `memory` route opens the focused Memory page. Saved layouts and deep
   links keep working. Cleanup opens when enabled and supported; otherwise the first
   available saved destination opens. Exact Quick Panel deep links take priority.
-- Saved visibility and order remain authoritative; the shell does not rewrite
-  those preferences. Memory is directly reachable beside Performance; Large
+- Saved visibility and relative order within each group remain authoritative;
+  the shell presents Overview, Storage, System, and Tools in task order without
+  rewriting those preferences. Memory is an indented detail beneath Performance; Large
   Files and Applications beside Storage. These shortcuts follow their parent
   destination's visibility and platform gates. Settings stays pinned at the bottom.
 - Local tab strips belong to a page's own sections. There is no second global
@@ -415,8 +416,8 @@ Overview subscribes to the shared memory collector only while visible.
   incomplete items, running owners, and stateful operations stay outside direct
   cleanup. Show the measured result immediately while the follow-up scan checks
   what remains. Preserve the approved native glass material.
-- A partial scan with no Quick Clean candidates shows `Details`, not a rescan
-  loop. Explain the backend's typed access/scan gaps and counts of reviewable,
+- A current scan with no Quick Clean candidates keeps `Clean` visible and
+  disabled, with a visible reason and a secondary `Details` action. Explain the backend's typed access/scan gaps and counts of reviewable,
   blocked, recent, advisory, and policy-gated items inside the panel. Keep an
   explicit rescan and a route to Storage. Partial coverage does not disable
   direct cleanup of verified caches. Classification remains backend-owned.
@@ -485,6 +486,13 @@ must not suggest that the account has exhausted its quota.
 - Top summary separates disk capacity, observed store size, the known cleanup
   estimate, and the selected amount. Unknown prune size can still be reviewed
   and cleaned.
+- Tool-managed pruning without a reclaim estimate reads `Not estimated`, with
+  the tool's role explained. Mixed selections explicitly count actions without
+  estimates; measured bytes never imply that those actions reclaim zero.
+- Cleanup results distinguish removed bytes from bytes moved to Trash. Trash
+  movement releases no disk space until emptied; only a measured free-space
+  delta describes a disk reading. Policy-preserved entries are reported as
+  kept. Long diagnostic paths wrap within one scrolling result dialog.
 - `Cleanup`: category rows with risk tiers, an actionable selection footer, and
   the existing backend eligibility, consent, and one-shot plan rules.
 - Owner-managed actions remain visually distinct by name and consequence.

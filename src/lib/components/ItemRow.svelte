@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ScanItem } from '../models/types';
   import { formatBytes, formatTimeAgo } from '../utils/format';
-  import { isActionable, isAdvisory } from '../utils/cleanup';
+  import { cleanableBytes, isActionable, isAdvisory } from '../utils/cleanup';
   import { scanStore } from '../stores/scan.svelte';
   import { platformContextStore } from '../stores/platformContext.svelte';
   import { canReveal, revealUnavailableReason, runReveal } from '../utils/reveal';
@@ -25,6 +25,7 @@
     last_used_confidence: 'unknown' as const,
   });
   let cleanable = $derived(isActionable(item));
+  let unestimated = $derived(cleanable && cleanableBytes(item) === 0);
   let isAdvisoryItem = $derived(isAdvisory(item));
   let isSelected = $derived(!!scanStore.selectedMap[item.id] && cleanable);
   let blockedReason = $derived(item.disposition?.reason ?? item.incomplete_reason ?? 'Cleanup blocked');
@@ -114,6 +115,9 @@
       <p class="mt-0.5 truncate text-meta text-muted-foreground">
         {#if item.description}{item.description} · {/if}<span class="font-mono text-caption">{item.path}</span>{#if item.file_count > 0} · {item.file_count} files{/if}{#if item.last_modified} · modified {formatTimeAgo(item.last_modified)}{/if}
       </p>
+      {#if unestimated}
+        <p class="mt-1 text-meta text-muted-foreground">{cacheMetadata.provider} decides what is unused. Reclaim size is not estimated; {formatBytes(item.size.allocated ?? item.size.logical)} is the observed store size.</p>
+      {/if}
     </div>
   </div>
 
@@ -122,7 +126,7 @@
       <span role="alert" class="text-meta text-destructive">{revealError}</span>
     {/if}
     <span class="w-[12ch] shrink-0 whitespace-nowrap text-right text-body font-mono tabular-nums font-semibold text-foreground">
-      {sizeLabel}
+      {unestimated ? 'Not estimated' : sizeLabel}
     </span>
 
     <Button

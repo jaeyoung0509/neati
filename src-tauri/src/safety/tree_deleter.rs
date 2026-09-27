@@ -766,6 +766,36 @@ impl SafeTreeDeleter {
             }
             crate::models::CleanStrategy::DeleteContents
             | crate::models::CleanStrategy::DeleteStaleContents => {
+                // Enumerated cache units may be ordinary files. Validate the
+                // unit itself before choosing a file or directory primitive.
+                let metadata = match Self::validate_trash_entry(
+                    target.path(),
+                    &scope,
+                    target.exclusions(),
+                    environment,
+                    target.stale_policy(),
+                    target.structured_state_policy(),
+                ) {
+                    Ok(Some(metadata)) => metadata,
+                    Ok(None) => {
+                        report.skipped_files += 1;
+                        return report;
+                    }
+                    Err(error) => {
+                        report.errors.push(error);
+                        return report;
+                    }
+                };
+                if metadata.is_file() {
+                    match backend.move_to_trash(target.path()) {
+                        Ok(()) => {
+                            report.reclaimed_bytes = allocated_bytes(&metadata);
+                            report.deleted_files = 1;
+                        }
+                        Err(error) => report.errors.push(error),
+                    }
+                    return report;
+                }
                 Self::move_directory_contents_to_trash(
                     target.path(),
                     &scope,
@@ -999,6 +1029,9 @@ impl SafeTreeDeleter {
         };
         if let Some((kind, _)) = super::structured_state_at(path) {
             if !structured_state_policy.permits(kind) {
+                if stale_policy.is_some() {
+                    return Ok(None);
+                }
                 return Err(format!(
                     "{} is {}; refusing structured state",
                     path.display(),
@@ -1425,6 +1458,10 @@ impl SafeTreeDeleter {
                     .executable(metadata.is_executable());
                 if let Some(kind) = crate::models::classify_structured_state(facts) {
                     if !structured_state_policy.permits(kind) {
+                        if stale_policy.is_some() {
+                            report.skipped_files += 1;
+                            continue;
+                        }
                         report.errors.push(format!(
                             "{} is {}; refusing structured state",
                             child_path.display(),
@@ -1669,6 +1706,10 @@ impl SafeTreeDeleter {
                 .structured_state_policy
                 .is_some_and(|policy| !policy.permits(kind))
             {
+                if stale_policy.is_some() {
+                    report.skipped_files += 1;
+                    return;
+                }
                 report.errors.push(format!(
                     "{} is {}; refusing structured state",
                     path.display(),

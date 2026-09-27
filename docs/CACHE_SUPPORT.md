@@ -284,3 +284,13 @@ rules use these primary sources:
 
 Review this matrix annually and whenever an owner changes its storage or cleanup
 contract.
+
+## Clang per-user module cache
+
+`dev.clang.module_cache` covers only `${DARWIN_USER_CACHE}/clang` on macOS.
+The OS path comes from PlatformEnvironment. This exact compiler cache has no
+age cutoff; Clang, clangd, Swift, SourceKit, Xcode, and Xcode build/test services
+must be idle. Process-state failures refuse cleanup. Generic structured-state,
+symlink, and identity protections still apply. Rebuild cleanup moves eligible
+contents to Trash while retaining the root; the next build regenerates modules.
+See [the installed Mole comparison](evidence/cleanup-0.3.69.md).

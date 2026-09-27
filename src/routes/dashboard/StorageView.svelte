@@ -1,9 +1,8 @@
 <script lang="ts">
-  import SegmentedTabs from '../../lib/components/SegmentedTabs.svelte';
   import CleanupReviewDialog from '../../lib/components/CleanupReviewDialog.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import ScanFreshnessNotice from '../../lib/components/ScanFreshnessNotice.svelte';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import type { CategoryResult, PlanPreview } from '../../lib/models/types';
   import { scanStore } from '../../lib/stores/scan.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
@@ -26,12 +25,8 @@
   import { isActionable, summarizeCategory } from '../../lib/utils/cleanup';
   import {
     RotateCw,
-    Trash2,
     HardDrive,
     ExternalLink,
-    FolderSearch,
-    FileSearch,
-    AppWindow,
     Square,
   } from '@lucide/svelte';
 
@@ -42,6 +37,7 @@
     onOpenDeveloperArtifacts?: () => void;
     onOpenDisks?: () => void;
     initialTab?: 'cleanup' | 'developer-artifacts' | 'large-files' | 'applications' | 'disks';
+    onSelectWorkflow?: (tab: 'cleanup' | 'developer-artifacts' | 'large-files' | 'applications' | 'disks') => void;
   }
 
   let {
@@ -51,6 +47,7 @@
     onOpenDeveloperArtifacts,
     onOpenDisks,
     initialTab = 'cleanup',
+    onSelectWorkflow,
   }: Props = $props();
 
   let activeSecondaryTab = $state<'cleanup' | 'developer-artifacts' | 'large-files' | 'applications' | 'disks'>('cleanup');
@@ -86,11 +83,11 @@
   let isPreparingReview = $state(false);
   const storagePanelId = $props.id();
   const baseStorageTabs = [
-    { id: 'cleanup', label: 'Cleanup', icon: Trash2 },
-    { id: 'developer-artifacts', label: 'Developer Artifacts', icon: FolderSearch },
-    { id: 'large-files', label: 'Large Files', icon: FileSearch },
-    { id: 'applications', label: 'Applications', icon: AppWindow },
-    { id: 'disks', label: 'Disks', icon: HardDrive },
+    { id: 'cleanup', label: 'Cleanup' },
+    { id: 'developer-artifacts', label: 'Developer Artifacts' },
+    { id: 'large-files', label: 'Large Files' },
+    { id: 'applications', label: 'Applications' },
+    { id: 'disks', label: 'Disks' },
   ];
   let storageTabs = $derived(
     baseStorageTabs.filter((tab) => tab.id !== 'applications' || isApplicationsInspectable)
@@ -140,6 +137,11 @@
     if (tab === 'applications' && !isApplicationsInspectable) {
       return;
     }
+    if (onSelectWorkflow) {
+      onSelectWorkflow(tab);
+      void tick().then(() => document.getElementById(`${storagePanelId}-workflow`)?.focus());
+      return;
+    }
     if (tab === 'developer-artifacts' && onOpenDeveloperArtifacts) {
       onOpenDeveloperArtifacts();
       return;
@@ -157,13 +159,30 @@
       return;
     }
     activeSecondaryTab = tab;
+    void tick().then(() => document.getElementById(`${storagePanelId}-workflow`)?.focus());
   }
 </script>
 
+{#snippet workflowSelector()}
+      <select
+        id={`${storagePanelId}-workflow`}
+        aria-label="Storage workflows"
+        aria-controls={storagePanelId}
+        value={activeSecondaryTab}
+        onchange={(event) => handleTabClick(event.currentTarget.value as typeof activeSecondaryTab)}
+        class="h-8 max-w-full rounded-md border border-border-strong bg-card px-2 text-meta text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {#each storageTabs as tab}
+          <option value={tab.id}>{tab.id === 'cleanup' && activeSecondaryTab === 'cleanup' ? 'Storage tools' : tab.label}</option>
+        {/each}
+      </select>
+{/snippet}
+
 <div class="storage-workspace space-y-4">
-  <PageHeader title="Storage" subtitle="Make room for your next project." icon={HardDrive}>
+  {#if activeSecondaryTab === 'cleanup'}
+  <PageHeader title="Cleanup" icon={HardDrive} class="storage-header">
     {#snippet actions()}
-      {#if activeSecondaryTab === 'cleanup'}
+      {@render workflowSelector()}
       <Button
         variant="outline"
         size="sm"
@@ -178,24 +197,16 @@
         </span>
         <span>{scanStore.isScanning ? 'Scanning…' : 'Scan Storage'}</span>
       </Button>
-      {/if}
     {/snippet}
   </PageHeader>
-
-  <!-- Secondary Navigation Tabs -->
-  <SegmentedTabs
-    appearance="underline"
-    tabs={storageTabs}
-    panelId={storagePanelId}
-    activeTab={activeSecondaryTab}
-    ariaLabel="Storage workflows"
-    onSelect={(tab) => handleTabClick(tab as typeof activeSecondaryTab)}
-  />
+  {:else}
+    <div class="flex justify-end">{@render workflowSelector()}</div>
+  {/if}
 
   {#if platformCapabilitiesStore.error !== null && platformCapabilitiesStore.capabilities === null}
     <InlineNotice
       variant="error"
-      message={`Could not verify installed-application inspection: ${platformCapabilitiesStore.error}. Retry to restore the Applications tab.`}
+      message={`Could not verify installed-application inspection: ${platformCapabilitiesStore.error}. Retry to restore Applications.`}
       actionLabel="Retry"
       onAction={() => void platformCapabilitiesStore.load(true)}
     />
@@ -204,23 +215,23 @@
   <div
     class="space-y-4 rounded-xl outline-none"
     id={storagePanelId}
-    role="tabpanel"
+    role="region"
     aria-label={storageTabs.find(tab => tab.id === activeSecondaryTab)?.label}
     tabindex="-1"
   >
   {#if activeSecondaryTab === 'developer-artifacts'}
-    <DeveloperArtifactsView onBack={() => (activeSecondaryTab = 'cleanup')} />
+    <DeveloperArtifactsView onBack={() => handleTabClick('cleanup')} />
   {:else if activeSecondaryTab === 'large-files'}
-    <LargeFilesView onBack={() => (activeSecondaryTab = 'cleanup')} />
+    <LargeFilesView onBack={() => handleTabClick('cleanup')} />
   {:else if activeSecondaryTab === 'applications'}
-    <ApplicationsView onBack={() => (activeSecondaryTab = 'cleanup')} />
+    <ApplicationsView onBack={() => handleTabClick('cleanup')} />
   {:else if activeSecondaryTab === 'disks'}
     <DiskView
       onReviewCategory={(cat) => {
         activeSecondaryTab = 'cleanup';
         onSelectCategory(cat);
       }}
-      onBack={() => (activeSecondaryTab = 'cleanup')}
+      onBack={() => handleTabClick('cleanup')}
     />
   {:else}
     {#if !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
@@ -311,7 +322,7 @@
     {#if !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
     <div class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-sm font-semibold text-foreground tracking-tight">Storage Categories</h2>
+        <h2 class="text-sm font-semibold text-foreground">Caches</h2>
         {#if scan}
           <span class="text-meta text-muted-foreground">Largest cleanup first</span>
         {/if}
@@ -362,7 +373,6 @@
           </Button>
         {/snippet}
       </SelectionToolbar>
-      <p class="mt-1 text-meta text-muted-foreground">Apps may download or rebuild cleaned caches again.</p>
       </div>
       {/if}
 
@@ -389,7 +399,11 @@
 </div>
 
 <style>
+  /* Hallmark: modern-minimal workbench; DESIGN.md; designed-as-app. */
   .storage-workspace { container-type: inline-size; }
+  @container (min-width: 480px) {
+    .storage-workspace :global(.storage-header) { flex-direction: row; align-items: center; }
+  }
   .category-list { padding: 0 4px; }
   .storage-selection {
     position: sticky;

@@ -1,0 +1,12 @@
+[
+  {
+    "date": "2026-09-27",
+    "macrostructure": "Existing desktop workbench with direct task navigation",
+    "theme": "DESIGN.md preserved",
+    "enrichment": "Existing BrandIcon only",
+    "brief": "Preserve visible menus; expose Memory, Large Files and Applications; simplify Storage's nested choices.",
+    "critique": "P4 H4 E4 S5 R4 V3",
+    "verification": "docs/evidence/cleanup-navigation-0.3.66.md",
+    "scope": "In-place application navigation, not a global visual redesign"
+  }
+]

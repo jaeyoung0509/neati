@@ -23,7 +23,7 @@
   import SettingsView from './SettingsView.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import { formatBytes } from '../../lib/utils/format';
-  import { DEFAULT_DASHBOARD_TABS, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
+  import { DEFAULT_DASHBOARD_TABS, dashboardNavigationOwner, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
   import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation } from '../../lib/utils/tauri';
   import Button from '../../lib/components/Button.svelte';
   import BrandIcon from '../../lib/components/BrandIcon.svelte';
@@ -39,6 +39,9 @@
     Gauge,
     HardDrive,
     Moon,
+    MemoryStick,
+    FileSearch,
+    AppWindow,
     RotateCw,
     Server,
     Settings,
@@ -96,6 +99,12 @@
     ai_control: { label: 'AI Activity', icon: ChartNoAxesCombined },
     usage: { label: 'AI Activity', icon: ChartNoAxesCombined },
     awake: { label: 'Keep Awake', icon: Moon },
+    'large-files': { label: 'Large Files', icon: FileSearch },
+    applications: { label: 'Applications', icon: AppWindow },
+  };
+  const directTabs: Partial<Record<DashboardTab, Tab[]>> = {
+    storage: ['large-files', 'applications'],
+    performance: ['memory'],
   };
 
   /**
@@ -144,6 +153,7 @@
   /** Whether a destination can run on this platform right now. */
   function isRouteAvailable(route: string): boolean {
     if (!capabilitiesReady || capabilitiesFailed) return false;
+    if (route === 'applications' && !platformCapabilitiesStore.isInspectable('installed_apps')) return false;
     const capability = routeCapabilities[normalizeDashboardTab(route)] ?? null;
     return !capability || platformCapabilitiesStore.isAvailable(capability);
   }
@@ -179,8 +189,7 @@
     // different platform. Start on the first available tab instead of
     // mounting an unsupported route.
     const preferredTabs = settingsStore.settings.dashboard_tabs ?? DEFAULT_DASHBOARD_TABS;
-    const firstAvailable = preferredTabs.find((tab) => isRouteAvailable(tab));
-    currentTab = normalizeDashboardTab(firstAvailable ?? 'settings') as Tab;
+    currentTab = initialDashboardTab(preferredTabs, isRouteAvailable) as Tab;
   }
 
   onMount(() => {
@@ -306,7 +315,7 @@
                 (priorTabId) => tabGroups[priorTabId as DashboardTab] === currentGroup
               )}
             {@const showGroupHeader = !sidebarCollapsed && currentGroup && !groupShownEarlier}
-            {@const isTabActive = currentTab === tabId || (tabId === 'storage' && (currentTab === 'large-files' || currentTab === 'applications' || currentTab === 'developer-artifacts' || currentTab === 'disks'))}
+            {@const isTabActive = !['memory', 'large-files', 'applications'].includes(currentTab) && dashboardNavigationOwner(currentTab) === dashboardNavigationOwner(tabId)}
 
             {#if showGroupHeader}
               <div class="px-2.5 {i === 0 ? 'pt-1' : 'pt-3'} pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground select-none">
@@ -354,6 +363,24 @@
                 </span>
               {/if}
             </button>
+            {#each directTabs[tabId] ?? [] as shortcut}
+              {@const shortcutDef = shortcut === 'memory' ? { label: 'Memory', icon: MemoryStick } : tabDefs[shortcut]!}
+              {@const shortcutAvailable = isRouteAvailable(shortcut)}
+              {@const shortcutCapability = shortcut === 'applications' ? 'installed_apps' : routeCapabilities[shortcut]}
+              <button
+                type="button"
+                onclick={() => selectTab(shortcut)}
+                disabled={!shortcutAvailable}
+                aria-current={currentTab === shortcut ? 'page' : undefined}
+                aria-label={shortcutDef.label}
+                title={shortcutAvailable ? (sidebarCollapsed ? shortcutDef.label : undefined) : (shortcutCapability ? platformCapabilitiesStore.feature(shortcutCapability)?.reason : null) ?? `${shortcutDef.label} is unavailable`}
+                class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-140 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {currentTab === shortcut ? 'bg-accent text-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-card'}"
+              >
+                {#if currentTab === shortcut}<span aria-hidden="true" class="absolute left-0 inset-y-2 w-0.5 rounded-full bg-primary"></span>{/if}
+                <shortcutDef.icon size={17} strokeWidth={1.75} class="shrink-0" />
+                {#if !sidebarCollapsed}<span>{shortcutDef.label}</span>{/if}
+              </button>
+            {/each}
           {/if}
         {/each}
 
@@ -406,7 +433,7 @@
   </aside>
 
   <!-- Main Content Area with fluid native transition -->
-  <main class="@container min-w-0 flex-1 h-full overflow-y-auto scroll-stable {overlayTitleBar ? 'pt-10' : ''}">
+  <main class="@container min-w-0 flex-1 h-full overflow-y-auto scroll-stable scroll-pb-24 {overlayTitleBar ? 'pt-10' : ''}">
     {#if !capabilitiesReady}
       <div class="flex h-full items-center justify-center text-body text-muted-foreground p-4 @2xl:p-6">Loading platform capabilities…</div>
     {:else if capabilitiesFailed}
@@ -438,7 +465,7 @@
       </div>
     {:else}
       <div class="p-4 @2xl:p-6">
-        {#key selectedCategory ? selectedCategory.category : currentTab}
+        {#key selectedCategory ? selectedCategory.category : dashboardNavigationOwner(currentTab) === 'storage' ? 'storage' : currentTab}
           <div in:fade={{ duration: fadeDuration, easing: cubicOut }}>
             {#if selectedCategory}
               <CategoryDetailView
@@ -451,10 +478,12 @@
             {:else if currentTab === 'storage' || currentTab === 'large-files' || currentTab === 'applications' || currentTab === 'developer-artifacts' || currentTab === 'disks'}
               <StorageView
                 initialTab={currentTab === 'storage' ? 'cleanup' : currentTab}
+                onSelectWorkflow={(tab) => selectTab(tab === 'cleanup' ? 'storage' : tab)}
                 onSelectCategory={(cat) => (selectedCategory = cat)}
               />
             {:else if currentTab === 'performance' || currentTab === 'memory' || currentTab === 'cpu' || currentTab === 'battery'}
               <PerformanceView
+                standaloneMemory={currentTab === 'memory'}
                 initialTab={currentTab === 'memory' ? 'memory' : currentTab === 'battery' ? 'battery' : 'cpu'}
                 onNavigateTab={(tab) => selectTab(tab)}
               />

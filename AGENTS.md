@@ -26,6 +26,10 @@ safety conventions below when changing Zenith.
   branch. Implement, verify, push, then open a PR targeting `develop`. Never
   commit directly to `main` or `develop`, and merge only after explicit user
   approval. Keep related requests in one PR when the user asks for one review unit.
+- Batch related issues into one PR to avoid a full CI run per issue. Link every
+  included issue, keep changes reviewable, and finish local verification before
+  pushing the batch. When the user explicitly authorizes a merge-after-CI
+  workflow, merge only after all checks, including packaging, have passed.
 - Every PR that changes shipped behavior or assets (including UI, logos, icons,
   and packaging) includes one patch bump by default. Documentation-only changes
   may retain the version; record that decision in the PR. An explicit user

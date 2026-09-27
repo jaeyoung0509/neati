@@ -524,12 +524,17 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(scanningRender.body).toContain('animate-bounce-dot-1');
   });
 
-  it('keeps the tabpanel programmatically focusable without adding a blue keyboard tab stop', () => {
+  it('labels the native workflow selector and keeps its region programmatically focusable', () => {
     const rendered = render(StorageView, { props: { onSelectCategory: vi.fn() } });
-    expect(rendered.body).toContain('role="tabpanel"');
+    expect(rendered.body).toMatch(/<select[^>]*aria-label="Storage workflows"[^>]*aria-controls=/);
+    expect(rendered.body).not.toContain('role="tablist"');
+    expect(rendered.body).toContain('Storage tools');
+    expect(rendered.body).toContain('Developer Artifacts');
+    expect(rendered.body).toContain('Large Files');
+    expect(rendered.body).toContain('Disks');
     expect(rendered.body).toContain('tabindex="-1"');
     expect(rendered.body).toContain('outline-none');
-    expect(rendered.body).toMatch(/class="space-y-4 rounded-xl outline-none"[^>]*role="tabpanel"[^>]*tabindex="-1"/);
+    expect(rendered.body).toMatch(/class="space-y-4 rounded-xl outline-none"[^>]*role="region"[^>]*tabindex="-1"/);
   });
 
   it('renders CleanResultModal with accessible dialog semantics and deterministic done button', () => {

@@ -267,15 +267,19 @@ feedback remain. Nothing animates in a hidden window.
 
 ### Navigation
 
-One primary navigation system, grouped, with Tools expanded by default:
+Keep the existing fully visible sidebar. Reduce nested workflow choices and
+shorten the path to inspection, selection, and cleanup, not the number of destinations:
 
 ```text
-Overview          the control tower; the default start page for new installs
-Storage           Cleanup / Developer Artifacts / Large Files / Applications / Disks
+Overview          existing system summary
+Storage           cleanup-first entry; secondary workflows use a compact native selector
+Large Files       direct shortcut to file selection and recoverable deletion
+Applications      direct shortcut to application inspection and supported uninstall
 Performance       CPU / Memory / Battery detail
+Memory            focused memory page, no nested section selector
 AI Activity       Usage / Projects & Sessions / Tool Adapters / AI Control Center
 
-Tools             visual group, expanded by default
+Tools             visible group, expanded by default
   Containers
   Local Models
   Dev Servers
@@ -287,13 +291,14 @@ Settings          anchored at the bottom
 - `Overview` is the user-facing name of the control tower. It summarizes the
   existing services and links to them; it is not a second policy layer and it
   never mounts a full route offscreen to collect data.
-- The Memory route is `Performance → Memory`. The persisted `memory` tab id and
-  the `memory` route both resolve to that page, so saved layouts and deep links
-  keep working; `#280`'s migration adds `Overview` **after** whichever tab the
-  user starts on, so an upgrade never changes the start page.
-- Group headings name a navigation group once. Saved tab order remains
-  authoritative, including when destinations from one group become separated;
-  never repeat a heading just because a group resumes later in the list.
+- Legacy persisted `memory` preferences still normalize to Performance; the
+  exact `memory` route opens the focused Memory page. Saved layouts and deep
+  links keep working. Cleanup opens when enabled and supported; otherwise the first
+  available saved destination opens. Exact Quick Panel deep links take priority.
+- Saved visibility and order remain authoritative; the shell does not rewrite
+  those preferences. Memory is directly reachable beside Performance; Large
+  Files and Applications beside Storage. These shortcuts follow their parent
+  destination's visibility and platform gates. Settings stays pinned at the bottom.
 - Local tab strips belong to a page's own sections. There is no second global
   Overview/Cleanup/Performance/AI strip inside a page.
 
@@ -317,8 +322,8 @@ inventory is still valid.
 - **Card / surface**: `bg-card` + 1 px `--border` + `rounded-xl`. Data rows
   remain opaque; the optional `surface="subtle"` variant groups rows on
   `--secondary`. Navigation and Quick Panel chrome carry translucency.
-- **Navigation group**: each group heading appears once, even when a saved tab
-  order separates destinations from the same group. Selected navigation uses
+- **Navigation group**: destinations remain visible, with each group heading
+  appearing once even when custom order separates its entries. Selected navigation uses
   a pale blue surface, cobalt text, and a visible leading marker.
 - **Badge**: status carries text meaning beyond colour (`success`, `warning`,
   `outline`), at `text-caption` or above.
@@ -469,8 +474,9 @@ must not suggest that the account has exhausted its quota.
   preselected; ordinary cleanup prepares and executes its private plan from one
   click. Only dedicated stateful operations retain a confirmation dialog.
 - Category rows share one bordered surface, with aligned value columns and
-  descending cleanable-byte order. Local workflow tabs use an underline rather
-  than a second enclosing card. The review toolbar follows the list in keyboard
+  descending cleanable-byte order. Storage tools use one native select in the
+  page header instead of five peer tabs. Its selected workflow and return action
+  stay synchronized with the shell route. The cleanup toolbar follows the list in keyboard
   order and remains visible while scrolling.
 
 - Top summary separates disk capacity, observed store size, the known cleanup
@@ -494,6 +500,9 @@ must not suggest that the account has exhausted its quota.
 
 - CPU, memory, and battery summaries with local tabs and a short real history
   when samples exist.
+- The direct Memory destination reuses the subscriber-owned memory panel in a
+  focused page titled Memory, without a second navigation strip. Selecting
+  Memory from Performance opens the same destination.
 - Memory pressure is shown first and is distinct from percent used; supporting
   facts are used/total and swap.
 - Battery is a small 2D outline with a proportional solid fill: percentage plus

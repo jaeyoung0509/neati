@@ -1,4 +1,6 @@
 pub mod blacklist;
+#[cfg(target_os = "macos")]
+pub mod owner_lock;
 pub mod planner;
 pub mod stale;
 pub mod symlink;

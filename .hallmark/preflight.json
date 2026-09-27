@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-27",
+  "scope": "main navigation and cleanup entry",
+  "designSystem": "DESIGN.md",
+  "framework": "Svelte 5, TypeScript, Tailwind CSS 4, Tauri 2",
+  "fontSource": "src/app.css:42",
+  "paletteSource": "src/app.css",
+  "motion": "Existing Svelte fade and reduced-motion rules; no new motion library",
+  "spacing": "Existing Tailwind utility scale",
+  "preserve": ["native glass", "system font stack", "blue/cyan tokens", "cleanup authorization", "existing routes"],
+  "changes": ["cleanup-first entry", "direct Memory, Large Files and Applications shortcuts", "compact storage workflow selector"],
+  "userCorrection": "Keep the existing fully visible sidebar; shorten task paths instead of hiding menu entries."
+}

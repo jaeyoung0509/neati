@@ -33,7 +33,7 @@ fn temp_aliases_produce_one_cleanup_unit() {
 fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
     let fixture = tempfile::tempdir().unwrap();
     let cache_root = fixture.path().join("C");
-    let modules = cache_root.join("clang/ModuleCache");
+    let modules = cache_root.join("clang").join("ModuleCache");
     fs::create_dir_all(&modules).unwrap();
     fs::write(modules.join("module.pcm"), vec![5u8; 8192]).unwrap();
     // This fixture touches the host filesystem, so its path flavor must match

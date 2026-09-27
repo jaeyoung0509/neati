@@ -159,5 +159,7 @@ real Windows temporary directory with a simulated POSIX path flavor, so the
 scanner discovered zero units. The fixture now uses the runner's path flavor
 and explicitly asserts that the catalog placeholder resolves to its real
 temporary cache directory. The macOS-only catalog declaration is also asserted.
+The fixture joins each path component separately so its expected path uses the
+same native separators as the scanner on Windows.
 The same scan assertions remain enabled on every runner; no test is skipped and
 no production cleanup policy changes. This follow-up retains version 0.3.69.

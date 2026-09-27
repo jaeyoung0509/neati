@@ -110,6 +110,18 @@ impl SymlinkGuard {
     /// Preserves I/O and permission errors so verification paths can fail closed.
     pub fn is_symlink_metadata(path: &Path) -> std::io::Result<bool> {
         let meta = fs::symlink_metadata(path)?;
+        Self::is_symlink_from_metadata(path, &meta)
+    }
+
+    /// Classifies a scanner observation without a second metadata read.
+    /// Callers must supply `symlink_metadata`, never target-following metadata.
+    /// Windows reparse tags still require a handle query and may fail.
+    pub(crate) fn is_symlink_from_metadata(
+        path: &Path,
+        meta: &fs::Metadata,
+    ) -> std::io::Result<bool> {
+        #[cfg(not(windows))]
+        let _ = path;
         if meta.file_type().is_symlink() {
             return Ok(true);
         }
@@ -625,6 +637,22 @@ mod tests {
         ))));
     }
 
+    #[test]
+    fn scanner_classification_reuses_the_supplied_metadata() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("cache.bin");
+        fs::write(&file, b"cache").unwrap();
+        let metadata = fs::symlink_metadata(&file).unwrap();
+        fs::remove_file(&file).unwrap();
+
+        assert!(!SymlinkGuard::is_symlink_from_metadata(&file, &metadata).unwrap());
+        assert_eq!(
+            SymlinkGuard::is_symlink_metadata(&file).unwrap_err().kind(),
+            std::io::ErrorKind::NotFound,
+            "the authorization-facing API still reads the live path"
+        );
+    }
+
     #[cfg(unix)]
     #[test]
     fn links_are_detected_even_when_their_targets_do_not_exist() {
@@ -647,6 +675,10 @@ mod tests {
         // link is still refused as a traversal path.
         assert!(SymlinkGuard::is_symlink(&dangling));
         assert!(SymlinkGuard::is_symlink_strict(&dangling).unwrap());
+        for path in [&link, &dangling] {
+            let metadata = fs::symlink_metadata(path).unwrap();
+            assert!(SymlinkGuard::is_symlink_from_metadata(path, &metadata).unwrap());
+        }
     }
 
     #[cfg(windows)]

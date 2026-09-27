@@ -698,45 +698,15 @@ impl SizeCalculator {
                 continue;
             }
 
-            // Never follow a link or a reparse point; account only for the link
-            // itself, including a dangling one.
-            if SymlinkGuard::is_symlink(&child_path) {
-                match fs::symlink_metadata(&child_path) {
-                    Ok(meta) => {
-                        let len = meta.len();
-                        local_logical += len;
-                        #[cfg(unix)]
-                        {
-                            local_allocated += meta.blocks() * 512;
-                        }
-                        #[cfg(windows)]
-                        {
-                            local_allocated += get_allocated_size(&child_path).unwrap_or(len);
-                        }
-                        #[cfg(not(any(unix, windows)))]
-                        {
-                            local_allocated += len;
-                        }
-                        local_file_count += 1;
-                    }
-                    Err(err) => {
-                        state.fail(FailureRecord::new(
-                            depth,
-                            &child_path,
-                            format!(
-                                "Failed to read symlink metadata for {}: {}",
-                                child_path.display(),
-                                err
-                            ),
-                        ));
-                    }
-                }
-                continue;
-            }
-
-            match fs::symlink_metadata(&child_path) {
-                Ok(meta) => {
-                    if meta.is_dir()
+            // Classify and measure the same observation; links contribute only
+            // their own bytes and reparse-query errors make the scan partial.
+            match fs::symlink_metadata(&child_path).and_then(|meta| {
+                SymlinkGuard::is_symlink_from_metadata(&child_path, &meta)
+                    .map(|is_link| (meta, is_link))
+            }) {
+                Ok((meta, is_link)) => {
+                    if !is_link
+                        && meta.is_dir()
                         && child_path
                             .extension()
                             .and_then(|ext| ext.to_str())
@@ -753,7 +723,7 @@ impl SizeCalculator {
                         continue;
                     }
 
-                    if meta.is_file() {
+                    if is_link || meta.is_file() {
                         let len = meta.len();
                         local_logical += len;
                         #[cfg(unix)]
@@ -921,44 +891,13 @@ impl SizeCalculator {
                 continue;
             }
 
-            // Symlink check: DO NOT traverse into symlinked directories
-            if SymlinkGuard::is_symlink(&child_path) {
-                match fs::symlink_metadata(&child_path) {
-                    Ok(m) => {
-                        let len = m.len();
-                        total_logical += len;
-                        #[cfg(unix)]
-                        {
-                            total_allocated += m.blocks() * 512;
-                        }
-                        #[cfg(windows)]
-                        {
-                            total_allocated += get_allocated_size(&child_path).unwrap_or(len);
-                        }
-                        #[cfg(not(any(unix, windows)))]
-                        {
-                            total_allocated += len;
-                        }
-                        file_count += 1;
-                    }
-                    Err(err) => {
-                        complete = false;
-                        skipped_entries += 1;
-                        if incomplete_reason.is_none() {
-                            incomplete_reason = Some(format!(
-                                "Failed to read symlink metadata for {}: {}",
-                                child_path.display(),
-                                err
-                            ));
-                        }
-                    }
-                }
-                continue;
-            }
-
-            match fs::symlink_metadata(&child_path) {
-                Ok(meta) => {
-                    if meta.is_dir()
+            match fs::symlink_metadata(&child_path).and_then(|meta| {
+                SymlinkGuard::is_symlink_from_metadata(&child_path, &meta)
+                    .map(|is_link| (meta, is_link))
+            }) {
+                Ok((meta, is_link)) => {
+                    if !is_link
+                        && meta.is_dir()
                         && child_path
                             .extension()
                             .and_then(|ext| ext.to_str())
@@ -975,7 +914,7 @@ impl SizeCalculator {
                         continue;
                     }
 
-                    if meta.is_file() {
+                    if is_link || meta.is_file() {
                         let len = meta.len();
                         total_logical += len;
                         #[cfg(unix)]

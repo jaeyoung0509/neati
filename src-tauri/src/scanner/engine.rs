@@ -19,22 +19,26 @@ use zenith_core::domain::scan::ScanSpan;
 use zenith_core::domain::ScanMetrics;
 use zenith_platform::PlatformEnvironment;
 
-use crate::scanner::relationship::unit_relationship;
+use crate::scanner::relationship::ScanRelationships;
 
 pub struct ScanEngine;
 
 /// The relationship two units have, together with the cleanup policy the scan
 /// can act on.
 ///
-/// The structural answer comes from [`unit_relationship`], which the planner
-/// uses as well, so a plan and the scan it came from cannot disagree about
-/// whether two units are one location.
+/// The structural answer shares `unit_relationship`'s algorithm with the
+/// planner. Only this observation pass memoizes filesystem reads; planning
+/// always inspects the current filesystem.
 fn scan_unit_relationship(
     candidate: &ScanItem,
     container: &ScanItem,
     registry: &SignatureRegistry,
+    relationships: &RefCell<ScanRelationships>,
 ) -> Option<UnitRelationship> {
-    match unit_relationship(candidate, container) {
+    match relationships
+        .borrow_mut()
+        .relationship(candidate, container)
+    {
         UnitRelationship::Equivalent => Some(
             if exact_authorities_can_fold(candidate, container, registry) {
                 UnitRelationship::Equivalent
@@ -657,12 +661,23 @@ impl ScanEngine {
         // inside a broader one is that unit's provenance, not a second total,
         // and the broader unit can be in another category. The categories are
         // restated before any number derived from them is reported.
+        let overlap_started = Instant::now();
+        let relationships = RefCell::new(ScanRelationships::default());
         let overlap = resolve_unit_overlaps_with(
             &mut category_results,
             &[],
             PathIdentity::CaseSensitive,
-            |candidate, container| scan_unit_relationship(candidate, container, registry),
+            |candidate, container| {
+                scan_unit_relationship(candidate, container, registry, &relationships)
+            },
         );
+        spans.push(ScanSpan {
+            source_id: "scan.overlap_resolution".into(),
+            duration_ms: overlap_started
+                .elapsed()
+                .as_millis()
+                .min(u128::from(u64::MAX)) as u64,
+        });
         for category_result in &category_results {
             total_bytes += category_result.total_bytes;
             cleanable_bytes += category_result.cleanable_bytes;
@@ -787,12 +802,20 @@ impl ScanEngine {
             .iter()
             .flat_map(|slice| slice.categories.clone())
             .collect::<Vec<_>>();
+        let overlap_started = Instant::now();
+        let relationships = RefCell::new(ScanRelationships::default());
         let overlap = resolve_unit_overlaps_with(
             &mut categories,
             &[],
             PathIdentity::CaseSensitive,
-            |candidate, container| scan_unit_relationship(candidate, container, registry),
+            |candidate, container| {
+                scan_unit_relationship(candidate, container, registry, &relationships)
+            },
         );
+        let overlap_duration_ms = overlap_started
+            .elapsed()
+            .as_millis()
+            .min(u128::from(u64::MAX)) as u64;
 
         let mut total_bytes = 0u64;
         let mut cleanable_bytes = 0u64;
@@ -845,7 +868,7 @@ impl ScanEngine {
             duration_ms: slices
                 .iter()
                 .map(|slice| slice.metrics.duration_ms)
-                .fold(0u64, u64::saturating_add),
+                .fold(overlap_duration_ms, u64::saturating_add),
             visited_entries: slices
                 .iter()
                 .map(|slice| slice.metrics.visited_entries)
@@ -882,6 +905,10 @@ impl ScanEngine {
             spans: slices
                 .iter()
                 .flat_map(|slice| slice.spans.clone())
+                .chain(std::iter::once(ScanSpan {
+                    source_id: "scan.overlap_merge".into(),
+                    duration_ms: overlap_duration_ms,
+                }))
                 .collect(),
             skipped_entry_count,
             incomplete_item_count,
@@ -2342,6 +2369,34 @@ mod tests {
             "one directory root plus one file is two visited filesystem entries"
         );
         assert_eq!(result.metrics.directories_read, 1);
+        assert_eq!(
+            result
+                .spans
+                .iter()
+                .filter(|span| span.source_id == "scan.overlap_resolution")
+                .count(),
+            1
+        );
+        let merged = ScanEngine::merge_slices(
+            &registry,
+            &scan_environment(),
+            std::slice::from_ref(&result),
+        )
+        .expect("merged scan");
+        assert_eq!(
+            merged
+                .spans
+                .iter()
+                .filter(|span| span.source_id == "scan.overlap_merge")
+                .count(),
+            1
+        );
+        assert_eq!(merged.total_bytes, result.total_bytes);
+        assert_eq!(
+            merged.metrics.visited_entries,
+            result.metrics.visited_entries
+        );
+        assert!(merged.metrics.duration_ms >= result.metrics.duration_ms);
         assert!(result
             .spans
             .iter()

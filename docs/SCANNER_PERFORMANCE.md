@@ -40,6 +40,27 @@ message — rather than by whichever worker finished first
 (`scanner/size.rs`, `FailureRecord`), so a parallel walk and a sequential walk
 of the same tree report identical results.
 
+### Metadata reuse
+
+The size and age walkers classify links from the same `symlink_metadata`
+observation used for size/type accounting. They do not perform a second stat
+just to ask whether an ordinary entry is a link. Windows reparse points still
+require a handle-level tag query; a failed query reports an incomplete scan,
+never permission to descend.
+
+Overlap resolution uses a disposable `ScanRelationships` cache for filesystem
+identity and actual directory-entry spelling. Its lifetime is one resolution
+pass, including one fresh pass when scan slices are merged. Missing identities
+are cached for that pass too. The shared relationship algorithm still keeps
+different hardlink entries separate, resolves case aliases using real identity,
+and falls back to case-sensitive text when identity is unavailable.
+
+This is an observation optimization, not a cleanup authorization cache. The
+planner uses the uncached probe, and execution's identity, scope, symlink, and
+structured-state checks are unchanged. The regression suite asserts one probe
+per distinct path during an all-pairs overlap fixture, unchanged classifications,
+and fresh observations after a file is replaced.
+
 ## What a scan reports
 
 `ScanResult.metrics` (`ScanMetrics`) carries the run's own measurements:
@@ -50,6 +71,13 @@ of the same tree report identical results.
 | `directories_read` | yes | Directories whose contents were read. |
 | `duration_ms` | no | Wall-clock duration of this run. |
 | `peak_outstanding_directory_tasks` | no | The highest number of directory tasks this run kept outstanding. |
+
+`ScanResult.spans` separately records `scan.overlap_resolution` for a scan's
+cross-category overlap pass and `scan.overlap_merge` for the fresh pass that
+combines completed slices. Merged duration includes the slice durations plus
+that merge pass; it is not elapsed UI time including idle periods between scans.
+These spans complement the signature/provider timings without changing the
+meaning of traversal counters.
 
 `ScanResult.cancelled` states whether the run stopped because it was cancelled;
 a cancelled scan is `quality: partial` with a stated reason, and the flag is

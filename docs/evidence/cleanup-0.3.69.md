@@ -151,3 +151,13 @@ not changed. Preview mutation remains disabled.
 Windows execution and actual native glass composition are not manually tested.
 The built bundle is not installed over the user's running app. CI status is
 reported on the PR separately from local checks.
+
+### Windows CI fixture correction
+
+The first Windows CI run failed the new Clang catalog test: it combined a
+real Windows temporary directory with a simulated POSIX path flavor, so the
+scanner discovered zero units. The fixture now uses the runner's path flavor
+and explicitly asserts that the catalog placeholder resolves to its real
+temporary cache directory. The macOS-only catalog declaration is also asserted.
+The same scan assertions remain enabled on every runner; no test is skipped and
+no production cleanup policy changes. This follow-up retains version 0.3.69.

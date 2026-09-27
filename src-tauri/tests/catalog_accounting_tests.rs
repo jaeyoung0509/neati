@@ -36,7 +36,9 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
     let modules = cache_root.join("clang/ModuleCache");
     fs::create_dir_all(&modules).unwrap();
     fs::write(modules.join("module.pcm"), vec![5u8; 8192]).unwrap();
-    let environment = PlatformEnvironment::simulated(PathFlavor::Posix).with_roots(Arc::new(
+    // This fixture touches the host filesystem, so its path flavor must match
+    // the runner even though the catalog entry is offered only on macOS.
+    let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_roots(Arc::new(
         SimulatedPaths::new()
             .with_home(fixture.path())
             .with_user_cache_dir(&cache_root),
@@ -44,6 +46,15 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
     let registry = SignatureRegistry::load_embedded_catalog().unwrap();
     let signature = registry.get("dev.clang.module_cache").unwrap();
     assert_eq!(signature.paths, ["${DARWIN_USER_CACHE}/clang"]);
+    assert_eq!(
+        signature.platforms,
+        [zenith_lib::models::PlatformKind::Macos]
+    );
+    assert_eq!(
+        SignatureLoader::expand_path(&signature.paths[0], &environment),
+        Some(cache_root.join("clang")),
+        "the simulated cache root must resolve to the real fixture on every runner"
+    );
     assert_eq!(signature.min_age_days, Some(0));
     assert_eq!(signature.strategy, CleanStrategy::DeleteContents);
     assert_eq!(signature.risk, RiskTier::Rebuild);

@@ -493,6 +493,9 @@ describe('quick cleanup state', () => {
       const body = render(QuickPanel).body;
       expect(body).toContain('Partial scan · No eligible caches');
       expect(body).toContain('Details');
+      const clean = body.match(/<button[^>]*>[\s\S]*?<\/button>/g)?.find(button => button.includes('<span>Clean</span>'));
+      expect(clean).toContain('disabled');
+      expect(body).toContain('No eligible caches in checked locations');
       expect(body).not.toContain('Scan Again');
       expect(body).not.toContain('Clean Safe');
     } finally {

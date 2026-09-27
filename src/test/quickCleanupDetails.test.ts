@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import type { ScanItem, ScanResult } from '../lib/models/types';
-import { quickCleanupDetails } from '../lib/utils/quickCleanupDetails';
+import { quickCleanupDetails, quickCleanupUnavailableReason } from '../lib/utils/quickCleanupDetails';
 import Dialog from '../lib/components/QuickCleanupDetailsDialog.svelte';
 
 function item(eligibility: NonNullable<ScanItem['disposition']>['eligibility'], bytes = 64): ScanItem {
@@ -23,6 +23,11 @@ function scan(items: ScanItem[]): ScanResult {
 }
 
 describe('Quick cleanup explanations', () => {
+  it('explains reviewed items and settings exclusions without authorizing either', () => {
+    expect(quickCleanupUnavailableReason(scan([item('reviewable')]))).toBe('1 item needs review in Storage');
+    expect(quickCleanupUnavailableReason(scan([item('auto_cleanable')]))).toBe('Caches excluded by cleanup settings');
+    expect(quickCleanupUnavailableReason(scan([item('recent')]))).toBe('Remaining caches are too recent');
+  });
   it('keeps reviewable and blocked observations out of automatic counts', () => {
     const details = quickCleanupDetails(scan([item('reviewable'), item('blocked'), item('recent')]), 0);
     expect(details.reviewCount).toBe(1);

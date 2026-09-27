@@ -352,6 +352,7 @@
       <SelectionToolbar
         selectedCount={scanStore.selectedCount}
         selectedBytes={scanStore.reclaimableBytes}
+        unestimatedCount={summarizeCategory(scan?.categories.flatMap(category => category.items) ?? [], scanStore.selectedMap).selected_unestimated_count}
         manualCount={scanStore.manualSelectedCount}
         actionLabel="Clean selected"
         onAction={handleCleanSelected}

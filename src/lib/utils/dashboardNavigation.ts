@@ -15,6 +15,20 @@ export const DEFAULT_DASHBOARD_TABS: DashboardTab[] = [
   'awake',
 ];
 
+export function dashboardGroup(tab: string): string | null {
+  if (tab === 'overview') return null;
+  if (tab === 'storage' || tab === 'disk') return 'Storage';
+  if (tab === 'performance' || tab === 'memory') return 'System';
+  return 'Tools';
+}
+
+/** Saved visibility and relative order within each task group remain intact. */
+export function groupedDashboardTabs(tabs: readonly DashboardTab[]): DashboardTab[] {
+  return [null, 'Storage', 'System', 'Tools'].flatMap(group =>
+    tabs.filter(tab => dashboardGroup(tab) === group)
+  );
+}
+
 /**
  * Normalizes a persisted dashboard tab id. `disk` predates the Disks sub-tab
  * and `memory` predates the Performance page, so both keep working for saved

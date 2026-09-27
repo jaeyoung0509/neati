@@ -2,7 +2,7 @@ import type { AiProviderId, DashboardTab, QuickPanelSection, ZenithSettings } fr
 import { tauriGetSettings, tauriSaveSettings, tauriSetWindowTheme } from '../utils/tauri';
 import { moveOrdered, reorderOrdered, toggleOrdered } from '../utils/quickPanel';
 import { serializeSettingsSnapshot } from '../utils/settings';
-import { DEFAULT_DASHBOARD_TABS, normalizeDashboardTab } from '../utils/dashboardNavigation';
+import { DEFAULT_DASHBOARD_TABS, dashboardGroup, normalizeDashboardTab } from '../utils/dashboardNavigation';
 
 export class SettingsStore {
   settings = $state<ZenithSettings>({
@@ -214,11 +214,13 @@ export class SettingsStore {
   }
 
   async moveDashboardTab(tab: DashboardTab, direction: -1 | 1) {
-    const next = moveOrdered(this.settings.dashboard_tabs, tab, direction);
-    await this.save({ dashboard_tabs: next });
+    const peers = this.settings.dashboard_tabs.filter(candidate => dashboardGroup(candidate) === dashboardGroup(tab));
+    const target = peers[peers.indexOf(tab) + direction];
+    if (target) await this.reorderDashboardTabs(tab, target);
   }
 
   async reorderDashboardTabs(dragged: DashboardTab, target: DashboardTab) {
+    if (dashboardGroup(dragged) !== dashboardGroup(target)) return;
     const next = reorderOrdered(this.settings.dashboard_tabs, dragged, target);
     await this.save({ dashboard_tabs: next });
   }

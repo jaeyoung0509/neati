@@ -105,6 +105,11 @@ describe('Dashboard sidebar affordances', () => {
     try {
       const rendered = render(Dashboard);
       expect(rendered.body.match(/>Tools<\/div>/g)).toHaveLength(1);
+      expect(rendered.body.match(/>System<\/div>/g)).toHaveLength(1);
+      expect(rendered.body).toContain('data-navigation-parent="storage"');
+      expect(rendered.body).toContain('data-navigation-parent="performance"');
+      expect(rendered.body.indexOf('aria-label="Storage')).toBeLessThan(rendered.body.indexOf('aria-label="Containers"'));
+      expect(rendered.body.indexOf('aria-label="Memory"')).toBeLessThan(rendered.body.indexOf('aria-label="Containers"'));
       expect(rendered.body).not.toContain('aria-label="Tools"');
       expect(rendered.body).toContain('aria-label="Memory"');
       expect(rendered.body).toContain('aria-label="Developer Artifacts"');

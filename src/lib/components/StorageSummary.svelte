@@ -14,7 +14,7 @@
   <div class="summary-primary">
     <p class="text-meta font-medium text-muted-foreground">{scan ? estimateLabel : 'Available to clean'}</p>
     <p class="mt-1 text-metric-lg font-semibold tracking-tight tabular-nums text-foreground">
-      {scan ? summary.cleanable_bytes > 0 ? formatBytes(summary.cleanable_bytes) : summary.cleanable_count > 0 ? 'Amount varies' : formatBytes(0) : '—'}
+      {scan ? summary.cleanable_bytes > 0 ? formatBytes(summary.cleanable_bytes) : summary.cleanable_count > 0 ? 'Not estimated' : formatBytes(0) : '—'}
     </p>
     <p class="mt-1 text-meta text-muted-foreground">
       {#if !scan}
@@ -27,6 +27,9 @@
         No cleanup candidates in this scan.
       {/if}
     </p>
+    {#if isCurrent && summary.unestimated_count > 0}
+      <p class="mt-1 text-meta text-muted-foreground">{summary.unestimated_count} tool-managed {summary.unestimated_count === 1 ? 'cleanup has' : 'cleanups have'} no size estimate. The tool decides what is unused.</p>
+    {/if}
   </div>
   <div class="summary-context">
     <p class="text-meta text-muted-foreground">Observed in scan</p>

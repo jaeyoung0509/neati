@@ -1,0 +1,115 @@
+{
+  "buckets": {
+    "application_support": {
+      "allocated_bytes_at_audit": 4096,
+      "items": 1,
+      "reference_only_items": 1,
+      "rounded_preview_bytes": 1024
+    },
+    "browser": {
+      "allocated_bytes_at_audit": 25460736,
+      "items": 2,
+      "rounded_preview_bytes": 26650214,
+      "zenith_descendants_items": 2
+    },
+    "cargo": {
+      "allocated_bytes_at_audit": 104169472,
+      "exact_items": 1,
+      "items": 1,
+      "rounded_preview_bytes": 109261619
+    },
+    "homebrew": {
+      "allocated_bytes_at_audit": 38592512,
+      "items": 1,
+      "rounded_preview_bytes": 40475033,
+      "zenith_descendants_items": 1
+    },
+    "other": {
+      "allocated_bytes_at_audit": 94081024,
+      "exact_items": 1,
+      "items": 85,
+      "reference_only_items": 4,
+      "rounded_preview_bytes": 98401689,
+      "unmeasured_allocated_items": 1,
+      "zenith_ancestor_items": 80
+    },
+    "user_app_cache": {
+      "allocated_bytes_at_audit": 78053376,
+      "exact_items": 5,
+      "items": 37,
+      "reference_only_items": 30,
+      "rounded_preview_bytes": 81859376,
+      "unmeasured_allocated_items": 1,
+      "zenith_ancestor_items": 1,
+      "zenith_descendants_items": 1
+    },
+    "user_log": {
+      "allocated_bytes_at_audit": 2486272,
+      "exact_items": 6,
+      "items": 9,
+      "reference_only_items": 3,
+      "rounded_preview_bytes": 2260172
+    }
+  },
+  "limitations": [
+    "The reference cleaner's displayed sizes are rounded potential bytes, not verified reclaim.",
+    "Nested preview paths may be counted more than once in its displayed sum.",
+    "Path ancestry does not prove equal cleanup units or equal authorization.",
+    "du measures current allocated footprint, not the bytes an owner command would remove.",
+    "Neither input proves actual deletion throughput or disk free-space change."
+  ],
+  "path_relationships": {
+    "exact": 13,
+    "reference_only": 38,
+    "zenith_ancestor": 81,
+    "zenith_descendants": 4
+  },
+  "reference_preview": {
+    "item_count": 136,
+    "reported_potential": "342.3MB",
+    "rounded_display_sum_bytes": 358909127,
+    "sha256": "c6a5d3fa8843220e956978a2badbd7bc776f5d2bd5bb0ac5e54edb7536c4269e",
+    "structural_overlaps": {
+      "nested_item_count": 3,
+      "nested_rounded_preview_bytes": 26688102,
+      "top_level_rounded_preview_bytes": 332221025
+    }
+  },
+  "related_zenith_eligibility": {
+    "advisory": 2,
+    "auto_cleanable": 4,
+    "blocked": 1,
+    "recent": 8,
+    "reviewable": 87
+  },
+  "zenith_scan": {
+    "cleanable_bytes": 254611456,
+    "gaps": [
+      {
+        "count": 20,
+        "kind": "permission_denied"
+      },
+      {
+        "count": 452,
+        "kind": "full_disk_access"
+      },
+      {
+        "count": 6,
+        "kind": "io_error"
+      }
+    ],
+    "metrics": {
+      "directories_read": 3015,
+      "duration_ms": 17408,
+      "peak_outstanding_directory_tasks": 16,
+      "visited_entries": 20129
+    },
+    "observed_bytes": 2228699136,
+    "quality": "partial",
+    "scope": "full embedded catalog and native providers; intensive cleanup enabled; no cleanup",
+    "selected_bytes": 123301888,
+    "sha256": "ad5458c9d4d85d067d4bf5f840c8e16107a90161b02d6a66add8fdc64ebc30cb",
+    "started_at": 1790551865,
+    "version": "0.3.69"
+  }
+}

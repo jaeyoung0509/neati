@@ -817,14 +817,24 @@ describe('risk classification versus current eligibility', () => {
     scanStore.setItemSelected('owner-store', true);
 
     const detail = renderCategory(category).body;
-    expect(detail).toContain('Amount varies by owner');
+    expect(detail).toContain('Reclaim size not estimated');
     const ownerButton = buttonTags(detail).find(button => button.includes('Review owner cleanup')) ?? '';
     expect(ownerButton).not.toMatch(/\sdisabled(?:\s|=|>)/);
 
     const overview = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
-    expect(overview).toContain('Amount varies by owner');
+    expect(overview).toContain('Reclaim size not estimated');
     const cleanButton = buttonTags(overview).find(button => button.includes('Clean selected')) ?? '';
     expect(cleanButton).not.toMatch(/\sdisabled(?:\s|=|>)/);
+    expect(overview).toContain('1 tool-managed cleanup has');
+    expect(detail).toContain('pnpm decides what is unused');
+
+    scanStore.lastScan!.categories[0].items.push(scanItem({
+      id: 'known-cache',
+      disposition: { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: 1024 },
+    }));
+    scanStore.setItemSelected('known-cache', true);
+    const mixed = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(mixed).toContain('1 without a size estimate');
   });
 
   it('shows a tab of recent and advisory rows as zero selectable inventory, not as broken', () => {

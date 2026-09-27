@@ -3,6 +3,26 @@ import type { DashboardTab, ZenithSettings } from '../lib/models/types';
 import { moveOrdered, reorderOrdered, toggleOrdered } from '../lib/utils/quickPanel';
 import { serializeSettingsSnapshot } from '../lib/utils/settings';
 import { SettingsStore } from '../lib/stores/settings.svelte';
+import { groupedDashboardTabs } from '../lib/utils/dashboardNavigation';
+
+describe('sidebar task groups', () => {
+  it('preserves visibility and relative order without rewriting saved tabs', () => {
+    const saved: DashboardTab[] = ['models', 'storage', 'docker', 'overview', 'performance'];
+    expect(groupedDashboardTabs(saved)).toEqual(['overview', 'storage', 'performance', 'models', 'docker']);
+    expect(saved[0]).toBe('models');
+  });
+  it('moves only within the same task group, including interleaved legacy orders', async () => {
+    const store = new SettingsStore();
+    store.settings.dashboard_tabs = ['docker', 'storage', 'models', 'performance'];
+    const save = vi.spyOn(store, 'save').mockResolvedValue(true);
+    await store.moveDashboardTab('models', -1);
+    expect(save).toHaveBeenCalledWith({ dashboard_tabs: ['models', 'docker', 'storage', 'performance'] });
+    save.mockClear();
+    await store.moveDashboardTab('storage', 1);
+    await store.reorderDashboardTabs('docker', 'performance');
+    expect(save).not.toHaveBeenCalled();
+  });
+});
 
 describe('serializeSettingsSnapshot', () => {
   const sampleSettings: ZenithSettings = {

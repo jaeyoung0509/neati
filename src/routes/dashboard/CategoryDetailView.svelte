@@ -135,7 +135,7 @@
           </h2>
         </div>
         <p class="text-xs text-muted-foreground">
-          {presentedCount} {presentedCount === 1 ? 'item' : 'items'} · {summary.cleanable_bytes > 0 ? `${formatBytes(summary.cleanable_bytes)} can be cleaned` : summary.cleanable_count > 0 ? 'Amount varies by owner' : emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category)}
+          {presentedCount} {presentedCount === 1 ? 'item' : 'items'} · {summary.cleanable_bytes > 0 ? `${formatBytes(summary.cleanable_bytes)} can be cleaned` : summary.cleanable_count > 0 ? 'Reclaim size not estimated' : emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category)}
         </p>
       </div>
     </div>

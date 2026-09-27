@@ -106,13 +106,13 @@
         {#if summary.cleanable_bytes > 0}
           {formatBytes(summary.cleanable_bytes)}
         {:else if summary.cleanable_count > 0}
-          Amount varies
+          Not estimated
         {:else}
           —
         {/if}
       </span>
       <span class="block whitespace-nowrap text-caption text-muted-foreground">
-        {summary.cleanable_bytes > 0 ? 'Can clean' : summary.cleanable_count > 0 ? 'Owner decides' : ''}
+        {summary.cleanable_bytes > 0 ? 'Can clean' : summary.cleanable_count > 0 ? 'Tool-managed' : ''}
       </span>
     </div>
 

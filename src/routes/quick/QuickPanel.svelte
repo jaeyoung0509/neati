@@ -15,6 +15,7 @@
   import { usageStore } from '../../lib/stores/usage.svelte';
   import { formatBytes, formatTimeAgo, formatTimeUntil } from '../../lib/utils/format';
   import { cleanupSummaryState } from '../../lib/utils/cleanupSummary';
+  import { quickCleanupUnavailableReason } from '../../lib/utils/quickCleanupDetails';
   import { batteryChargeStateLabel, memoryPressureLabel } from '../../lib/utils/systemReadings';
   import {
     handleQuickPanelFocusChanged,
@@ -511,8 +512,8 @@
           </Button>
         {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickSafeItems.length > 0)}
           <Button variant="primary" size="sm" disabled={!scanStore.canClean} onclick={handleCleanSafe} title={cleanupDetail} class="shrink-0 gap-1.5"><Trash2 size={14} /><span>Clean</span></Button>
-        {:else if cleanupState === 'partial'}
-          <Button variant="secondary" size="sm" onclick={() => (showCleanupDetails = true)} title="See why Quick Clean is unavailable and review items in Storage" class="shrink-0">Details</Button>
+        {:else if cleanupState === 'partial' || cleanupState === 'clean'}
+          <Button variant="primary" size="sm" disabled title={scan ? quickCleanupUnavailableReason(scan) : cleanupDetail} class="shrink-0 gap-1.5"><Trash2 size={14} /><span>Clean</span></Button>
         {:else}
           <Button variant="ghost" size="sm" class="gap-1 shrink-0 text-meta text-primary" disabled={!cleanupAvailable} onclick={() => handleOpenRoute('storage')} ariaLabel={`${cleanupActionLabel} in the main window`} title={cleanupDetail}>
             <span>{cleanupActionLabel}</span>
@@ -520,6 +521,12 @@
           </Button>
         {/if}
       </div>
+      {#if scan && !cleanupBusy && quickSafeItems.length === 0 && (cleanupState === 'partial' || cleanupState === 'clean')}
+        <div class="mt-2 flex items-center justify-between gap-2 text-caption text-muted-foreground">
+          <p>{quickCleanupUnavailableReason(scan)}</p>
+          <Button variant="ghost" size="xs" onclick={() => (showCleanupDetails = true)} class="shrink-0">Details</Button>
+        </div>
+      {/if}
       {#if scanStore.error && !cleanupBusy}
         <p class="mt-2 text-caption leading-snug text-destructive" role="alert">{scanStore.error}</p>
       {/if}

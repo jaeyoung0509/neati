@@ -310,3 +310,6 @@ safety conventions below when changing Zenith.
   precisely whether data is live, local, or manual instead of implying a quota
   is available.
 - Keep unrelated user changes intact and avoid destructive Git commands.
+- Sidebar presentation groups destinations into Overview, Storage, System,
+  and Tools. Preserve saved visibility and relative order within each group;
+  indent direct workflow shortcuts beneath their owner without changing routes.

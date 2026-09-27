@@ -2679,6 +2679,117 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
 }
 
 #[test]
+fn stale_file_and_directory_units_execute_with_matching_estimates() {
+    // Exercise a real move without touching the user's system Trash.
+    struct FixtureTrash(std::path::PathBuf);
+    impl zenith_platform::TrashBackend for FixtureTrash {
+        fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+            fs::rename(path, self.0.join(path.file_name().unwrap()))
+                .map_err(|error| error.to_string())
+        }
+    }
+    for risk in [RiskTier::Safe, RiskTier::Rebuild] {
+        let fixture = tempdir().unwrap();
+        let root = fixture.path().join("cache-root");
+        let namespace = root.join("com.example.cache");
+        fs::create_dir_all(&namespace).unwrap();
+        let standalone = root.join("EDXPDFConfig.txt");
+        let payload = namespace.join("old.bin");
+        let recent = namespace.join("recent.bin");
+        let protected = ["Cache.db", "Cache.db-wal", "Cache.db-shm"];
+        for path in [&standalone, &payload, &recent] {
+            fs::write(path, vec![7u8; 8192]).unwrap();
+        }
+        for name in protected {
+            let path = namespace.join(name);
+            fs::write(&path, vec![9u8; 4096]).unwrap();
+            age_entry(&path, 30);
+        }
+        age_entry(&standalone, 30);
+        age_entry(&payload, 30);
+
+        let catalog = SignatureRegistry::load_embedded().unwrap();
+        let mut signature = catalog
+            .get("system.intensive.containers_caches")
+            .unwrap()
+            .clone();
+        signature.id = "test.stale-file-and-directory".into();
+        signature.paths = vec![root.to_string_lossy().into_owned()];
+        signature.platforms.clear();
+        signature.intensive_only = false;
+        signature.risk = risk;
+        let mut registry = SignatureRegistry::new();
+        registry.register(signature.clone());
+        let environment = PlatformEnvironment::native();
+        let items = zenith_lib::scanner::DirectoryScanner::scan_signature(
+            &signature,
+            &environment,
+            &zenith_lib::models::NeverCancelled,
+        );
+        assert_eq!(items.len(), 2);
+        assert!(items.iter().all(|item| item.cleanable_bytes() > 0));
+        let selected: Vec<_> = items
+            .into_iter()
+            .map(|mut item| {
+                item.is_selected = true;
+                item
+            })
+            .collect();
+        let plan = SafetyPlanner::create_plan(&selected, &registry, &no_owner_providers()).unwrap();
+        assert_eq!(plan.targets.len(), 2);
+        let estimate = plan.expected_reclaim_bytes;
+        let trash_root = fixture.path().join("fixture-trash");
+        fs::create_dir(&trash_root).unwrap();
+        let backend = FixtureTrash(trash_root.clone());
+        let result = CleanExecutor::execute(
+            plan,
+            &environment,
+            &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+            &no_owner_providers(),
+            &backend,
+            |_| {},
+        );
+        assert_eq!(result.failed_count, 0, "{result:?}");
+        assert_eq!(result.partial_count, 0, "{result:?}");
+        assert!(result
+            .items
+            .iter()
+            .all(|item| item.status == zenith_lib::models::CleanStatus::Success));
+        assert_eq!(
+            result.total_reclaimed_bytes + result.total_moved_to_trash_bytes,
+            estimate
+        );
+        if risk == RiskTier::Safe {
+            assert!(!standalone.exists());
+            assert!(!payload.exists());
+            assert_eq!(fs::read_dir(&trash_root).unwrap().count(), 0);
+            assert_eq!(result.total_moved_to_trash_bytes, 0);
+        } else {
+            assert_eq!(fs::read_dir(&trash_root).unwrap().count(), 2);
+            assert!(trash_root.join("EDXPDFConfig.txt").is_file());
+            assert!(trash_root.join("old.bin").is_file());
+            assert!(!standalone.exists());
+            assert!(!payload.exists());
+            assert_eq!(result.total_reclaimed_bytes, 0);
+        }
+        assert!(root.is_dir());
+        eprintln!(
+            "fixture {risk:?}: estimated={estimate}, removed={}, moved={}",
+            result.total_reclaimed_bytes, result.total_moved_to_trash_bytes
+        );
+        assert!(namespace.is_dir());
+        assert!(recent.exists());
+        for name in protected {
+            assert!(namespace.join(name).exists());
+        }
+        assert!(result.items.iter().any(|item| item
+            .error_message
+            .as_deref()
+            .is_some_and(|message| message.contains("kept by cleanup policy"))));
+    }
+}
+
+#[test]
 fn a_non_mutating_plan_is_refused_by_the_executor() {
     let fixture = tempdir().expect("fixture");
     let cache = fixture.path().join("preview-cache");

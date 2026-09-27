@@ -658,13 +658,19 @@ impl CleanExecutor {
                 )
             }
         } else if report.is_success() {
+            let preserved = (report.skipped_files > 0).then(|| {
+                format!(
+                    "{} entries kept by cleanup policy or already absent",
+                    report.skipped_files
+                )
+            });
             if moves_to_trash {
                 trash_item_result(
                     target,
                     CleanStatus::Success,
                     None,
                     report.reclaimed_bytes,
-                    None,
+                    preserved,
                 )
             } else {
                 item_result(
@@ -672,7 +678,7 @@ impl CleanExecutor {
                     CleanStatus::Success,
                     None,
                     report.reclaimed_bytes,
-                    None,
+                    preserved,
                 )
             }
         } else if report.reclaimed_bytes > 0 {

@@ -53,8 +53,8 @@
     if (typeof dialog?.showModal === 'function') {
       dialog.showModal();
     }
-    const doneBtn = dialog?.querySelector<HTMLButtonElement>(`#${id}-done-button`);
-    doneBtn?.focus();
+    dialog?.focus({ preventScroll: true });
+    if (dialog) dialog.scrollTop = 0;
 
     return () => {
       if (dialog?.open) {
@@ -108,6 +108,7 @@
 
 <dialog
   bind:this={dialog}
+  tabindex="-1"
   id={id + '-dialog'}
   aria-modal="true"
   aria-labelledby={id + '-title'}
@@ -115,9 +116,9 @@
   oncancel={(event) => { event.preventDefault(); onClose(); }}
   onclick={handleBackdropClick}
   onkeydown={handleKeydown}
-  class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30 focus:outline-none"
+  class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable rounded-2xl border border-border bg-card p-5 text-foreground [overflow-wrap:anywhere] shadow-xl backdrop:bg-foreground/30 focus:outline-none"
 >
-  <div class="flex items-center justify-between pb-3 border-b border-border">
+  <div class="sticky top-0 z-10 bg-card flex items-center justify-between pb-3 border-b border-border">
     <div class="flex items-center gap-2">
       <div
         class={`h-8 w-8 rounded-full flex items-center justify-center ${
@@ -170,7 +171,7 @@
         {formatBytes(movedOnly ? movedToTrashBytes : result.total_reclaimed_bytes)}
       </div>
       <div class="mt-0.5 text-meta text-muted-foreground">
-        {movedOnly ? `Moved to ${platformContextStore.trashLabel}` : 'Disk Space Reclaimed'}
+        {movedOnly ? `Moved to ${platformContextStore.trashLabel}` : 'Removed from storage'}
         {#if !movedOnly && outcome !== 'failed' && result.actual_disk_free_delta != null && result.actual_disk_free_delta > 0}
           <span class="ml-1 text-success tabular-nums">
             (Free space delta: +{formatBytes(result.actual_disk_free_delta)})
@@ -195,7 +196,7 @@
           {formatBytes(movedToTrashBytes)}
         </div>
         <div class="mt-0.5 text-meta text-muted-foreground">
-          Moved to {platformContextStore.trashLabel}; recoverable until it is emptied
+          Moved to {platformContextStore.trashLabel}; disk space is freed when it is emptied
         </div>
       </div>
     {/if}
@@ -207,7 +208,7 @@
           <AlertCircle size={14} />
           <span>{failedCount} item(s) failed</span>
         </div>
-        <div class="max-h-28 divide-y divide-destructive/15 overflow-y-auto scroll-stable rounded-xl border border-destructive/25 bg-destructive/5">
+        <div class="divide-y divide-destructive/15 rounded-xl border border-destructive/25 bg-destructive/5">
           {#each failedItems as item}
             <div class="p-2.5 text-meta">
               <div class="font-medium text-foreground">{item.name}</div>
@@ -227,7 +228,7 @@
           <CircleMinus size={14} />
           <span>{skippedCount} item(s) skipped</span>
         </div>
-        <div class="max-h-28 divide-y divide-border overflow-y-auto scroll-stable rounded-xl border border-border bg-secondary">
+        <div class="divide-y divide-border rounded-xl border border-border bg-secondary">
           {#each skippedItems as item}
             <div class="p-2.5 text-meta">
               <div class="font-medium text-foreground">{item.name}</div>
@@ -247,7 +248,7 @@
           <AlertTriangle size={14} />
           <span>{partialCount} {partialCount === 1 ? 'item needs' : 'items need'} attention</span>
         </div>
-        <div class="max-h-28 divide-y divide-warning/15 overflow-y-auto scroll-stable rounded-xl border border-warning/25 bg-warning/5">
+        <div class="divide-y divide-warning/15 rounded-xl border border-warning/25 bg-warning/5">
           {#each partialItems as item}
             <div class="p-2.5 text-meta">
               <div class="flex items-center justify-between gap-2">
@@ -267,7 +268,7 @@
     {#if fullSuccessItems.length > 0}
       <div class="space-y-1.5">
         <span class="text-meta font-medium text-muted-foreground">Cleaned Items ({fullSuccessItems.length})</span>
-        <div class="max-h-40 divide-y divide-border overflow-y-auto scroll-stable rounded-xl border border-border">
+        <div class="divide-y divide-border rounded-xl border border-border">
           {#each fullSuccessItems as item}
             <div class="px-2.5 py-2 text-meta">
               <div class="flex items-center justify-between gap-2">

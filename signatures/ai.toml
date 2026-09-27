@@ -263,3 +263,112 @@ description = "Compiled OpenCL programs; model weights and session files are exc
 provider = "llama.cpp"
 artifact_kind = "compiled_kernel"
 consequence = "OpenCL kernels compile again on next use."
+# GPU caches are separate from profile/session storage. The owner executable
+# guard is rechecked during discovery, planning, and execution.
+[[signatures]]
+id = "ai.codex.gpu_cache"
+name = "Codex GPU Cache"
+category = "ai"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Codex/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Codex"
+provider = "Codex"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Codex", "Codex Helper", "Codex Helper (GPU)", "Codex Helper (Renderer)", "Codex Helper (Plugin)", "Codex Helper (Utility)", "Codex (Renderer)", "Codex (Service)", "ChatGPT", "ChatGPT Helper", "ChatGPT Helper (GPU)", "ChatGPT Helper (Renderer)", "ChatGPT Helper (Plugin)", "ChatGPT Helper (Utility)"]
+consequence = "Codex recompiles GPU shaders on next launch; initial rendering may be slower."
+description = "Dawn and Skia GPU shader caches in the default Codex profile. Sessions, settings, cookies, and local storage are outside this scope."
+
+[[signatures]]
+id = "ai.codex.gpu_cache.windows"
+name = "Codex GPU Cache"
+category = "ai"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["windows"]
+paths = ["${ROAMING_APP_DATA}/Codex/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Codex"
+provider = "Codex"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Codex.exe", "ChatGPT.exe"]
+consequence = "Codex recompiles GPU shaders on next launch; initial rendering may be slower."
+description = "Dawn and Skia GPU shader caches in the default roaming Codex profile. Custom profiles, MSIX package roots, and session state are not selected."
+
+[[signatures]]
+id = "ai.antigravity.gpu_cache"
+name = "Antigravity GPU Cache"
+category = "ai"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Antigravity/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Antigravity"
+provider = "Antigravity"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Antigravity", "Antigravity Helper", "Antigravity Helper (GPU)", "Antigravity Helper (Renderer)", "Antigravity Helper (Plugin)", "Antigravity Helper (Utility)"]
+consequence = "Antigravity recompiles GPU shaders on next launch; initial rendering may be slower."
+description = "Dawn and Skia GPU shader caches in the default Antigravity profile. Editor settings, workspaces, and session data are outside this scope."
+
+[[signatures]]
+id = "ai.antigravity.gpu_cache.windows"
+name = "Antigravity GPU Cache"
+category = "ai"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["windows"]
+paths = ["${ROAMING_APP_DATA}/Antigravity/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Antigravity"
+provider = "Antigravity"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Antigravity.exe"]
+consequence = "Antigravity recompiles GPU shaders on next launch; initial rendering may be slower."
+description = "Dawn and Skia GPU shader caches in the default roaming Antigravity profile. Editor settings, workspaces, and session data are outside this scope."
+
+[[signatures]]
+id = "ai.cursor.gpu_cache"
+name = "Cursor GPU Cache"
+category = "ai"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Cursor/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Cursor"
+provider = "Cursor"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Cursor", "Cursor Helper", "Cursor Helper (GPU)", "Cursor Helper (Renderer)", "Cursor Helper (Plugin)", "Cursor Helper (Utility)"]
+consequence = "Cursor recompiles GPU shaders on next launch; initial rendering may be slower."
+description = "Dawn and Skia GPU shader caches in the default Cursor profile. Editor settings, extensions, workspaces, and session data are outside this scope."
+
+[[signatures]]
+id = "ai.cursor.gpu_cache.windows"
+name = "Cursor GPU Cache"
+category = "ai"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["windows"]
+paths = ["${ROAMING_APP_DATA}/Cursor/{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}"]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Cursor"
+provider = "Cursor"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Cursor.exe"]
+consequence = "Cursor recompiles GPU shaders on next launch; initial rendering may be slower."
+description = "Dawn and Skia GPU shader caches in the default roaming Cursor profile. Editor settings, extensions, workspaces, and session data are outside this scope."

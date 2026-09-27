@@ -121,6 +121,48 @@ service-owned store.
 
 ## GPU and local-AI runtimes
 
+### Chromium application GPU subtrees
+
+Codex, Antigravity, and Cursor have owner-scoped Rebuild entries for
+`DawnGraphiteCache`, `DawnWebGPUCache`, and `GrShaderCache`. macOS roots are
+`~/Library/Application Support/<owner>`; Windows roots use the environment's
+roaming app-data directory, not a hardcoded drive. Each existing nonempty
+subtree is a separate unit. Custom session-data locations, browser profiles,
+and MSIX package roots are not inferred by these entries.
+
+Chromium's [GPU disk-cache directory mapping](https://github.com/chromium/chromium/blob/main/gpu/ipc/common/gpu_disk_cache_type.cc)
+identifies the Dawn shader-cache directories. Electron's
+[GPU shader disk-cache change](https://releases.electronjs.org/pr/54113)
+documents `GrShaderCache` and the session-data location. Removing these
+regenerable artifacts can require recompilation and slower initial rendering;
+it does not remove model weights or establish a runtime performance gain.
+Sources were checked on September 27, 2026.
+
+Fully measured, idle units are included in direct cleanup. Explicit main/helper
+process guards are checked at scanning, planning, and execution. Unknown process
+state never authorizes cleanup. The process-name snapshot now runs on Windows
+as well as macOS; macOS bundle-identifier inference remains macOS-only. This
+fail-closed policy applies to every signature with `fail_if_running`, including
+existing guarded compilation caches, not only relaxed renderer-cache entries.
+
+Unlike the verified renderer contracts, these GPU units retain `ProtectAll`:
+databases, WAL/SHM companions, locks, credentials, configuration, bundles, and
+executables still refuse whole-unit removal. Cookies, sessions, Local Storage,
+Service Worker/offline stores, and neighboring profile data are outside scope.
+Rebuild targets use the existing recoverable Trash/Recycle Bin workflow.
+
+Other applications with these directory names are visible through two Manual
+inventory entries. Exact, selector-free exclusions delegate the three known
+owners to their own signatures, so a Manual overlap cannot silently downgrade
+them and their bytes are not counted twice. Root exclusions apply before
+measurement; no wildcard exclusion or heuristic name grants deletion authority.
+
+Native-platform temporary fixtures exercise discovery, unknown/running owners,
+fresh planning/execution checks, structured state, link/junction boundaries,
+target replacement, and fixture-only recoverable moves. Windows runtime claims
+depend on the Windows CI run; macOS verification alone is not Windows evidence.
+See the [issue #314 validation record](GPU_CACHE_COVERAGE_2026-09-27.md).
+
 | Runtime / owner | Artifact role | macOS | Windows | Mode / risk |
 | --- | --- | --- | --- | --- |
 | Direct3D | `compiled_kernel` | unavailable | `%LOCALAPPDATA%/D3DSCache` | Zenith / Rebuild |

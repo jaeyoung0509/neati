@@ -1302,8 +1302,10 @@ impl DirectoryScanner {
             return stats;
         }
 
-        let meta = match fs::symlink_metadata(path) {
-            Ok(m) => m,
+        let (meta, is_link) = match fs::symlink_metadata(path).and_then(|meta| {
+            SymlinkGuard::is_symlink_from_metadata(path, &meta).map(|is_link| (meta, is_link))
+        }) {
+            Ok(observation) => observation,
             Err(err) => {
                 stats.complete = false;
                 stats.skipped_entries += 1;
@@ -1345,7 +1347,7 @@ impl DirectoryScanner {
         // The walk refuses an indirection and accounts for the link itself;
         // `SymlinkGuard` is the same classifier size.rs uses, so a junction is
         // a boundary in both walks rather than only in one.
-        if SymlinkGuard::is_symlink(path) || meta.is_file() {
+        if is_link || meta.is_file() {
             let len = meta.len();
             stats.logical = len;
             #[cfg(unix)]

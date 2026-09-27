@@ -22,8 +22,26 @@ pub struct NativeTrashBackend;
 
 impl TrashBackend for NativeTrashBackend {
     fn move_to_trash(&self, path: &Path) -> Result<(), String> {
-        trash::delete(path).map_err(|error| format!("Could not move to Trash: {error}"))
+        native_trash_context()
+            .delete(path)
+            .map_err(|error| format!("Could not move to Trash: {error}"))
     }
+}
+
+fn native_trash_context() -> trash::TrashContext {
+    let mut context = trash::TrashContext::new();
+
+    #[cfg(target_os = "macos")]
+    {
+        use trash::macos::{DeleteMethod, TrashContextExtMacos};
+
+        // Finder's AppleScript delete can wait for minutes and eventually time
+        // out on large cache directories. NSFileManager performs the same
+        // recoverable Trash move without Finder automation or its prompt.
+        context.set_delete_method(DeleteMethod::NsFileManager);
+    }
+
+    context
 }
 
 /// In-memory mock trash backend for tests, recording operations without mutating the filesystem.
@@ -83,6 +101,17 @@ impl TrashBackend for MockTrashBackend {
 mod tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_macos_trash_avoids_finder_automation() {
+        use trash::macos::{DeleteMethod, TrashContextExtMacos};
+
+        assert!(matches!(
+            native_trash_context().delete_method(),
+            DeleteMethod::NsFileManager
+        ));
+    }
 
     #[test]
     fn mock_trash_backend_records_and_can_fail() {

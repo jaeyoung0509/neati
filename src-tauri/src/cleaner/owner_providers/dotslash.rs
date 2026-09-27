@@ -26,6 +26,7 @@ use zenith_core::domain::cleanup::{
     OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitMeasurer, RunningProcessPolicy,
     RunningProcessProbe,
 };
+use zenith_core::domain::CleanupIdentity;
 use zenith_platform::{PlatformEnvironment, TrashBackend};
 
 const MAX_ARTIFACT_ENTRIES: usize = 100_000;
@@ -413,8 +414,30 @@ impl DotSlashArtifactsProvider {
         if let Err(error) = ToctouGuard::verify(&unit.path, &unit.identity) {
             return refuse(format!("The artifact changed before the move: {error}"));
         }
-        if let Err(error) = self.trash.move_to_trash(&unit.path) {
-            return refuse(format!("The artifact could not be moved to Trash: {error}"));
+        let mut permissions = match ArtifactTrashPermissions::prepare(&unit.path, &unit.identity) {
+            Ok(permissions) => permissions,
+            Err(error) => return refuse(error),
+        };
+        let move_result = self.trash.move_to_trash(&unit.path);
+        let restore_result = permissions.restore();
+        if let Err(error) = move_result {
+            let restore_detail = restore_result
+                .err()
+                .map(|restore| {
+                    format!("; the original permissions could not be restored: {restore}")
+                })
+                .unwrap_or_default();
+            return refuse(format!(
+                "The artifact could not be moved to Trash: {error}{restore_detail}"
+            ));
+        }
+        if let Err(error) = restore_result {
+            crate::diagnostics::log_error(
+                "dotslash-cleanup",
+                &format!(
+                    "The trashed DotSlash artifact permissions could not be restored: {error}"
+                ),
+            );
         }
         match fs::symlink_metadata(&unit.path) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
@@ -609,6 +632,98 @@ fn artifact_is_running(path: &Path, executables: &[PathBuf]) -> bool {
     executables.iter().any(|exe| exe.starts_with(path))
 }
 
+/// DotSlash deliberately publishes immutable artifact trees. macOS Trash APIs
+/// require the moved directory itself to be owner-writable, so hold the exact
+/// directory open while temporarily adding that one permission bit. Restoring
+/// through the handle also restores the moved object after its pathname has
+/// changed to the Trash location.
+struct ArtifactTrashPermissions {
+    #[cfg(unix)]
+    directory: fs::File,
+    #[cfg(unix)]
+    original_mode: u32,
+    #[cfg(unix)]
+    changed: bool,
+}
+
+impl ArtifactTrashPermissions {
+    fn prepare(path: &Path, expected: &CleanupIdentity) -> Result<Self, String> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+            let directory = fs::File::open(path).map_err(|error| {
+                format!("The artifact could not be opened before the Trash move: {error}")
+            })?;
+            let metadata = directory.metadata().map_err(|error| {
+                format!("The artifact identity could not be read before the Trash move: {error}")
+            })?;
+            let expected_entity = expected.entity();
+            if !metadata.is_dir()
+                || metadata.dev() != expected_entity.device()
+                || metadata.ino() != expected_entity.inode()
+            {
+                return Err(
+                    "The artifact changed before its Trash permissions were prepared".into(),
+                );
+            }
+
+            let original_mode = metadata.permissions().mode();
+            let changed = original_mode & 0o200 == 0;
+            let mut permissions = Self {
+                directory,
+                original_mode,
+                changed,
+            };
+            if changed {
+                permissions
+                    .directory
+                    .set_permissions(fs::Permissions::from_mode(original_mode | 0o200))
+                    .map_err(|error| {
+                        format!(
+                            "The read-only artifact could not be prepared for the Trash move: {error}"
+                        )
+                    })?;
+            }
+            if let Err(error) = ToctouGuard::verify_entity(path, expected) {
+                let _ = permissions.restore();
+                return Err(format!(
+                    "The artifact changed while its Trash permissions were prepared: {error}"
+                ));
+            }
+            Ok(permissions)
+        }
+
+        #[cfg(not(unix))]
+        {
+            ToctouGuard::verify_entity(path, expected)
+                .map_err(|error| format!("The artifact changed before the Trash move: {error}"))?;
+            Ok(Self {})
+        }
+    }
+
+    fn restore(&mut self) -> Result<(), String> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            if self.changed {
+                self.directory
+                    .set_permissions(fs::Permissions::from_mode(self.original_mode))
+                    .map_err(|error| error.to_string())?;
+                self.changed = false;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Drop for ArtifactTrashPermissions {
+    fn drop(&mut self) {
+        let _ = self.restore();
+    }
+}
+
 #[cfg(unix)]
 fn single_link(metadata: &fs::Metadata) -> bool {
     use std::os::unix::fs::MetadataExt;
@@ -718,6 +833,39 @@ mod tests {
         assert!(!old.exists());
         assert!(trashed.join("c".repeat(38)).exists());
         assert!(recent.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn read_only_artifact_is_restored_after_the_trash_move() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let (_temp, environment, provider, guard, trashed) = fixture();
+        let old = artifact(&environment, "ab", &"c".repeat(38), true);
+        fs::set_permissions(&old, fs::Permissions::from_mode(0o555)).unwrap();
+        let ready = provider.scan(&environment, &guard).units.remove(0);
+        let plan = provider
+            .prepare(
+                &environment,
+                &guard,
+                &[OwnerProviderSelection {
+                    item_id: "read-only".into(),
+                    name: "read-only".into(),
+                    path: old.clone(),
+                    expected_bytes: ready.allocated_bytes,
+                }],
+            )
+            .unwrap();
+
+        let result = provider.execute(&environment, &plan);
+
+        assert_eq!(result.units[0].status, ProviderStatus::Cleaned);
+        assert!(!old.exists());
+        let moved = trashed.join("c".repeat(38));
+        assert_eq!(
+            fs::metadata(moved).unwrap().permissions().mode() & 0o777,
+            0o555
+        );
     }
 
     #[test]

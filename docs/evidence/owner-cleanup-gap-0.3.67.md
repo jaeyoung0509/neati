@@ -1,8 +1,9 @@
 # Owner cleanup gap evidence — 0.3.67
 
-This record covers issues #294, #295, #317, and #318. The live observations
-were read-only. No browser cache, Homebrew candidate, or other user data was
-deleted.
+This record covers issues #294, #295, #317, and #318. The initial coverage
+observations were read-only. A later user-approved cleanup run exercised the
+normal Zenith plan and execution path against real regenerable caches; the
+results and the defect it exposed are recorded below.
 
 ## Implemented contracts
 
@@ -48,6 +49,34 @@ CacheStorage, and 3,668 ms for Homebrew's owner dry-run. These are one warm,
 changing-machine observation, not a performance guarantee or a claim of total
 parity with Mole or Cleaner One.
 
+## Live cleanup verification
+
+The first 0.3.67 app run selected six automatic units totaling 529.1 MB. It
+reclaimed 16.5 MB, moved 140 KB to Trash, partly cleaned one system cache, and
+reported three failures. A Go cache had disappeared between scan and execution,
+while two read-only DotSlash artifacts totaling about 512 MB exposed two native
+Trash defects: the library defaulted to Finder AppleScript and timed out, and
+the faster `NSFileManager` API correctly refused the artifacts' intentional
+`0555` root mode.
+
+The native macOS backend now uses `NSFileManager.trashItemAtURL` instead of
+Finder automation. The DotSlash adapter opens and identity-checks the exact
+artifact directory, temporarily adds only the owner-write bit, invokes the
+recoverable Trash move, and restores the original mode through the still-open
+handle after the pathname changes.
+
+The follow-up app run moved the remaining 254.1 MB DotSlash artifact and a 16 KB
+cache, reporting 254.2 MB reclaimed with no failures. The original artifact
+path was absent afterward; the item in Trash retained the same inode and its
+original `0555` permissions. A separate 258.2 MB DotSlash artifact was also
+moved during the native API diagnosis. Trash was not emptied, so both artifacts
+remain recoverable.
+
+The debug app bundle did not have Full Disk Access and therefore reported the
+browser profile roots as unreadable. Browser cleanup remained blocked rather
+than bypassing macOS privacy controls; its live mutation is still unverified.
+Homebrew reviewed cleanup was not executed.
+
 ## Fixture verification
 
 Rust fixtures cover supported browser layouts, multiple profiles, an active or
@@ -57,16 +86,15 @@ parsing, untrusted roots, candidate drift, fixed command execution, and post-run
 verification. Browser mutations use a fixture Trash backend; Homebrew tests use
 an injected command runner and never invoke cleanup on a real installation.
 
-The cleanup executor already records the operation-level disk-free delta
-separately from provider-reported reclaimed bytes. A real live cleanup was not
-performed, so this record makes no actual-reclaimed claim. The built bundle was
-not installed over the currently running app.
+The cleanup executor records the operation-level disk-free delta separately
+from provider-reported reclaimed bytes. The built bundle was launched directly
+for this verification and was not installed over the user's existing app.
 
 ## Verification
 
 - `cargo check`: passed.
-- `cargo test`: passed, including 857 desktop library tests plus workspace and
-  integration suites.
+- `cargo test`: passed, including 859 desktop library tests and 101 platform
+  tests plus workspace and integration suites.
 - `just check-architecture`: passed for `zenith-core` and `zenith-platform`.
 - `pnpm check`: passed with zero warnings.
 - `pnpm test -- --run`: passed, 407 tests in 42 files.
@@ -76,4 +104,4 @@ not installed over the currently running app.
   `icon.icns`, and its packaged icon SHA-256 matches the source icon.
 
 Windows runtime behavior remains unverified locally and is left to PR CI. No
-release, tag, installation, live cleanup, or merge was performed.
+release, tag, installation, or merge was performed.

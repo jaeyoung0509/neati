@@ -1,43 +1,49 @@
 # Homebrew cleanup operation boundary
 
-Zenith currently offers direct, verified files in Homebrew's `downloads`
-directory as Rebuild units included in direct cleanup (issue #311). It leaves API/bootsnap
-metadata and unrecognized entries advisory. This is a **deep download purge**,
-not Homebrew's narrower `brew cleanup` operation. The two amounts must never
-be added as if their target sets were disjoint.
+Zenith exposes two deliberately separate Homebrew actions on macOS:
 
-On 2026-09-26, a read-only `brew cleanup --dry-run --prune=7` on the audited
-Mac named old Cellar formula versions, while the selected direct download
-units were under the cache directory. The published [Homebrew command
-reference](https://docs.brew.sh/Manpage#cleanup-options-formula-cask-)
-describes the command's age and cache behavior, but does not provide a
-machine-readable candidate format or a transaction token that binds a dry-run
-to execution. Human-readable `Would remove:` lines and warning text may change
-between Homebrew versions. A preview of the cache root would also overstate
-what the command will remove.
+1. **Homebrew Downloads** is the deep download purge. Its owner-scoped
+   filesystem adapter reviews direct, single-linked files in
+   `~/Library/Caches/Homebrew/downloads`, rechecks identity and size, and then
+   removes only the selected files.
+2. **Homebrew Reviewed Cleanup** delegates to Homebrew's public CLI. It reviews
+   the old formula versions, stale lock files, and outdated downloads returned
+   by `brew cleanup --dry-run --prune=30`, then runs the matching fixed command
+   only after explicit confirmation.
 
-For that reason this change does **not** expose `brew cleanup` as a cleanup
-button. A safe adapter needs all of the following before it can be enabled:
+The two estimates may overlap and must never be added as if their target sets
+were disjoint. API and bootsnap metadata and unrecognized download entries
+remain advisory.
 
-1. Resolve a trusted Homebrew executable and its version; use fixed, bounded
-   dry-run arguments with updates and autoremove disabled.
-2. Parse a complete, version-qualified set of exact candidate paths and sizes.
-   Unknown lines, partial output, timeout, or an unexpected root block the
-   action instead of becoming a zero-byte preview.
-3. Bind the reviewed set, age option, and roots into a private one-shot plan.
-   Re-run the preview before execution and refuse if targets or identities
-   changed. Refuse an active or unprovable Homebrew owner state.
-4. Run only Homebrew's fixed cleanup command after explicit confirmation. Do
-   not fall back to recursive deletion or silently include autoremove.
-5. Report the attempted target set, verified remaining candidates, and an
-   independently measured disk-free delta as distinct values. A command exit
-   code alone cannot prove reclaimed bytes.
+## Command contract
 
-The current lifecycle-provider interface receives a provider ID at execution,
-not the exact dry-run set the user reviewed. Adding this action without a
-private candidate-set authorization would allow Homebrew's target list to
-change between review and execution. The direct download provider already
-binds each reviewed file to its identity and measured size, then rechecks both
-before removal. Keep the narrower command unavailable until its equivalent
-contract and isolated tests exist. Windows and Linux have no Homebrew adapter
-in Zenith.
+The published [Homebrew command reference](https://docs.brew.sh/Manpage#cleanup-options-formula-cask-)
+states that `cleanup` removes stale lock files, outdated downloads, and old
+installed formula versions, and that `--dry-run` shows what would be removed.
+The adapter applies the following narrower contract:
+
+- resolve only `/opt/homebrew/bin/brew` or `/usr/local/bin/brew`, require an
+  ordinary executable file, and bind its filesystem identity into the private
+  one-shot plan;
+- read and bind the `Homebrew <version>` line;
+- run only `cleanup --dry-run --prune=30` and `cleanup --prune=30`, with update,
+  color, and environment hints disabled and bounded execution time;
+- accept only exact absolute `Would remove:` candidates under the trusted
+  Homebrew prefix or the current user's Homebrew cache, plus the aggregate size
+  line; unknown stdout, a timeout, an unexpected root, or a missing size summary
+  blocks the action;
+- hash the version, executable, candidate paths, and aggregate estimate into
+  the reviewed unit, repeat the dry-run immediately before execution, and
+  refuse any change;
+- require Homebrew and Ruby to be idle and require explicit confirmation, so
+  neither Homebrew action enters Quick Clean;
+- run no recursive fallback and never include `autoremove` or `--scrub`;
+- re-run the preview afterward. The provider reports the reviewed amount minus
+  the remaining preview, while the cleanup result separately records the
+  whole-operation disk-free delta collected by the executor.
+
+Homebrew's preview is human-readable rather than a transaction token. Parsing
+therefore fails closed when its stdout contract changes. Fixture tests cover
+exact parsing, unexpected roots, candidate drift, command failure, partial
+post-verification, and process/identity refusals without running Homebrew on a
+real user store. Windows and Linux have no Homebrew adapter in Zenith.

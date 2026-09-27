@@ -523,7 +523,8 @@ Apple/system cache namespaces and diagnostic/crash reports are excluded, and a
 prefix exclusion matches case-insensitively because a cache namespace's on-disk
 casing is not stable. A namespace whose owner publishes its own invalidation
 command is excluded rather than treated as a generic cache. DotSlash has a
-separate owner-scoped cleanup of completed idle artifacts without an age gate; Playwright's
+separate owner-scoped cleanup of complete idle artifacts without an age gate;
+Homebrew and Chromium stores use their own typed owner adapters; Playwright's
 `ms-playwright` downloads remain owned by its CLI. Temporary
 cleanup remains a separate known-prefix allowlist and never becomes an
 unrestricted `/tmp` scan. Reviewed developer-tool prefixes still use the same
@@ -1009,3 +1010,27 @@ Windows Update payloads, the delivery-optimization cache, and WSL/Docker virtual
 disks stay inventory-only until each has its own adapter: they need a service
 stopped, a compaction lifecycle, or per-product awareness that no shell call
 provides.
+
+### Owner-scoped providers
+
+An owner-scoped provider enumerates selectable units inside one owner-managed
+store and carries its private authorization through the same opaque plan flow.
+Scan, prepare, and execute each re-read the store. Prepare captures the unit
+identity and expected bytes; execute repeats owner/process, scope, identity,
+measurement, and structure checks immediately before the provider's only
+mutation primitive. A refusal never falls back to generic deletion.
+
+Cargo archive/source/git stores, Homebrew downloads, DotSlash artifacts,
+Chromium component download stores, and per-profile Chromium CacheStorage use
+this boundary. Browser adapters resolve only fixed vendor profile layouts,
+never recursive cache-name search. Component archives move as one
+metadata-coupled `component_crx_cache` store. Offline website cleanup moves only
+`Service Worker/CacheStorage`, leaving registration data and every other profile
+database as siblings. Each browser is guarded independently, so an open Chrome
+blocks Chrome units without hiding or blocking an idle Brave store.
+
+Homebrew's command-backed owner provider is a distinct confirmed action. It
+hashes the trusted executable identity, Homebrew version, fixed 30-day dry-run
+candidate paths, and estimate into the private authorization; a fresh preview
+must match before `brew cleanup --prune=30` can run. Direct-download purge and
+command cleanup remain separate because their candidate sets may overlap.

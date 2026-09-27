@@ -30,11 +30,14 @@
 //! classified into carries no path to delete through and the registry refuses
 //! an id that no build implements.
 
+pub mod browser;
 pub mod cargo;
 #[cfg(target_os = "macos")]
 pub mod dotslash;
 #[cfg(target_os = "macos")]
 pub mod homebrew;
+#[cfg(target_os = "macos")]
+pub mod homebrew_cleanup;
 
 use crate::models::{
     derive_cleanup_disposition, CacheManagementMode, CacheSizeSemantics, CleanStrategy,
@@ -132,18 +135,36 @@ impl OwnerProviderRegistry {
         process: Arc<dyn zenith_core::domain::cleanup::RunningProcessProbe>,
         measuring: Arc<dyn zenith_core::domain::cleanup::OwnerUnitMeasurer>,
     ) -> Self {
+        let trash: Arc<dyn zenith_platform::TrashBackend> =
+            Arc::new(zenith_platform::NativeTrashBackend);
         #[cfg(target_os = "macos")]
         let homebrew = Arc::new(homebrew::HomebrewDownloadsProvider::new(
             process.clone(),
             measuring.clone(),
         ));
         #[cfg(target_os = "macos")]
+        let homebrew_cleanup = Arc::new(homebrew_cleanup::HomebrewCleanupProvider::native(
+            process.clone(),
+        ));
+        #[cfg(target_os = "macos")]
         let dotslash = Arc::new(dotslash::DotSlashArtifactsProvider::new(
             process.clone(),
             measuring.clone(),
-            Arc::new(zenith_platform::NativeTrashBackend),
+            trash.clone(),
         ));
         let providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
+            Arc::new(browser::ChromiumCacheProvider::new(
+                browser::BrowserCacheKind::ComponentDownloads,
+                process.clone(),
+                measuring.clone(),
+                trash.clone(),
+            )),
+            Arc::new(browser::ChromiumCacheProvider::new(
+                browser::BrowserCacheKind::OfflineCacheStorage,
+                process.clone(),
+                measuring.clone(),
+                trash,
+            )),
             Arc::new(cargo::CargoRegistryArchiveProvider::new(
                 process.clone(),
                 measuring.clone(),
@@ -158,6 +179,7 @@ impl OwnerProviderRegistry {
         let providers = {
             let mut providers = providers;
             providers.push(homebrew);
+            providers.push(homebrew_cleanup);
             providers.push(dotslash);
             providers
         };

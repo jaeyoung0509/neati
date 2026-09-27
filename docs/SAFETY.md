@@ -294,8 +294,9 @@ unrecognized entry in `%TEMP%`; and thirty days for Xcode device support.
 Diagnostic and crash-report groups remain protected, as are the Apple cache
 namespaces and the tool-managed namespaces named in the signature, such as
 `dotslash` and `ms-playwright`. A separate DotSlash owner provider can offer
-complete artifacts unchanged for thirty days after the user enables Intensive
-cleanup; each remains opt-in and moves to Trash after review.
+complete idle artifacts without an age gate; each selected artifact moves to
+Trash after its owner lock, structure, identity, and running-executable checks
+are repeated.
 Intensive mode does not scan user documents, preferences, credentials,
 databases, model weights, unknown `/tmp` children, or any Windows-owned
 maintenance store.
@@ -563,8 +564,9 @@ as potentially reclaimable after the Trash is emptied.
 ## Risk tiers
 
 - `Safe`: disposable cache or log data; may be selected by default.
-- `Rebuild`: recoverable through download or recompilation; opt-in unless the
-  user explicitly enables rebuild items for Quick Clean.
+- `Rebuild`: recoverable through download or recompilation; a fully measured,
+  idle cache may be selected by default, while confirmed owner actions and
+  stateful resources remain outside Quick Clean.
 - `Manual`: stateful or ambiguous data; never executable by Generic Cleaner.
 
 Manual resources use dedicated adapters with their own identity and confirmation
@@ -648,6 +650,22 @@ datasets, optimized engines, performance databases, prompt/session state, and
 mixed runtime roots remain out of generic deletion. Allocated bytes for shared,
 hard-linked, cloned, sparse, or deduplicated stores are labeled as a lower
 bound rather than promised reclaimed space.
+
+Chromium's component updater and CacheStorage are owner-scoped rather than
+generic GPU/renderer cache targets. The component adapter moves only the whole
+metadata-coupled `component_crx_cache` directory. The offline adapter moves
+only a recognized profile's `Service Worker/CacheStorage`; cookies, passwords,
+history, Local Storage, IndexedDB, sessions, extensions, installed components,
+and Service Worker registration data are outside both authorizations. Each
+browser's process state is checked independently at scan, plan, and execution.
+
+Homebrew Downloads and Homebrew Reviewed Cleanup are separate confirmed
+actions and stay outside Quick Clean. The command action accepts only a trusted
+standard `brew`, binds the executable identity, version, exact 30-day dry-run
+candidates, and estimate, and repeats that preview before fixed-argument
+execution. Candidate drift, unknown output, unexpected roots, an active owner,
+or failed post-verification reports a refusal or partial result without a
+filesystem fallback.
 
 ## Lifecycle-aware providers
 

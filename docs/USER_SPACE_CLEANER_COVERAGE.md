@@ -37,12 +37,14 @@ it no mutation authority.
 | System | CloudKit cache store | macOS | `manual`, inventory only | Apple service state is not mutated | Service-owned state stays intact; excluded from generic third-party cache cleanup | Zenith policy: system service state is observation-only |
 | System | Help Viewer generated and page cache | macOS | `full`, Rebuild and opt-in | Exact two subtrees; `helpd` must be stopped | HSTS state, preferences, and neighboring indexes stay intact | Zenith reviewed cache-unit contract |
 | Browsers | Chrome profile HTTP and code caches | macOS | `full`, Rebuild and opt-in | Exact cache subtrees per profile; Chrome and helpers must be stopped | Profile state, Storage, Service Workers, cookies, and history stay intact | Zenith reviewed cache-unit contract |
+| Browsers | Chromium component download stores | macOS / Windows | `tool_managed`, Rebuild | Exact `component_crx_cache` root per supported browser; that browser and its helpers must be stopped; whole metadata-coupled store moves to Trash | Installed components, extensions, models, credentials, and profile databases remain outside | [Chromium `CrxCache` ownership contract](https://chromium.googlesource.com/chromium/src/+/HEAD/components/update_client/crx_cache.h) |
+| Browsers | Chromium profile CacheStorage | macOS / Windows | `tool_managed`, Rebuild and confirmed | Exact `Service Worker/CacheStorage` root per recognized direct profile; owning browser and helpers must be stopped | Offline assets may need the network again; cookies, passwords, history, Local Storage, IndexedDB, sessions, and Service Worker registration data stay intact | [Chromium CacheStorage layout](https://chromium.googlesource.com/chromium/src/+/HEAD/content/browser/cache_storage/) |
 | Browsers | Chromium and Firefox transport/code caches | Windows | `full`, Rebuild and opt-in | Browser not running; per-profile cache subtree only | Cookies, history, bookmarks, passwords, extensions, sessions, downloads and offline state are protected | [Chromium user-data and cache directories](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md) |
 | Automation | Playwright browser binaries | macOS / Windows | `advisory` | Playwright owns client references and garbage collection | Generic recursive deletion is forbidden | [Playwright browser management](https://playwright.dev/docs/browsers#managing-browser-binaries) |
 | Developer | Xcode DerivedData and documented Xcode caches | macOS | `full`, Rebuild | Xcode/build processes not running | Archives, simulators and device data remain Manual | Apple developer-tool ownership; existing catalog policy |
 | Developer | Project build outputs | macOS / Windows | `project_only` | Direct project markers and explicit review | Never promoted into Cleanup | `docs/ARCHITECTURE.md` Developer Artifacts contract |
 | Package managers | Go build/module, Cargo, npm, pnpm, uv, Composer | macOS / Windows as supported | `tool_managed` | Owner process stopped; fresh discovery and post-action verification | Re-download or rebuild cost is Rebuild | `docs/CACHE_SUPPORT.md` provider contracts |
-| Package managers | Homebrew downloads | macOS | `tool_managed`, Rebuild and opt-in | Owner-scoped adapter rechecks direct download files and requires Homebrew to be idle | API metadata, bootsnap, unknown entries, and generic cache deletion remain outside this action; `brew cleanup` is a separate operation | [Homebrew cleanup manpage](https://docs.brew.sh/Manpage#cleanup-options-formula-cask-) |
+| Package managers | Homebrew downloads and reviewed cleanup | macOS | `tool_managed`, Rebuild and confirmed | The deep-download adapter rechecks direct files; the separate command adapter binds the Homebrew version and exact `--dry-run --prune=30` candidates, then repeats the preview before fixed-argument execution | API metadata, bootsnap, unknown entries, `autoremove`, and `--scrub` stay outside both actions; estimates may overlap | [Homebrew cleanup manpage](https://docs.brew.sh/Manpage#cleanup-options-formula-cask-) and [operation boundary](HOMEBREW_CLEANUP_DECISION.md) |
 | Package managers | Bun | macOS / Windows | `advisory` | Current CLI cache discovery requires project context | Zenith does not invent a project context or infer deletion authority from the default path | [Bun package-manager CLI](https://bun.sh/docs/pm/cli/pm) |
 | Package managers | pip download/wheel cache | macOS / Windows when `pip3` is available | `tool_managed` | pip/Python processes stopped | Packages and wheels may be downloaded or rebuilt | [pip cache commands](https://pip.pypa.io/en/stable/cli/pip_cache/) |
 | Package managers | NuGet HTTP, temp, plugin and global-package resources | macOS / Windows when .NET is available | `tool_managed`, separate units | dotnet/MSBuild/Visual Studio/NuGet processes stopped | Global packages are not conflated with disposable HTTP/temp caches | [dotnet nuget locals](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-nuget-locals), [NuGet cache semantics](https://learn.microsoft.com/en-us/nuget/consume-packages/managing-the-global-packages-and-cache-folders) |
@@ -75,9 +77,12 @@ not invalidate unrelated scan or plan targets.
 
 ## Interface contract
 
-- Only `Safe` items may be selected by default.
-- Re-download, rebuild, re-index, recompile, or first-launch performance costs
-  are `Rebuild` and opt-in.
+- Fully measured, idle `Safe` and `Rebuild` caches may be selected by default;
+  every Rebuild item states its re-download, re-index, recompile, or first-launch
+  consequence.
+- Owner actions that require confirmation, stateful resources, active owners,
+  and incomplete observations remain reviewable or blocked and stay outside
+  Quick Clean.
 - Advisory and Manual units remain visible but unselected.
 - The Storage overview shows each category's name, item count, and currently
   cleanable bytes. Engine risk tiers and incomplete-measurement diagnostics do

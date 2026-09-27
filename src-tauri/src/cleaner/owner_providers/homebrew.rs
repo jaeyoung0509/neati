@@ -323,7 +323,7 @@ impl OwnerScopedProvider for HomebrewDownloadsProvider {
         "Homebrew downloads these files again when a future installation needs them."
     }
     fn requires_confirmation(&self) -> bool {
-        false
+        true
     }
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
         let label = unit

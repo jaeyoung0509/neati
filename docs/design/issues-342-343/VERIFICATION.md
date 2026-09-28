@@ -1,5 +1,25 @@
 # neati spelling, usage and navigation verification
 
+## CI follow-up: WinGet path casing
+
+The first CI run (36392601251) passed both platform Rust jobs, both MSRV
+checks, the supply-chain audit and binding drift checks. Frontend tests failed
+because the WinGet fixture looked for `neati/` while the generator correctly
+retained `Neati/` for the stable `jaeyoung0509.Neati` package identifier.
+Package smoke jobs were skipped, not passed.
+
+The test now checks the exact directory entry spelling before reading files.
+This assertion reproduced the mismatch on macOS as well, preventing a
+case-insensitive filesystem from concealing it. The lookup matches the stable
+identifier; explicit assertions keep public PackageName/DisplayName lowercase
+`neati`. No shipped code, artifact naming or package identity changed in this
+follow-up, and the same PR keeps its single 0.3.75 version bump.
+
+Follow-up local checks passed: `cargo check --workspace`, `cargo test --workspace`,
+`pnpm check` (zero errors/warnings), all 431 frontend tests, `pnpm build`,
+`just check-version`, and `just build-fast`. The rebuilt bundle reports 0.3.75
+and icon.icns. It was not installed or launched for this test-only correction.
+
 Date: 2026-09-28. Version: 0.3.74 → 0.3.75. Host: macOS 27.0
 (26A428), Apple Silicon. Issues: #342 and #343; additional owner requests
 cover warm-window Quick Panel navigation and always-included extended scanning.

@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
@@ -57,9 +57,14 @@ describe('release packaging contracts', () => {
       'manifests',
       'j',
       'jaeyoung0509',
-      'neati',
+      'Neati',
       '0.2.0',
     );
+    // Reading a wrong-case path can succeed on macOS. Compare directory entry
+    // spellings so this contract is equally strict on every filesystem.
+    expect(readdirSync(dirname(dirname(manifestRoot)))).toEqual([
+      basename(dirname(manifestRoot)),
+    ]);
     const versionManifest = readFileSync(join(manifestRoot, 'jaeyoung0509.Neati.yaml'), 'utf8');
     const installerManifest = readFileSync(
       join(manifestRoot, 'jaeyoung0509.Neati.installer.yaml'),
@@ -81,6 +86,9 @@ describe('release packaging contracts', () => {
     );
     expect(installerManifest).toContain(`InstallerSha256: ${expectedHash}`);
     expect(localeManifest).toContain('License: MIT');
+    expect(versionManifest).toContain('PackageIdentifier: jaeyoung0509.Neati');
+    expect(localeManifest).toContain('PackageName: neati\n');
+    expect(installerManifest).toContain('DisplayName: neati\n');
     expect(localeManifest).toContain('ManifestType: defaultLocale');
   });
 

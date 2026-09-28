@@ -226,8 +226,17 @@ fn additional_ecosystem_stores_are_measured_but_never_authorized() {
         );
         let measured = items
             .iter()
-            .find(|item| item.path == root.to_string_lossy())
-            .expect("the populated store is observed");
+            .find(|item| {
+                // PathBuf::join preserves mixed separators on Windows while
+                // signature expansion normalizes them. Compare path semantics,
+                // not the two display spellings.
+                zenith_platform::path_algebra::equal(
+                    &item.path,
+                    &root.to_string_lossy(),
+                    environment.flavor(),
+                )
+            })
+            .unwrap_or_else(|| panic!("{id}: populated store {root:?} missing from {items:?}"));
         assert_eq!(measured.size.logical, 8192, "{id}");
         assert!(
             items

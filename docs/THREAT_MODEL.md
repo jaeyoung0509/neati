@@ -1,6 +1,6 @@
-# Neati Threat Model
+# neati Threat Model
 
-This document records the security boundaries that Neati actually enforces and
+This document records the security boundaries that neati actually enforces and
 the platform ceilings it cannot remove. It is intentionally narrow: it covers
 credential persistence, provider authorization, diagnostics redaction, and the
 local inspection surface. Cleanup trust boundaries live in
@@ -12,7 +12,7 @@ local inspection surface. Cleanup trust boundaries live in
 - Subprocess output, provider errors, and log/audit entries that may quote
   secrets, request URLs, or filesystem locations.
 - Project identity and local paths that cross into the WebView.
-- Third-party agent configuration files that Neati may rewrite during
+- Third-party agent configuration files that neati may rewrite during
   integration removal.
 
 ## Boundaries that are enforced
@@ -28,7 +28,7 @@ local inspection surface. Cleanup trust boundaries live in
   flow.
 - **Disconnect is local and honest.** OpenRouter OAuth returns a non-expiring
   key, and OpenRouter's documented key-deletion API requires a management key
-  that Neati never holds, so an OAuth key cannot self-revoke. Disconnecting
+  that neati never holds, so an OAuth key cannot self-revoke. Disconnecting
   removes the key from the OS credential store, and the UI directs the user to
   delete it in the OpenRouter dashboard. If persistence fails after the
   provider issues a key, the flow fails with the same manual-revocation
@@ -64,10 +64,10 @@ local inspection surface. Cleanup trust boundaries live in
 
 ## Workspace-supplied repository content
 
-Neati inspects the projects an AI agent is observed working in. Those
+neati inspects the projects an AI agent is observed working in. Those
 directories are chosen by the work, not nominated by the user: a project root
 comes from an observed agent process working directory, so the repositories
-Neati reads are the directories the user happens to work in. Neati reads state
+neati reads are the directories the user happens to work in. neati reads state
 there; it does not execute or rewrite the configuration it finds.
 
 - **One constructor builds every invocation and neutralizes fixed-name program
@@ -106,7 +106,7 @@ there; it does not execute or rewrite the configuration it finds.
 - **Nothing else is neutralized, because a checkout has to read the way the
   user's own shell reads it.** The machine's Git configuration, the user's own
   configuration, and the repository's attribute files are all honored. Removing
-  them made Neati's answer differ from `git status` in the user's terminal:
+  them made neati's answer differ from `git status` in the user's terminal:
   with the attribute source pinned to the empty tree, a clean `text eol=crlf`
   checkout read as modified, and with `GIT_CONFIG_NOSYSTEM` set, a Windows
   checkout whose `core.autocrlf` came from the system configuration did too.
@@ -131,7 +131,7 @@ there; it does not execute or rewrite the configuration it finds.
   `.git`, including a Windows directory junction, is resolved and judged instead
   of followed.
 - **Repository-derived strings are bounded before they cross IPC.** A branch
-  name longer than Neati's own 1 KiB bound is refused rather than truncated into
+  name longer than neati's own 1 KiB bound is refused rather than truncated into
   a name Git never created, and a detached `HEAD` whose content is not an object
   id (40 hex digits, or 64 in a SHA-256 repository) is reported as no state
   instead of being echoed to the interface.
@@ -148,7 +148,7 @@ there; it does not execute or rewrite the configuration it finds.
 - **Windows generic credentials are readable by any process running as the same
   user.** DPAPI protects the blob at rest but does not prompt for a per-process
   identity, so a same-user process can call `CredReadW` for the same target
-  name. This is a property of the Windows Credentials API, not of Neati.
+  name. This is a property of the Windows Credentials API, not of neati.
 - **Linux and other platforms have no credential store.** The credential
   store fails closed there: reads and writes return `StorageUnavailable`, and a
   plaintext file fallback is explicitly not acceptable. If the OpenRouter flow
@@ -166,7 +166,7 @@ there; it does not execute or rewrite the configuration it finds.
   to this repository, workflow, and commit, but none of them make the binary's
   behavior trustworthy to the operating system, and none of them confer
   SmartScreen reputation.
-- **No updater and no background network activity.** Neati never polls for
+- **No updater and no background network activity.** neati never polls for
   updates, so a corrected release reaches a user only when the user opens the
   [releases page](https://github.com/jaeyoung0509/neati/releases); the
   application exposes that URL through `PlatformContext.releases_url` and links
@@ -176,7 +176,7 @@ there; it does not execute or rewrite the configuration it finds.
 
 ## Out of scope
 
-- A compromised operating system, kernel, or debugger attached to Neati.
+- A compromised operating system, kernel, or debugger attached to neati.
 - Network attackers who can terminate TLS or modify provider responses.
 - Adversarial third-party configuration that the user explicitly executes
-  outside Neati. Neati never executes or rewrites discovered configuration.
+  outside neati. neati never executes or rewrites discovered configuration.

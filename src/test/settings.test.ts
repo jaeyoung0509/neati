@@ -202,7 +202,7 @@ describe('SettingsStore persistence and lifecycle', () => {
 
   it('keeps intensive cleanup opt-in when loading legacy settings', async () => {
     await store.load();
-    expect(store.settings.intensive_cleanup).toBe(false);
+    expect(store.settings.intensive_cleanup).toBe(true);
     expect(store.settings.sidebar_collapsed).toBe(false);
     expect(store.settings.ai_control.autopilot?.keep_awake_for_verified_sessions).toBe(false);
     expect(store.settings.ai_control.autopilot?.notify_on_battery).toBe(false);

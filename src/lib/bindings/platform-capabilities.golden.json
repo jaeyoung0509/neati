@@ -189,7 +189,7 @@
       "status": "available"
     },
     "app_uninstall": {
-      "reason": "Neati does not implement Windows application uninstallation yet; the registry UninstallString exists but is not executed.",
+      "reason": "neati does not implement Windows application uninstallation yet; the registry UninstallString exists but is not executed.",
       "status": "unavailable"
     },
     "battery_metrics": {
@@ -211,7 +211,7 @@
       "status": "available"
     },
     "installed_apps": {
-      "reason": "Neati does not implement Windows application inventory yet; registry uninstall keys exist but are not read.",
+      "reason": "neati does not implement Windows application inventory yet; registry uninstall keys exist but are not read.",
       "status": "unavailable"
     },
     "intensive_cleanup": {

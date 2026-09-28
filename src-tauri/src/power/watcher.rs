@@ -173,7 +173,7 @@ impl KeepAwakeManager {
         // Attempt assertion acquisition first
         match self.ensure_assertion(
             behavior,
-            "Neati Manual Keep Awake",
+            "neati Manual Keep Awake",
             Some("Manual".to_string()),
             None,
         ) {
@@ -501,7 +501,7 @@ impl KeepAwakeManager {
         if let Some((behavior, _)) = manual_snapshot {
             if let Err(err) = self.ensure_assertion(
                 behavior,
-                "Neati Manual Keep Awake",
+                "neati Manual Keep Awake",
                 Some("Manual".to_string()),
                 None,
             ) {
@@ -534,7 +534,7 @@ impl KeepAwakeManager {
             if session_alive && power_ok {
                 let _ = self.ensure_assertion(
                     AwakeBehavior::PreventSystemSleep,
-                    "Neati AI Control Center verified agent session",
+                    "neati AI Control Center verified agent session",
                     Some("AI Control Center".to_string()),
                     Some("ai-control.verified-session".to_string()),
                 );
@@ -568,7 +568,7 @@ impl KeepAwakeManager {
         if let Some(rule) = first_eligible_rule {
             let _ = self.ensure_assertion(
                 rule.behavior,
-                &format!("Neati Keep Awake triggered by {}", rule.app_name),
+                &format!("neati Keep Awake triggered by {}", rule.app_name),
                 Some(rule.app_name),
                 Some(rule.id),
             );

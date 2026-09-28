@@ -37,10 +37,10 @@ Inspected installed Homebrew Mole 1.55.0 under
 Clang cache cleanup through `clean_clang_module_cache` and
 `clean_guarded_dev_cache_root`; `lib/core/app_protection.sh` lists Xcode build
 processes. It checks process state and cache-root identity, without an age
-cutoff for this specific regenerable cache. Neati previously encountered this
+cutoff for this specific regenerable cache. neati previously encountered this
 root only through its broad seven-day namespace policy.
 
-Neati now has `dev.clang.module_cache`, rooted only at the platform-resolved
+neati now has `dev.clang.module_cache`, rooted only at the platform-resolved
 `${DARWIN_USER_CACHE}/clang`. It retains the cache root and guards Clang, clangd,
 Swift, SourceKit, Xcode, and Xcode build/test services. Existing scan, plan,
 execution, symlink, identity, and structured-state checks remain active. The
@@ -51,12 +51,12 @@ Mole's Homebrew preview must not be treated as proof that its entire cache root
 will be deleted. `lib/clean/dev.sh` limits blanket cleanup to `downloads` and
 explicitly preserves `api`, `bootsnap`, and lock files; `lib/clean/brew.sh`
 delegates other work to Homebrew. The observed 38,592,512 B in this comparison
-were metadata caches, which Neati correctly reports as advisory. Removing
+were metadata caches, which neati correctly reports as advisory. Removing
 those bytes just to match a preview total would not match Mole's implementation.
 
 Initial read-only comparison on September 28, 2026, macOS 27.0 (26A428):
 
-| Metric | Mole 1.55.0 | Neati before the Clang rule |
+| Metric | Mole 1.55.0 | neati before the Clang rule |
 | --- | --- | --- |
 | Mode | `mo clean --dry-run`, no sudo | Full catalog, intensive, native providers, no cleanup |
 | Wall time | 50.30 s | 34.28 s (scan metric 33.577 s) |
@@ -66,9 +66,9 @@ Initial read-only comparison on September 28, 2026, macOS 27.0 (26A428):
 
 These first runs overlapped builds and each other, so their timings are only
 diagnostic and do not establish a speed advantage. Mole's display uses its own
-size formatting; Neati's values here are exact bytes. The private ledgers stay
+size formatting; neati's values here are exact bytes. The private ledgers stay
 outside the repository. `scripts/cleanup_coverage_audit.py` found 11 exact path
-matches, 82 Neati-ancestor matches, 4 descendant matches, and 37 reference-only
+matches, 82 neati-ancestor matches, 4 descendant matches, and 37 reference-only
 rows. Three nested preview rows mean displayed amounts cannot simply be summed.
 An ancestor match is coverage evidence, not equal deletion authority.
 
@@ -79,12 +79,12 @@ other application cache entries; this PR does not claim full cleanup parity.
 
 ### Final sequential observation
 
-After all builds and tests finished, Mole ran first and Neati second, with no
-cleanup between them. Both used the same modes as above. Neati's measurement
+After all builds and tests finished, Mole ran first and neati second, with no
+cleanup between them. Both used the same modes as above. neati's measurement
 started at Unix timestamp 1790551865. This is one warm, changing-machine sample,
 not a throughput benchmark or controlled before/after performance experiment.
 
-| Metric | Mole 1.55.0 | Neati 0.3.69 |
+| Metric | Mole 1.55.0 | neati 0.3.69 |
 | --- | --- | --- |
 | Wall time | 28.15 s | 17.96 s (scan metric 17.408 s) |
 | Preview / cleanable | Displayed 342.3 MB potential, 136 rows | 254,611,456 B cleanable |

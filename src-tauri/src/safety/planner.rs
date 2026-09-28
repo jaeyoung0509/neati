@@ -39,7 +39,7 @@ fn ownership_is_derivable(item: &ScanItem, signature: &Signature) -> bool {
 /// The item-scoped refusal for a location this build only reports.
 ///
 /// A manual entry is not broken and not blocked: it is a location whose owner
-/// — or whose absence of a reviewed operation — means Neati inventories it and
+/// — or whose absence of a reviewed operation — means neati inventories it and
 /// removes nothing. Stating that per item is what keeps a correct refusal from
 /// reading as a failed selection.
 fn manual_refusal(item: &ScanItem) -> PlanItemRefusal {

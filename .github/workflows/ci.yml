@@ -368,7 +368,7 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one per-user NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination packaging/Neati-windows-x64-setup.exe
+          Copy-Item -Path $installers[0].FullName -Destination packaging/neati-windows-x64-setup.exe
           just test-package "$($installers[0].FullName)"
 
       - name: Clear NSIS output before the machine-wide build
@@ -388,13 +388,13 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one machine-wide NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination packaging/Neati-windows-x64-setup-machine.exe
+          Copy-Item -Path $installers[0].FullName -Destination packaging/neati-windows-x64-setup-machine.exe
 
       # The machine-wide package is the one a policy-managed machine needs, so it
       # gets the same install, doctor, and uninstall gate as the per-user one.
       - name: Smoke-test the machine-wide installer
         shell: pwsh
-        run: just test-package packaging/Neati-windows-x64-setup-machine.exe perMachine
+        run: just test-package packaging/neati-windows-x64-setup-machine.exe perMachine
 
       - name: Upload Windows packaging smoke artifacts
         uses: actions/upload-artifact@v7

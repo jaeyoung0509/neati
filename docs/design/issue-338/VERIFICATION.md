@@ -1,4 +1,4 @@
-# Neati identity and typography verification
+# neati identity and typography verification
 
 Date: 2026-09-28. Host: macOS 27.0 (26A428), Apple Silicon.
 Version: 0.3.73 → 0.3.74. Base: `37b83be`, branch
@@ -6,14 +6,14 @@ Version: 0.3.73 → 0.3.74. Base: `37b83be`, branch
 
 ## Final owner direction
 
-One Neati identity only: no old-name detection, aliases, migration or installer
+One neati identity only: no old-name detection, aliases, migration or installer
 branches. This supersedes the initial issue request to retain old-app protection
 and the earlier compatibility plan. Other applications and stored user data are
 not touched. Repository origin now points to `jaeyoung0509/neati`.
 
 The mark, wordmark and packaged icon are unchanged. Crate directories, package
 names, library/types/wire spellings, persistence/credential/log names, asset keys,
-CI, release artifacts, WinGet metadata, links and documentation use Neati.
+CI, release artifacts, WinGet metadata, links and documentation use neati.
 Historical document spellings and evidence filenames were normalized; original
 dates, commit IDs and screenshot pixels are not new test results.
 
@@ -47,7 +47,7 @@ dates, commit IDs and screenshot pixels are not new test results.
   (fresh install, unrelated-app preservation, foreign identity refusal, rollback).
 - `bash scripts/test_release_workflow.sh`: passed.
 - `python3 -m unittest discover -s scripts -p 'test_cleanup*.py'`: 12 passed.
-- `just build-fast`: current frontend embedded in the debug Neati.app bundle.
+- `just build-fast`: current frontend embedded in the debug neati.app bundle.
 - Packaged bundle: identifier `com.neati.desktop`, version `0.3.74`.
 - Packaged `Neati --doctor`: 14/14 checks passed; no cleanup performed.
 - Source and packaged `icon.icns` SHA256 both

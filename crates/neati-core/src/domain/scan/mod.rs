@@ -171,7 +171,7 @@ pub enum CleanupEligibility {
     /// Discovered, but the current settings refuse to clean a unit this
     /// signature found (an opt-in scope that is switched off).
     PolicyGated,
-    /// Not Neati's operation: an external manager or provider owns the
+    /// Not neati's operation: an external manager or provider owns the
     /// invalidation.
     Advisory,
     #[default]
@@ -224,7 +224,7 @@ impl CleanupEligibility {
             Self::Reviewable => "Review before cleaning",
             Self::Recent => "Recently used",
             Self::PolicyGated => "Outside the current scope",
-            Self::Advisory => "Managed outside Neati",
+            Self::Advisory => "Managed outside neati",
             Self::Blocked => "Blocked or inaccessible",
         }
     }
@@ -671,7 +671,7 @@ fn derive_own_disposition(facts: DispositionFacts<'_>) -> CleanupDisposition {
     // 4. Advisory caches cannot enter generic cleanup
     if cache_metadata.management_mode == CacheManagementMode::Advisory {
         return CleanupDisposition::advisory(
-            incomplete_reason.unwrap_or("Advisory cache: managed manually or outside Neati"),
+            incomplete_reason.unwrap_or("Advisory cache: managed manually or outside neati"),
         );
     }
 
@@ -813,7 +813,7 @@ fn derive_own_disposition(facts: DispositionFacts<'_>) -> CleanupDisposition {
         );
     }
 
-    // 10. Fresh observation with Neati management
+    // 10. Fresh observation with neati management
     if observed == 0 {
         return CleanupDisposition::blocked("No cleanable data found");
     }
@@ -1633,7 +1633,7 @@ mod tests {
             management_mode: CacheManagementMode::Advisory,
             ..Default::default()
         };
-        // 1. Safe + Fresh + Neati => AutoCleanable
+        // 1. Safe + Fresh + neati => AutoCleanable
         let d1 = derive_cleanup_disposition(DispositionFacts::new(
             RiskTier::Safe,
             ObservationQuality::Fresh,
@@ -1645,7 +1645,7 @@ mod tests {
         assert_eq!(d1.cleanable_bytes, Some(1000));
         assert!(d1.is_cleanable());
 
-        // 2. Safe + Partial + Neati => Reviewable (never auto-cleanable)
+        // 2. Safe + Partial + neati => Reviewable (never auto-cleanable)
         let d2 = derive_cleanup_disposition(DispositionFacts::new(
             RiskTier::Safe,
             ObservationQuality::Partial,
@@ -1657,7 +1657,7 @@ mod tests {
         assert_eq!(d2.cleanable_bytes, Some(1000));
         assert!(d2.is_cleanable());
 
-        // 3. Safe + Unavailable + Neati => Blocked
+        // 3. Safe + Unavailable + neati => Blocked
         let d3 = derive_cleanup_disposition(DispositionFacts::new(
             RiskTier::Safe,
             ObservationQuality::Unavailable,
@@ -1681,7 +1681,7 @@ mod tests {
         assert_eq!(d4.cleanable_bytes, Some(1000));
         assert!(d4.is_cleanable());
 
-        // 5. Rebuild + Partial + Neati => Reviewable (never quick clean)
+        // 5. Rebuild + Partial + neati => Reviewable (never quick clean)
         let d5 = derive_cleanup_disposition(DispositionFacts::new(
             RiskTier::Rebuild,
             ObservationQuality::Partial,
@@ -1693,7 +1693,7 @@ mod tests {
         assert_eq!(d5.cleanable_bytes, Some(1000));
         assert!(d5.is_cleanable());
 
-        // 6. Manual + Fresh + Neati => Blocked from generic cleanup
+        // 6. Manual + Fresh + neati => Blocked from generic cleanup
         let d6 = derive_cleanup_disposition(DispositionFacts::new(
             RiskTier::Manual,
             ObservationQuality::Fresh,

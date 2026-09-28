@@ -1,13 +1,13 @@
 //! Shared protected-process classification.
 //!
 //! Memory, development-port, and agent termination workflows must not drift.
-//! This module owns the common deny-list covering terminals, shells, Neati
+//! This module owns the common deny-list covering terminals, shells, neati
 //! itself, and platform system processes. Domain-specific protections (for
 //! example databases or container runtimes) are layered on top by callers.
 
 use std::path::Path;
 
-/// Returns true when the process is a protected terminal, shell, Neati
+/// Returns true when the process is a protected terminal, shell, neati
 /// instance, or operating-system component that must never be signaled.
 pub fn is_protected_process(
     process_name: &str,
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn protects_neati_by_process_name_executable_and_path() {
-        for name in ["Neati", "neati.exe"] {
+        for name in ["neati", "neati.exe"] {
             assert!(is_protected_process(name, None, None));
             assert!(is_protected_process("unknown", Some(name), None));
             assert!(is_protected_process("unknown", None, Some(Path::new(name))));
@@ -176,12 +176,12 @@ mod tests {
                 "expected {name} to be protected"
             );
         }
-        assert!(is_protected_process("Neati", None, None));
+        assert!(is_protected_process("neati", None, None));
         assert!(is_protected_process("neati.exe", None, None));
         assert!(is_protected_process(
             "helper",
             None,
-            Some(Path::new("/Applications/Neati.app/Contents/MacOS/Neati"))
+            Some(Path::new("/Applications/neati.app/Contents/MacOS/Neati"))
         ));
     }
 

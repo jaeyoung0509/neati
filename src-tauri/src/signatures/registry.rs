@@ -755,7 +755,7 @@ mod tests {
         let mut registry = SignatureRegistry::new();
         let mut signature = test_signature(
             "developer.test.windows-exclusion",
-            vec![r"${LOCAL_APP_DATA}\Neati\cache"],
+            vec![r"${LOCAL_APP_DATA}\neati\cache"],
             vec![PlatformKind::Windows],
         );
         signature.exclusions = vec![r"D:\Documents\do-not-delete".to_string()];
@@ -947,7 +947,7 @@ mod tests {
 
     /// The stores Windows itself maintains are never generic delete targets:
     /// every entry that names a path under the installation root is
-    /// observation-only, and the one Windows-owned store Neati may act on is
+    /// observation-only, and the one Windows-owned store neati may act on is
     /// reached through the provider the catalog names rather than through a
     /// path. This is the #230 boundary, pinned as a class so a future entry
     /// cannot quietly turn update payloads or kernel dumps into deletable
@@ -1758,7 +1758,7 @@ mod tests {
             assert!(
                 signature.platforms.contains(&PlatformKind::Macos)
                     || signature.platforms.contains(&PlatformKind::Windows),
-                "{} is offered on a platform Neati ships",
+                "{} is offered on a platform neati ships",
                 signature.id
             );
         }

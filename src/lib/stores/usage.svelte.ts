@@ -181,12 +181,19 @@ export class UsageStore {
   }
 
   private async performRefresh(force: boolean) {
+    if (!settingsStore.hasLoaded || settingsStore.isLoading) return;
+    const selection = [...settingsStore.settings.ai_accounts_quota_providers];
+    const revision = settingsStore.revision;
+    const isCurrent = () => settingsStore.hasLoaded && settingsStore.revision === revision &&
+      selection.length === settingsStore.settings.ai_accounts_quota_providers.length &&
+      selection.every((id, index) => id === settingsStore.settings.ai_accounts_quota_providers[index]);
     this.isLoading = true;
     this.error = null;
     void this.loadDescriptors();
     this.loadingProviders = [...settingsStore.settings.ai_accounts_quota_providers];
     try {
-      this.snapshot = await tauriGetAiUsage(force, (provider) => {
+      const snapshot = await tauriGetAiUsage(force, (provider) => {
+        if (!isCurrent() || !selection.includes(provider.id)) return;
         const canonicalId: ProviderId = (provider.id as string) === 'grok' ? 'grok-build' : (provider.id as ProviderId);
         // A completed provider must not inherit the old aggregate timestamp
         // while another provider is still being collected.
@@ -210,6 +217,7 @@ export class UsageStore {
           }
         }
       });
+      if (isCurrent()) this.snapshot = snapshot;
       this.providerReceivedAt = {};
     } catch (error: any) {
       this.error = error?.toString() || 'Could not load AI usage';

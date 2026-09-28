@@ -254,7 +254,7 @@ fn test_power_assertion_raii_lifecycle() {
     {
         let assertion = PowerAssertion::acquire(
             AwakeBehavior::PreventSystemSleep,
-            "Neati Rust Test Assertion",
+            "neati Rust Test Assertion",
         );
         assert!(assertion.is_ok(), "PowerAssertion acquire must succeed");
         let assertion = assertion.unwrap();
@@ -287,7 +287,7 @@ fn test_power_assertion_raii_lifecycle() {
 fn test_power_assertion_fails_closed_without_native_adapter() {
     let assertion = PowerAssertion::acquire(
         AwakeBehavior::PreventSystemSleep,
-        "Neati Rust Test Assertion",
+        "neati Rust Test Assertion",
     );
     assert!(assertion.is_err());
 

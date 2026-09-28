@@ -1,6 +1,6 @@
 [package]
 name = "neati-platform"
-description = "Neati platform adapters: native OS integrations for macOS and Windows behind narrow domain ports."
+description = "neati platform adapters: native OS integrations for macOS and Windows behind narrow domain ports."
 publish = false
 authors.workspace = true
 edition.workspace = true

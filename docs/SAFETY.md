@@ -1,6 +1,6 @@
 # Cleanup Safety Model
 
-Neati deletes developer caches, so a correct UI is not considered a security
+neati deletes developer caches, so a correct UI is not considered a security
 boundary. Every destructive decision is reconstructed and validated in Rust.
 
 ## Where authorization lives
@@ -217,7 +217,7 @@ return":
 | `success` | the target's postcondition holds because this run removed it |
 | `partial` | some of the target was removed |
 | `skipped` | nothing was removed: the object was already gone or changed, or the owning application is active or its state could not be verified |
-| `failed` | the object was still the right one and Neati could not remove it |
+| `failed` | the object was still the right one and neati could not remove it |
 
 `success` is true for `success` and `partial` only. A skipped target removed
 nothing, so it is never reported as cleaned; the reason
@@ -251,7 +251,7 @@ keychains, source-control metadata such as nested `.git`, and standard user
 content directories. Temporary cleanup never targets all of `/tmp`; candidates
 must match known tool prefixes and inactivity rules.
 
-OrbStack storage is observation-only. Neati reads allocated block metadata
+OrbStack storage is observation-only. neati reads allocated block metadata
 from the single reviewed `data.img.raw` path so users can account for managed
 container storage, but it does not scan arbitrary group containers or create a
 generic cleanup target for the VM disk. Manual adapter observations are rejected
@@ -495,7 +495,7 @@ not treat app leftovers as generic cache signatures.
 Application inventory is limited to direct `.app` children of `/Applications`
 and `~/Applications`. System applications are outside the removable inventory.
 The selected app is resolved by opaque ID and its filesystem identity is stored
-in Rust. A running app is rejected before uninstall inspection, and Neati
+in Rust. A running app is rejected before uninstall inspection, and neati
 cannot create an uninstall inspection for itself. The backend retains only the
 current inspection, so selecting another app invalidates the earlier review.
 
@@ -592,7 +592,7 @@ instead of basename, branch, port, or recent-activity guessing.
 
 Memory Inspector resolves a fresh process snapshot from a recognized user-app
 group. It does not accept a PID from the WebView. System processes, terminals,
-and Neati are protected. Normal application termination is offered before a
+and neati are protected. Normal application termination is offered before a
 confirmed force termination because unsaved work can be lost.
 
 Development Servers is a separate, narrower endpoint workflow. Discovery calls
@@ -615,7 +615,7 @@ fail closed. A normal release sends `SIGTERM` only to the exact listener PID.
 Force release cannot be requested with an ordinary listing lease: it requires a
 new force-authorized lease created only when the same process remains after the
 grace period and a second user confirmation. If another process acquires the
-port, Neati reports an ownership change and never signals the replacement.
+port, neati reports an ownership change and never signals the replacement.
 
 Local testing infrastructure is allowlisted with narrower executable checks.
 `agent-browser` must resolve inside its official package binary directory.
@@ -636,7 +636,7 @@ success.
 
 Package stores and AI runtime roots are not authorized merely because their
 paths are known. When an owner exposes locking, garbage collection, revision
-selection, or project-aware purge, Neati must use a typed fixed-argument
+selection, or project-aware purge, neati must use a typed fixed-argument
 adapter or remain advisory. `external_command` targets rediscover and
 canonicalize their path immediately before mutation, require current-user
 containment, reject symlinks/reparse points and untrusted executables, and fail
@@ -686,7 +686,7 @@ review dialog state the consequence before the action runs. The manifest lint
 refuses a catalog entry naming a provider the build does not implement, so a
 signature cannot describe an action nothing performs.
 
-The Recycle Bin is the first provider. Neati reads and empties it through the
+The Recycle Bin is the first provider. neati reads and empties it through the
 shell's `SHQueryRecycleBin` / `SHEmptyRecycleBin` interface and verifies by
 re-reading the reported size. Every per-volume Recycle Bin directory
 (`$Recycle.Bin`, and the legacy `RECYCLER` / `RECYCLED` names) is a protected
@@ -739,7 +739,7 @@ AI Control Center enforces strict safety and privacy boundaries:
   counts. Diffs are generated only upon explicit user request, bounded at 256
   KiB, and never persisted to disk.
 - **Audit and telemetry:** Audit logs are local, bounded to 1,024 entries and
-  512 KiB, sanitized before persistence, and retained for 1–365 days. Neati
+  512 KiB, sanitized before persistence, and retained for 1–365 days. neati
   collects zero telemetry or analytics. Full details are in
   [AI_CONTROL_CENTER.md](AI_CONTROL_CENTER.md).
 

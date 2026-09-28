@@ -681,7 +681,7 @@ describe('detected versus reclaimable storage copy', () => {
     expect(rendered.body).toContain('1 item');
     expect(rendered.body).toContain('Manage containers');
     expect(rendered.body).not.toContain('reclaimable locations');
-    expect(rendered.body).toContain('Neati reports their storage without deleting it');
+    expect(rendered.body).toContain('neati reports their storage without deleting it');
     expect(scanStore.selectedMap['container.orbstack.storage']).toBe(false);
     expect(scanStore.reclaimableBytes).toBe(0);
   });

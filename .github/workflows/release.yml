@@ -174,9 +174,9 @@ jobs:
           fi
           DMG_PATH="$DMG_PATHS"
 
-          cp "$DMG_PATH" artifacts/Neati-macos-arm64.dmg
+          cp "$DMG_PATH" artifacts/neati-macos-arm64.dmg
           cat > artifacts/BUILD_INFO-macos-arm64.txt <<EOF
-          Neati macOS Public Beta
+          neati macOS Public Beta
           Target: aarch64-apple-darwin (Apple Silicon)
           Version: $(node -p "require('./package.json').version")
           Commit: ${GITHUB_SHA}
@@ -186,7 +186,7 @@ jobs:
           Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           EOF
           node scripts/release_checksums.cjs write \
-            --file artifacts/Neati-macos-arm64.dmg \
+            --file artifacts/neati-macos-arm64.dmg \
             --output artifacts/SHA256SUMS-macos-arm64.txt
 
       - name: Upload macOS release artifacts
@@ -194,7 +194,7 @@ jobs:
         with:
           name: neati-release-macos-arm64
           path: |
-            artifacts/Neati-macos-arm64.dmg
+            artifacts/neati-macos-arm64.dmg
             artifacts/SHA256SUMS-macos-arm64.txt
             artifacts/BUILD_INFO-macos-arm64.txt
           if-no-files-found: error
@@ -267,7 +267,7 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one per-user NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination artifacts/Neati-windows-x64-setup.exe
+          Copy-Item -Path $installers[0].FullName -Destination artifacts/neati-windows-x64-setup.exe
 
       - name: Clear NSIS output before the machine-wide build
         shell: pwsh
@@ -285,7 +285,7 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one machine-wide NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination artifacts/Neati-windows-x64-setup-machine.exe
+          Copy-Item -Path $installers[0].FullName -Destination artifacts/neati-windows-x64-setup-machine.exe
 
       - name: Write build metadata, checksums, and WinGet manifests
         shell: pwsh
@@ -293,7 +293,7 @@ jobs:
           $version = (Get-Content package.json | ConvertFrom-Json).version
           $buildDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
           @"
-          Neati Windows Public Beta
+          neati Windows Public Beta
           Target: x86_64-pc-windows-msvc
           Package: NSIS per-user installer (default) + NSIS machine-wide installer
           WebView2: embedded offline installer, no network required
@@ -306,11 +306,11 @@ jobs:
 
           node scripts/release_checksums.cjs write-many `
             --output artifacts/SHA256SUMS-windows-x64.txt `
-            artifacts/Neati-windows-x64-setup.exe `
-            artifacts/Neati-windows-x64-setup-machine.exe
+            artifacts/neati-windows-x64-setup.exe `
+            artifacts/neati-windows-x64-setup-machine.exe
           node scripts/generate_winget_manifest.cjs `
             --version $version `
-            --installer artifacts/Neati-windows-x64-setup.exe `
+            --installer artifacts/neati-windows-x64-setup.exe `
             --output artifacts/winget
 
       - name: Upload Windows release artifacts
@@ -318,8 +318,8 @@ jobs:
         with:
           name: neati-release-windows-x64
           path: |
-            artifacts/Neati-windows-x64-setup.exe
-            artifacts/Neati-windows-x64-setup-machine.exe
+            artifacts/neati-windows-x64-setup.exe
+            artifacts/neati-windows-x64-setup-machine.exe
             artifacts/SHA256SUMS-windows-x64.txt
             artifacts/BUILD_INFO-windows-x64.txt
             artifacts/winget/**
@@ -346,9 +346,9 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
-            artifacts/Neati-macos-arm64.dmg
-            artifacts/Neati-windows-x64-setup.exe
-            artifacts/Neati-windows-x64-setup-machine.exe
+            artifacts/neati-macos-arm64.dmg
+            artifacts/neati-windows-x64-setup.exe
+            artifacts/neati-windows-x64-setup-machine.exe
             artifacts/SBOM-neati.spdx.json
 
   publish-release:
@@ -391,9 +391,9 @@ jobs:
             --reference "${ENDPOINT_REVIEW_REFERENCE}" \
             --reviewer "${ENDPOINT_REVIEW_REVIEWER}" \
             --reviewed-at "${ENDPOINT_REVIEW_DATE}" \
-            artifacts/Neati-macos-arm64.dmg \
-            artifacts/Neati-windows-x64-setup.exe \
-            artifacts/Neati-windows-x64-setup-machine.exe
+            artifacts/neati-macos-arm64.dmg \
+            artifacts/neati-windows-x64-setup.exe \
+            artifacts/neati-windows-x64-setup-machine.exe
 
       - name: Combine platform checksums
         run: |
@@ -413,17 +413,17 @@ jobs:
             --review artifacts/endpoint-review.json \
             --version "$(node -p "require('./package.json').version")" \
             --commit "${GITHUB_SHA}" \
-            artifacts/Neati-macos-arm64.dmg \
-            artifacts/Neati-windows-x64-setup.exe \
-            artifacts/Neati-windows-x64-setup-machine.exe
+            artifacts/neati-macos-arm64.dmg \
+            artifacts/neati-windows-x64-setup.exe \
+            artifacts/neati-windows-x64-setup-machine.exe
 
       - name: Create one prerelease with macOS and Windows assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Neati-macos-arm64.dmg
-            artifacts/Neati-windows-x64-setup.exe
-            artifacts/Neati-windows-x64-setup-machine.exe
+            artifacts/neati-macos-arm64.dmg
+            artifacts/neati-windows-x64-setup.exe
+            artifacts/neati-windows-x64-setup-machine.exe
             artifacts/SHA256SUMS.txt
             artifacts/SHA256SUMS-macos-arm64.txt
             artifacts/SHA256SUMS-windows-x64.txt
@@ -445,6 +445,6 @@ jobs:
 
             Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/neati`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
 
-            Neati has no updater and performs no background network activity. Open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
+            neati has no updater and performs no background network activity. Open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
 
-            The per-user installer (`Neati-windows-x64-setup.exe`) installs under `%LOCALAPPDATA%` without elevation. The machine-wide installer (`Neati-windows-x64-setup-machine.exe`) installs under Program Files, requires elevation, and exists for managed machines whose application-control policy refuses to execute binaries from user-writable locations; it does not make the binary trusted. Both installers embed the WebView2 offline installer, so installation needs no network access.
+            The per-user installer (`neati-windows-x64-setup.exe`) installs under `%LOCALAPPDATA%` without elevation. The machine-wide installer (`neati-windows-x64-setup-machine.exe`) installs under Program Files, requires elevation, and exists for managed machines whose application-control policy refuses to execute binaries from user-writable locations; it does not make the binary trusted. Both installers embed the WebView2 offline installer, so installation needs no network access.

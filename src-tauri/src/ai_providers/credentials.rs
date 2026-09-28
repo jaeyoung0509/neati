@@ -54,7 +54,7 @@ impl std::error::Error for CredentialError {}
 /// Whether a credential store can persist a secret on this platform right now.
 ///
 /// Flows that *create* a credential (for example the OpenRouter OAuth handoff,
-/// whose key Neati cannot revoke on its own) must check this before they start
+/// whose key neati cannot revoke on its own) must check this before they start
 /// provider-side work, so a store that cannot save the result never causes a
 /// credential to be issued.
 #[derive(Debug, Clone, PartialEq, Eq)]

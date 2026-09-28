@@ -181,7 +181,7 @@
         {#if notCleanableBytes > 0}
           <span
             class="text-caption"
-            title="Discovered bytes Neati will not remove with the current settings"
+            title="Discovered bytes neati will not remove with the current settings"
           >· {scanObservedRange.isAmbiguous ? 'up to ' : ''}{formatBytes(notCleanableBytes)} not cleanable</span>
         {/if}
       </span>

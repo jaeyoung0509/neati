@@ -20,18 +20,18 @@ different sources are never presented as equivalent.
 | Antigravity | Official local CLI (/usage) | Individual subscription | Live quota limits when connected; process observation and manual entry fallback |
 | Gemini Code Assist | Optional organization capability | Organization | Standard/Enterprise/API usage only; distinct from Antigravity |
 | Anthropic API | Optional organization capability | Organization | Distinct from a Claude individual subscription |
-| Claude individual | Manual/external | Subscription | Neati never scrapes `/usage`, the TUI, or credential files |
+| Claude individual | Manual/external | Subscription | neati never scrapes `/usage`, the TUI, or credential files |
 | Cursor Teams/Enterprise | Optional organization capability | Organization | Admin adapter capability only |
 | Cursor individual | Manual/external | Subscription | No private editor state inspection |
 | xAI API | Optional organization capability | Organization | Distinct from Grok Build |
 | Grok Build | Manual/external | Subscription | No undocumented quota is inferred |
 
-Manual entries are stored in validated Neati settings and are always labelled
-Manual. Money uses integer micro-units internally. “Neati local budget alert”
+Manual entries are stored in validated neati settings and are always labelled
+Manual. Money uses integer micro-units internally. “neati local budget alert”
 means a local notification threshold; it never changes provider billing,
 credits, or hard limits. A budget that combines authoritative, estimated, or
 manual sources is labelled as mixed-source. Weekly and monthly alert periods
-are stored independently and remain local Neati policy.
+are stored independently and remain local neati policy.
 
 ## Resource policy and actions
 
@@ -51,7 +51,7 @@ mutation.
 
 ## Safety and privacy boundaries
 
-Safety inspection is user initiated. Roots are the projects Neati infers from the
+Safety inspection is user initiated. Roots are the projects neati infers from the
 working directories of currently running agent sessions; they are not separately
 registered by the user, and the view names every root that was inspected and every
 root that was not reached. Each root has its own 2,000-entry budget, so one large
@@ -71,7 +71,7 @@ Git state records a baseline on first observation and reports only metadata for
 changes after that baseline. Pre-existing changes are excluded. Full diff text
 is fetched only after an explicit click, is size bounded, and is not persisted.
 
-Neati introduces no Control Center credential persistence. Existing OAuth
+neati introduces no Control Center credential persistence. Existing OAuth
 material remains in memory and credential files are never exposed. Any future
 managed organization adapter must use the macOS Keychain and must fail closed;
 plaintext fallback is forbidden. See [THREAT_MODEL.md](THREAT_MODEL.md) for the
@@ -80,7 +80,7 @@ readability and code-signing ceilings of the platform keystores.
 
 The local audit file is bounded to 1,024 entries and 512 KiB, sanitized before
 write, retained for 1–365 days, and uses opaque project references. Corrupt or
-oversized audit data recovers to an empty store. Neati sends no Control Center
+oversized audit data recovers to an empty store. neati sends no Control Center
 telemetry or analytics.
 
 ## Quick Panel and failure behavior

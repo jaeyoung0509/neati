@@ -7,8 +7,8 @@ remove only old objects. The upstream source was inspected at
 maps each downloaded artifact to one hash-addressed directory and keeps a
 separate per-artifact lock. The [owner's discussion](https://github.com/facebook/dotslash/issues/114)
 warns that deleting individual files by access time can break multi-file
-artifacts. Neati's adapter therefore considers a **complete artifact
-directory** as one unit. No owner source was copied into Neati.
+artifacts. neati's adapter therefore considers a **complete artifact
+directory** as one unit. No owner source was copied into neati.
 No DotSlash executable was installed on the audited Mac, so a local CLI
 version or a command preview could not be recorded.
 
@@ -33,7 +33,7 @@ In the historical age-gated audit, a reference preview listed about 537 MB under
 cache. The earlier generic trial could not completely measure protected
 entries. A later read-only owner-provider scan observed 537,231,360 bytes
 across two complete objects and found none eligible under the 30-day rule.
-Neati leaves any unknown bytes out of eligible totals. No live cache was removed. Disposable fixtures
+neati leaves any unknown bytes out of eligible totals. No live cache was removed. Disposable fixtures
 cover old and recent objects, owner activity, linked content, a changed object
 after planning, absent or occupied locks, incomplete measurement, and an
 overridden root.

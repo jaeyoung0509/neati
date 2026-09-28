@@ -1,4 +1,4 @@
-# Neati B rebrand verification
+# neati B rebrand verification
 
 Historical verification only. Product spellings were normalized in #338; this
 does not verify the new identity or current installer. See the issue-338 report
@@ -20,7 +20,7 @@ Evidence belongs to this PR's implementation commit, not the earlier sketches.
 - `pnpm build`, `just build-fast`
 - `bash scripts/test_install_release_app.sh` (temporary fixtures only)
 - Packaged `Neati --doctor`: 14/14 passed.
-- Bundle plist: Neati, 0.3.73, `com.neati.desktop`, executable Neati.
+- Bundle plist: neati, 0.3.73, `com.neati.desktop`, executable neati.
 - Source and packaged icon.icns SHA256 both:
   `6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9`.
 
@@ -46,9 +46,9 @@ on this macOS host. CI status is reported on the PR, separately from local check
 
 ## Installation and permissions
 
-With explicit user approval, the existing installed Neati 0.3.70 was normally
-quit, the build-tree Neati.app was launched, then normally quit and the original
-installed Neati was reopened. `/Applications/Neati.app` was never replaced,
+With explicit user approval, the existing installed neati 0.3.70 was normally
+quit, the build-tree neati.app was launched, then normally quit and the original
+installed neati was reopened. `/Applications/neati.app` was never replaced,
 moved or removed. No new app was installed, no cache deletion was invoked, no
 permission grants were changed and no secret values were inspected.
 

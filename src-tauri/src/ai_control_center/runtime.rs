@@ -134,7 +134,7 @@ impl AiControlRuntime {
         // Passive observations are built on explicit main-window refreshes. When every
         // native advisory is disabled there is no background policy work to perform, so
         // avoid a full process snapshot, memory sample, and `lsof` invocation every five
-        // seconds while Neati is otherwise idle.
+        // seconds while neati is otherwise idle.
         if !background_advisories_enabled(&preferences.autopilot) {
             return Vec::new();
         }

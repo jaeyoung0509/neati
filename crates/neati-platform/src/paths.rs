@@ -432,7 +432,7 @@ impl NativePlatformPaths {
         }
     }
 
-    /// Returns executable trust roots: only platform install locations Neati
+    /// Returns executable trust roots: only platform install locations neati
     /// is willing to execute. User-writable containers (`%LOCALAPPDATA%`,
     /// `%APPDATA%`, `%ProgramData%` themselves) are excluded; only their
     /// documented tool/package-manager children are trusted.
@@ -1089,8 +1089,8 @@ mod tests {
             Some(dir.path().join("home/.cargo/registry"))
         );
         assert_eq!(
-            environment.expand_placeholder("${LOCAL_APP_DATA}/Neati/Cache"),
-            Some(dir.path().join("home/AppData/Local/Neati/Cache"))
+            environment.expand_placeholder("${LOCAL_APP_DATA}/neati/Cache"),
+            Some(dir.path().join("home/AppData/Local/neati/Cache"))
         );
         assert_eq!(
             environment.expand_placeholder("${TEMP}/codex-session"),

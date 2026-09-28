@@ -97,7 +97,7 @@ impl ValidatedTarget {
 /// `Skipped` and `Failed` are different answers: a skip means the target is no
 /// longer the object the plan authorized (or is gone), and the safe response
 /// was to leave whatever is there alone; a failure means the object was still
-/// the right one and Neati could not remove it.
+/// the right one and neati could not remove it.
 #[derive(Debug)]
 pub enum RevalidationOutcome {
     Validated(ValidatedTarget),

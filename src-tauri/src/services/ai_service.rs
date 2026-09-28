@@ -1047,7 +1047,7 @@ impl AiService {
                     if !diff.is_empty() && !diff.ends_with('\n') {
                         diff.push('\n');
                     }
-                    diff.push_str(&format!("\n[Neati note: {caveat}]"));
+                    diff.push_str(&format!("\n[neati note: {caveat}]"));
                 }
                 let audit_store = {
                     let mut control = control_state
@@ -1102,7 +1102,7 @@ impl AiService {
         Ok(())
     }
 
-    /// Removes a provider credential stored by Neati.
+    /// Removes a provider credential stored by neati.
     pub async fn delete_provider_credential(
         &self,
         provider: crate::models::ProviderId,
@@ -1113,8 +1113,8 @@ impl AiService {
         crate::blocking::run_blocking(
             move || {
                 // Local disconnect only: the provider key is removed from
-                // Neati. OpenRouter manages this key with a management
-                // credential that Neati never holds, so the UI links to the
+                // neati. OpenRouter manages this key with a management
+                // credential that neati never holds, so the UI links to the
                 // dashboard for manual deletion rather than claiming a remote
                 // revocation.
                 credentials

@@ -1,6 +1,6 @@
 # Architecture
 
-Neati (previously Neati) is a cross-platform desktop application built with Tauri 2, Rust, Svelte 5,
+neati (previously neati) is a cross-platform desktop application built with Tauri 2, Rust, Svelte 5,
 and TypeScript, supporting macOS and Windows x64.
 Rust owns system access, security boundaries, and destructive decisions. Svelte
 renders typed state and submits user intent; it never constructs or coordinates
@@ -73,7 +73,7 @@ Does it depend on Tauri, a WebView, the tray, or window lifecycle?
     yes -> src-tauri (adapter); commands stay thin, transport lives in events/
 Does it implement a native OS capability?
     yes -> crates/neati-platform, behind a port
-Does it express Neati product semantics or a use case?
+Does it express neati product semantics or a use case?
     yes -> crates/neati-core, or an application service in src-tauri/src/services
 ```
 
@@ -116,17 +116,17 @@ maps picker cancellation to `None` just like the macOS adapter.
 
 ## Crate boundary
 
-Neati is a Cargo workspace with three members:
+neati is a Cargo workspace with three members:
 
 ```text
 Cargo.toml             workspace manifest: version, edition, MSRV, release profile
 crates/neati-core     product semantics, with no desktop framework in the graph
 crates/neati-platform native macOS/Windows integration behind narrow ports
-src-tauri              neati-desktop: the Tauri adapter and the `Neati` binary
+src-tauri              neati-desktop: the Tauri adapter and the `neati` binary
 ```
 
 Every file in `neati-core` answers one question the same way: *would this
-still make sense if Neati had a CLI instead of a Tauri window?* Scanning,
+still make sense if neati had a CLI instead of a Tauri window?* Scanning,
 cleanup safety, storage policy, platform capability description, and the DTOs
 the interface is allowed to see all say yes. Webview IPC, tray and window
 lifecycle, capability grants, and desktop composition all say no, so they stay
@@ -269,10 +269,10 @@ because no other crate has to name them.
   for resources that must not be treated as arbitrary files.
 - `src-tauri/src/metrics` and `src-tauri/src/power`: platform system integration.
   The Memory view reports what one process-table snapshot observed. A process
-  group is labelled as started by Neati only when that same snapshot traces
+  group is labelled as started by neati only when that same snapshot traces
   every member's ancestry to this process; everything else is reported as
   observed, with the parent names the snapshot resolved. Termination eligibility
-  is a separate, allowlist-gated question and never implies Neati launched the
+  is a separate, allowlist-gated question and never implies neati launched the
   process.
 - `src-tauri/src/dev_ports`: bounded TCP-listener discovery, conservative
   development/testing-tool classification, opaque lease storage, TOCTOU validation,
@@ -414,7 +414,7 @@ same location are visited in a deterministic order.
 | `reviewable` | requires separate selection or a dedicated operation (incomplete observation, running owner, unknown prune amount, stateful action) |
 | `recent` | discovered, but the age policy is not satisfied yet |
 | `policy_gated` | discovered, but the current settings do not clean a unit this signature found |
-| `advisory` | not Neati's operation: an external manager owns the invalidation |
+| `advisory` | not neati's operation: an external manager owns the invalidation |
 | `blocked` | blocked or inaccessible |
 
 Only `auto_cleanable` and `reviewable` carry cleanable bytes, so
@@ -544,7 +544,7 @@ See [SAFETY.md](SAFETY.md) for the full deletion contract.
 ## User-reviewed storage management
 
 Large Files and App Uninstaller intentionally do not reuse `SignatureRegistry`,
-`ScanEngine`, or generic `DeletePlan`. Those abstractions mean “Neati has
+`ScanEngine`, or generic `DeletePlan`. Those abstractions mean “neati has
 classified this resource as disposable or rebuildable.” User files and inferred
 app leftovers have a different trust model.
 
@@ -828,7 +828,7 @@ capability entry.
 
 ### IPC numeric safety contract
 
-Neati binds Rust structs to TypeScript via Tauri Specta using
+neati binds Rust structs to TypeScript via Tauri Specta using
 `dangerously_cast_bigints_to_number()`. Every serialized `u64` and `Option<u64>`
 field uses the shared `ipc_numeric` serde boundary. Values up to JavaScript
 `Number.MAX_SAFE_INTEGER` ($2^{53} - 1$) round-trip as numbers; larger values are

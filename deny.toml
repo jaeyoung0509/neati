@@ -1,4 +1,4 @@
-# cargo-deny configuration for Neati.
+# cargo-deny configuration for neati.
 #
 # CI runs `cargo deny check advisories bans licenses sources` from the
 # repository root (see the `supply-chain` job in .github/workflows/ci.yml and
@@ -36,9 +36,9 @@ ignore = [
     { id = "RUSTSEC-2025-0080", reason = "unic-common 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
     { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
     { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
-    # Platform-specific advisory. Neati does not ship a Linux artifact; the
+    # Platform-specific advisory. neati does not ship a Linux artifact; the
     # crate is present only because tauri's Linux backend is in the lockfile.
-    { id = "RUSTSEC-2024-0429", reason = "glib 0.18.5 unsoundness is on tauri's Linux GTK path; Neati publishes macOS and Windows artifacts only." },
+    { id = "RUSTSEC-2024-0429", reason = "glib 0.18.5 unsoundness is on tauri's Linux GTK path; neati publishes macOS and Windows artifacts only." },
 ]
 
 [bans]
@@ -56,9 +56,9 @@ wildcards = "deny"
 # external crate can still never be pulled in with a `*` requirement.
 allow-wildcard-paths = true
 deny = [
-    { crate = "openssl", reason = "Neati uses rustls; a plaintext-TLS stack must not enter the graph.", use-instead = "rustls" },
-    { crate = "openssl-sys", reason = "Neati uses rustls; a plaintext-TLS stack must not enter the graph.", use-instead = "rustls" },
-    { crate = "native-tls", reason = "Neati uses rustls; a platform-TLS shim must not enter the graph.", use-instead = "rustls" },
+    { crate = "openssl", reason = "neati uses rustls; a plaintext-TLS stack must not enter the graph.", use-instead = "rustls" },
+    { crate = "openssl-sys", reason = "neati uses rustls; a plaintext-TLS stack must not enter the graph.", use-instead = "rustls" },
+    { crate = "native-tls", reason = "neati uses rustls; a platform-TLS shim must not enter the graph.", use-instead = "rustls" },
     { crate = "git2", reason = "No build or runtime step shells out to libgit2.", use-instead = "gix" },
 ]
 skip = [
@@ -130,7 +130,7 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 
 [licenses]
 confidence-threshold = 0.93
-# Neati is MIT-licensed. These identifiers cover every license expression in
+# neati is MIT-licensed. These identifiers cover every license expression in
 # the locked graph, either as the chosen license or as the permissive branch of
 # a dual/triple-licensed expression (for example r-efi's
 # "MIT OR Apache-2.0 OR LGPL-2.1-or-later" is satisfied by MIT).

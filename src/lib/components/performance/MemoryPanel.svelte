@@ -267,7 +267,7 @@
       </div>
 
       <p class="text-meta text-muted-foreground">
-        Neati observes these processes in the system snapshot, ranked by memory. Quit is offered only for processes Neati has verified it may stop.
+        neati observes these processes in the system snapshot, ranked by memory. Quit is offered only for processes neati has verified it may stop.
       </p>
 
       {#if filteredProcesses.length > 0}
@@ -299,7 +299,7 @@
                     </span>
                   {/if}
                   {#if proc.ownership === 'neati_child'}
-                    <Badge variant="secondary" class="ml-1.5">Started by Neati</Badge>
+                    <Badge variant="secondary" class="ml-1.5">Started by neati</Badge>
                   {/if}
                 </div>
               </div>

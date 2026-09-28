@@ -515,7 +515,7 @@ impl ApplicationScanner {
             .get(app_id)
             .ok_or_else(|| "Application inventory is stale. Refresh applications.".to_string())?;
         if is_neati_app(&record.app) {
-            return Err("Neati cannot uninstall itself.".to_string());
+            return Err("neati cannot uninstall itself.".to_string());
         }
         if record.app.is_running {
             return Err(format!(
@@ -747,7 +747,7 @@ fn empty_inventory() -> AppInventory {
 }
 
 fn is_neati_identity(name: &str, bundle_id: Option<&str>) -> bool {
-    name == "Neati" || bundle_id == Some("com.neati.desktop")
+    name == "neati" || bundle_id == Some("com.neati.desktop")
 }
 
 const MAX_APP_WALK_DEPTH: usize = 32;
@@ -1216,8 +1216,8 @@ mod tests {
 
     #[test]
     fn recognizes_the_configured_neati_bundle_identifier() {
-        assert!(is_neati_identity("Neati", None));
-        assert!(is_neati_identity("Neati", None));
+        assert!(is_neati_identity("neati", None));
+        assert!(is_neati_identity("neati", None));
         assert!(is_neati_identity("Renamed", Some("com.neati.desktop")));
         assert!(!is_neati_identity("Neat", None));
         let app = InstalledApp {

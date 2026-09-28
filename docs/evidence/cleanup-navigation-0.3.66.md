@@ -31,9 +31,9 @@ Pinned upstream: facebook/dotslash commit
 - [Cache layout](https://github.com/facebook/dotslash/blob/1f94ba967f2cdfb4de1fb191735b002702c58d6c/src/dotslash_cache.rs): lock metadata is independent of artifact presence. Missing metadata alone cannot establish corruption.
 - [Owner lock](https://github.com/facebook/dotslash/blob/1f94ba967f2cdfb4de1fb191735b002702c58d6c/src/util/file_lock.rs): create the lock if absent, without truncation, and acquire its exclusive advisory lock.
 - [Download protocol](https://github.com/facebook/dotslash/blob/1f94ba967f2cdfb4de1fb191735b002702c58d6c/src/download.rs): the owner creates parents for the matching artifact lock. Upstream locking is best effort, so it is not a universal execution barrier.
-- [Execution path](https://github.com/facebook/dotslash/blob/1f94ba967f2cdfb4de1fb191735b002702c58d6c/src/execution.rs): existing-artifact execution does not always acquire the download lock. Neati retains its running-owner and executable checks.
+- [Execution path](https://github.com/facebook/dotslash/blob/1f94ba967f2cdfb4de1fb191735b002702c58d6c/src/execution.rs): existing-artifact execution does not always acquire the download lock. neati retains its running-owner and executable checks.
 
-Neati's read-only scan now accepts absent metadata. Execution creates or opens
+neati's read-only scan now accepts absent metadata. Execution creates or opens
 the exact owner lock using held directory descriptors, `mkdirat` / `openat`,
 no-follow flags, identity checks, and a nonblocking exclusive lock. Lock files
 are neither truncated nor unlinked on release. Unsafe metadata, held locks,

@@ -20,11 +20,11 @@ impl MemoryPressure {
     }
 }
 
-/// How Neati relates to a process group it is displaying.
+/// How neati relates to a process group it is displaying.
 ///
 /// The grouping is an observation of the system process table. `NeatiChild`
-/// is only ever reported when the same fresh snapshot shows this Neati process
-/// in every member's parent chain, so the view never implies Neati started a
+/// is only ever reported when the same fresh snapshot shows this neati process
+/// in every member's parent chain, so the view never implies neati started a
 /// process it merely observed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]

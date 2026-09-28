@@ -1,11 +1,11 @@
-/* Neati · blue-to-cyan accents · frosted chrome · solid working surfaces */
+/* neati · blue-to-cyan accents · frosted chrome · solid working surfaces */
 /* Scan only the root app entrypoint and source tree. The onboarding site has a
    separate Tailwind build and must not inflate the desktop bundle. */
 @import "tailwindcss" source(none);
 @source "../index.html";
 @source "./**/*.{svelte,js,ts}";
 
-/* Tailwind v4 uses media queries for `dark` by default. Neati persists a
+/* Tailwind v4 uses media queries for `dark` by default. neati persists a
    class-based theme so both the main window and Quick Panel can apply the same
    setting without depending on the OS preference. */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -224,7 +224,7 @@
 }
 
 /* Tailwind's preflight no longer supplies the v3 default border color. Keep
-   unqualified borders consistent with Neati's semantic token. */
+   unqualified borders consistent with neati's semantic token. */
 @layer base {
   *,
   ::before,
@@ -447,7 +447,7 @@ html.native-material-window #app {
   border-color: hsl(var(--foreground) / 0.12);
 }
 
-/* Neati · quick readings align, while cleanup owns the panel's focal point. */
+/* neati · quick readings align, while cleanup owns the panel's focal point. */
 .quick-list-section,
 .quick-data-row {
   border-bottom: 1px solid hsl(var(--foreground) / 0.1);

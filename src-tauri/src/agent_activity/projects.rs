@@ -25,7 +25,7 @@ pub fn resolve_project(
     // not repeat the filesystem and configuration work.
     let inspection = GitInspection::open(&root, environment);
     if let Some(refusal) = inspection.refusal() {
-        // A repository Neati will not read is not the same state as a directory
+        // A repository neati will not read is not the same state as a directory
         // that is not a repository, so it is recorded where the user can see it
         // rather than being reported as "no repository". The message can name a
         // path, which the log sanitizer masks.
@@ -153,7 +153,7 @@ fn check_git_dirty(inspection: &GitInspection) -> bool {
 
 /// Longest branch name or detached label returned across IPC. Git bounds the
 /// length of a ref name component, not of a whole hierarchical name, so this is
-/// Neati's own bound on what it hands the interface: a longer value is refused
+/// neati's own bound on what it hands the interface: a longer value is refused
 /// rather than truncated into a name that never existed.
 const MAX_BRANCH_NAME_BYTES: usize = 1_024;
 
@@ -171,7 +171,7 @@ fn read_head_status(git_dir: &Path) -> (Option<String>, bool) {
         return (Some(branch.to_string()), false);
     }
     // A detached HEAD holds an object id: 40 hex digits in a SHA-1 repository,
-    // 64 in a SHA-256 one. Anything else is not a state Neati can name, so it
+    // 64 in a SHA-256 one. Anything else is not a state neati can name, so it
     // reports nothing instead of echoing the file back.
     if matches!(trimmed.len(), 40 | 64) && trimmed.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         (Some(format!("Detached ({})", &trimmed[..7])), true)
@@ -406,7 +406,7 @@ mod tests {
         assert!(!identity.is_worktree);
     }
 
-    /// Runs `git` for a fixture: the assertions below are about how Neati reads
+    /// Runs `git` for a fixture: the assertions below are about how neati reads
     /// what Git itself wrote, so the metadata comes from Git rather than from a
     /// hand-written copy of its layout.
     fn fixture_git(root: &Path, args: &[&str]) -> std::process::Output {
@@ -575,7 +575,7 @@ mod tests {
         .unwrap();
         assert_eq!(read_head_status(&git_dir), (None, false));
 
-        // A ref name longer than Neati's own bound is refused rather than
+        // A ref name longer than neati's own bound is refused rather than
         // truncated into one that never existed.
         let long_branch = "c".repeat(MAX_BRANCH_NAME_BYTES + 1);
         std::fs::write(

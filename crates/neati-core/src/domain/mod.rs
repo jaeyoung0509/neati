@@ -1,4 +1,4 @@
-//! Product semantics that would still make sense if Neati had a CLI instead
+//! Product semantics that would still make sense if neati had a CLI instead
 //! of a desktop application.
 //!
 //! Nothing in this module knows about Tauri, a webview, a window, or a native

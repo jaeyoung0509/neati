@@ -502,7 +502,7 @@ pub fn run() {
                 state.ai.restore_audit(&config_dir);
             }
             let open_dashboard =
-                MenuItem::with_id(app, "open_dashboard", "Open Neati", true, None::<&str>)?;
+                MenuItem::with_id(app, "open_dashboard", "Open neati", true, None::<&str>)?;
             let toggle_quick = MenuItem::with_id(
                 app,
                 "toggle_quick",
@@ -511,7 +511,7 @@ pub fn run() {
                 None::<&str>,
             )?;
             let separator = PredefinedMenuItem::separator(app)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit Neati", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit neati", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open_dashboard, &toggle_quick, &separator, &quit])?;
             // macOS templates use alpha for system appearance; other platforms
             // need the full-color tile to stay legible on light and dark trays.
@@ -523,7 +523,7 @@ pub fn run() {
             TrayIconBuilder::with_id("main-tray")
                 .icon(tray_icon)
                 .icon_as_template(cfg!(target_os = "macos"))
-                .tooltip("Neati - AI & Developer System Manager")
+                .tooltip("neati - AI & Developer System Manager")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -599,7 +599,7 @@ pub fn run() {
             // builds have no console, so the report is written and raised here
             // instead of panicking where nobody can read it.
             crate::diagnostics::report_fatal_startup_failure(
-                "Neati could not start",
+                "neati could not start",
                 &error.to_string(),
             );
             std::process::exit(1);
@@ -803,7 +803,7 @@ mod tests {
         let config: WindowConfig = serde_json::from_str(
             r#"{
                 "label": "main",
-                "title": "Neati",
+                "title": "neati",
                 "decorations": true,
                 "transparent": false,
                 "titleBarStyle": "Overlay"
@@ -821,7 +821,7 @@ mod tests {
         let config: WindowConfig = serde_json::from_str(
             r#"{
                 "label": "quick",
-                "title": "Neati Quick",
+                "title": "neati Quick",
                 "decorations": false,
                 "transparent": true,
                 "alwaysOnTop": true
@@ -845,7 +845,7 @@ mod tests {
         let config: WindowConfig = serde_json::from_str(
             r#"{
                 "label": "main",
-                "title": "Neati",
+                "title": "neati",
                 "decorations": true,
                 "transparent": false,
                 "titleBarStyle": "Overlay"
@@ -856,7 +856,7 @@ mod tests {
         assert_eq!(adapted.title_bar_style, TitleBarStyle::Overlay);
 
         let quick: WindowConfig = serde_json::from_str(
-            r#"{"label": "quick", "title": "Neati Quick", "transparent": true}"#,
+            r#"{"label": "quick", "title": "neati Quick", "transparent": true}"#,
         )
         .expect("parse window config");
         let adapted_quick = platform_window_config(quick, PathFlavor::Posix);

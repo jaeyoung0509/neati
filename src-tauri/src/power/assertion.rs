@@ -182,7 +182,7 @@ mod native_tests {
     #[test]
     fn windows_power_request_handle_survives_across_threads() {
         let assertion =
-            PowerAssertion::acquire(AwakeBehavior::PreventSystemSleep, "Neati Worker Test")
+            PowerAssertion::acquire(AwakeBehavior::PreventSystemSleep, "neati Worker Test")
                 .unwrap();
         assert!(assertion._request.is_some());
         let handle = std::thread::spawn(move || {

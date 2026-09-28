@@ -311,7 +311,7 @@
           <div>
             <h3 id="volume-prune-title" class="text-sm font-semibold">Prune unused Docker volumes?</h3>
             <p class="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Docker reports {formatBytes(overview?.volumes.reclaimable_bytes ?? 0)} as reclaimable. Volumes may contain persistent application data and cannot be restored by Neati.
+              Docker reports {formatBytes(overview?.volumes.reclaimable_bytes ?? 0)} as reclaimable. Volumes may contain persistent application data and cannot be restored by neati.
             </p>
           </div>
         </div>

@@ -82,7 +82,7 @@ impl PolicyEngine {
             candidates.push(candidate(
                 RecommendationKind::OrphanProcess,
                 "Unassigned agent process",
-                "The process is recognized, but Neati cannot prove a project identity. Review it in Projects; no mutable action is authorized.",
+                "The process is recognized, but neati cannot prove a project identity. Review it in Projects; no mutable action is authorized.",
                 Some(resource.session_id.clone()),
                 None,
                 "Open Projects",

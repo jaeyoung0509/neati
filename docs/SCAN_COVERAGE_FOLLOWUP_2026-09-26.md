@@ -9,7 +9,7 @@ unknown and outside observed, cleanable, and selected totals.
 
 ## Read-only live scan
 
-On the audited Mac (Neati 0.3.60, full embedded catalog, intensive scan,
+On the audited Mac (neati 0.3.60, full embedded catalog, intensive scan,
 normal user, no cleanup), one warm run before the DotSlash adapter reported:
 
 | Measurement | Result |
@@ -63,5 +63,5 @@ with the committed baseline; elapsed time and resident growth are observations
 from this run only.
 
 The reference cleaner source informed the review of owner boundaries, live
-process checks, and partial coverage. Neati's catalog, authorization, and
+process checks, and partial coverage. neati's catalog, authorization, and
 reporting code were written independently. No cleanup ran against user data.

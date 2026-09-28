@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AiProviderUsage, AiUsageSnapshot, ProviderId } from '../lib/models/types';
 import { UsageStore, projectProviderSlots } from '../lib/stores/usage.svelte';
 import { tauriGetAiProviderDescriptors, tauriGetAiUsage } from '../lib/utils/tauri';
+import { settingsStore } from '../lib/stores/settings.svelte';
 
 vi.mock('../lib/utils/tauri', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/utils/tauri')>();
@@ -65,6 +66,9 @@ function autoSnapshot(fetchedAt: number): AiUsageSnapshot {
 
 describe('AI usage auto-refresh while visible', () => {
   beforeEach(() => {
+    settingsStore.hasLoaded = true;
+    settingsStore.isLoading = false;
+    settingsStore.settings.ai_accounts_quota_providers = [...AUTO_REFRESH_IDS];
     vi.useFakeTimers();
     vi.setSystemTime(1000_000);
     vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }));
@@ -85,6 +89,31 @@ describe('AI usage auto-refresh while visible', () => {
     expect(tauriGetAiUsage).toHaveBeenCalledTimes(1);
     expect(store.snapshot?.providers.map((item) => item.id)).toEqual(AUTO_REFRESH_IDS);
     stop();
+  });
+
+  it('does not request providers from unconfirmed default settings', async () => {
+    settingsStore.hasLoaded = false;
+    const store = new UsageStore();
+    await store.refresh();
+    expect(tauriGetAiUsage).not.toHaveBeenCalled();
+    expect(store.snapshot).toBeNull();
+  });
+
+  it('rejects late progress and completion after a selection revision, including ABA', async () => {
+    const store = new UsageStore();
+    let emit!: (value: AiProviderUsage) => void;
+    let complete!: (value: AiUsageSnapshot) => void;
+    vi.mocked(tauriGetAiUsage).mockImplementation((_force, onProvider) => {
+      emit = onProvider!;
+      return new Promise(resolve => { complete = resolve; });
+    });
+    const pending = store.refresh();
+    settingsStore.revision++;
+    emit(provider('claude', 'Claude Code'));
+    complete(autoSnapshot(1000));
+    await pending;
+    expect(store.snapshot).toBeNull();
+    expect(store.isLoading).toBe(false);
   });
 
   it('revalidates when the TTL lapses while visible and stays quiet when fresh', async () => {

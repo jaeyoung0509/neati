@@ -32,7 +32,7 @@ impl Default for AiControlCenterState {
                 inspected_roots: vec![],
                 unreached_roots: vec![],
                 status_message:
-                    "Run a bounded local safety scan to inspect the projects Neati inferred from running agent sessions.".into(),
+                    "Run a bounded local safety scan to inspect the projects neati inferred from running agent sessions.".into(),
             },
             recommendations: vec![],
             audit: AuditStore::default(),

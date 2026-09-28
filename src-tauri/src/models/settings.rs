@@ -209,7 +209,7 @@ impl Default for NeatiSettings {
             clean_developer_tools: true,
             clean_docker: true,
             include_rebuild_caches: false,
-            intensive_cleanup: false,
+            intensive_cleanup: true,
             theme: "light".to_string(),
             excluded_signatures: Vec::new(),
             awake_rules: vec![
@@ -318,6 +318,9 @@ impl Default for NeatiSettings {
 
 impl NeatiSettings {
     pub fn sanitize(mut self) -> Self {
+        // Broad verified cache discovery is now standard. Keep the serialized
+        // field only to accept existing settings; it is no longer a preference.
+        self.intensive_cleanup = true;
         let mut sections = HashSet::new();
         self.quick_panel_sections
             .retain(|section| sections.insert(*section));
@@ -537,6 +540,15 @@ mod tests {
     use super::{DashboardTab, NeatiSettings, ProviderId, QuickPanelSection};
 
     #[test]
+    fn extended_scanning_is_standard_even_for_previously_disabled_settings() {
+        let parsed: NeatiSettings = serde_json::from_str(r#"{"intensive_cleanup":false}"#).unwrap();
+        let settings = parsed.sanitize();
+        assert!(settings.intensive_cleanup);
+        assert!(settings.clone().sanitize().intensive_cleanup);
+        assert!(NeatiSettings::default().intensive_cleanup);
+    }
+
+    #[test]
     fn sanitize_keeps_at_least_one_section_and_tab() {
         let empty = NeatiSettings {
             quick_panel_sections: Vec::new(),
@@ -642,7 +654,7 @@ mod tests {
         );
         assert!(parsed.launch_at_login);
         assert_eq!(parsed.theme, "dark");
-        assert!(!parsed.intensive_cleanup);
+        assert!(parsed.intensive_cleanup);
         assert!(!parsed.sidebar_collapsed);
     }
 

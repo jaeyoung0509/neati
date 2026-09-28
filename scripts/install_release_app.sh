@@ -9,7 +9,7 @@ readonly plist_buddy="/usr/libexec/PlistBuddy"
 readonly script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly repository_root="$(cd "$script_dir/.." && pwd -P)"
 
-source_app="$repository_root/target/release/bundle/macos/Neati.app"
+source_app="$repository_root/target/release/bundle/macos/neati.app"
 applications_dir="/Applications"
 launch_after_install=0
 custom_path_requested=0
@@ -20,10 +20,10 @@ usage() {
   cat <<'USAGE'
 Usage: scripts/install_release_app.sh [--launch]
 
-Installs target/release/bundle/macos/Neati.app as /Applications/Neati.app.
+Installs target/release/bundle/macos/neati.app as /Applications/neati.app.
 
 Test-only options (require NEATI_INSTALL_TEST_MODE=1):
-  --source <path>            Source Neati.app fixture
+  --source <path>            Source neati.app fixture
   --applications-dir <path> Destination Applications fixture directory
 USAGE
 }
@@ -69,10 +69,10 @@ if [[ -n "$test_failpoint" && "$test_mode" != "1" ]]; then
   fail "Failure injection is available only in test mode."
 fi
 if [[ "$(uname -s)" != "Darwin" ]]; then
-  fail "The Neati app installer supports macOS only."
+  fail "The neati app installer supports macOS only."
 fi
-if [[ "$(basename "$source_app")" != "Neati.app" ]]; then
-  fail "The source bundle must be named exactly Neati.app."
+if [[ "$(basename "$source_app")" != "neati.app" ]]; then
+  fail "The source bundle must be named exactly neati.app."
 fi
 if [[ ! -d "$source_app" || -L "$source_app" ]]; then
   fail "Release bundle is missing or is a symlink: $source_app"
@@ -85,9 +85,9 @@ if [[ ! -x "$plist_buddy" ]]; then
 fi
 
 readonly source_parent="$(cd "$(dirname "$source_app")" && pwd -P)"
-source_app="$source_parent/Neati.app"
+source_app="$source_parent/neati.app"
 applications_dir="$(cd "$applications_dir" && pwd -P)"
-readonly destination_app="$applications_dir/Neati.app"
+readonly destination_app="$applications_dir/neati.app"
 
 if [[ "$source_app" == "$destination_app" ]]; then
   fail "Source and installed application paths must be different."
@@ -215,7 +215,7 @@ if ((had_previous)); then
   rm -rf -- "$previous_app"
 fi
 
-echo "✅ Neati installed successfully"
+echo "✅ neati installed successfully"
 echo "  Built version:     $built_version"
 echo "  Installed version: $installed_version"
 echo "  Destination:       $destination_app"

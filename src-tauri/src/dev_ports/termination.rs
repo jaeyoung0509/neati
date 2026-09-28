@@ -178,7 +178,7 @@ impl DevPortSystem for RealDevPortSystem {
 
     fn send_signal(&self, pid: u32, signal: i32) -> Result<(), String> {
         if pid <= 1 || pid == std::process::id() {
-            return Err("Cannot signal system or Neati process".to_string());
+            return Err("Cannot signal system or neati process".to_string());
         }
 
         #[cfg(unix)]
@@ -191,9 +191,9 @@ impl DevPortSystem for RealDevPortSystem {
                 }
                 crate::diagnostics::log_error(
                     "dev_ports",
-                    "Neati could not request process termination",
+                    "neati could not request process termination",
                 );
-                return Err("Neati could not request process termination.".to_string());
+                return Err("neati could not request process termination.".to_string());
             }
             Ok(())
         }

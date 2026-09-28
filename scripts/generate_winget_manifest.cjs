@@ -53,7 +53,7 @@ if (!fs.statSync(installerPath, { throwIfNoEntry: false })?.isFile()) {
   fail(`installer does not exist: ${installerPath}`);
 }
 
-const installerName = 'Neati-windows-x64-setup.exe';
+const installerName = 'neati-windows-x64-setup.exe';
 if (path.basename(installerPath) !== installerName) {
   fail(`installer filename must be ${installerName}`);
 }
@@ -104,7 +104,7 @@ Installers:
   InstallerUrl: ${installerUrl}
   InstallerSha256: ${installerHash}
   AppsAndFeaturesEntries:
-  - DisplayName: Neati
+  - DisplayName: neati
     Publisher: jaeyoung0509
     DisplayVersion: ${version}
     InstallerType: nullsoft
@@ -121,14 +121,14 @@ PackageLocale: en-US
 Publisher: jaeyoung0509
 PublisherUrl: ${REPOSITORY_URL}
 PublisherSupportUrl: ${REPOSITORY_URL}/issues
-Author: Neati contributors
-PackageName: Neati
+Author: neati contributors
+PackageName: neati
 PackageUrl: ${REPOSITORY_URL}
 License: MIT
 LicenseUrl: ${REPOSITORY_URL}/blob/v${version}/LICENSE
-Copyright: Copyright (c) 2026 Neati contributors
+Copyright: Copyright (c) 2026 neati contributors
 ShortDescription: Local developer storage, process, AI usage, and power management utility.
-Description: Neati is a cross-platform desktop utility for reviewing developer storage, processes, local services, AI usage, and sleep-control state with explicit safety boundaries.
+Description: neati is a cross-platform desktop utility for reviewing developer storage, processes, local services, AI usage, and sleep-control state with explicit safety boundaries.
 Tags:
 - cleanup
 - developer-tools

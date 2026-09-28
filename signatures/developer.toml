@@ -1,4 +1,4 @@
-# Neati Signatures - Developer Tools
+# neati Signatures - Developer Tools
 # Defines scanning patterns and safety rules for compilers, package managers, and build artifacts.
 
 [[signatures]]
@@ -49,7 +49,7 @@ fail_if_running = ["brew", "ruby"]
 provider = "Homebrew"
 artifact_kind = "package_store"
 consequence = "Homebrew removes exactly the old formula versions, stale lock files, and outdated downloads shown by its 30-day dry-run. Needed downloads may be fetched again; current installed versions remain."
-description = "A separate reviewed action backed by `brew cleanup --dry-run --prune=30`. Neati binds the review to the exact candidate list, repeats the preview immediately before the fixed-argument command, and refuses changed candidates."
+description = "A separate reviewed action backed by `brew cleanup --dry-run --prune=30`. neati binds the review to the exact candidate list, repeats the preview immediately before the fixed-argument command, and refuses changed candidates."
 
 [[signatures]]
 id = "dev.homebrew.metadata"
@@ -225,7 +225,7 @@ strategy = "manual"
 paths = [
     "~/.bun/install/cache"
 ]
-description = "Bun's global package cache reported for review. Current Bun releases require project context even to query `bun pm cache`, so Neati does not guess a project or recursively delete the store."
+description = "Bun's global package cache reported for review. Current Bun releases require project context even to query `bun pm cache`, so neati does not guess a project or recursively delete the store."
 provider = "Bun"
 artifact_kind = "package_store"
 consequence = "Packages may be shared with projects and may need to be downloaded again."
@@ -337,7 +337,7 @@ paths = [
     "~/Library/Caches/ms-playwright",
     "${LOCAL_APP_DATA}/ms-playwright"
 ]
-description = "Browser binaries tracked by Playwright installations. Playwright garbage-collects unused revisions and exposes lifecycle commands, so Neati reports this store without recursively deleting it."
+description = "Browser binaries tracked by Playwright installations. Playwright garbage-collects unused revisions and exposes lifecycle commands, so neati reports this store without recursively deleting it."
 provider = "Playwright"
 artifact_kind = "package_store"
 consequence = "Removing a required revision breaks that Playwright installation until its browsers are installed again."
@@ -422,7 +422,7 @@ strategy = "manual"
 paths = [
     "~/.gradle/caches"
 ]
-description = "Gradle owns retention and locking for this shared cache; Neati reports it as advisory only."
+description = "Gradle owns retention and locking for this shared cache; neati reports it as advisory only."
 provider = "Gradle"
 artifact_kind = "package_store"
 consequence = "Deleting entries can force dependency downloads and expensive task rebuilds."
@@ -437,7 +437,7 @@ strategy = "manual"
 paths = [
     "~/.m2/repository"
 ]
-description = "Maven's mixed local repository requires project-aware purge semantics; Neati reports it only."
+description = "Maven's mixed local repository requires project-aware purge semantics; neati reports it only."
 provider = "Maven"
 artifact_kind = "package_store"
 consequence = "Dependencies and plugins may need to be downloaded again."

@@ -171,7 +171,7 @@ impl ProviderCollectionService {
                             http_client: http_client.client(),
                         };
                         let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            adapter.collect(&ctx)
+                            adapter.collect_with_progress(&ctx, &|usage| on_provider(usage))
                         }));
 
                         match res {
@@ -267,6 +267,16 @@ fn map_error_to_usage(descriptor: &ProviderDescriptor, err: ProviderError) -> Ai
     usage.connected = false;
     usage.model_vendor = descriptor.model_vendor.clone();
     usage.model_identity = descriptor.model_identity.clone();
+    use crate::models::UsageCollectionStatus;
+    usage.collection_status = Some(match &err {
+        ProviderError::Timeout => UsageCollectionStatus::Timeout,
+        ProviderError::InvalidResponse(_) => UsageCollectionStatus::ProtocolError,
+        ProviderError::CliNotInstalled(_) => UsageCollectionStatus::NotInstalled,
+        ProviderError::CredentialMissing | ProviderError::AuthenticationFailed(_) => {
+            UsageCollectionStatus::SignedOut
+        }
+        _ => UsageCollectionStatus::Unavailable,
+    });
     usage.status_message = match err {
         ProviderError::CredentialMissing => "API key not configured in secure settings.".into(),
         ProviderError::AuthenticationFailed(msg) => format!("Authentication failed: {msg}"),

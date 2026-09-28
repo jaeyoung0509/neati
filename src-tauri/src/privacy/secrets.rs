@@ -498,7 +498,7 @@ mod tests {
     use super::*;
     use crate::ai_providers::registry::{CredentialKind, ProviderRegistry};
 
-    /// Builds `<key>=<value>` at runtime. The safety scanner inspects Neati's
+    /// Builds `<key>=<value>` at runtime. The safety scanner inspects neati's
     /// own repository, so a fixture line must not contain a complete
     /// `key=` / `key="` signature: an exposed-credential finding must always
     /// mean a real credential, never this file's own test data.
@@ -512,7 +512,7 @@ mod tests {
     }
 
     /// Joins credential parts at runtime so no source line carries the whole
-    /// signature the scanner looks for. Both Neati's own scanner and the
+    /// signature the scanner looks for. Both neati's own scanner and the
     /// external secret scanners that read this repository scan these lines, so
     /// a password-shaped value is assembled from fragments here as well.
     fn joined(parts: &[&str]) -> String {

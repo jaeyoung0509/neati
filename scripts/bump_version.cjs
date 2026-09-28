@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Neati Version Management Script
+ * neati Version Management Script
  *
  * Synchronizes the application version across package.json,
  * src-tauri/tauri.conf.json, and the Cargo workspace: the version lives once in

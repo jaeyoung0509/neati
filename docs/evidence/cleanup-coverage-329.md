@@ -8,10 +8,10 @@ user's request. Source inspection establishes what a cleanup stage requests;
 it does not prove its guards allow removal on this machine. No user cache or
 system Trash was mutated in this investigation.
 
-- **Source review:** local RC-01 1.55.0 and Neati develop `f179ee3`.
+- **Source review:** local RC-01 1.55.0 and neati develop `f179ee3`.
 - **Historical machine evidence:** September 28, 2026, macOS 27.0 (26A428),
-  Neati 0.3.69; the private preview/scan inputs from #328 were re-analyzed.
-- **Fixture verification:** Neati's existing owner-provider, artifact and
+  neati 0.3.69; the private preview/scan inputs from #328 were re-analyzed.
+- **Fixture verification:** neati's existing owner-provider, artifact and
 safety tests plus new analysis/presentation tests. Mock provider tests do not
 establish that every language's installed CLI was exercised.
 - **Not executed:** a controlled five-repetition cross-tool deletion benchmark,
@@ -30,14 +30,14 @@ or package-manager behavior on other versions remains unverified.
 
 ## Broad ecosystem comparison
 
-Neati global cache policy lives in [developer.toml](../../signatures/developer.toml)
+neati global cache policy lives in [developer.toml](../../signatures/developer.toml)
 and [typed provider definitions](../../src-tauri/src/cache_providers/catalog).
 Project artifacts are a **separate, explicit workspace workflow** in
 [rules.rs](../../src-tauri/src/developer_artifacts/rules.rs) and
 [recognition](../../src-tauri/src/developer_artifacts/mod.rs). A missing global
 signature must not be described as absence of all support for that language.
 
-| Ecosystem | RC-01 source-stage behavior | Neati behavior / actionable difference |
+| Ecosystem | RC-01 source-stage behavior | neati behavior / actionable difference |
 | --- | --- | --- |
 | JavaScript / npm | `dev.sh:430`: owner cache reset plus residual cache directories | `javascript.rs`: `cache verify`, not full reset. **Policy difference**, not missing discovery. Never substitute `--force` merely to match bytes. |
 | JavaScript / pnpm | `dev.sh:359`: discover installed binaries/store generations; owner `store prune` | Same owner command; compare generation enumeration, deduplication and busy-owner handling. Observed store size is not a prune estimate. |
@@ -54,7 +54,7 @@ signature must not be described as absence of all support for that language.
 | Go | `dev.sh:1004`: resolved build/module roots; owner `clean -cache` / `-modcache`, differing process gates | `go.rs`: same fixed operations, local-toolchain-only, active Go guard. Recheck gopls/module-lock behavior; do not infer concurrent safety from build-cache behavior. |
 | Java / Kotlin / Gradle | `dev.sh:2855`: only build-cache children plus daemon/worker/notification targets, process guarded | Global `.gradle/caches` advisory; workspace `build`/`.gradle` supported. **230 MB whole-store observation is not 230 MB of missed reclaim.** Measure exact build-cache children first. |
 | Java / Maven, Scala / sbt-Ivy, Clojure | `dev.sh:2855`: dependency stores/compiler/launcher state intentionally preserved | Maven global repository advisory; marker-bound project `target` rules for Maven/sbt/Clojure. Preserve global stores; no blanket language-support gap. |
-| .NET / NuGet | `dev.sh:3880`: global packages explicitly kept | `nuget.rs`: separate HTTP/temp/plugins/global-packages owner operations with process guards. Neati's explicit global-packages operation is **broader**, not narrower; it is never a generic directory deletion. |
+| .NET / NuGet | `dev.sh:3880`: global packages explicitly kept | `nuget.rs`: separate HTTP/temp/plugins/global-packages owner operations with process guards. neati's explicit global-packages operation is **broader**, not narrower; it is never a generic directory deletion. |
 | PHP / Composer | `dev.sh:3880`: legacy/macOS cache paths through shared cleanup | `php.rs`: owner discovery/clear with plugins disabled. Workspace vendor recognition separate. Prefer the owner contract over broad path coverage. |
 | Ruby / Bundler / RubyGems | `dev.sh:1217`: rbenv downloads, gem specs/archives and Bundler cache | No dedicated global signature; project `vendor/bundle` recognition exists. Investigate archive/spec units, keeping installed gems and interpreters. |
 | Perl / CPAN | `dev.sh:1224`: build artifacts, preserves source distribution store | No dedicated global adapter. Only proven completed build artifacts merit a follow-up; installed modules and sources remain. |
@@ -66,7 +66,7 @@ signature must not be described as absence of all support for that language.
 | Zig / Bazel | `dev.sh:3880`: named global cache paths | Zig project `.zig-cache` supported; global Zig/Bazel coverage not equivalent. Bazel output/install bases require separate ownership investigation. |
 
 Cross-cutting exclusion: reference stages also mention stateful logs/WAL and
-workspace paths. Their presence in source is **not** a reason to relax Neati's
+workspace paths. Their presence in source is **not** a reason to relax neati's
 structured-state, workspace-consent or symlink protections.
 
 ## All 38 unmatched rows accounted for
@@ -161,7 +161,7 @@ fixture_trash_bytes, failed_count, preserved_count, cancelled,
 stage_scope, limitations
 ```
 
-Use separate Safe/permanent and Rebuild/fixture-Trash Neati cases. The fixture
+Use separate Safe/permanent and Rebuild/fixture-Trash neati cases. The fixture
 Trash adapter must actually rename into a private temporary destination and
 verify destination bytes. Never use the real Trash, delete real cache roots,
 or report Trash movement as free-space gain. Sparse-file/APFS allocation,

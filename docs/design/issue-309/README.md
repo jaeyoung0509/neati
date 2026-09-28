@@ -1,4 +1,4 @@
-# Blue ribbon Neati Z
+# Blue ribbon neati Z
 
 The user rejected the first handwritten draft and approved the second of three
 supplied ribbon references. This revision follows that reference: two straight

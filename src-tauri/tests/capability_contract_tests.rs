@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 /// The rule for this window is read-mostly: metrics and status reads, scan
 /// observation, the backend-owned safe cleanup (one-click or a reviewed set of
 /// backend-verified Safe item identities; neither accepts paths or strategies),
-/// platform vocabulary, and navigation between Neati's own windows.
+/// platform vocabulary, and navigation between neati's own windows.
 /// Nothing here hands the panel a cleaner, a planner, or a settings writer, so
 /// a permission added to `capabilities/quick.json` has to be added here too —
 /// that edit is the review, and it is the only way past

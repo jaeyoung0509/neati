@@ -47,12 +47,12 @@ pub struct EnvironmentReport {
 }
 
 const USAGE: &str = "\
-Neati platform self-check
+neati platform self-check
 
 USAGE:
   Neati --doctor          Print the de-identified environment fingerprint and self-check table
   Neati --doctor --json   Print the same report as a single JSON object
-  Neati --help            Show this message
+  neati --help            Show this message
 
 EXIT CODES:
   0  every self-check passed
@@ -179,7 +179,7 @@ pub fn self_check(environment: &PlatformEnvironment) -> EnvironmentReport {
 
 pub fn render_text(report: &EnvironmentReport) -> String {
     let mut lines = Vec::new();
-    lines.push("Neati environment self-check".to_string());
+    lines.push("neati environment self-check".to_string());
     lines.push(String::new());
     lines.push(format!("platform: {}", platform_name(report.platform)));
     lines.push("fingerprint:".to_string());

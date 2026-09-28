@@ -359,7 +359,7 @@ impl CleanFailureReason {
             }
             CleanFailureReason::SafetyBoundary => {
                 format!(
-                    "{} changed into a link, a mount point, or another indirection. Neati refuses to delete through it.",
+                    "{} changed into a link, a mount point, or another indirection. neati refuses to delete through it.",
                     target_name
                 )
             }
@@ -383,7 +383,7 @@ impl CleanFailureReason {
             }
             CleanFailureReason::OwnerManaged => {
                 format!(
-                    "{} is a store the program that owns it maintains; Neati inventories it and does not delete it.",
+                    "{} is a store the program that owns it maintains; neati inventories it and does not delete it.",
                     target_name
                 )
             }

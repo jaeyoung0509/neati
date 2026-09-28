@@ -17,7 +17,7 @@
   let visible = $derived(inBrowser && snapshot.mode === 'preview');
   let explanation = $derived(
     snapshot.message ??
-      'Neati is showing browser preview data instead of live results from this machine.'
+      'neati is showing browser preview data instead of live results from this machine.'
   );
 
   onMount(() => apiBridgeStore.subscribe());

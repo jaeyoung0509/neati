@@ -7,8 +7,8 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.3.74"
-authors = ["Neati Team"]
+version = "0.3.75"
+authors = ["neati Team"]
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/jaeyoung0509/neati"
@@ -18,7 +18,7 @@ repository = "https://github.com/jaeyoung0509/neati"
 # stabilized in 1.93.0; 1.92.0 and older fail with E0658 in that crate.
 # notify-rust 4.18.0 also requires 1.89.0, above the 1.77.2 floor that fixes
 # CVE-2024-24576 (batch-file argument escaping on Windows, relevant because
-# Neati spawns .cmd/.bat shims there). The CI `msrv` job installs exactly this
+# neati spawns .cmd/.bat shims there). The CI `msrv` job installs exactly this
 # toolchain and runs `just check-msrv`.
 #
 # The floor is stated once, here, so `neati-core` and `neati-desktop` cannot

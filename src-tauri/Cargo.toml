@@ -1,6 +1,6 @@
 [package]
 name = "neati-desktop"
-description = "Neati - cross-platform AI & Developer System Manager"
+description = "neati - cross-platform AI & Developer System Manager"
 # The desktop adapter is an application, not a library anyone installs, and it
 # depends on `neati-core` by path. `cargo deny` refuses a version-less
 # dependency on a publishable crate for the right reason — a wildcard

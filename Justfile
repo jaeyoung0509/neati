@@ -1,4 +1,4 @@
-# Neati task runner
+# neati task runner
 # https://github.com/casey/just
 #
 # Cross-platform recipes run on macOS, Linux, and Windows. Recipes that only
@@ -29,22 +29,22 @@ dev:
 dev-web:
     pnpm dev
 
-# Build a debug macOS app bundle so Finder and Dock use Neati branding.
+# Build a debug macOS app bundle so Finder and Dock use neati branding.
 [macos]
 build-fast:
     pnpm tauri build --debug --bundles app
     @echo ""
-    @echo "⚡ Debug app built at: target/debug/bundle/macos/Neati.app"
+    @echo "⚡ Debug app built at: target/debug/bundle/macos/neati.app"
 
 # Run fast debug binary directly (macOS app bundle)
 [macos]
 run-fast:
-    @if [ -d "target/debug/bundle/macos/Neati.app" ]; then \
-        open "target/debug/bundle/macos/Neati.app"; \
-    elif [ -d "src-tauri/target/debug/bundle/macos/Neati.app" ]; then \
-        open "src-tauri/target/debug/bundle/macos/Neati.app"; \
+    @if [ -d "target/debug/bundle/macos/neati.app" ]; then \
+        open "target/debug/bundle/macos/neati.app"; \
+    elif [ -d "src-tauri/target/debug/bundle/macos/neati.app" ]; then \
+        open "src-tauri/target/debug/bundle/macos/neati.app"; \
     else \
-        just build-fast && open "target/debug/bundle/macos/Neati.app"; \
+        just build-fast && open "target/debug/bundle/macos/neati.app"; \
     fi
 
 # ------------------------------------------------------------------------------
@@ -57,11 +57,11 @@ distribute: stop clean-bin
     ./scripts/tauri_release_build.sh
     @echo ""
     @echo "📦 Fresh release packages built successfully:"
-    @echo "  - App Bundle: target/release/bundle/macos/Neati.app"
+    @echo "  - App Bundle: target/release/bundle/macos/neati.app"
     @echo "  - DMG Installer: target/release/bundle/dmg/"
     @echo "👉 Run directly with: just run-bin"
 
-# Build the app only, then validate and replace /Applications/Neati.app.
+# Build the app only, then validate and replace /Applications/neati.app.
 # Distribution DMG creation is a separate `just distribute` operation.
 [macos]
 release: release-app install-release
@@ -75,14 +75,14 @@ install-release:
 [macos]
 release-and-run: release
     @echo "🚀 Launching installed release..."
-    @open "/Applications/Neati.app"
+    @open "/Applications/neati.app"
 
 # Clean existing binaries and build fresh standalone release macOS App bundle
 [macos]
 release-app: stop clean-bin
     ./scripts/tauri_release_build.sh --bundles app
     @echo ""
-    @echo "✅ Standalone release App built at: target/release/bundle/macos/Neati.app"
+    @echo "✅ Standalone release App built at: target/release/bundle/macos/neati.app"
     @echo "👉 Run directly with: just run-bin"
 
 # Build fresh standalone release app and launch immediately
@@ -100,7 +100,7 @@ build:
 build-bin:
     pnpm tauri build --bundles app
     @echo ""
-    @echo "✅ Standalone release App built at: target/release/bundle/macos/Neati.app"
+    @echo "✅ Standalone release App built at: target/release/bundle/macos/neati.app"
     @echo "👉 Run directly with: just run-bin"
 
 # Build frontend static assets into dist/
@@ -236,23 +236,23 @@ set-version version_str:
 # Run the release app bundle directly (with full macOS Dock icon)
 [macos]
 run-bin:
-    @if [ -d "target/release/bundle/macos/Neati.app" ]; then \
-        open "target/release/bundle/macos/Neati.app"; \
-    elif [ -d "src-tauri/target/release/bundle/macos/Neati.app" ]; then \
-        open "src-tauri/target/release/bundle/macos/Neati.app"; \
+    @if [ -d "target/release/bundle/macos/neati.app" ]; then \
+        open "target/release/bundle/macos/neati.app"; \
+    elif [ -d "src-tauri/target/release/bundle/macos/neati.app" ]; then \
+        open "src-tauri/target/release/bundle/macos/neati.app"; \
     elif [ -f "target/release/Neati" ]; then \
         ./target/release/Neati; \
     elif [ -f "src-tauri/target/release/Neati" ]; then \
         ./src-tauri/target/release/Neati; \
     else \
-        pnpm tauri build --bundles app && open "target/release/bundle/macos/Neati.app"; \
+        pnpm tauri build --bundles app && open "target/release/bundle/macos/neati.app"; \
     fi
 
 # ------------------------------------------------------------------------------
 # 🧹 Clean & Maintenance
 # ------------------------------------------------------------------------------
 
-# Stop running Neati desktop application instances
+# Stop running neati desktop application instances
 [macos]
 stop:
     @-killall Neati 2>/dev/null || true

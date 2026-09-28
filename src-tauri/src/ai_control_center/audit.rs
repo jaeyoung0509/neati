@@ -160,7 +160,7 @@ fn safe_label(value: &str) -> String {
 mod tests {
     use super::*;
 
-    /// Joins credential parts at runtime: the safety scanner inspects Neati's
+    /// Joins credential parts at runtime: the safety scanner inspects neati's
     /// own repository, so a fixture must not carry the complete signature.
     fn joined(parts: &[&str]) -> String {
         parts.concat()

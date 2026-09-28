@@ -148,7 +148,7 @@ fn write_log_line(dir: &Path, category: &str, message: &str, restrict: RestrictP
 
     let file_path = dir.join("neati.log");
     // Repair every log file before anything is written. Rotation only rewrites
-    // `neati.log`, so a `0644` `neati.log.1` created by an older Neati would
+    // `neati.log`, so a `0644` `neati.log.1` created by an older neati would
     // otherwise stay readable until the next rotation, possibly for months. A
     // failure means a log is not known to be owner-only, so the line is dropped
     // rather than written insecurely.
@@ -208,7 +208,7 @@ fn write_log_line(dir: &Path, category: &str, message: &str, restrict: RestrictP
 /// times; the user needs to be told once, not once per click.
 static REPORTED_STARTUP_FAILURES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
-const STARTUP_FAILURE_TITLE: &str = "Neati could not open its window";
+const STARTUP_FAILURE_TITLE: &str = "neati could not open its window";
 
 fn prepare_startup_failure(context: &str, error: &str) -> Option<(String, String)> {
     let detail = format!(
@@ -314,7 +314,7 @@ fn show_native_error_dialog(title: &str, detail: &str) {
 /// cannot be written is the failure that hides every other failure.
 pub(crate) fn probe_log_writability(dir: &Path) -> Result<(), String> {
     probe_log_writability_with(dir, |file| {
-        file.write_all(b"Neati diagnostics write probe\n")?;
+        file.write_all(b"neati diagnostics write probe\n")?;
         file.flush()
     })
 }
@@ -362,7 +362,7 @@ fn probe_log_writability_with(dir: &Path, write_probe: ProbeWrite) -> Result<(),
     if file_exists {
         // Verify that the real log can be opened, but never append the probe to
         // it. Restoring by truncating to an earlier length could discard lines
-        // written concurrently by a running Neati process.
+        // written concurrently by a running neati process.
         if let Err(error) = OpenOptions::new().append(true).open(&file_path) {
             return Err(format!(
                 "the log file could not be opened for writing: {error}"
@@ -952,7 +952,7 @@ mod tests {
         assert_eq!(mode & 0o777, 0o600);
     }
 
-    /// A log created by an older Neati is world readable. Rotation must repair
+    /// A log created by an older neati is world readable. Rotation must repair
     /// it before the rename, so neither the fresh log nor its backup is left
     /// readable by other users.
     #[cfg(unix)]
@@ -989,7 +989,7 @@ mod tests {
         assert_eq!(mode_of(&backup), 0o600);
     }
 
-    /// A backup written by an older Neati stays `0644` until the next
+    /// A backup written by an older neati stays `0644` until the next
     /// rotation, which may be months away. Every write repairs it instead.
     #[cfg(unix)]
     #[test]
@@ -1111,7 +1111,7 @@ mod tests {
     }
 
     /// Creates an oversized log with an explicit mode, standing in for a file
-    /// written by an older Neati release.
+    /// written by an older neati release.
     #[cfg(unix)]
     fn grow_to_rotation_threshold(path: &Path, mode: u32) {
         use std::os::unix::fs::PermissionsExt;

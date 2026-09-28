@@ -1,4 +1,4 @@
-# Neati Signatures - Container Tools
+# neati Signatures - Container Tools
 # Defines scanning patterns and safety rules for Docker, Podman, and Colima.
 
 [[signatures]]

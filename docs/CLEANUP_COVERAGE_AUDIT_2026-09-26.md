@@ -1,8 +1,8 @@
 # macOS cleanup coverage audit — 2026-09-26
 
-This is a read-only comparison of the reference cleaner and Neati on one Mac. It identifies
+This is a read-only comparison of the reference cleaner and neati on one Mac. It identifies
 authorization, measurement, and coverage differences; it is not a target for
-Neati to match the reference cleaner's headline number. Private path ledgers and command output
+neati to match the reference cleaner's headline number. Private path ledgers and command output
 were kept outside the repository. No cleanup was performed on user data; a
 disposable temporary fixture was cleaned to profile the executor.
 The user reports that the reference cleaner's estimates have often been close to later actual
@@ -14,14 +14,14 @@ cleanup, but no paired deletion run was available for this snapshot.
 | --- | --- |
 | Host | macOS 27.0 build 26A428, arm64 |
 | Reference cleaner | CLI 1.55.0, read-only source snapshot at tag `V1.55.0` (`69ab325`) |
-| Neati | 0.3.60, embedded catalog plus native lifecycle/owner providers; intensive cleanup enabled; no exclusions |
+| neati | 0.3.60, embedded catalog plus native lifecycle/owner providers; intensive cleanup enabled; no exclusions |
 | Privilege | Normal user; no sudo or system-cache preview |
 | Reference cleaner command | `mo clean --dry-run`, then read its private preview list |
-| Neati command | `scan_machine --live-read-only --full-catalog-read-only --private-ledger` |
+| neati command | `scan_machine --live-read-only --full-catalog-read-only --private-ledger` |
 | Owner previews | `HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_AUTOREMOVE=1 brew cleanup --dry-run --prune=7` and `--prune=30` |
-| Run order / cache state | Fixed-signature diagnostic first; full Neati scan at 05:45 UTC; the reference cleaner preview around 06:05 UTC; full Neati scan at 06:06 UTC; later Homebrew 7/30 dry-runs and warm post-change Neati scan. No cache reset was performed, so these are warm/uncontrolled filesystem observations rather than a cold/warm experiment. |
+| Run order / cache state | Fixed-signature diagnostic first; full neati scan at 05:45 UTC; the reference cleaner preview around 06:05 UTC; full neati scan at 06:06 UTC; later Homebrew 7/30 dry-runs and warm post-change neati scan. No cache reset was performed, so these are warm/uncontrolled filesystem observations rather than a cold/warm experiment. |
 
-The full Neati diagnostic uses the same embedded catalog, native provider
+The full neati diagnostic uses the same embedded catalog, native provider
 registries, and `ScanEngine` as the desktop composition root. It does not load
 user-replaced catalogs or model window preferences. A UI scan with different
 settings can therefore differ. The earlier fixed-signature diagnostic from the
@@ -61,19 +61,19 @@ deduplicated filesystem union or a verified disk-free delta.
 | Reference cleaner preview at ~06:05 UTC | 2.85 GB potential; 75 listed items, 5 sections |
 | Reference cleaner listed paths that sit inside another listed path | 24; rounded displayed sizes sum to ~1.15 GB |
 | Reference cleaner rounded display sum, excluding structurally nested paths | ~1.86 GB; **still not a reclaim estimate** |
-| Neati full scan at 06:06 UTC, before catalog change | 3,084,984,320 observed bytes; 653,668,352 cleanable; 623,190,016 preselected |
-| Neati scan quality | Partial; 477 incomplete items and 479 skipped entries |
+| neati full scan at 06:06 UTC, before catalog change | 3,084,984,320 observed bytes; 653,668,352 cleanable; 623,190,016 preselected |
+| neati scan quality | Partial; 477 incomplete items and 479 skipped entries |
 | Typed gap counts | 452 possible Full Disk Access, 19 permission denied, 6 I/O error |
-| Neati traversal | 10,399 entries, 2,126 directories, 8.26 s, peak 16 outstanding tasks |
-| Comparison-to-Neati path relation | 13 exact, 44 within a Neati unit, 18 comparison-only; a parent relation does **not** establish equal cleanup semantics |
+| neati traversal | 10,399 entries, 2,126 directories, 8.26 s, peak 16 outstanding tasks |
+| Comparison-to-neati path relation | 13 exact, 44 within a neati unit, 18 comparison-only; a parent relation does **not** establish equal cleanup semantics |
 
-The environment changed during the audit. A full Neati scan at 05:45 UTC
+The environment changed during the audit. A full neati scan at 05:45 UTC
 observed 651,608,064 bytes under Homebrew; at 06:06 UTC the same root observed
 1,023,700,992 bytes. The corresponding whole-scan observed totals changed
 from 2,263,781,376 to 3,084,984,320 bytes. The source of this intervening
 growth was not established. It demonstrates why measurements made twenty
 minutes apart must not be treated as a controlled A/B result. The paired reference-cleaner
-preview and 06:06 Neati scan are close in time, but their scope and policy
+preview and 06:06 neati scan are close in time, but their scope and policy
 still differ.
 
 The explicit Homebrew inventory rule introduced by this audit moves its bytes
@@ -97,14 +97,14 @@ data. This later scan is not a controlled subtraction from the 06:06 baseline.
 
 ## Path and owner ledger
 
-| Owner / candidate | Reference cleaner evidence | Neati evidence and reason | Decision |
+| Owner / candidate | Reference cleaner evidence | neati evidence and reason | Decision |
 | --- | --- | --- | --- |
 | Homebrew | Root and 20 nested download paths in the reference cleaner's list; root footprint ~1.02 GB. Its broad user-cache sweep passes the Homebrew root to its guarded remover, independently of its separate `brew cleanup` step. | The interim Manual root prevented generic deletion; the final owner provider offers 968,634,368 bytes of direct download files for explicit Rebuild review. API/bootsnap and unrecognized entries stay advisory. | Homebrew's **own** `brew cleanup --dry-run --prune=7` and `--prune=30` produced byte-identical output: 10 candidate lines and ~164.2 MB for this snapshot. Those lines named old Cellar versions, temporary Cellar staging, and empty prefix directories, not cache downloads. This 164.2 MB is **not** an upper bound on what the reference cleaner's broader cache removal may reclaim. |
-| dotslash | One comparison-only candidate displayed ~537 MB | Explicitly excluded from Neati's broad cache rule. A trial generic Manual inventory could not completely measure its protected contents and produced a zero-byte partial row, so it was not retained. | A follow-up owner-scoped adapter now offers only complete hash-addressed artifacts unchanged for 30 days, after an opt-in and individual Rebuild review. The historical ~537 MB whole-root preview is not its eligible amount. |
-| Chrome cache | Reference cleaner listed a ~127.6 MB `~/Library/Caches/Google/Chrome/Default` candidate | Neati originally observed its `Google` parent as recent and selected zero. Exact HTTP and code cache units now offer 137,175,040 bytes in the later scan for review. | Require Chrome and helpers to be stopped. Keep `Storage`, profile state, cookies, Service Workers, and on-device models outside these units. |
+| dotslash | One comparison-only candidate displayed ~537 MB | Explicitly excluded from neati's broad cache rule. A trial generic Manual inventory could not completely measure its protected contents and produced a zero-byte partial row, so it was not retained. | A follow-up owner-scoped adapter now offers only complete hash-addressed artifacts unchanged for 30 days, after an opt-in and individual Rebuild review. The historical ~537 MB whole-root preview is not its eligible amount. |
+| Chrome cache | Reference cleaner listed a ~127.6 MB `~/Library/Caches/Google/Chrome/Default` candidate | neati originally observed its `Google` parent as recent and selected zero. Exact HTTP and code cache units now offer 137,175,040 bytes in the later scan for review. | Require Chrome and helpers to be stopped. Keep `Storage`, profile state, cookies, Service Workers, and on-device models outside these units. |
 | Help Viewer cache | Reference cleaner listed generated and cached page paths totaling ~29.8 MB | Exact generated and page cache units now offer 29,720,576 bytes in the later scan. | Require `helpd` to be stopped; retain HSTS, preferences, and neighboring indexes. |
-| Cargo registry archive | Reference cleaner listed ~30.5 MB | Neati owner provider measured 30,478,336 bytes cleanable, but Rebuild requires selection, so zero preselected. | Already covered; explain selection rather than add another path rule. |
-| Other small comparison-only paths | 17 other listed paths after Homebrew becomes an exact advisory match; several are Apple/tool namespaces or shell artifacts | Many are intentionally excluded or outside Neati's current catalog. | Triage individually by owner; small generic paths do not justify a broad deletion rule. |
+| Cargo registry archive | Reference cleaner listed ~30.5 MB | neati owner provider measured 30,478,336 bytes cleanable, but Rebuild requires selection, so zero preselected. | Already covered; explain selection rather than add another path rule. |
+| Other small comparison-only paths | 17 other listed paths after Homebrew becomes an exact advisory match; several are Apple/tool namespaces or shell artifacts | Many are intentionally excluded or outside neati's current catalog. | Triage individually by owner; small generic paths do not justify a broad deletion rule. |
 | Protected macOS containers and app data | Not the main source of the reference cleaner's Homebrew/cache preview difference | 452 possible Full Disk Access gaps were largely sandbox/group-container cache probes; unavailable units retained zero observed bytes with typed partial quality. | Improve visibility of the reason and assess whether protected Apple roots should be attempted at all. Never convert these zeros to complete observations. |
 
 The reference cleaner's preview is not the same as `brew cleanup`'s preview. Its pinned
@@ -135,7 +135,7 @@ The source-level distinction is documented in [issue #294](https://github.com/ja
 
 | Quantity | This audit |
 | --- | --- |
-| Observed / cleanable / selected | Raw Neati bytes in the table above; after the Homebrew classification change, cleanable/selected changed as stated |
+| Observed / cleanable / selected | Raw neati bytes in the table above; after the Homebrew classification change, cleanable/selected changed as stated |
 | Reference cleaner potential | Rounded candidate display sizes, including nested entries |
 | Actually removed from live user caches | Not measured; no cleanup ran on user data |
 | Verified live reclaimed and disk-free delta | Not measured; no cleanup ran on user data |
@@ -149,7 +149,7 @@ numerical gaps are selection/authority and accounting, not proven scan speed.
 The disposable benchmark uses the ordinary scan, plan, validation, and
 executor path. Its file count and allocation are fixture facts; its 851 ms is
 a single local observation, not a performance guarantee. Running
-the reference cleaner and Neati sequentially on the user's live caches would change the second
+the reference cleaner and neati sequentially on the user's live caches would change the second
 tool's input and would not be a fair throughput comparison.
 
 ## Ranked implementation follow-ups
@@ -181,10 +181,10 @@ tool's input and would not be a fair throughput comparison.
 The pinned reference-cleaner catalog has 21 actions. Its dry-run reported 3 that would
 apply, 14 unchanged, 1 skipped, 1 unavailable, and 2 failed on this Mac.
 Those counts are outcomes of a maintenance preview, **not bytes**. The table
-below groups actions by the Neati capability and verification they would
+below groups actions by the neati capability and verification they would
 require; it does not grant execution permission.
 
-| Reference cleaner action IDs | Neati capability/preview and consent boundary | Post-action check |
+| Reference cleaner action IDs | neati capability/preview and consent boundary | Post-action check |
 | --- | --- | --- |
 | `system_maintenance`, `network_optimization`, `network_stack_optimize` | Separate DNS, Spotlight-status, mDNSResponder, route, and ARP actions; show the exact service or table affected, required privilege, and a typed unavailable/skip reason. Explicit consent before mutation. | Query the same service or network state; report any failed sub-action. |
 | `cache_refresh`, `launch_services_rebuild`, `notification_cleanup` | Preview the Finder/QuickLook, LaunchServices, or notification store to be rebuilt or cleared. These have different owners and cannot share a generic cache cleanup command. | Re-query each service and report a bounded success/failure result. |
@@ -192,7 +192,7 @@ require; it does not grant execution permission.
 | `prevent_network_dsstore`, `legacy_overrides_audit`, `spotlight_orphan_rules_cleanup`, `login_items_audit`, `launch_agents_cleanup` | Preview each preference, rule, or registration with current value and proposed change; protect managed settings and require a per-item decision. | Read the preference or registration back and report unchanged/skipped separately. |
 | `disk_permissions_repair`, `spotlight_index_optimize`, `periodic_maintenance`, `disk_verify` | Treat each as a separate privileged or long-running system capability, with impact, expected duration, cancel/skip behavior, and a dry-run that names the exact operation. No implicit sudo. | Re-run the relevant permissions, index, periodic-script, or filesystem health check. |
 
-Neati currently has no corresponding maintenance workflow. A follow-up
+neati currently has no corresponding maintenance workflow. A follow-up
 should first decide which actions solve a user problem and can be safely
 previewed on supported macOS versions; it should not copy the reference cleaner's catalog or
 its automatic-execution classification.
@@ -222,6 +222,6 @@ protected roots, stateful data, and advisory stores remain deliberately outside
 generic cleanup. Future gaps should begin with another paired read-only audit
 and a new owner-specific issue rather than broadening these authorizations.
 
-The reference cleaner's source is GPL-3.0 and Neati is MIT. This audit records observed behavior
+The reference cleaner's source is GPL-3.0 and neati is MIT. This audit records observed behavior
 and references pinned source; no implementation, test, table, or text from that source was
-copied into Neati.
+copied into neati.

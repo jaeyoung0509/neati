@@ -266,7 +266,9 @@ describe('cleanup result feedback', () => {
       };
 
       const available = render(SettingsView);
-      expect(available.body).toContain('Opt-in');
+      expect(available.body).toContain('Always included');
+      expect(available.body).not.toContain('aria-label="Intensive cleanup"');
+      expect(available.body).toContain('Scanning never deletes anything automatically.');
     } finally {
       platformCapabilitiesStore.reset();
     }

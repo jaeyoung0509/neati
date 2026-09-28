@@ -465,7 +465,7 @@ impl MemoryTerminationSystem for RealMemorySystem {
 
     fn signal(&self, pid: u32, mode: MemoryTerminationMode) -> Result<(), String> {
         if pid <= 1 || pid == std::process::id() {
-            return Err("Cannot terminate system or Neati process.".to_string());
+            return Err("Cannot terminate system or neati process.".to_string());
         }
         match mode {
             MemoryTerminationMode::Graceful => {
@@ -486,7 +486,7 @@ impl MemoryTerminationSystem for RealMemorySystem {
                         Ok(())
                     } else {
                         Err(
-                            "The operating system did not allow Neati to terminate the process"
+                            "The operating system did not allow neati to terminate the process"
                                 .to_string(),
                         )
                     }
@@ -513,7 +513,7 @@ impl MemoryTerminationSystem for RealMemorySystem {
                     Ok(())
                 } else {
                     Err(
-                        "The operating system did not allow Neati to terminate the process"
+                        "The operating system did not allow neati to terminate the process"
                             .to_string(),
                     )
                 }
@@ -641,7 +641,7 @@ impl MemoryInspector {
         let own_pid = system.own_pid();
         for member in &lease.members {
             if member.pid <= 1 || member.pid == own_pid {
-                return Err("Cannot terminate system or Neati process.".to_string());
+                return Err("Cannot terminate system or neati process.".to_string());
             }
             let Some(current) = system.lookup(member.pid) else {
                 // Process already exited; treat as released only when every
@@ -750,7 +750,7 @@ impl MemoryInspector {
         }
         if signaled == 0 && mode == MemoryTerminationMode::Force {
             return Err(
-                "The operating system did not allow Neati to terminate the process group"
+                "The operating system did not allow neati to terminate the process group"
                     .to_string(),
             );
         }
@@ -1106,7 +1106,7 @@ impl MemoryInspector {
 }
 
 /// Maximum number of parent edges walked when tracing a displayed group member
-/// back to this Neati process. The bound keeps a cyclic or otherwise hostile
+/// back to this neati process. The bound keeps a cyclic or otherwise hostile
 /// process table from turning provenance into an unbounded walk.
 const MAX_ANCESTRY_HOPS: usize = 8;
 
@@ -1141,12 +1141,12 @@ fn ancestry_reaches(start: u32, target: u32, parents: &HashMap<u32, u32>, max_ho
 
 /// Derives a displayed group's origin from the same captured snapshot as its
 /// memory figures: the distinct, sorted names of direct parents outside the
-/// group, and whether every member traces back to this Neati process.
+/// group, and whether every member traces back to this neati process.
 ///
 /// Parents that are themselves members are implementation detail (for example,
 /// `rust-analyzer-proc-macro-srv` is normalized into the `rust-analyzer` group)
 /// and are omitted so the UI reports the group's external source. `ownership`
-/// is `NeatiChild` only when every member has Neati as a strict ancestor, so
+/// is `NeatiChild` only when every member has neati as a strict ancestor, so
 /// one untraceable member leaves the group `Observed`.
 fn group_provenance(
     members: &[u32],
@@ -1286,7 +1286,7 @@ mod tests {
 
         fn signal(&self, pid: u32, mode: MemoryTerminationMode) -> Result<(), String> {
             if pid <= 1 || pid == self.own_pid {
-                return Err("Cannot terminate system or Neati process.".to_string());
+                return Err("Cannot terminate system or neati process.".to_string());
             }
             self.signaled.lock().unwrap().push((pid, mode));
             if self
@@ -1421,7 +1421,7 @@ mod tests {
             ));
         }
 
-        assert!(!MemoryInspector::can_terminate_process("Neati", None));
+        assert!(!MemoryInspector::can_terminate_process("neati", None));
     }
 
     #[test]
@@ -1429,7 +1429,7 @@ mod tests {
         assert!(!MemoryInspector::can_terminate_process("Terminal", None));
         assert!(!MemoryInspector::can_terminate_process("iTerm2", None));
         assert!(!MemoryInspector::can_terminate_process("Ghostty", None));
-        assert!(!MemoryInspector::can_terminate_process("Neati", None));
+        assert!(!MemoryInspector::can_terminate_process("neati", None));
     }
 
     #[test]
@@ -1597,7 +1597,7 @@ mod tests {
     #[test]
     fn protected_targets_are_rejected() {
         assert!(!MemoryInspector::can_terminate_process("Terminal", None));
-        assert!(!MemoryInspector::can_terminate_process("Neati", None));
+        assert!(!MemoryInspector::can_terminate_process("neati", None));
     }
 
     #[test]
@@ -2046,21 +2046,21 @@ mod tests {
     #[test]
     fn group_with_every_member_traced_to_neati_is_neati_child() {
         let captured = captured_table(&[
-            (100, "Neati", None),
+            (100, "neati", None),
             (101, "Node.js", Some(100)),
             (102, "Node.js", Some(100)),
         ]);
         let links = link_table(&captured);
         assert_eq!(
             group_provenance(&[101, 102], &captured, &links, 100),
-            (vec!["Neati".to_string()], ProcessOwnership::NeatiChild)
+            (vec!["neati".to_string()], ProcessOwnership::NeatiChild)
         );
     }
 
     #[test]
     fn mixed_group_is_observed_because_a_partial_match_never_claims_ownership() {
         let captured = captured_table(&[
-            (100, "Neati", None),
+            (100, "neati", None),
             (101, "Node.js", Some(100)),
             (200, "rust-analyzer", Some(300)),
         ]);
@@ -2068,13 +2068,13 @@ mod tests {
         let (names, ownership) = group_provenance(&[101, 200], &captured, &links, 100);
         assert_eq!(ownership, ProcessOwnership::Observed);
         // Only the resolvable parent is reported; the unknown pid adds nothing.
-        assert_eq!(names, vec!["Neati".to_string()]);
+        assert_eq!(names, vec!["neati".to_string()]);
     }
 
     #[test]
     fn group_reports_every_distinct_parent_name_sorted() {
         let captured = captured_table(&[
-            (100, "Neati", None),
+            (100, "neati", None),
             (105, "Warp", None),
             (101, "rust-analyzer", Some(105)),
             (102, "rust-analyzer", Some(100)),
@@ -2084,7 +2084,7 @@ mod tests {
         let (names, ownership) = group_provenance(&[101, 102, 103], &captured, &links, 100);
         assert_eq!(
             names,
-            vec!["Neati".to_string(), "Warp".to_string()],
+            vec!["Warp".to_string(), "neati".to_string()],
             "parents are de-duplicated and sorted"
         );
         assert_eq!(ownership, ProcessOwnership::Observed);
@@ -2119,12 +2119,12 @@ mod tests {
 
     #[test]
     fn group_containing_the_neati_process_itself_is_not_owned() {
-        let captured = captured_table(&[(100, "Neati", None), (101, "Node.js", Some(100))]);
+        let captured = captured_table(&[(100, "neati", None), (101, "Node.js", Some(100))]);
         let links = link_table(&captured);
         assert_eq!(
             group_provenance(&[100], &captured, &links, 100),
             (Vec::new(), ProcessOwnership::Observed),
-            "a process is not its own child, even though it is the Neati pid"
+            "a process is not its own child, even though it is the neati pid"
         );
     }
 }

@@ -1,4 +1,4 @@
-//! Neati's platform layer: the native surfaces the runtime itself owns —
+//! neati's platform layer: the native surfaces the runtime itself owns —
 //! platform description and probing, user-root and known-folder resolution,
 //! process control, bounded child execution, system actions, atomic file
 //! replacement, and the Trash adapter — behind narrow ports.

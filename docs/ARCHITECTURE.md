@@ -1,6 +1,6 @@
 # Architecture
 
-Zenith is a cross-platform desktop application built with Tauri 2, Rust, Svelte 5,
+Neati (previously Zenith) is a cross-platform desktop application built with Tauri 2, Rust, Svelte 5,
 and TypeScript, supporting macOS and Windows x64.
 Rust owns system access, security boundaries, and destructive decisions. Svelte
 renders typed state and submits user intent; it never constructs or coordinates
@@ -122,7 +122,7 @@ Zenith is a Cargo workspace with three members:
 Cargo.toml             workspace manifest: version, edition, MSRV, release profile
 crates/zenith-core     product semantics, with no desktop framework in the graph
 crates/zenith-platform native macOS/Windows integration behind narrow ports
-src-tauri              zenith-desktop: the Tauri adapter and the `Zenith` binary
+src-tauri              zenith-desktop: the Tauri adapter and the `Neati` binary
 ```
 
 Every file in `zenith-core` answers one question the same way: *would this

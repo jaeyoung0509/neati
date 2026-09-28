@@ -286,13 +286,13 @@
     <Card class="p-4 space-y-4 bg-card/70">
       <div class="flex items-center justify-between text-xs">
         <div>
-          <div class="flex items-center gap-2 font-medium text-foreground">Launch Zenith at login <Badge variant="outline">Planned</Badge></div>
+          <div class="flex items-center gap-2 font-medium text-foreground">Launch Neati at login <Badge variant="outline">Planned</Badge></div>
           <div class="text-meta text-muted-foreground">Autostart is not enabled in this build.</div>
         </div>
         <Switch
           checked={settings.launch_at_login}
           disabled={true}
-          ariaLabel="Launch Zenith at login"
+          ariaLabel="Launch Neati at login"
         />
       </div>
     </Card>
@@ -376,7 +376,7 @@
         AI Accounts & Quota
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
-        Choose which account providers Zenith checks and displays. Disabled providers are not queried.
+        Choose which account providers Neati checks and displays. Disabled providers are not queried.
       </p>
     </div>
     <Card class="p-4 bg-card/70 space-y-3">
@@ -577,7 +577,7 @@
         Cleanup Scan Scope
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
-        Choose how broadly Zenith searches for reclaimable cache and log data.
+        Choose how broadly Neati searches for reclaimable cache and log data.
       </p>
     </div>
     <Card class="p-4 bg-card/70">
@@ -820,7 +820,7 @@
       <div class="space-y-1">
         <div class="text-xs font-medium text-foreground">Local System & Error Logs</div>
         <p class="text-meta text-muted-foreground leading-relaxed">
-          Zenith keeps zero telemetry and never transmits analytics or secrets. Error and subprocess failure logs are stored locally on your machine at <code class="font-mono text-caption bg-secondary/80 px-1 py-0.5 rounded">{platformContextStore.logDirectory ?? LOG_DIRECTORY_FALLBACK}</code>.
+          Neati keeps zero telemetry and never transmits analytics or secrets. Error and subprocess failure logs are stored locally on your machine at <code class="font-mono text-caption bg-secondary/80 px-1 py-0.5 rounded">{platformContextStore.logDirectory ?? LOG_DIRECTORY_FALLBACK}</code>.
         </p>
       </div>
 
@@ -940,7 +940,7 @@
       {#if diagnosticsData}
         <div class="mt-3 rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta font-mono text-muted-foreground space-y-1 overflow-x-auto max-h-48 overflow-y-auto scroll-stable">
           <div>
-            <span class="text-foreground font-semibold">Zenith:</span>
+            <span class="text-foreground font-semibold">Neati:</span>
             {diagnosticsData.app_version} ({diagnosticsData.arch}{diagnosticsData.emulated ? ', emulated' : ''})
           </div>
           <div><span class="text-foreground font-semibold">OS:</span> {diagnosticsData.os_version}</div>
@@ -978,11 +978,11 @@
   <!-- About -->
   <div class="space-y-3 pt-2">
     <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-      About Zenith
+      About Neati
     </h3>
     <Card class="p-4 bg-card/70 text-xs space-y-2">
       <div class="flex items-center justify-between gap-3">
-        <span class="font-medium text-foreground">Zenith Developer System Manager</span>
+        <span class="font-medium text-foreground">Neati Developer System Manager</span>
         <Badge variant="outline" class="font-mono">{formatVersion(APP_VERSION)}</Badge>
       </div>
       {#if releasesUrl}
@@ -995,7 +995,7 @@
         >Check for a newer release</a>
       {/if}
       <p class="text-muted-foreground leading-relaxed">
-        Zenith is an ultra-lightweight open-source utility designed to safely manage AI caches, developer build artifacts, Docker storage, local LLMs, memory pressure, and keep-awake power assertions.
+        Neati is an ultra-lightweight open-source utility designed to safely manage AI caches, developer build artifacts, Docker storage, local LLMs, memory pressure, and keep-awake power assertions.
       </p>
       <div class="pt-2 text-meta text-muted-foreground font-mono">
         Built with Tauri 2 + Svelte 5 + Rust. Zero analytics, zero cloud, 100% local.

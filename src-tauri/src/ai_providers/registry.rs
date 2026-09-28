@@ -101,7 +101,7 @@ pub static PROVIDER_REGISTRY: &[StaticProviderDescriptor] = &[
         supports_quick_panel: true,
         model_vendor: None,
         model_identity: None,
-        description: "Live key usage through Zenith OAuth.",
+        description: "Live key usage through Neati OAuth.",
         default_quota_provider: true,
     },
     StaticProviderDescriptor {

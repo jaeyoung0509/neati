@@ -52,14 +52,14 @@ impl NativePlatformCapabilities {
             && capabilities.large_files.status == PlatformFeatureStatus::Available
         {
             capabilities.large_files = PlatformFeatureCapability::read_only(
-                "Controlled Folder Access is enabled, so Zenith cannot move reviewed files to the Recycle Bin. Allow Zenith under Windows Security > Virus & threat protection > Ransomware protection, or disable Controlled Folder Access.",
+                "Controlled Folder Access is enabled, so Neati cannot move reviewed files to the Recycle Bin. Allow Neati under Windows Security > Virus & threat protection > Ransomware protection, or disable Controlled Folder Access.",
             );
         }
         if environment.application_control_policy == SecurityPolicyState::Enabled
             && capabilities.system_actions.status == PlatformFeatureStatus::Available
         {
             capabilities.system_actions = PlatformFeatureCapability::read_only(
-                "An application control policy (Smart App Control or WDAC) is enforced, so helper programs launched by Zenith may be blocked. Relax the policy or allow Zenith's helpers before relying on this feature.",
+                "An application control policy (Smart App Control or WDAC) is enforced, so helper programs launched by Neati may be blocked. Relax the policy or allow Neati's helpers before relying on this feature.",
             );
         }
         if !container_cli_detected && capabilities.docker.status == PlatformFeatureStatus::Available

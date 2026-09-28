@@ -720,7 +720,7 @@ pub fn explicit_diff(
 
     if combined_diff.len() > MAX {
         Ok(format!(
-            "{}\n\n[Diff truncated by Zenith at 256 KiB]",
+            "{}\n\n[Diff truncated by Neati at 256 KiB]",
             &combined_diff[..combined_diff.floor_char_boundary(MAX)]
         ))
     } else {
@@ -984,7 +984,7 @@ mod tests {
         let summary = store.summaries(&roots, &environment(), 10).remove(0);
         assert!(
             !summary.available,
-            "a repository Zenith refuses must not be reported as available: {summary:?}"
+            "a repository Neati refuses must not be reported as available: {summary:?}"
         );
         assert!(
             summary.status_message.contains("filter.probe.clean"),

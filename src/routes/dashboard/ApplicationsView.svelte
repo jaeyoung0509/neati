@@ -310,7 +310,7 @@
         </div>
       </div>
       <p class="mt-1 text-xs text-muted-foreground">
-        Inspect installed applications and the related data Zenith can identify.
+        Inspect installed applications and the related data Neati can identify.
       </p>
     </div>
   </div>
@@ -566,7 +566,7 @@
                 </div>
               {:else}
                 <p class="text-meta text-muted-foreground">
-                  One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). Zenith rechecks the app and each selected {platformContextStore.appDataLabel} item immediately before moving them to {platformContextStore.trashLabel}.
+                  One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). Neati rechecks the app and each selected {platformContextStore.appDataLabel} item immediately before moving them to {platformContextStore.trashLabel}.
                 </p>
               {/if}
             </div>
@@ -654,7 +654,7 @@
           <AppWindow size={28} class="mx-auto text-muted-foreground/50" />
           <p class="mt-3 text-sm font-medium">Choose an application</p>
           <p class="mt-1 text-xs text-muted-foreground max-w-md mx-auto px-8">
-            Running apps are intentionally blocked. Zenith first builds a backend-owned inventory, then resolves related data with exact bundle or exact app-name matches only.
+            Running apps are intentionally blocked. Neati first builds a backend-owned inventory, then resolves related data with exact bundle or exact app-name matches only.
           </p>
         </Card>
       {/if}

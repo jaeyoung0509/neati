@@ -475,7 +475,7 @@ fn inspect_config(
                 command_basename,
                 domain,
             };
-            push_finding(findings, project_id, SafetyFindingKind::McpServers, if broad { FindingSeverity::Warning } else { FindingSeverity::Info }, if broad { "MCP server has remote or secret-bearing configuration" } else { "MCP server configured" }, if relative.starts_with(".claude") { "claude" } else { "opencode" }, Some(relative.into()), None, now, "Review the server scope and permissions in the owning tool. Zenith will not execute or rewrite this configuration.", Some(evidence), dismissed);
+            push_finding(findings, project_id, SafetyFindingKind::McpServers, if broad { FindingSeverity::Warning } else { FindingSeverity::Info }, if broad { "MCP server has remote or secret-bearing configuration" } else { "MCP server configured" }, if relative.starts_with(".claude") { "claude" } else { "opencode" }, Some(relative.into()), None, now, "Review the server scope and permissions in the owning tool. Neati will not execute or rewrite this configuration.", Some(evidence), dismissed);
         }
     }
     let permission_text = [
@@ -828,7 +828,7 @@ mod tests {
         );
         assert!(
             hits.is_empty(),
-            "Zenith's own sources must not look like exposed credentials:\n{}",
+            "Neati's own sources must not look like exposed credentials:\n{}",
             hits.join("\n")
         );
     }

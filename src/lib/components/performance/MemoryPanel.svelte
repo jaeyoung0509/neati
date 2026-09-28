@@ -267,7 +267,7 @@
       </div>
 
       <p class="text-meta text-muted-foreground">
-        Zenith observes these processes in the system snapshot, ranked by memory. Quit is offered only for processes Zenith has verified it may stop.
+        Neati observes these processes in the system snapshot, ranked by memory. Quit is offered only for processes Neati has verified it may stop.
       </p>
 
       {#if filteredProcesses.length > 0}
@@ -299,7 +299,7 @@
                     </span>
                   {/if}
                   {#if proc.ownership === 'zenith_child'}
-                    <Badge variant="secondary" class="ml-1.5">Started by Zenith</Badge>
+                    <Badge variant="secondary" class="ml-1.5">Started by Neati</Badge>
                   {/if}
                 </div>
               </div>

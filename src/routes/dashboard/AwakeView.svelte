@@ -358,7 +358,7 @@
             {:else if activeRule}
               {awakeRuleSummary(activeRule)}
             {:else}
-              {awakeState.trigger_source || 'System sleep is currently prevented by Zenith.'}
+              {awakeState.trigger_source || 'System sleep is currently prevented by Neati.'}
             {/if}
           {:else}
             Watching {awakeState.active_rules_count} enabled {awakeState.active_rules_count === 1 ? 'automatic rule' : 'automatic rules'}. Manual Keep Awake always takes priority.
@@ -586,7 +586,7 @@
         <div class="flex items-start justify-between gap-3 border-b border-border/60 pb-3">
           <div>
             <h2 id="rule-editor-title" class="text-sm font-semibold">{editorMode === 'basic' ? 'Build an app rule' : 'Edit legacy process rule'}</h2>
-            <p class="mt-1 text-meta text-muted-foreground">{editorMode === 'basic' ? 'Choose what must be present before Zenith holds a power assertion.' : 'Use raw process fragments only for custom or older rules.'}</p>
+            <p class="mt-1 text-meta text-muted-foreground">{editorMode === 'basic' ? 'Choose what must be present before Neati holds a power assertion.' : 'Use raw process fragments only for custom or older rules.'}</p>
           </div>
           <button type="button" onclick={closeRuleEditor} disabled={isSavingRule} class="h-8 w-8 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title="Close rule editor" aria-label="Close rule editor">
             <X size={16} class="mx-auto" aria-hidden="true" />

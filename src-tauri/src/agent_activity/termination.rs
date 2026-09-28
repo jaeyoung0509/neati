@@ -218,7 +218,7 @@ pub fn execute_graceful_stop(
 
     // 2. Never signal system or self
     if info.pid <= 1 || info.pid == system.current_pid() {
-        return Err("Cannot terminate system or Zenith process.".to_string());
+        return Err("Cannot terminate system or Neati process.".to_string());
     }
 
     // 3. Owner identity check compares real platform identities.

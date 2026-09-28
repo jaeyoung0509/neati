@@ -1,4 +1,4 @@
-# Zenith Signatures - Container Tools
+# Neati Signatures - Container Tools
 # Defines scanning patterns and safety rules for Docker, Podman, and Colima.
 
 [[signatures]]

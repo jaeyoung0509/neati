@@ -782,7 +782,7 @@ fn native_battery_reading() -> BatteryReading {
     {
         BatteryReading::unavailable(
             PowerSourceType::Unknown,
-            "Zenith has no battery adapter for this platform.",
+            "Neati has no battery adapter for this platform.",
         )
     }
 }
@@ -1011,7 +1011,7 @@ mod tests {
         let metrics = battery_metrics_from_reading(
             BatteryReading::unavailable(
                 PowerSourceType::Unknown,
-                "Zenith has no battery adapter for this platform.",
+                "Neati has no battery adapter for this platform.",
             ),
             None,
         );
@@ -1020,7 +1020,7 @@ mod tests {
         assert_eq!(metrics.percent, None);
         assert_eq!(
             metrics.reason.as_deref(),
-            Some("Zenith has no battery adapter for this platform.")
+            Some("Neati has no battery adapter for this platform.")
         );
     }
 

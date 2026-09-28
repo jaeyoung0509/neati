@@ -60,7 +60,7 @@ pub fn classify_listener(
             project_name,
             working_directory,
             can_release: false,
-            blocked_reason: Some("Zenith or operating-system core process".to_string()),
+            blocked_reason: Some("Neati or operating-system core process".to_string()),
         };
     }
 

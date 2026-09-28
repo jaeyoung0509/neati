@@ -80,7 +80,7 @@ pub fn is_protected_process(
         return true;
     }
 
-    const ZENITH: &[&str] = &["zenith"];
+    const ZENITH: &[&str] = &["zenith", "neati"];
     if matches_any(ZENITH) {
         return true;
     }
@@ -135,6 +135,17 @@ pub fn is_protected_process(
 mod tests {
     use super::*;
     use std::path::Path;
+
+    #[test]
+    fn rebrand_protects_both_current_and_legacy_process_names() {
+        for name in ["Neati", "neati.exe", "Zenith", "Zenith.exe"] {
+            assert!(is_protected_process(name, None, None));
+            assert!(is_protected_process("unknown", Some(name), None));
+            assert!(is_protected_process("unknown", None, Some(Path::new(name))));
+        }
+        assert!(!is_protected_process("neat", None, None));
+        assert!(!is_protected_process("neati-project", None, None));
+    }
 
     #[test]
     fn protects_common_terminal_applications() {

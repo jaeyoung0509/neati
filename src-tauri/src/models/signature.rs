@@ -101,7 +101,7 @@ impl Signature {
     pub fn cache_metadata(&self) -> CacheMetadata {
         CacheMetadata {
             provider: if self.provider.is_empty() {
-                "Zenith".to_string()
+                "Neati".to_string()
             } else {
                 self.provider.clone()
             },

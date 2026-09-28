@@ -1,12 +1,16 @@
 <p align="center">
-  <img src="src-tauri/icons/app-icon.svg" width="112" height="112" alt="Zenith blue ribbon Z logo" />
+  <img src="src-tauri/icons/app-icon.svg" width="112" height="112" alt="Neati handwritten n logo" />
 </p>
 
-<h1 align="center">Zenith</h1>
+<h1 align="center">Neati</h1>
+
+Previously Zenith. See the [0.3.73 migration guide](docs/NEATI_MIGRATION.md)
+before installing over an existing Zenith installation. Persistent identifiers
+and legacy download filenames remain unchanged intentionally.
 
 <p align="center">A cross-platform utility for developer storage, processes, local services, AI usage, and sleep control.</p>
 
-Zenith helps identify reclaimable caches created by AI tools, compilers, package
+Neati helps identify reclaimable caches created by AI tools, compilers, package
 managers, containers, and local model runtimes. Cleanup candidates are classified
 before deletion, and credentials, configuration, source code, and user documents
 remain outside the cleanup boundary.
@@ -36,7 +40,7 @@ remain outside the cleanup boundary.
   disappears on a Mac without a battery.
 - Memory pressure, compression, swap, and per-application usage. Installed user
   apps can be quit normally or force quit after confirmation; system processes,
-  terminals, and Zenith remain protected.
+  terminals, and Neati remain protected.
 - A dedicated Dev Servers tab that identifies current-user TCP listeners
   such as Vite, Next.js, agent-browser, and Chrome for Testing, shows their
   project and network exposure, and can release one exact verified listener
@@ -62,7 +66,7 @@ remain outside the cleanup boundary.
 - Native Liquid Glass on macOS 26 and later, with vibrancy on older macOS.
   Light, Dark, and System preferences also control the native material. Reduced
   transparency uses opaque chrome; Windows keeps its own opaque adapter.
-- Reviewed local brand identities for the tools Zenith names, with the source,
+- Reviewed local brand identities for the tools Neati names, with the source,
   licence and notices recorded in `docs/design/brand-assets.md`. Everything
   unresolved falls back to a neutral glyph beside the factual product name, and
   no icon is fetched at runtime.
@@ -76,7 +80,7 @@ and AI usage snapshots use a short backend cache.
 
 ## Public Beta Installation
 
-Zenith is distributed as a public beta for Apple Silicon (ARM64) Macs and
+Neati is distributed as a public beta for Apple Silicon (ARM64) Macs and
 Windows x64. Pre-built `.dmg` and NSIS `.exe` installers, an SPDX software bill
 of materials, SHA256 checksums, build metadata, a recorded endpoint-protection
 review, and GitHub build provenance attestation are available under
@@ -87,9 +91,9 @@ review, and GitHub build provenance attestation are available under
 Two NSIS installers are published for Windows x64:
 
 - `Zenith-windows-x64-setup.exe` installs for the current user under
-  `%LOCALAPPDATA%\Zenith` and requires no administrator access.
+  `%LOCALAPPDATA%\Neati` and requires no administrator access.
 - `Zenith-windows-x64-setup-machine.exe` installs for all users under
-  `Program Files\Zenith` and requires elevation. It exists for managed machines
+  `Program Files\Neati` and requires elevation. It exists for managed machines
   whose application-control policy (AppLocker default rules, WDAC, or Smart App
   Control) refuses to execute binaries from user-writable locations. Installing
   into `Program Files` does not make the binary trusted.
@@ -100,7 +104,7 @@ therefore completes without network access and the download grows by roughly
 installer with its own interface, so a failure is visible during installation
 instead of surfacing later as a window that never opens.
 
-The Windows beta is intentionally unsigned while Zenith completes the
+The Windows beta is intentionally unsigned while Neati completes the
 [SignPath Foundation](https://signpath.org/) open-source onboarding process.
 Microsoft Defender SmartScreen will identify it as an unknown publisher, and
 because SignPath Foundation issues organization-validated certificates that
@@ -117,7 +121,7 @@ build provenance attestation.
 #### Local release recipes
 
 - `just distribute` only creates fresh `.app` and `.dmg` package artifacts under `target/release`; it never changes `/Applications`.
-- `just release` builds only the `.app`, validates its bundle identity and version, then replaces the exact `/Applications/Zenith.app`. It does not create a DMG or open Finder. The previous installed bundle is restored if activation or verification fails.
+- `just release` builds only the `.app`, validates its bundle identity and version, then replaces the exact `/Applications/Neati.app`. It does not create a DMG or open Finder. The previous installed bundle is restored if activation or verification fails.
 - `just release-and-run` performs the same verified replacement and opens the installed copy rather than the build-tree bundle.
 - `just install-release` installs an already-built release bundle using the same transaction. It reports a clear error if the current user cannot write to `/Applications` and does not use `sudo` automatically.
 
@@ -129,34 +133,28 @@ temporary log.
 #### Opening unsigned beta builds on macOS
 
 The macOS beta is unsigned and not notarized. That is a dated decision recorded
-in the [code signing policy](CODE_SIGNING_POLICY.md#macos-notarization): Zenith
+in the [code signing policy](CODE_SIGNING_POLICY.md#macos-notarization): Neati
 does not hold a paid Apple Developer ID, so the `.dmg` is never submitted to
 Apple's notary service and carries no stapled ticket. macOS Gatekeeper therefore
 blocks the first launch and displays a security warning (*"cannot be opened
 because the developer cannot be verified"* or, for some download paths,
 *"is damaged and can't be opened"*).
 
-To launch Zenith on macOS:
-1. Open the downloaded `.dmg` and drag **Zenith.app** into `/Applications`.
-2. In Finder, navigate to `/Applications`, right-click (or Control-click) **Zenith.app**, and select **Open**.
+To launch Neati on macOS:
+1. Open the downloaded `.dmg` and drag **Neati.app** into `/Applications`.
+2. In Finder, navigate to `/Applications`, right-click (or Control-click) **Neati.app**, and select **Open**.
 3. In the confirmation dialog, click **Open**. (You only need to do this once).
-4. *Alternatively*, clear the macOS quarantine attribute for this bundle in Terminal:
-   ```bash
-   xattr -cr /Applications/Zenith.app
-   ```
-   This removes the malware check for that one bundle, so verify the published
-   SHA256 checksum and the GitHub build provenance attestation first.
-
-Do not disable Gatekeeper system-wide. Verify the DMG against `SHA256SUMS.txt`
-before overriding any warning.
+Do not disable Gatekeeper or clear quarantine attributes. A public Neati
+release remains gated on the signing/notarization review in issue #334; a
+locally built app is not evidence of a signed release.
 
 ### Knowing when a corrected version exists
 
-Zenith has no automatic updater and does not check for new releases in the
+Neati has no automatic updater and does not check for new releases in the
 background. Enabled AI integrations can still contact their providers for usage
 data; this is separate from update checking. To find
 out, open the [GitHub Releases](https://github.com/jaeyoung0509/zenith/releases)
-page and compare the newest tag with the version shown in Zenith. The
+page and compare the newest tag with the version shown in Neati. The
 application exposes that release URL (`PlatformContext.releases_url`) and links
 to it from the interface, so the check is one click away, but every check is
 user-initiated.
@@ -164,12 +162,12 @@ user-initiated.
 ## Privacy & Local Diagnostics
 
 - **Local processing**: Scans, cleanup decisions, and diagnostics stay on your
-  machine. Zenith sends no analytics or telemetry. Enabled AI integrations may
+  machine. Neati sends no analytics or telemetry. Enabled AI integrations may
   contact their provider APIs or official tools for authentication and usage.
 - **Secret Redaction**: Subprocess errors and diagnostic messages automatically redact sensitive API keys (`sk-...`, tokens, passwords) before writing to disk.
 - **Local Logs**: Error logs are written under your own platform's application-data directory -- `~/Library/Logs/Zenith/zenith.log` on macOS, `%LOCALAPPDATA%\Zenith\Logs\zenith.log` on Windows -- and rotate to `zenith.log.1` beside them once the live log exceeds 1 MB. The Settings diagnostics view shows the path this machine actually resolved, and Windows layout details are in [docs/WINDOWS.md](docs/WINDOWS.md).
 - **Diagnostics Export**: Inspect or export your local system snapshot anytime in **Dashboard -> Settings -> Diagnostics & Privacy Logs**.
-- **Doctor Self-Check**: run `Zenith --doctor` (or `Zenith --doctor --json`) to print a de-identified environment fingerprint and a self-check table; the command exits 1 when a self-check fails. It performs no network access, and nothing it prints contains a user name, machine name, drive letter, or profile path. Windows bug reports ask for this output because it is safe to paste.
+- **Doctor Self-Check**: run `Neati --doctor` (or `Neati --doctor --json`) to print a de-identified environment fingerprint and a self-check table; the command exits 1 when a self-check fails. It performs no network access, and nothing it prints contains a user name, machine name, drive letter, or profile path. Windows bug reports ask for this output because it is safe to paste.
 - **Minimized Agent Metadata**: Project Cockpit returns opaque project/session
   IDs, compact location hints, resource totals, and evidence labels. It does not
   return process IDs, command lines, environment values, prompts, or transcripts.
@@ -179,7 +177,7 @@ user-initiated.
 
 ## Cleanup safety
 
-Zenith does not expose an arbitrary path deletion command. Every cleanup target
+Neati does not expose an arbitrary path deletion command. Every cleanup target
 must come from a registered signature and pass the safety planner before it can
 be executed.
 
@@ -189,9 +187,9 @@ be executed.
 - Planned files are checked again immediately before deletion using filesystem
   identity metadata to reduce time-of-check/time-of-use risk.
 - Temporary-file cleanup is restricted to known tool prefixes and inactivity
-  thresholds; Zenith never scans or deletes all of `/tmp`.
+  thresholds; Neati never scans or deletes all of `/tmp`.
 - OrbStack's reviewed VM disk is reported as manually managed container storage
-  using allocated bytes; Zenith never deletes or compacts it through generic
+  using allocated bytes; Neati never deletes or compacts it through generic
   cleanup.
 - Intensive cleanup considers only stale direct children of approved user cache
   and log roots. Symlinks and protected Apple/system namespaces are skipped,
@@ -203,7 +201,7 @@ be executed.
 
 ## Process and development-port safety
 
-Zenith never exposes an arbitrary PID-kill command. Application Quit actions
+Neati never exposes an arbitrary PID-kill command. Application Quit actions
 resolve a fresh allowlisted app group in Rust, while Development Servers uses a
 separate endpoint-level workflow:
 
@@ -222,7 +220,7 @@ separate endpoint-level workflow:
   available only after that listener remains alive and the backend issues a new
   force-authorized one-shot ID for a second confirmation.
 - PID reuse, port handoff, expired IDs, missing identity data, system services,
-  terminals, databases, container daemons, and Zenith itself fail closed.
+  terminals, databases, container daemons, and Neati itself fail closed.
 
 Signature definitions live in [`signatures/`](signatures). Domain safety tests live in [`crates/zenith-core`](crates/zenith-core); desktop
 adapter and integration tests also live in [`src-tauri/tests/`](src-tauri/tests).
@@ -249,7 +247,7 @@ MSVC, Tauri, and NSIS development workflow.
 
 ## License
 
-Zenith is available under the [MIT License](LICENSE). Official Windows release
+Neati is available under the [MIT License](LICENSE). Official Windows release
 signing follows the project's [code signing policy](CODE_SIGNING_POLICY.md).
 
 ## Development
@@ -289,7 +287,7 @@ just run-fast
 
 The app bundle should be used for local macOS verification because it preserves
 the configured application and Dock identity. `just build-fast` does not replace
-the installed `/Applications/Zenith.app`; use the release recipes above when you
+the installed `/Applications/Neati.app`; use the release recipes above when you
 intend to update that copy.
 
 To increment the patch version and verify all manifests agree:
@@ -320,7 +318,7 @@ CI verifies frontend typecheck, Vitest, binding drift, and the Vite build; Rust
 formatting, clippy, unit and safety tests on macOS and Windows x64; packaging
 smoke builds for macOS and Windows; the declared MSRV build with Rust 1.95.0;
 and locked-dependency audits for both ecosystems. On Windows it also silently
-installs the per-user installer, runs `Zenith --doctor`, requires every
+installs the per-user installer, runs `Neati --doctor`, requires every
 self-check to pass, silently uninstalls, and fails if the install directory
 survives, and the machine-wide installer runs the same gate with its install scope asserted. The same job builds both installers.
 

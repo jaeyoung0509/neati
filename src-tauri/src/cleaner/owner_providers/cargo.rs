@@ -104,7 +104,7 @@ impl CargoRegistrySourceProvider {
         Self(CargoStoreProvider {
             id: "cargo.registry.source",
             store: CargoStore::RegistrySource,
-            consequence: "Cargo owns this store: it decides when an extracted source tree is stale and removes it itself. Zenith reports the bytes and does not remove them.",
+            consequence: "Cargo owns this store: it decides when an extracted source tree is stale and removes it itself. Neati reports the bytes and does not remove them.",
             process,
             measuring,
         })
@@ -119,7 +119,7 @@ impl CargoGitProvider {
         Self(CargoStoreProvider {
             id: "cargo.git",
             store: CargoStore::Git,
-            consequence: "Cargo owns git checkouts and their databases: a checkout may hold local modifications and its own locks, so Cargo decides when it goes. Zenith reports the bytes and does not remove them.",
+            consequence: "Cargo owns git checkouts and their databases: a checkout may hold local modifications and its own locks, so Cargo decides when it goes. Neati reports the bytes and does not remove them.",
             process,
             measuring,
         })
@@ -770,7 +770,7 @@ fn root_matches(roots: &[PathBuf], unit: &OwnerProviderUnit) -> Result<(), Strin
 /// The detail an advisory unit states about why its owner keeps it.
 fn advisory_detail(measurement: &OwnerUnitMeasurement, path: &Path) -> String {
     if measurement.complete {
-        return "Cargo decides when this store's contents are stale; Zenith does not remove them"
+        return "Cargo decides when this store's contents are stale; Neati does not remove them"
             .to_string();
     }
     measurement.detail.clone().unwrap_or_else(|| {

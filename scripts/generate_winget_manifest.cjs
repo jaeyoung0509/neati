@@ -104,7 +104,7 @@ Installers:
   InstallerUrl: ${installerUrl}
   InstallerSha256: ${installerHash}
   AppsAndFeaturesEntries:
-  - DisplayName: Zenith
+  - DisplayName: Neati
     Publisher: jaeyoung0509
     DisplayVersion: ${version}
     InstallerType: nullsoft
@@ -122,13 +122,13 @@ Publisher: jaeyoung0509
 PublisherUrl: ${REPOSITORY_URL}
 PublisherSupportUrl: ${REPOSITORY_URL}/issues
 Author: Zenith contributors
-PackageName: Zenith
+PackageName: Neati
 PackageUrl: ${REPOSITORY_URL}
 License: MIT
 LicenseUrl: ${REPOSITORY_URL}/blob/v${version}/LICENSE
 Copyright: Copyright (c) 2026 Zenith contributors
 ShortDescription: Local developer storage, process, AI usage, and power management utility.
-Description: Zenith is a cross-platform desktop utility for reviewing developer storage, processes, local services, AI usage, and sleep-control state with explicit safety boundaries.
+Description: Neati is a cross-platform desktop utility for reviewing developer storage, processes, local services, AI usage, and sleep-control state with explicit safety boundaries.
 Tags:
 - cleanup
 - developer-tools

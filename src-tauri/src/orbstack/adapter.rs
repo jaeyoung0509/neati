@@ -81,7 +81,7 @@ impl OrbStackAdapter {
             size,
             file_count: 1,
             description:
-                "Active container and Linux VM data. Inspect or compact it in OrbStack; Zenith will not delete it."
+                "Active container and Linux VM data. Inspect or compact it in OrbStack; Neati will not delete it."
                     .to_string(),
             cache_metadata: Default::default(),
             disposition,

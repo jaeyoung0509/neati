@@ -502,7 +502,7 @@ pub fn run() {
                 state.ai.restore_audit(&config_dir);
             }
             let open_dashboard =
-                MenuItem::with_id(app, "open_dashboard", "Open Zenith", true, None::<&str>)?;
+                MenuItem::with_id(app, "open_dashboard", "Open Neati", true, None::<&str>)?;
             let toggle_quick = MenuItem::with_id(
                 app,
                 "toggle_quick",
@@ -511,7 +511,7 @@ pub fn run() {
                 None::<&str>,
             )?;
             let separator = PredefinedMenuItem::separator(app)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit Zenith", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit Neati", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open_dashboard, &toggle_quick, &separator, &quit])?;
             // macOS templates use alpha for system appearance; other platforms
             // need the full-color tile to stay legible on light and dark trays.
@@ -523,7 +523,7 @@ pub fn run() {
             TrayIconBuilder::with_id("main-tray")
                 .icon(tray_icon)
                 .icon_as_template(cfg!(target_os = "macos"))
-                .tooltip("Zenith - AI & Developer System Manager")
+                .tooltip("Neati - AI & Developer System Manager")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -599,7 +599,7 @@ pub fn run() {
             // builds have no console, so the report is written and raised here
             // instead of panicking where nobody can read it.
             crate::diagnostics::report_fatal_startup_failure(
-                "Zenith could not start",
+                "Neati could not start",
                 &error.to_string(),
             );
             std::process::exit(1);

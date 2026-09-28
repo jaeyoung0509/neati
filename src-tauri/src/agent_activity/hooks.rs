@@ -55,35 +55,35 @@ fn tool_integration(tool_id: &str) -> ToolIntegration {
             supported: true,
             config_rel_path: ".gemini/antigravity/hooks.json",
             description:
-                "Process-only observation. A verified Zenith event bridge is not available yet.",
+                "Process-only observation. A verified Neati event bridge is not available yet.",
         },
         "claude" => ToolIntegration {
             display_name: "Claude Code",
             supported: true,
             config_rel_path: ".claude/settings.json",
             description:
-                "Process-only observation. A verified Zenith event bridge is not available yet.",
+                "Process-only observation. A verified Neati event bridge is not available yet.",
         },
         "cursor" => ToolIntegration {
             display_name: "Cursor Agent CLI",
             supported: true,
             config_rel_path: ".cursor/hooks.json",
             description:
-                "Process-only observation. A verified Zenith event bridge is not available yet.",
+                "Process-only observation. A verified Neati event bridge is not available yet.",
         },
         "grok" => ToolIntegration {
             display_name: "Grok Build",
             supported: true,
             config_rel_path: ".grok/hooks.json",
             description:
-                "Process-only observation. A verified Zenith event bridge is not available yet.",
+                "Process-only observation. A verified Neati event bridge is not available yet.",
         },
         "copilot" => ToolIntegration {
             display_name: "GitHub Copilot CLI",
             supported: true,
             config_rel_path: ".copilot/hooks.json",
             description:
-                "Process-only observation. A verified Zenith event bridge is not available yet.",
+                "Process-only observation. A verified Neati event bridge is not available yet.",
         },
         "gemini" => ToolIntegration {
             display_name: "Gemini CLI (legacy / enterprise)",
@@ -124,7 +124,7 @@ pub fn install_integration(
         ));
     }
     Err(format!(
-        "Local integration for {} is unavailable until Zenith ships a verified protocol-specific event bridge.",
+        "Local integration for {} is unavailable until Neati ships a verified protocol-specific event bridge.",
         info.display_name
     ))
 }

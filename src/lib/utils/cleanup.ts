@@ -80,6 +80,26 @@ export function isActionable(item: ScanItem): boolean {
   return isCleanable(item) && (item.risk !== 'manual' || isProviderBacked(item));
 }
 
+/** Bulk selection never asks the planner to stop a running application. */
+export function isBulkSelectable(item: ScanItem): boolean {
+  return isActionable(item) && !item.owner_running;
+}
+
+/** Explain the estimate using backend facts, not reason-text matching. */
+export function cleanupAvailability(items: ScanItem[]) {
+  let ready = 0;
+  let running = 0;
+  let review = 0;
+  for (const item of items) {
+    if (!isActionable(item)) continue;
+    const bytes = cleanableBytes(item);
+    if (item.owner_running) running += bytes;
+    else if (isAutoCleanable(item)) ready += bytes;
+    else review += bytes;
+  }
+  return { ready, running, review };
+}
+
 /** Whether the item is explicitly blocked from generic cleanup (e.g. nested .app, inaccessible). */
 export function isBlocked(item: ScanItem): boolean {
   return !item.disposition || item.disposition.eligibility === 'blocked';

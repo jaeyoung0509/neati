@@ -17,6 +17,195 @@ use std::sync::Arc;
 const CACHE_NAMES: [&str; 3] = ["DawnGraphiteCache", "DawnWebGPUCache", "GrShaderCache"];
 const OWNERS: [&str; 3] = ["Codex", "Antigravity", "Cursor"];
 
+#[test]
+fn browser_gpu_scopes_measure_profiles_and_recheck_safety_before_fixture_trash() {
+    for (id, relative, owner) in [
+        ("system.chrome.gpu_cache", "Google/Chrome", "Google Chrome"),
+        (
+            "system.brave.gpu_cache",
+            "BraveSoftware/Brave-Browser",
+            "Brave Browser",
+        ),
+    ] {
+        let fixture = Fixture::new();
+        // Use the runner's real path flavor, even for this macOS catalog rule.
+        let root = relative.split('/').fold(
+            fixture
+                ._directory
+                .path()
+                .join("home")
+                .join("Library")
+                .join("Application Support"),
+            |path, part| path.join(part),
+        );
+        let signature = fixture.registry.get(id).unwrap();
+        assert_eq!(signature.platforms, [crate::models::PlatformKind::Macos]);
+        assert_eq!(
+            signature.structured_state_policy(),
+            StructuredStatePolicy::ProtectAll
+        );
+        assert_eq!(signature.owner, owner);
+        assert_eq!(signature.paths, [
+            format!("~/Library/Application Support/{relative}/*/{{GPUCache,DawnCache,DawnGraphiteCache,DawnWebGPUCache}}"),
+            format!("~/Library/Application Support/{relative}/{{ShaderCache,GrShaderCache,GraphiteDawnCache}}"),
+        ]);
+        let caches = [
+            root.join("Default").join("GPUCache"),
+            root.join("Profile 2").join("DawnWebGPUCache"),
+            root.join("Default").join("DawnGraphiteCache"),
+            root.join("Default").join("DawnCache"),
+            root.join("ShaderCache"),
+            root.join("GrShaderCache"),
+            root.join("GraphiteDawnCache"),
+        ];
+        for cache in &caches {
+            write(&cache.join("shader.bin"));
+        }
+        let protected = root.join("Default").join("Local Storage").join("state.bin");
+        let offline = root
+            .join("Default")
+            .join("Service Worker")
+            .join("CacheStorage")
+            .join("offline.bin");
+        let lookalike = root
+            .with_file_name("Browser-lookalike")
+            .join("Default")
+            .join("GPUCache")
+            .join("shader.bin");
+        let deeper_cache = root
+            .join("Default")
+            .join("Extensions")
+            .join("GPUCache")
+            .join("shader.bin");
+        for path in [&protected, &offline, &lookalike, &deeper_cache] {
+            write(path);
+        }
+        let mut items =
+            DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+        apply_signature_owner_state(&mut items, signature, &idle());
+        assert_eq!(items.len(), caches.len());
+        assert!(items
+            .iter()
+            .all(|item| item.is_selected && item.cleanable_bytes() > 0));
+        let expected: u64 = items.iter().map(ScanItem::cleanable_bytes).sum();
+        for name in &signature.fail_if_running {
+            let running = RunningApplications::from_process_names([name.clone()]);
+            let mut busy = items.clone();
+            apply_signature_owner_state(&mut busy, signature, &running);
+            assert!(busy
+                .iter()
+                .all(|item| item.owner_running && !item.is_selected));
+            assert_refused(
+                fixture.plan(&items, &running),
+                CleanFailureReason::SafetyBoundary,
+            );
+        }
+        let plan = fixture.plan(&items, &idle()).unwrap();
+        let mock_trash = MockTrashBackend::new();
+        let result = fixture.execute(
+            plan,
+            &RunningApplications::from_process_names([owner.into()]),
+            &mock_trash,
+        );
+        assert!(result
+            .items
+            .iter()
+            .all(|item| item.failure_reason == Some(CleanFailureReason::InUse)));
+        assert!(mock_trash.moved().is_empty());
+        let plan = fixture.plan(&items, &idle()).unwrap();
+        let trash = FixtureTrash {
+            source: root.clone(),
+            destination: fixture._directory.path().join("fixture-trash"),
+        };
+        let result = fixture.execute(plan, &idle(), &trash);
+        assert_eq!(result.total_moved_to_trash_bytes, expected);
+        assert_eq!(result.total_reclaimed_bytes, 0);
+        assert!(caches.iter().all(|path| !path.exists()));
+        for path in [&protected, &offline, &lookalike, &deeper_cache] {
+            assert!(path.exists());
+        }
+    }
+}
+
+#[test]
+fn browser_gpu_scopes_refuse_new_structured_state_and_unknown_process_state() {
+    for id in ["system.chrome.gpu_cache", "system.brave.gpu_cache"] {
+        let fixture = Fixture::new();
+        let signature = fixture.registry.get(id).unwrap();
+        let paths = SignatureLoader::expand_path(
+            &signature.paths.last().unwrap().replace(
+                "{ShaderCache,GrShaderCache,GraphiteDawnCache}",
+                "ShaderCache",
+            ),
+            &fixture.environment,
+        )
+        .unwrap();
+        let cache = paths;
+        write(&cache.join("nested").join("shader.bin"));
+        let items =
+            DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+        assert_eq!(items.len(), 1);
+        assert_refused(
+            fixture.plan(&items, &RunningApplications::default()),
+            CleanFailureReason::SafetyBoundary,
+        );
+        let plan = fixture.plan(&items, &idle()).unwrap();
+        write(&cache.join("nested").join("auth.json"));
+        assert_refused(
+            fixture.plan(&items, &idle()),
+            CleanFailureReason::StructuredStore,
+        );
+        let trash = MockTrashBackend::new();
+        let result = fixture.execute(plan, &idle(), &trash);
+        assert_eq!(
+            result.items[0].failure_reason,
+            Some(CleanFailureReason::StructuredStore)
+        );
+        assert!(trash.moved().is_empty());
+        assert!(cache.join("nested").join("shader.bin").exists());
+    }
+}
+
+#[test]
+fn browser_gpu_scopes_reject_links_and_replaced_roots() {
+    let fixture = Fixture::new();
+    let signature = fixture.registry.get("system.brave.gpu_cache").unwrap();
+    let cache = SignatureLoader::expand_path(
+        "~/Library/Application Support/BraveSoftware/Brave-Browser/Default/GPUCache",
+        &fixture.environment,
+    )
+    .unwrap();
+    write(&cache.join("shader.bin"));
+    let items = DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+    assert_eq!(items.len(), 1);
+    let plan = fixture.plan(&items, &idle()).unwrap();
+    let original = cache.with_file_name("original");
+    std::fs::rename(&cache, &original).unwrap();
+    write(&cache.join("replacement.bin"));
+    let trash = MockTrashBackend::new();
+    let result = fixture.execute(plan, &idle(), &trash);
+    assert_eq!(
+        result.items[0].failure_reason,
+        Some(CleanFailureReason::ChangedSinceScan)
+    );
+    assert!(trash.moved().is_empty());
+    let link = cache.with_file_name("DawnCache");
+    directory_link(&link, &original);
+    let items = DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+    assert_eq!(items.len(), 2);
+    let refused_link = items
+        .iter()
+        .find(|item| Path::new(&item.path) == link)
+        .unwrap();
+    assert_eq!(refused_link.quality, ObservationQuality::Unavailable);
+    assert_eq!(refused_link.cleanable_bytes(), 0);
+    assert!(!refused_link.is_selected);
+    assert!(items
+        .iter()
+        .any(|item| Path::new(&item.path) == cache && item.cleanable_bytes() > 0));
+    assert!(original.join("shader.bin").exists());
+}
+
 struct Fixture {
     _directory: tempfile::TempDir,
     profiles: PathBuf,

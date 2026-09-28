@@ -145,6 +145,46 @@ consequence = "Chrome recompiles cached code after the next launch."
 description = "A named Chrome profile code cache. Profile settings, cookies, Service Worker data, and the neighboring Storage directory stay intact."
 
 [[signatures]]
+id = "system.chrome.gpu_cache"
+name = "Chrome GPU and Shader Cache"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = [
+    "~/Library/Application Support/Google/Chrome/*/{GPUCache,DawnCache,DawnGraphiteCache,DawnWebGPUCache}",
+    "~/Library/Application Support/Google/Chrome/{ShaderCache,GrShaderCache,GraphiteDawnCache}",
+]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Google Chrome"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Google Chrome", "Google Chrome Helper", "Google Chrome Helper (GPU)", "Google Chrome Helper (Renderer)", "Google Chrome Helper (Plugin)", "Google Chrome Helper (Utility)"]
+consequence = "Chrome recompiles GPU shaders on next launch; initial rendering may be slower. Selected caches move to Trash."
+description = "Named GPU cache subtrees only, while Chrome is closed. Cookies, passwords, history, extensions, models and offline Service Worker data remain outside this scope."
+
+[[signatures]]
+id = "system.brave.gpu_cache"
+name = "Brave GPU and Shader Cache"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = [
+    "~/Library/Application Support/BraveSoftware/Brave-Browser/*/{GPUCache,DawnCache,DawnGraphiteCache,DawnWebGPUCache}",
+    "~/Library/Application Support/BraveSoftware/Brave-Browser/{ShaderCache,GrShaderCache,GraphiteDawnCache}",
+]
+unit = "named_subtree"
+min_age_days = 0
+owner = "Brave Browser"
+artifact_kind = "compiled_kernel"
+fail_if_running = ["Brave Browser", "Brave Browser Helper", "Brave Browser Helper (GPU)", "Brave Browser Helper (Renderer)", "Brave Browser Helper (Plugin)", "Brave Browser Helper (Utility)"]
+consequence = "Brave recompiles GPU shaders on next launch; initial rendering may be slower. Selected caches move to Trash."
+description = "Named GPU cache subtrees only, while Brave is closed. Cookies, passwords, history, extensions, models and offline Service Worker data remain outside this scope."
+
+[[signatures]]
 id = "system.cloudkit.cache"
 name = "CloudKit Cache Store"
 category = "system"

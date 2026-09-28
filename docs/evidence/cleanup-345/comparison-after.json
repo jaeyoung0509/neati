@@ -1,0 +1,106 @@
+{
+  "buckets": {
+    "application_support": {
+      "items": 2,
+      "reference_only_items": 2,
+      "rounded_preview_bytes": 1101000
+    },
+    "browser": {
+      "items": 216,
+      "neati_ancestor_items": 209,
+      "neati_descendants_items": 2,
+      "reference_only_items": 5,
+      "rounded_preview_bytes": 838308000
+    },
+    "cargo": {
+      "items": 1,
+      "reference_only_items": 1,
+      "rounded_preview_bytes": 29200000
+    },
+    "homebrew": {
+      "items": 1,
+      "neati_descendants_items": 1,
+      "rounded_preview_bytes": 38600000
+    },
+    "other": {
+      "exact_items": 3,
+      "items": 217,
+      "neati_ancestor_items": 138,
+      "reference_only_items": 76,
+      "rounded_preview_bytes": 21430000
+    },
+    "user_app_cache": {
+      "exact_items": 4,
+      "items": 42,
+      "neati_ancestor_items": 2,
+      "neati_descendants_items": 1,
+      "reference_only_items": 35,
+      "rounded_preview_bytes": 221779000
+    },
+    "user_log": {
+      "exact_items": 9,
+      "items": 16,
+      "neati_ancestor_items": 2,
+      "reference_only_items": 5,
+      "rounded_preview_bytes": 4578000
+    }
+  },
+  "limitations": [
+    "The reference cleaner's displayed sizes are rounded potential bytes, not verified reclaim.",
+    "Nested preview paths may be counted more than once in its displayed sum.",
+    "Path ancestry does not prove equal cleanup units or equal authorization.",
+    "du measures current allocated footprint, not the bytes an owner command would remove.",
+    "Neither input proves actual deletion throughput or disk free-space change."
+  ],
+  "neati_scan": {
+    "cleanable_bytes": 265953280,
+    "gaps": [
+      {
+        "count": 6,
+        "kind": "io_error"
+      },
+      {
+        "count": 5,
+        "kind": "permission_denied"
+      }
+    ],
+    "metrics": {
+      "directories_read": 4185,
+      "duration_ms": 15290,
+      "peak_outstanding_directory_tasks": 16,
+      "visited_entries": 25213
+    },
+    "observed_bytes": 3691978752,
+    "quality": "partial",
+    "scope": "full embedded catalog and native providers; intensive cleanup enabled; no cleanup",
+    "selected_bytes": 33652736,
+    "sha256": "737c44544bb3b7c2fee3d55b0f9fb02836bdeb13690cff98fd3a6b08a82fc390",
+    "started_at": 1790592249,
+    "version": "0.3.76"
+  },
+  "path_relationships": {
+    "exact": 16,
+    "neati_ancestor": 351,
+    "neati_descendants": 4,
+    "reference_only": 124
+  },
+  "reference_preview": {
+    "byte_basis": "SI decimal, rounded display labels",
+    "item_count": 495,
+    "reported_potential": "1.16GB",
+    "rounded_display_sum_bytes": 1154996000,
+    "sha256": "deb6f5faaae8c6f5fa20de28190f46d3ca8b5d618c76af0eac81e8b4ee5f7018",
+    "structural_overlaps": {
+      "nested_item_count": 6,
+      "nested_rounded_preview_bytes": 196173000,
+      "top_level_rounded_preview_bytes": 958823000
+    }
+  },
+  "related_neati_eligibility": {
+    "advisory": 2,
+    "auto_cleanable": 160,
+    "blocked": 50,
+    "recent": 19,
+    "reviewable": 144
+  }
+}

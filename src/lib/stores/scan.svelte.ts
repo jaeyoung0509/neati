@@ -23,7 +23,7 @@ import {
   tauriScan,
   tauriScanDiscovery,
 } from '../utils/tauri';
-import { cleanableBytes, isActionable, isAutoCleanable, isProviderBacked } from '../utils/cleanup';
+import { cleanableBytes, isActionable, isAutoCleanable, isBulkSelectable, isProviderBacked } from '../utils/cleanup';
 
 /** How the in-flight (or most recent) scan was started. Drives auto-refresh copy. */
 export type ScanTrigger = 'auto' | 'manual';
@@ -420,11 +420,28 @@ export class ScanStore {
 
     for (const item of cat.items) {
       if (select) {
-        if (isActionable(item)) this.selectedMap[item.id] = true;
+        if (isBulkSelectable(item)) this.selectedMap[item.id] = true;
       } else if (isActionable(item)) {
         this.selectedMap[item.id] = false;
       }
     }
+  }
+
+  get bulkSelection() {
+    const items = this.lastScan?.categories.flatMap(category => category.items).filter(isBulkSelectable) ?? [];
+    const selected = items.filter(item => this.selectedMap[item.id]).length;
+    return {
+      count: items.length,
+      all: items.length > 0 && selected === items.length,
+      mixed: selected > 0 && selected < items.length,
+    };
+  }
+
+  setAllSelected(selected: boolean) {
+    if (!this.lastScan || !this.canClean) return;
+    this.selectedMap = Object.fromEntries(this.lastScan.categories.flatMap(category =>
+      category.items.map(item => [item.id, selected && isBulkSelectable(item)])
+    ));
   }
 
   quickCleanCategoryEnabled(category: Category, settings: NeatiSettings): boolean {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CategoryResult } from '../models/types';
   import { formatBytes } from '../utils/format';
-  import { emptyCategoryMessage, isActionable, presentedItems, summarizeCategory } from '../utils/cleanup';
+  import { emptyCategoryMessage, isBulkSelectable, presentedItems, summarizeCategory } from '../utils/cleanup';
   import { scanStore } from '../stores/scan.svelte';
   import Checkbox from './Checkbox.svelte';
   import {
@@ -34,7 +34,7 @@
   // never advertise a location the detail view omits (or vice versa).
   let presented = $derived(presentedItems(categoryResult.items));
 
-  let cleanableItems = $derived(categoryResult.items.filter(isActionable));
+  let cleanableItems = $derived(categoryResult.items.filter(isBulkSelectable));
   let summary = $derived(summarizeCategory(categoryResult.items, scanStore.selectedMap));
   let emptyMessage = $derived(emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category));
 
@@ -60,6 +60,7 @@
         <Checkbox
           class="h-8 w-8"
           checked={allSelected}
+          indeterminate={!allSelected && cleanableItems.some(item => scanStore.selectedMap[item.id])}
           disabled={!scanStore.canClean}
           onchange={handleToggleCheckbox}
           ariaLabel={`Select all ${categoryResult.display_name} items`}

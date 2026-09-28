@@ -38,8 +38,8 @@ body:
     attributes:
       label: How was Neati installed?
       options:
-        - Per-user installer (Zenith-windows-x64-setup.exe, installs under %LOCALAPPDATA%)
-        - Machine-wide installer (Zenith-windows-x64-setup-machine.exe, installs under Program Files)
+        - Per-user installer (Neati-windows-x64-setup.exe, installs under %LOCALAPPDATA%)
+        - Machine-wide installer (Neati-windows-x64-setup-machine.exe, installs under Program Files)
         - Portable or unpacked build
         - Not installed / installer itself fails
     validations:

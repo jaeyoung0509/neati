@@ -4,7 +4,7 @@
  * Verifies that the active Rust toolchain matches the `rust-version` declared
  * in the root Cargo.toml workspace manifest.
  *
- * The floor is a workspace property: `zenith-core` and `zenith-desktop` both
+ * The floor is a workspace property: `neati-core` and `neati-desktop` both
  * inherit it, so the check reads the one place it is stated rather than one of
  * the two packages that inherit it.
  *

@@ -1,5 +1,5 @@
 // Run in the local Vite preview with Memory selected:
-// agent-browser --session zenith126 eval --stdin < scripts/verify_numeric_layout.js
+// agent-browser --session neati126 eval --stdin < scripts/verify_numeric_layout.js
 // Dev-only verification: mutates browser mocks, never invokes a native action.
 (async () => {
   if (!['localhost', '127.0.0.1'].includes(location.hostname) || window.__TAURI_INTERNALS__) {

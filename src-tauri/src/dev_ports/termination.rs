@@ -7,10 +7,10 @@ use crate::models::{
     DevelopmentListener, ReleaseDevelopmentListenerResult, ReleaseMode, ReleaseOutcome,
 };
 use crate::process_owner::ProcessOwner;
+use neati_platform::path_algebra::{self, PathFlavor};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use zenith_platform::path_algebra::{self, PathFlavor};
 
 #[cfg(unix)]
 const GRACEFUL_TERMINATION_SIGNAL: i32 = libc::SIGTERM;
@@ -98,7 +98,7 @@ impl DevPortSystem for RealDevPortSystem {
             let mut cmd = std::process::Command::new("/usr/sbin/lsof");
             cmd.args(["-nP", "-a", "-iTCP", "-sTCP:LISTEN", "-F0pcuLn"]);
 
-            let output = zenith_platform::subprocess::run_with_timeout(cmd, Duration::from_secs(2))
+            let output = neati_platform::subprocess::run_with_timeout(cmd, Duration::from_secs(2))
                 .map_err(|e| {
                     crate::diagnostics::log_error(
                         "dev_ports",
@@ -203,12 +203,12 @@ impl DevPortSystem for RealDevPortSystem {
             // Force terminates; a graceful signal routes through the shared
             // window-close and console-control chain.
             if signal != FORCE_TERMINATION_SIGNAL {
-                return zenith_platform::terminate_process(
+                return neati_platform::terminate_process(
                     pid,
-                    zenith_platform::TerminationMode::Graceful,
+                    neati_platform::TerminationMode::Graceful,
                 );
             }
-            zenith_platform::terminate_process(pid, zenith_platform::TerminationMode::Force)
+            neati_platform::terminate_process(pid, neati_platform::TerminationMode::Force)
         }
         #[cfg(not(any(unix, target_os = "windows")))]
         {
@@ -424,7 +424,7 @@ pub fn list_listeners_with_context(
                     pid: record.pid,
                     owner: effective_owner.clone(),
                     current_owner: current_owner.clone(),
-                    zenith_pid: own_pid,
+                    neati_pid: own_pid,
                     port: record.port,
                     raw_command: &proc.raw_command,
                     process_name: &proc.process_name,
@@ -456,7 +456,7 @@ pub fn list_listeners_with_context(
                     pid: record.pid,
                     owner: effective_record_owner.clone(),
                     current_owner: current_owner.clone(),
-                    zenith_pid: own_pid,
+                    neati_pid: own_pid,
                     port: record.port,
                     raw_command: &record.command,
                     process_name: &record.command,
@@ -639,7 +639,7 @@ pub fn release_listener(
             pid: lease.pid,
             owner: proc_info.owner.clone(),
             current_owner: current_owner.clone(),
-            zenith_pid: own_pid,
+            neati_pid: own_pid,
             port: lease.port,
             raw_command: &proc_info.raw_command,
             process_name: &proc_info.process_name,
@@ -1370,7 +1370,7 @@ mod tests {
                 pid,
                 owner: Some(ProcessOwner::Unix(501)),
                 current_owner: ProcessOwner::Unix(501),
-                zenith_pid: 1000,
+                neati_pid: 1000,
                 port: 5173,
                 raw_command: "node",
                 process_name: "node",

@@ -1,8 +1,8 @@
-use crate::models::ZenithError;
+use crate::models::NeatiError;
+use neati_platform::path_algebra::{self, PathFlavor};
+use neati_platform::PlatformPathsProvider;
 use std::path::{Path, PathBuf};
 use unicode_normalization::UnicodeNormalization;
-use zenith_platform::path_algebra::{self, PathFlavor};
-use zenith_platform::PlatformPathsProvider;
 
 pub struct Blacklist;
 
@@ -30,9 +30,9 @@ impl BlacklistEnvironment {
     /// caller is acting on, not for the machine that happens to run the code:
     /// the manifest lint, the plan verifier, and the scanner all classify paths
     /// that came from an injected environment.
-    pub fn from_environment(environment: &zenith_platform::PlatformEnvironment) -> Self {
+    pub fn from_environment(environment: &neati_platform::PlatformEnvironment) -> Self {
         let text = |path: std::path::PathBuf| path.to_string_lossy().into_owned();
-        let known_content_dirs = zenith_platform::KnownFolder::ALL
+        let known_content_dirs = neati_platform::KnownFolder::ALL
             .into_iter()
             .filter_map(|folder| environment.content_dir(folder.token()))
             .map(text)
@@ -44,7 +44,7 @@ impl BlacklistEnvironment {
             // Only the administrator-writable install roots are protected as
             // trees. The application-data roots are protected as exact
             // locations instead: a redirected `LOCALAPPDATA` on a corporate
-            // machine holds the very caches Zenith is meant to clean, and
+            // machine holds the very caches Neati is meant to clean, and
             // treating the whole tree as a system root refused every one of
             // them.
             system_roots: [environment.program_files(), environment.program_data()]
@@ -60,7 +60,7 @@ impl BlacklistEnvironment {
     /// Describes the running process. Only the composition boundary should
     /// prefer this over a stated environment.
     pub fn native() -> Self {
-        let paths = zenith_platform::NativePlatformPaths::new();
+        let paths = neati_platform::NativePlatformPaths::new();
         Self {
             home: paths.home().map(|path| path.to_string_lossy().into_owned()),
             temp_dir: std::env::temp_dir().to_string_lossy().into_owned(),
@@ -312,7 +312,7 @@ impl Blacklist {
     /// circumstances, decided for the environment the caller is acting on.
     pub fn is_blacklisted_with(
         path: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
+        environment: &neati_platform::PlatformEnvironment,
     ) -> bool {
         let described = BlacklistEnvironment::from_environment(environment);
         // The described flavor chooses the rule set, not the host that happens
@@ -324,7 +324,7 @@ impl Blacklist {
             Self::is_blacklisted_posix(
                 path,
                 &described,
-                environment.platform() == zenith_core::domain::platform::PlatformKind::Macos,
+                environment.platform() == neati_core::domain::platform::PlatformKind::Macos,
             )
         }
     }
@@ -337,7 +337,7 @@ impl Blacklist {
         // normalizing first would strip `\\?\GLOBALROOT\...` into a harmless
         // looking relative path before that rule could see it.
         Self::windows_with_alias_resolution(path, described, |path| {
-            zenith_platform::paths::canonicalize_existing_prefix(path).ok()
+            neati_platform::paths::canonicalize_existing_prefix(path).ok()
         })
     }
 
@@ -520,13 +520,13 @@ impl Blacklist {
     /// the environment the caller is acting on.
     pub fn validate_with(
         path: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
-    ) -> Result<(), ZenithError> {
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> Result<(), NeatiError> {
         // Resolve parent components to catch ../ attacks
-        let normalized = zenith_platform::path_algebra::normalize_lexical(path);
+        let normalized = neati_platform::path_algebra::normalize_lexical(path);
 
         if Self::is_blacklisted_with(&normalized, environment) {
-            return Err(ZenithError::BlacklistedPath(
+            return Err(NeatiError::BlacklistedPath(
                 path.to_string_lossy().to_string(),
             ));
         }
@@ -586,7 +586,7 @@ mod tests {
     fn posix_environment() -> BlacklistEnvironment {
         BlacklistEnvironment {
             home: Some("/Users/José".into()),
-            temp_dir: "/private/tmp/zenith-user".into(),
+            temp_dir: "/private/tmp/neati-user".into(),
             known_content_dirs: vec!["/Users/José/OneDrive/Personal".into()],
             system_roots: vec![],
             local_app_data: None,
@@ -988,7 +988,7 @@ mod tests {
     fn a_deep_user_path_stays_allowed() {
         for path in [
             r"D:\Users\me\projects\repo\src\main.rs",
-            r"D:\Users\me\AppData\Local\Temp\zenith-1234\cache",
+            r"D:\Users\me\AppData\Local\Temp\neati-1234\cache",
             r"D:\Users\me\.cargo\registry\cache",
             r"D:\Users\me\Documents-backup\notes.txt",
             r"D:\Users\me\Desktop-backup",

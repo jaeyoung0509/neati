@@ -55,6 +55,17 @@ function readHslTokens(css: string, selector: ':root' | '.dark'): Map<string, [n
 }
 
 describe('design-system source contracts', () => {
+  it('uses native body fonts, readable leading, and word-aware wrapping', () => {
+    const css = readFileSync(`${srcRoot}/app.css`, 'utf8');
+    expect(css).toContain('--font-sans: -apple-system, BlinkMacSystemFont');
+    expect(css).toContain('--text-body--line-height: 1.25rem');
+    expect(css).toContain('--text-meta--line-height: 1.125rem');
+    expect(css).toContain('word-break: keep-all');
+    expect(css).toContain('overflow-wrap: anywhere');
+    expect(css).not.toContain('@font-face');
+    const header = readFileSync(`${srcRoot}/lib/components/PageHeader.svelte`, 'utf8');
+    expect(header).toContain('max-w-prose text-body');
+  });
   it('uses semantic colors instead of raw status palette utilities', () => {
     const violations = svelteFiles.filter((path) =>
       /(?:emerald|amber|rose|red)-(?:300|400|500|600)/.test(

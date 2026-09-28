@@ -290,7 +290,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <Server size={16} class="text-primary" />
-          <h4 class="text-xs font-semibold uppercase tracking-wider">Development Services</h4>
+          <h4 class="text-xs font-semibold tracking-normal">Development Services</h4>
         </div>
         {#if onNavigateTab}
           <Button
@@ -322,7 +322,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <HardDrive size={16} class="text-primary" />
-          <h4 class="text-xs font-semibold uppercase tracking-wider">Developer Storage</h4>
+          <h4 class="text-xs font-semibold tracking-normal">Developer Storage</h4>
         </div>
         {#if onNavigateTab}
           <Button

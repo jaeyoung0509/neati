@@ -4,9 +4,9 @@
 
 <h1 align="center">Neati</h1>
 
-Previously Zenith. See the [0.3.73 migration guide](docs/NEATI_MIGRATION.md)
-before installing over an existing Zenith installation. Persistent identifiers
-and legacy download filenames remain unchanged intentionally.
+The pre-release [identity contract](docs/NEATI_MIGRATION.md)
+uses new Neati settings, credential and permission identities. Existing personal
+data is left untouched; settings and authentication may need to be set up again.
 
 <p align="center">A cross-platform utility for developer storage, processes, local services, AI usage, and sleep control.</p>
 
@@ -84,15 +84,15 @@ Neati is distributed as a public beta for Apple Silicon (ARM64) Macs and
 Windows x64. Pre-built `.dmg` and NSIS `.exe` installers, an SPDX software bill
 of materials, SHA256 checksums, build metadata, a recorded endpoint-protection
 review, and GitHub build provenance attestation are available under
-[GitHub Releases](https://github.com/jaeyoung0509/zenith/releases).
+[GitHub Releases](https://github.com/jaeyoung0509/neati/releases).
 
 ### Windows x64
 
 Two NSIS installers are published for Windows x64:
 
-- `Zenith-windows-x64-setup.exe` installs for the current user under
+- `Neati-windows-x64-setup.exe` installs for the current user under
   `%LOCALAPPDATA%\Neati` and requires no administrator access.
-- `Zenith-windows-x64-setup-machine.exe` installs for all users under
+- `Neati-windows-x64-setup-machine.exe` installs for all users under
   `Program Files\Neati` and requires elevation. It exists for managed machines
   whose application-control policy (AppLocker default rules, WDAC, or Smart App
   Control) refuses to execute binaries from user-writable locations. Installing
@@ -153,7 +153,7 @@ locally built app is not evidence of a signed release.
 Neati has no automatic updater and does not check for new releases in the
 background. Enabled AI integrations can still contact their providers for usage
 data; this is separate from update checking. To find
-out, open the [GitHub Releases](https://github.com/jaeyoung0509/zenith/releases)
+out, open the [GitHub Releases](https://github.com/jaeyoung0509/neati/releases)
 page and compare the newest tag with the version shown in Neati. The
 application exposes that release URL (`PlatformContext.releases_url`) and links
 to it from the interface, so the check is one click away, but every check is
@@ -165,7 +165,7 @@ user-initiated.
   machine. Neati sends no analytics or telemetry. Enabled AI integrations may
   contact their provider APIs or official tools for authentication and usage.
 - **Secret Redaction**: Subprocess errors and diagnostic messages automatically redact sensitive API keys (`sk-...`, tokens, passwords) before writing to disk.
-- **Local Logs**: Error logs are written under your own platform's application-data directory -- `~/Library/Logs/Zenith/zenith.log` on macOS, `%LOCALAPPDATA%\Zenith\Logs\zenith.log` on Windows -- and rotate to `zenith.log.1` beside them once the live log exceeds 1 MB. The Settings diagnostics view shows the path this machine actually resolved, and Windows layout details are in [docs/WINDOWS.md](docs/WINDOWS.md).
+- **Local Logs**: Error logs are written under your own platform's application-data directory -- `~/Library/Logs/Neati/neati.log` on macOS, `%LOCALAPPDATA%\Neati\Logs\neati.log` on Windows -- and rotate to `neati.log.1` beside them once the live log exceeds 1 MB. The Settings diagnostics view shows the path this machine actually resolved, and Windows layout details are in [docs/WINDOWS.md](docs/WINDOWS.md).
 - **Diagnostics Export**: Inspect or export your local system snapshot anytime in **Dashboard -> Settings -> Diagnostics & Privacy Logs**.
 - **Doctor Self-Check**: run `Neati --doctor` (or `Neati --doctor --json`) to print a de-identified environment fingerprint and a self-check table; the command exits 1 when a self-check fails. It performs no network access, and nothing it prints contains a user name, machine name, drive letter, or profile path. Windows bug reports ask for this output because it is safe to paste.
 - **Minimized Agent Metadata**: Project Cockpit returns opaque project/session
@@ -222,7 +222,7 @@ separate endpoint-level workflow:
 - PID reuse, port handoff, expired IDs, missing identity data, system services,
   terminals, databases, container daemons, and Neati itself fail closed.
 
-Signature definitions live in [`signatures/`](signatures). Domain safety tests live in [`crates/zenith-core`](crates/zenith-core); desktop
+Signature definitions live in [`signatures/`](signatures). Domain safety tests live in [`crates/neati-core`](crates/neati-core); desktop
 adapter and integration tests also live in [`src-tauri/tests/`](src-tauri/tests).
 
 ## Stack

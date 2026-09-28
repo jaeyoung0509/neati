@@ -46,8 +46,8 @@ import type {
   ScanEvent,
   ScanItem,
   SelectedApplication,
-  ZenithSettings,
-  ZenithSettings_Serialize,
+  NeatiSettings,
+  NeatiSettings_Serialize,
 } from '../models/types';
 
 type Result<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E };
@@ -346,11 +346,11 @@ export const nativeApi = {
     await unwrap(commands.disableManualAwake());
   },
 
-  async getSettings(): Promise<ZenithSettings_Serialize> {
+  async getSettings(): Promise<NeatiSettings_Serialize> {
     return await unwrap(commands.getSettings());
   },
 
-  async saveSettings(settings: ZenithSettings): Promise<void> {
+  async saveSettings(settings: NeatiSettings): Promise<void> {
     await unwrap(commands.saveSettings(settings));
   },
 

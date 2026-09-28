@@ -18,7 +18,7 @@
 
   let cacheMetadata = $derived(item.cache_metadata ?? {
     provider: 'Neati',
-    management_mode: 'zenith' as const,
+    management_mode: 'neati' as const,
     artifact_kind: 'temporary' as const,
     consequence: '',
     size_semantics: 'physical_reclaimable' as const,

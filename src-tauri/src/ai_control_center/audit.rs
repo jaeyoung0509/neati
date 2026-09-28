@@ -126,7 +126,7 @@ impl AuditStore {
             let _ = std::fs::remove_file(&temp);
             return Err(error.to_string());
         }
-        if let Err(error) = zenith_platform::file_ops::atomic_replace(&temp, &path) {
+        if let Err(error) = neati_platform::file_ops::atomic_replace(&temp, &path) {
             let _ = std::fs::remove_file(&temp);
             return Err(error.to_string());
         }
@@ -160,7 +160,7 @@ fn safe_label(value: &str) -> String {
 mod tests {
     use super::*;
 
-    /// Joins credential parts at runtime: the safety scanner inspects Zenith's
+    /// Joins credential parts at runtime: the safety scanner inspects Neati's
     /// own repository, so a fixture must not carry the complete signature.
     fn joined(parts: &[&str]) -> String {
         parts.concat()

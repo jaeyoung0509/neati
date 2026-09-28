@@ -14,17 +14,17 @@
 use std::path::Path;
 use std::sync::Mutex;
 
-use crate::models::ZenithSettings;
+use crate::models::NeatiSettings;
 use crate::services::desktop_notifications::DesktopNotifications;
 
 /// The process-wide settings snapshot.
 pub struct SettingsAuthority {
-    settings: Mutex<ZenithSettings>,
+    settings: Mutex<NeatiSettings>,
     write_transaction: Mutex<()>,
 }
 
 impl SettingsAuthority {
-    pub(crate) fn new(initial: ZenithSettings) -> Self {
+    pub(crate) fn new(initial: NeatiSettings) -> Self {
         Self {
             settings: Mutex::new(initial),
             write_transaction: Mutex::new(()),
@@ -32,7 +32,7 @@ impl SettingsAuthority {
     }
 
     /// A copy of the current preferences.
-    pub fn snapshot(&self) -> Result<ZenithSettings, String> {
+    pub fn snapshot(&self) -> Result<NeatiSettings, String> {
         self.settings
             .lock()
             .map(|guard| guard.clone())
@@ -40,7 +40,7 @@ impl SettingsAuthority {
     }
 
     /// Replaces the snapshot after the caller persisted it.
-    pub fn replace(&self, next: ZenithSettings) -> Result<(), String> {
+    pub fn replace(&self, next: NeatiSettings) -> Result<(), String> {
         let _transaction = self
             .write_transaction
             .lock()
@@ -59,8 +59,8 @@ impl SettingsAuthority {
     pub fn update_and_persist<R>(
         &self,
         config_dir: &Path,
-        update: impl FnOnce(&mut ZenithSettings) -> R,
-    ) -> Result<(ZenithSettings, R), String> {
+        update: impl FnOnce(&mut NeatiSettings) -> R,
+    ) -> Result<(NeatiSettings, R), String> {
         let _transaction = self
             .write_transaction
             .lock()
@@ -72,7 +72,7 @@ impl SettingsAuthority {
         Ok((next, result))
     }
 
-    fn publish(&self, next: ZenithSettings) -> Result<(), String> {
+    fn publish(&self, next: NeatiSettings) -> Result<(), String> {
         let mut guard = self.settings.lock().map_err(|_| settings_unavailable())?;
         *guard = next;
         Ok(())
@@ -107,7 +107,7 @@ pub trait SettingsChangeReaction: Send + Sync {
     /// requested) leaves both the file and the shared snapshot untouched.
     fn before_save(
         &self,
-        next: &ZenithSettings,
+        next: &NeatiSettings,
         notifications: &dyn DesktopNotifications,
     ) -> Result<(), String>;
 
@@ -121,10 +121,10 @@ mod tests {
 
     #[test]
     fn replace_publishes_the_persisted_snapshot() {
-        let authority = SettingsAuthority::new(ZenithSettings::default());
-        let next = ZenithSettings {
+        let authority = SettingsAuthority::new(NeatiSettings::default());
+        let next = NeatiSettings {
             intensive_cleanup: true,
-            ..ZenithSettings::default()
+            ..NeatiSettings::default()
         };
 
         authority.replace(next).expect("authority is healthy");
@@ -144,7 +144,7 @@ mod tests {
         use std::time::Duration;
 
         let config_dir = tempfile::tempdir().expect("temp config dir");
-        let authority = Arc::new(SettingsAuthority::new(ZenithSettings::default()));
+        let authority = Arc::new(SettingsAuthority::new(NeatiSettings::default()));
         let start = Arc::new(Barrier::new(3));
         let active_transactions = Arc::new(AtomicUsize::new(0));
         let max_active_transactions = Arc::new(AtomicUsize::new(0));
@@ -192,7 +192,7 @@ mod tests {
     fn poisoned_authority_refuses_to_answer() {
         use std::sync::Arc;
 
-        let authority = Arc::new(SettingsAuthority::new(ZenithSettings::default()));
+        let authority = Arc::new(SettingsAuthority::new(NeatiSettings::default()));
         let poisoner = authority.clone();
         let _ = std::thread::spawn(move || {
             let mut settings = poisoner.settings.lock().expect("authority starts healthy");

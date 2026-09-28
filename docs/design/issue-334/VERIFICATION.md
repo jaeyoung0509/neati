@@ -1,5 +1,9 @@
 # Neati B rebrand verification
 
+Historical verification only. Product spellings were normalized in #338; this
+does not verify the new identity or current installer. See the issue-338 report
+and `docs/NEATI_MIGRATION.md` for the current contract.
+
 Date: September 28, 2026. Host: macOS 27.0 (26A428), Apple Silicon.
 Version: 0.3.73, branch `feature/334-neati-rebrand`, based on `fc3c0ce`.
 Evidence belongs to this PR's implementation commit, not the earlier sketches.
@@ -16,7 +20,7 @@ Evidence belongs to this PR's implementation commit, not the earlier sketches.
 - `pnpm build`, `just build-fast`
 - `bash scripts/test_install_release_app.sh` (temporary fixtures only)
 - Packaged `Neati --doctor`: 14/14 passed.
-- Bundle plist: Neati, 0.3.73, `com.zenith.desktop`, executable Neati.
+- Bundle plist: Neati, 0.3.73, `com.neati.desktop`, executable Neati.
 - Source and packaged icon.icns SHA256 both:
   `6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9`.
 
@@ -42,9 +46,9 @@ on this macOS host. CI status is reported on the PR, separately from local check
 
 ## Installation and permissions
 
-With explicit user approval, the existing installed Zenith 0.3.70 was normally
+With explicit user approval, the existing installed Neati 0.3.70 was normally
 quit, the build-tree Neati.app was launched, then normally quit and the original
-installed Zenith was reopened. `/Applications/Zenith.app` was never replaced,
+installed Neati was reopened. `/Applications/Neati.app` was never replaced,
 moved or removed. No new app was installed, no cache deletion was invoked, no
 permission grants were changed and no secret values were inspected.
 

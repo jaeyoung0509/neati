@@ -93,7 +93,7 @@ fn fallback_pmset_power_source() -> PowerSourceType {
 
 /// One battery observation exactly as the platform reported it.
 ///
-/// The fields are the platform's own facts, before Zenith decides anything:
+/// The fields are the platform's own facts, before Neati decides anything:
 /// `None` means the platform did not return that fact, and it is never derived
 /// from a neighbouring field.
 #[derive(Debug, Clone, PartialEq)]
@@ -271,7 +271,7 @@ pub fn derive_charge_state(
 
 /// The IOKit power API, called by hand.
 ///
-/// Zenith deliberately does not link a CoreFoundation or IOKit wrapper crate:
+/// Neati deliberately does not link a CoreFoundation or IOKit wrapper crate:
 /// the handful of symbols below are the whole surface it needs, and the
 /// reference-counting rules are stated at each call site instead of hidden
 /// behind a binding.
@@ -572,7 +572,7 @@ fn pmset_battery_report() -> Option<String> {
     let mut cmd = std::process::Command::new("pmset");
     cmd.args(["-g", "batt"]);
     let output =
-        zenith_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(3))
+        neati_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(3))
             .ok()?;
     Some(String::from_utf8_lossy(&output.stdout).into_owned())
 }

@@ -9,10 +9,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use zenith_lib::diagnostics::doctor::SelfCheckOutcome;
-use zenith_lib::signatures::SignatureRegistry;
-use zenith_platform::path_algebra::{self, PathFlavor, ProtectedRoot};
-use zenith_platform::{
+use neati_lib::diagnostics::doctor::SelfCheckOutcome;
+use neati_lib::signatures::SignatureRegistry;
+use neati_platform::path_algebra::{self, PathFlavor, ProtectedRoot};
+use neati_platform::{
     EnvironmentFixture, KnownFolder, PlatformEnvironment, ProfileShape, ToolResolution,
 };
 
@@ -220,7 +220,7 @@ fn the_self_check_passes_for_every_committed_fixture() {
     for path in fixture_paths() {
         let (_, fixture) = load(&path);
         let environment = fixture.environment();
-        let report = zenith_lib::diagnostics::doctor::self_check(&environment);
+        let report = neati_lib::diagnostics::doctor::self_check(&environment);
 
         let failed = report
             .checks

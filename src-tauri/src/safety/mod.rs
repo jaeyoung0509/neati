@@ -19,37 +19,37 @@ pub use validator::{
     SafetyValidator, ValidatedTarget,
 };
 
-use crate::models::ZenithError;
+use crate::models::NeatiError;
 
 /// Whether an error means the path is already gone.
 ///
 /// This is the single place that decides absence, so a permission refusal, a
 /// symlink escape, or a changed identity can never be read as "nothing to do".
-/// Only [`ZenithError::Missing`] qualifies; every other variant keeps failing
+/// Only [`NeatiError::Missing`] qualifies; every other variant keeps failing
 /// closed.
-pub fn is_already_absent(error: &ZenithError) -> bool {
-    matches!(error, ZenithError::Missing(_))
+pub fn is_already_absent(error: &NeatiError) -> bool {
+    matches!(error, NeatiError::Missing(_))
 }
 
 #[cfg(test)]
 mod tests {
     use super::is_already_absent;
-    use crate::models::ZenithError;
+    use crate::models::NeatiError;
 
     /// Only genuine absence counts as already-absent: a changed identity, a
     /// permission refusal, and a symlink escape must all keep failing closed.
     #[test]
     fn is_already_absent_only_matches_missing() {
-        assert!(is_already_absent(&ZenithError::Missing(
+        assert!(is_already_absent(&NeatiError::Missing(
             "/already/gone".into()
         )));
-        assert!(!is_already_absent(&ZenithError::ChangedSinceScan(
+        assert!(!is_already_absent(&NeatiError::ChangedSinceScan(
             "identity mismatch".into()
         )));
-        assert!(!is_already_absent(&ZenithError::PermissionDenied(
+        assert!(!is_already_absent(&NeatiError::PermissionDenied(
             "/protected".into()
         )));
-        assert!(!is_already_absent(&ZenithError::SymlinkEscape(
+        assert!(!is_already_absent(&NeatiError::SymlinkEscape(
             "/escape".into()
         )));
     }
@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn missing_display_names_the_path_without_calling_it_a_change() {
         assert_eq!(
-            ZenithError::Missing("/already/gone".into()).to_string(),
+            NeatiError::Missing("/already/gone".into()).to_string(),
             "Path no longer exists: /already/gone"
         );
     }

@@ -157,24 +157,24 @@ describe('cleanup result feedback', () => {
     const success = render(CleanResultModal, {
       props: { result: result('success', true), onClose: () => undefined },
     });
-    expect(success.body).toContain('Clean Complete');
-    expect(success.body).toContain('Storage has been safely reclaimed');
+    expect(success.body).toContain('Cleanup complete');
+    expect(success.body).toContain('Selected cleanup actions finished');
 
     const partial = render(CleanResultModal, {
       props: { result: result('partial', true, 'one file was locked'), onClose: () => undefined },
     });
     expect(partial.body).toContain('Some items could not be cleaned');
-    expect(partial.body).toContain('Some storage was reclaimed');
+    expect(partial.body).toContain('Review the items that were kept or could not be cleaned');
 
     const failedResult = result('failed', false, 'Permission denied (os error 13)');
     failedResult.actual_disk_free_delta = 4096;
     const failed = render(CleanResultModal, {
       props: { result: failedResult, onClose: () => undefined },
     });
-    expect(failed.body).toContain('Clean Failed');
-    expect(failed.body).toContain('No storage was reclaimed');
-    expect(failed.body).not.toContain('Clean Complete');
-    expect(failed.body).not.toContain('Free space delta');
+    expect(failed.body).toContain('Cleanup failed');
+    expect(failed.body).toContain('Review the errors below before trying again');
+    expect(failed.body).not.toContain('Cleanup complete');
+    expect(failed.body).not.toContain('Disk free space change');
 
     expect(success.body).not.toContain('partly cleaned');
     expect(partial.body).toContain('1 partly cleaned · 0 failed · 0 skipped');
@@ -217,7 +217,7 @@ describe('cleanup result feedback', () => {
     expect(rendered.body).toContain('Some items could not be cleaned');
     expect(rendered.body).toContain('1 partly cleaned · 1 failed · 0 skipped');
     expect(rendered.body).toContain('1 item needs attention');
-    expect(rendered.body).toContain('1 item(s) failed');
+    expect(rendered.body).toContain('1 item failed');
   });
 
   it('reports Trash moves without claiming that disk space was reclaimed', () => {

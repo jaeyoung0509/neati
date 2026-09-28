@@ -2,14 +2,14 @@
 
 use std::sync::{Arc, Mutex};
 
-use zenith_platform::PlatformCapabilitiesProvider;
+use neati_platform::PlatformCapabilitiesProvider;
 
 use crate::ai_control_center::state::AiControlCenterState;
 use crate::ai_providers::CredentialStore;
 use crate::commands::DesktopState;
 use crate::docker::adapter::ContainerHost;
 use crate::execution_budget::ExecutionBudgets;
-use crate::models::ZenithSettings;
+use crate::models::NeatiSettings;
 use crate::operation_gate::StorageOperationGate;
 use crate::power::KeepAwakeManager;
 use crate::services::{
@@ -25,7 +25,7 @@ use crate::signatures::SignatureRegistry;
 /// dependencies (the environment self-check, the metrics handles, the shared
 /// caches) without a Tauri app handle.
 pub fn desktop_state(
-    environment: Arc<zenith_platform::PlatformEnvironment>,
+    environment: Arc<neati_platform::PlatformEnvironment>,
     container_host: ContainerHost,
 ) -> DesktopState {
     // The catalog is loaded against the same description every other component
@@ -41,13 +41,13 @@ pub fn desktop_state(
 /// seam exists so a test can assert that a catalog which failed to load
 /// refuses a scan instead of reporting an empty, healthy-looking one.
 pub fn desktop_state_with_catalog(
-    environment: Arc<zenith_platform::PlatformEnvironment>,
+    environment: Arc<neati_platform::PlatformEnvironment>,
     container_host: ContainerHost,
     registry: SignatureRegistry,
     registry_load_error: Option<String>,
 ) -> DesktopState {
     let registry = Arc::new(registry);
-    let settings = Arc::new(SettingsAuthority::new(ZenithSettings::default()));
+    let settings = Arc::new(SettingsAuthority::new(NeatiSettings::default()));
 
     let awake_manager = Arc::new(KeepAwakeManager::new());
     awake_manager.set_session_validator(crate::agent_activity::has_active_verified_session);
@@ -69,7 +69,7 @@ pub fn desktop_state_with_catalog(
     let docker_status = Arc::new(DockerStatusCache::new());
 
     let platform_capabilities: Arc<dyn PlatformCapabilitiesProvider> =
-        Arc::new(zenith_platform::NativePlatformCapabilities::new(
+        Arc::new(neati_platform::NativePlatformCapabilities::new(
             environment.clone(),
             // The container answer is asked exactly once, where the CLI
             // resolution lives, and the capability snapshot reports it.
@@ -80,8 +80,8 @@ pub fn desktop_state_with_catalog(
     // plan store, and the Trash executor, so a handler never orchestrates
     // them. The executor is not kept separately: the raw port stays inside the
     // service.
-    let trash_backend: Arc<dyn zenith_platform::TrashBackend> =
-        Arc::new(zenith_platform::NativeTrashBackend);
+    let trash_backend: Arc<dyn neati_platform::TrashBackend> =
+        Arc::new(neati_platform::NativeTrashBackend);
     let trash_executor = Arc::new(crate::trash_manager::TrashExecutor::new(
         trash_backend.clone(),
     ));
@@ -90,7 +90,7 @@ pub fn desktop_state_with_catalog(
         budgets.clone(),
         environment.clone(),
         trash_executor,
-        Arc::new(zenith_platform::NativeSystemActions::new()),
+        Arc::new(neati_platform::NativeSystemActions::new()),
         platform_capabilities.clone(),
     ));
 

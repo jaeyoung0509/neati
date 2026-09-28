@@ -6,6 +6,7 @@ use crate::models::{
     ObservationQuality, ReviewedFileIdentity,
 };
 use crate::safety::Blacklist;
+use neati_platform::description::PlatformEnvironment;
 #[cfg(not(target_os = "windows"))]
 use plist::Value;
 use std::collections::HashMap;
@@ -14,7 +15,6 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
-use zenith_platform::description::PlatformEnvironment;
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
@@ -176,7 +176,7 @@ impl RunningApplications {
     /// for app-bundle ownership; an unreadable table never means idle.
     pub fn running_executables(
         &self,
-        policy: &zenith_core::domain::cleanup::RunningProcessPolicy,
+        policy: &neati_core::domain::cleanup::RunningProcessPolicy,
     ) -> Option<Vec<String>> {
         if policy.is_empty() {
             return Some(Vec::new());
@@ -218,10 +218,10 @@ impl RunningApplications {
     }
 }
 
-impl zenith_core::domain::cleanup::RunningProcessProbe for RunningApplications {
+impl neati_core::domain::cleanup::RunningProcessProbe for RunningApplications {
     fn running(
         &self,
-        guard: &zenith_core::domain::cleanup::RunningProcessPolicy,
+        guard: &neati_core::domain::cleanup::RunningProcessPolicy,
     ) -> Option<Vec<String>> {
         self.running_executables(guard)
     }
@@ -424,15 +424,15 @@ impl ApplicationScanner {
                     }
 
                     let is_system_protected =
-                        is_zenith_identity(&name, metadata.bundle_id.as_deref());
+                        is_neati_identity(&name, metadata.bundle_id.as_deref());
                     let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
                     #[cfg(target_os = "windows")]
                     let norm_canonical =
-                        zenith_platform::NativePlatformPaths::normalize_verbatim_path(&canonical);
+                        neati_platform::NativePlatformPaths::normalize_verbatim_path(&canonical);
                     let is_running = running_paths.iter().any(|exe| {
                         #[cfg(target_os = "windows")]
                         {
-                            zenith_platform::NativePlatformPaths::windows_path_starts_with(
+                            neati_platform::NativePlatformPaths::windows_path_starts_with(
                                 exe,
                                 &norm_canonical,
                             )
@@ -514,7 +514,7 @@ impl ApplicationScanner {
             .records
             .get(app_id)
             .ok_or_else(|| "Application inventory is stale. Refresh applications.".to_string())?;
-        if is_zenith_app(&record.app) {
+        if is_neati_app(&record.app) {
             return Err("Neati cannot uninstall itself.".to_string());
         }
         if record.app.is_running {
@@ -729,8 +729,8 @@ impl ApplicationScanner {
     }
 }
 
-fn is_zenith_app(app: &InstalledApp) -> bool {
-    app.is_system_protected || is_zenith_identity(&app.name, app.bundle_id.as_deref())
+fn is_neati_app(app: &InstalledApp) -> bool {
+    app.is_system_protected || is_neati_identity(&app.name, app.bundle_id.as_deref())
 }
 
 /// The inventory a platform without bundle support reports: empty, with a
@@ -746,8 +746,8 @@ fn empty_inventory() -> AppInventory {
     }
 }
 
-fn is_zenith_identity(name: &str, bundle_id: Option<&str>) -> bool {
-    matches!(name, "Zenith" | "Neati") || bundle_id == Some("com.zenith.desktop")
+fn is_neati_identity(name: &str, bundle_id: Option<&str>) -> bool {
+    name == "Neati" || bundle_id == Some("com.neati.desktop")
 }
 
 const MAX_APP_WALK_DEPTH: usize = 32;
@@ -1008,11 +1008,11 @@ fn unix_timestamp() -> u64 {
 mod tests {
     use super::*;
     use crate::models::AppInstallSource;
+    use neati_core::domain::cleanup::RunningProcessPolicy;
+    use neati_platform::path_algebra::PathFlavor;
     use std::io::Write;
     #[cfg(not(target_os = "windows"))]
     use std::sync::Arc;
-    use zenith_core::domain::cleanup::RunningProcessPolicy;
-    use zenith_platform::path_algebra::PathFlavor;
 
     #[test]
     fn one_process_snapshot_distinguishes_running_from_unknown_owner() {
@@ -1055,15 +1055,14 @@ mod tests {
 
     #[test]
     fn native_process_snapshot_reports_a_known_table_on_this_platform() {
-        let absent =
-            RunningProcessPolicy::guarding(vec!["zenith-fixture-nonexistent-owner".into()]);
+        let absent = RunningProcessPolicy::guarding(vec!["neati-fixture-nonexistent-owner".into()]);
         assert_eq!(
             RunningApplications::probe().running_executables(&absent),
             Some(Vec::new())
         );
     }
     #[cfg(not(target_os = "windows"))]
-    use zenith_platform::paths::SimulatedPaths;
+    use neati_platform::paths::SimulatedPaths;
 
     #[cfg(not(target_os = "windows"))]
     #[derive(Default)]
@@ -1216,15 +1215,15 @@ mod tests {
     }
 
     #[test]
-    fn recognizes_the_configured_zenith_bundle_identifier() {
-        assert!(is_zenith_identity("Neati", None));
-        assert!(is_zenith_identity("Zenith", None));
-        assert!(is_zenith_identity("Renamed", Some("com.zenith.desktop")));
-        assert!(!is_zenith_identity("Neat", None));
+    fn recognizes_the_configured_neati_bundle_identifier() {
+        assert!(is_neati_identity("Neati", None));
+        assert!(is_neati_identity("Neati", None));
+        assert!(is_neati_identity("Renamed", Some("com.neati.desktop")));
+        assert!(!is_neati_identity("Neat", None));
         let app = InstalledApp {
-            id: "zenith".to_string(),
+            id: "neati".to_string(),
             name: "Renamed App".to_string(),
-            bundle_id: Some("com.zenith.desktop".to_string()),
+            bundle_id: Some("com.neati.desktop".to_string()),
             version: None,
             display_path: "/Applications/Renamed App.app".to_string(),
             executable_name: None,
@@ -1239,7 +1238,7 @@ mod tests {
             incomplete_reason: None,
             skipped_entries: 0,
         };
-        assert!(is_zenith_app(&app));
+        assert!(is_neati_app(&app));
     }
 
     #[test]

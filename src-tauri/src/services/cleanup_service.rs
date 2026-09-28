@@ -11,16 +11,16 @@ use crate::cleaner::{CleanExecutor, LifecycleProviderRegistry, OwnerProviderRegi
 use crate::execution_budget::ExecutionBudgets;
 use crate::models::{
     CleanEvent, CleanFailureReason, CleanResult, CleanStrategy, CleanupEligibility, CleanupFailure,
-    CleanupFailureScope, CleanupProgressSink, DeletePlan, ObservationQuality, PlanPreview,
-    PlanRefusalPreview, PlatformCapabilitiesProvider, PlatformFeature, PublishedScan,
-    ResumeScanRequest, ScanEvent, ScanProgressSink, ScanRequest, ScanResult, ZenithError,
-    ZenithSettings,
+    CleanupFailureScope, CleanupProgressSink, DeletePlan, NeatiError, NeatiSettings,
+    ObservationQuality, PlanPreview, PlanRefusalPreview, PlatformCapabilitiesProvider,
+    PlatformFeature, PublishedScan, ResumeScanRequest, ScanEvent, ScanProgressSink, ScanRequest,
+    ScanResult,
 };
 use crate::operation_gate::StorageOperationGate;
 use crate::safety::SafetyPlanner;
 use crate::services::system_service::DockerStatusCache;
 use crate::signatures::SignatureRegistry;
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
 
 fn unix_timestamp() -> u64 {
     SystemTime::now()
@@ -41,7 +41,7 @@ fn unix_timestamp() -> u64 {
 /// An unrelated inaccessible location does not invalidate a verified item.
 pub fn select_quick_clean_safe_candidates(
     scan: &ScanResult,
-    settings: &ZenithSettings,
+    settings: &NeatiSettings,
 ) -> Vec<String> {
     let mut eligible_ids = Vec::new();
     for category in &scan.categories {
@@ -77,14 +77,14 @@ fn refusal_preview(refusal: &crate::models::PlanItemRefusal) -> PlanRefusalPrevi
 /// that is no longer current makes the inventory a description of a machine
 /// that has changed. Reading both as the same failure is what made a correct
 /// refusal look like a broken selection.
-fn plan_failure(error: ZenithError) -> CleanupFailure {
+fn plan_failure(error: NeatiError) -> CleanupFailure {
     match error {
-        ZenithError::RefusedSelection(refusals) => CleanupFailure::items(
+        NeatiError::RefusedSelection(refusals) => CleanupFailure::items(
             "Nothing in the selection can be cleaned right now.",
             refusals.iter().map(refusal_preview).collect(),
         ),
-        ZenithError::ChangedSinceScan(message) => CleanupFailure::inventory_stale(message),
-        ZenithError::UnsupportedManualOperation(name) => CleanupFailure::items(
+        NeatiError::ChangedSinceScan(message) => CleanupFailure::inventory_stale(message),
+        NeatiError::UnsupportedManualOperation(name) => CleanupFailure::items(
             format!(
                 "`{name}` is reported for information only; this build has no reviewed operation that removes it"
             ),
@@ -148,7 +148,7 @@ pub struct CleanupService {
     owner_providers: Arc<OwnerProviderRegistry>,
     /// Native Trash / Recycle Bin adapter used only after the cleanup safety
     /// guard minted a validated non-Safe filesystem target.
-    trash_backend: Arc<dyn zenith_platform::TrashBackend>,
+    trash_backend: Arc<dyn neati_platform::TrashBackend>,
     /// The cancellation handles of the scans this service is running, keyed by
     /// the id each scan reports so `cancel_scan` can reach one in flight.
     scan_cancellations: Arc<CancellationRegistry>,
@@ -169,7 +169,7 @@ impl CleanupService {
         docker_status_cache: Arc<DockerStatusCache>,
         lifecycle_providers: Arc<LifecycleProviderRegistry>,
         owner_providers: Arc<OwnerProviderRegistry>,
-        trash_backend: Arc<dyn zenith_platform::TrashBackend>,
+        trash_backend: Arc<dyn neati_platform::TrashBackend>,
         platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     ) -> Self {
         Self {
@@ -467,7 +467,7 @@ impl CleanupService {
     /// name is retained; AutoCleanable includes regenerable Rebuild caches.
     pub async fn quick_clean_safe(
         &self,
-        settings: &ZenithSettings,
+        settings: &NeatiSettings,
         progress: Arc<dyn CleanupProgressSink>,
     ) -> Result<CleanResult, CleanupFailure> {
         self.execute_intent(CleanupIntent::QuickSafe, Some(settings.clone()), progress)
@@ -481,7 +481,7 @@ impl CleanupService {
         &self,
         scan_id: String,
         selected_item_ids: Vec<String>,
-        settings: &ZenithSettings,
+        settings: &NeatiSettings,
         progress: Arc<dyn CleanupProgressSink>,
     ) -> Result<CleanResult, CleanupFailure> {
         self.execute_intent(
@@ -499,7 +499,7 @@ impl CleanupService {
     async fn execute_intent(
         &self,
         intent: CleanupIntent,
-        settings: Option<ZenithSettings>,
+        settings: Option<NeatiSettings>,
         progress: Arc<dyn CleanupProgressSink>,
     ) -> Result<CleanResult, CleanupFailure> {
         self.platform_capabilities
@@ -699,8 +699,8 @@ mod tests {
         ScanDiscovery, ScanItem, Signature,
     };
     use crate::scanner::{ScanLimits, TraversalCounters};
+    use neati_platform::path_algebra::PathFlavor;
     use std::sync::Mutex;
-    use zenith_platform::path_algebra::PathFlavor;
 
     struct TestCapabilitiesProvider(PlatformCapabilities);
 
@@ -815,7 +815,7 @@ mod tests {
         let rebuild_item = make_test_item("item_rebuild", RiskTier::Rebuild, 200);
         let scan = make_test_scan(vec![safe_item, rebuild_item]);
 
-        let settings = ZenithSettings::default();
+        let settings = NeatiSettings::default();
         let selected = select_quick_clean_safe_candidates(&scan, &settings);
         assert_eq!(selected, vec!["item_safe", "item_rebuild"]);
     }
@@ -845,12 +845,12 @@ mod tests {
         ]);
         scan.quality = ObservationQuality::Partial;
         assert_eq!(
-            select_quick_clean_safe_candidates(&scan, &ZenithSettings::default()),
+            select_quick_clean_safe_candidates(&scan, &NeatiSettings::default()),
             vec!["ready"]
         );
 
         scan.categories[0].category = Category::Developer;
-        let settings = ZenithSettings {
+        let settings = NeatiSettings {
             clean_developer_tools: false,
             ..Default::default()
         };
@@ -862,9 +862,9 @@ mod tests {
         let environment = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -890,7 +890,7 @@ mod tests {
             Arc::new(DockerStatusCache::new()),
             lifecycle,
             owners,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
         );
         let progress: Arc<dyn ScanProgressSink> = Arc::new(|_: ScanEvent| {});
@@ -963,9 +963,9 @@ mod tests {
         let env = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -1021,7 +1021,7 @@ mod tests {
             Arc::new(DockerStatusCache::new()),
             providers,
             owner_providers,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
         ));
 
@@ -1064,9 +1064,9 @@ mod tests {
         let environment = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -1090,7 +1090,7 @@ mod tests {
             Arc::new(DockerStatusCache::new()),
             lifecycle,
             owners,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
         );
         let progress: Arc<dyn ScanProgressSink> = Arc::new(|_: ScanEvent| {});
@@ -1147,9 +1147,9 @@ mod tests {
         let env = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -1179,7 +1179,7 @@ mod tests {
             docker_cache,
             Arc::new(crate::cleaner::LifecycleProviderRegistry::new(Vec::new())),
             owner_providers,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             capabilities,
         );
 
@@ -1204,9 +1204,9 @@ mod tests {
         let env = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -1261,7 +1261,7 @@ mod tests {
             Arc::new(DockerStatusCache::new()),
             providers.clone(),
             owner_providers,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
         );
 
@@ -1320,9 +1320,9 @@ mod tests {
         let env = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -1375,7 +1375,7 @@ mod tests {
             Arc::new(DockerStatusCache::new()),
             Arc::new(crate::cleaner::LifecycleProviderRegistry::new(Vec::new())),
             owner_providers,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
         );
 
@@ -1441,9 +1441,9 @@ mod tests {
         let env = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -1496,7 +1496,7 @@ mod tests {
             Arc::new(DockerStatusCache::new()),
             Arc::new(crate::cleaner::LifecycleProviderRegistry::new(Vec::new())),
             owner_providers,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
         );
 
@@ -1519,7 +1519,7 @@ mod tests {
         ));
 
         let progress: Arc<dyn CleanupProgressSink> = Arc::new(|_| {});
-        let settings = ZenithSettings::default();
+        let settings = NeatiSettings::default();
         for (scan_id, ids) in [
             ("older_scan", vec!["item1".to_string()]),
             ("scan_123", vec!["forged_item".to_string()]),
@@ -1552,9 +1552,9 @@ mod tests {
         let env = Arc::new(
             PlatformEnvironment::simulated(PathFlavor::current()).with_home(
                 if PathFlavor::current().is_windows() {
-                    r"Z:\ZenithFixtureHome"
+                    r"Z:\NeatiFixtureHome"
                 } else {
-                    "/zenith-fixture-home"
+                    "/neati-fixture-home"
                 },
             ),
         );
@@ -1584,7 +1584,7 @@ mod tests {
             docker_cache,
             Arc::new(crate::cleaner::LifecycleProviderRegistry::new(Vec::new())),
             owner_providers,
-            Arc::new(zenith_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockTrashBackend::new()),
             capabilities,
         );
 
@@ -1596,7 +1596,7 @@ mod tests {
         scan_store.set(scan);
 
         let progress = Arc::new(|_| {});
-        let settings = ZenithSettings::default();
+        let settings = NeatiSettings::default();
         let result = service.quick_clean_safe(&settings, progress).await.unwrap();
 
         assert_eq!(result.total_reclaimed_bytes, 0);

@@ -70,6 +70,6 @@ describe('preview platform selection', () => {
     expect(linux).toEqual(goldenCapabilitiesByPlatform.linux);
     const linuxContext = await api.getPlatformContext();
     expect(linuxContext.platform).toBe('linux');
-    expect(linuxContext.log_directory).toBe('~/.local/share/zenith/logs');
+    expect(linuxContext.log_directory).toBe('~/.local/share/neati/logs');
   });
 });

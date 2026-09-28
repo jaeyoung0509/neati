@@ -25,7 +25,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
 
 use super::cancellation::CancellationRegistry;
 use super::plan_store::{PlanLifecycle, PlanStore};
@@ -117,7 +117,7 @@ pub struct StorageService {
     budgets: Arc<ExecutionBudgets>,
     environment: Arc<PlatformEnvironment>,
     trash_executor: Arc<TrashExecutor>,
-    system_actions: Arc<dyn zenith_platform::SystemActionProvider>,
+    system_actions: Arc<dyn neati_platform::SystemActionProvider>,
     platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
 }
 
@@ -127,7 +127,7 @@ impl StorageService {
         budgets: Arc<ExecutionBudgets>,
         environment: Arc<PlatformEnvironment>,
         trash_executor: Arc<TrashExecutor>,
-        system_actions: Arc<dyn zenith_platform::SystemActionProvider>,
+        system_actions: Arc<dyn neati_platform::SystemActionProvider>,
         platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     ) -> Self {
         Self {
@@ -262,7 +262,7 @@ impl StorageService {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
             .filter(|inventory| {
-                zenith_core::domain::is_within_window(
+                neati_core::domain::is_within_window(
                     inventory.created_at,
                     unix_timestamp(),
                     INVENTORY_TTL_SECS,
@@ -308,7 +308,7 @@ impl StorageService {
             .clone()
             .filter(|inventory| inventory.scan_id == scan_id)
             .filter(|inventory| {
-                zenith_core::domain::is_within_window(
+                neati_core::domain::is_within_window(
                     inventory.created_at,
                     unix_timestamp(),
                     INVENTORY_TTL_SECS,
@@ -546,7 +546,7 @@ impl StorageService {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
             .filter(|inventory| {
-                zenith_core::domain::is_within_window(
+                neati_core::domain::is_within_window(
                     inventory.created_at,
                     unix_timestamp(),
                     INVENTORY_TTL_SECS,
@@ -592,7 +592,7 @@ impl StorageService {
             .clone()
             .filter(|inspection| inspection.inspection.inspection_id == inspection_id)
             .filter(|inspection| {
-                zenith_core::domain::is_within_window(
+                neati_core::domain::is_within_window(
                     inspection.created_at,
                     unix_timestamp(),
                     INVENTORY_TTL_SECS,
@@ -698,11 +698,11 @@ fn unix_timestamp() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use neati_platform::path_algebra::PathFlavor;
     use std::sync::atomic::AtomicU64;
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
-    use zenith_platform::path_algebra::PathFlavor;
 
     /// The storage workflow's side of cancellation: the handle a scan
     /// registers is the one its cancel reaches, and removing it ends that.
@@ -762,7 +762,7 @@ mod tests {
         let worker_state = state.clone();
         let worker_gate = operation_gate.clone();
         let worker_now = now.clone();
-        let backend = Arc::new(zenith_platform::MockTrashBackend::new());
+        let backend = Arc::new(neati_platform::MockTrashBackend::new());
         let worker_backend = backend.clone();
         let (write_attempted_tx, write_attempted_rx) = mpsc::channel();
         let worker = thread::spawn(move || {

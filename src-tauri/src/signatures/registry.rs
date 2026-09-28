@@ -1,12 +1,12 @@
 use crate::models::{
-    Category, CleanStrategy, CleanerFamily, PlatformKind, RiskTier, Signature, ZenithError,
+    Category, CleanStrategy, CleanerFamily, NeatiError, PlatformKind, RiskTier, Signature,
 };
 use crate::safety::Blacklist;
 use crate::signatures::SignatureLoader;
+use neati_platform::path_algebra::{is_absolute, PathFlavor};
+use neati_platform::PlatformEnvironment;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
-use zenith_platform::path_algebra::{is_absolute, PathFlavor};
-use zenith_platform::PlatformEnvironment;
 
 const EMBEDDED_AI_TOML: &str = include_str!("../../../signatures/ai.toml");
 const EMBEDDED_DEV_TOML: &str = include_str!("../../../signatures/developer.toml");
@@ -49,7 +49,7 @@ impl SignatureRegistry {
     /// The catalog declares nothing environment-dependent, so this is the
     /// native wrapper; the platform-declaration gate is applied against the
     /// running environment.
-    pub fn load_embedded() -> Result<Self, ZenithError> {
+    pub fn load_embedded() -> Result<Self, NeatiError> {
         Self::load_embedded_with(&PlatformEnvironment::native())
     }
 
@@ -57,7 +57,7 @@ impl SignatureRegistry {
     /// platform-specific root without declaring it. A refused signature is not
     /// registered and the refusal is recorded, so an undeclared platform root
     /// can never be silently accepted and then offered by a scan.
-    pub fn load_embedded_with(environment: &PlatformEnvironment) -> Result<Self, ZenithError> {
+    pub fn load_embedded_with(environment: &PlatformEnvironment) -> Result<Self, NeatiError> {
         let mut registry = Self::load_embedded_catalog()?;
         registry.enforce_platform_declarations(environment);
         Ok(registry)
@@ -93,7 +93,7 @@ impl SignatureRegistry {
     /// Loads the embedded catalog without the platform-declaration gate. The
     /// manifest lint and the environment doctor must see an offending
     /// signature in order to report it, so they load through this entry point.
-    pub fn load_embedded_catalog() -> Result<Self, ZenithError> {
+    pub fn load_embedded_catalog() -> Result<Self, NeatiError> {
         let mut registry = Self::new();
 
         let tomls = [
@@ -262,9 +262,9 @@ impl SignatureRegistry {
             };
             let expanded_text = expanded.to_string_lossy().into_owned();
 
-            if zenith_platform::selector::PathSelector::is_pattern(&expanded_text) {
+            if neati_platform::selector::PathSelector::is_pattern(&expanded_text) {
                 let Ok(selector) =
-                    zenith_platform::selector::PathSelector::parse(&expanded_text, flavor)
+                    neati_platform::selector::PathSelector::parse(&expanded_text, flavor)
                 else {
                     continue;
                 };
@@ -411,12 +411,12 @@ fn audit_signature(
         match SignatureLoader::expand_path(pattern, environment) {
             Some(path) => {
                 let expanded_text = path.to_string_lossy().into_owned();
-                if zenith_platform::selector::PathSelector::is_pattern(&expanded_text) {
+                if neati_platform::selector::PathSelector::is_pattern(&expanded_text) {
                     // A selector names roots the catalog cannot spell out, so
                     // the rule is about what it *can*: a literal prefix to scan
                     // from. A pattern that begins with a selector would be
                     // resolved against `/` or a drive root on every run.
-                    match zenith_platform::selector::PathSelector::parse(&expanded_text, flavor) {
+                    match neati_platform::selector::PathSelector::parse(&expanded_text, flavor) {
                         Ok(selector) => match selector.static_root() {
                             Some(static_root) if is_absolute(&static_root, flavor) => {}
                             _ => findings.push(finding(
@@ -447,7 +447,7 @@ fn audit_signature(
                 // reported and never removed.
                 let may_delete = signature.strategy != CleanStrategy::Manual;
                 if may_delete && signature.min_age_days.is_none() {
-                    if let Some(root) = zenith_platform::path_algebra::protected_root(
+                    if let Some(root) = neati_platform::path_algebra::protected_root(
                         &path.to_string_lossy(),
                         flavor,
                     ) {
@@ -624,11 +624,11 @@ mod tests {
         CacheArtifactKind, Category, CleanStrategy, CleanerFamily, CleanupUnitKind, DiscoveryScope,
         EligibilityGate, PlatformKind, RiskTier, Signature,
     };
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
+    use neati_platform::{KnownFolder, PlatformEnvironment};
     use std::path::PathBuf;
     use std::sync::Arc;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
-    use zenith_platform::{KnownFolder, PlatformEnvironment};
 
     /// A POSIX environment with stated roots, so the catalog lint below is
     /// checked against paths that exist on any runner.
@@ -667,7 +667,7 @@ mod tests {
         let environment = stated_environment();
 
         let (registry, failure) = SignatureRegistry::load_or_default(&environment, |_| {
-            Err(crate::models::ZenithError::SignatureMismatch(
+            Err(crate::models::NeatiError::SignatureMismatch(
                 "stated catalog defect".to_string(),
             ))
         });
@@ -705,7 +705,7 @@ mod tests {
         let mut registry = SignatureRegistry::new();
         let mut signature = test_signature(
             "developer.test.host-decides",
-            vec![r"C:\Windows\Temp\zenith"],
+            vec![r"C:\Windows\Temp\neati"],
             vec![PlatformKind::Windows],
         );
         signature.min_age_days = None;
@@ -755,7 +755,7 @@ mod tests {
         let mut registry = SignatureRegistry::new();
         let mut signature = test_signature(
             "developer.test.windows-exclusion",
-            vec![r"${LOCAL_APP_DATA}\Zenith\cache"],
+            vec![r"${LOCAL_APP_DATA}\Neati\cache"],
             vec![PlatformKind::Windows],
         );
         signature.exclusions = vec![r"D:\Documents\do-not-delete".to_string()];
@@ -856,7 +856,7 @@ mod tests {
             .expect("the entry names a GPU cache segment");
         let expanded = SignatureLoader::expand_path(pattern, &environment)
             .expect("the pattern resolves to its literal prefix");
-        let selector = zenith_platform::selector::PathSelector::parse(
+        let selector = neati_platform::selector::PathSelector::parse(
             &expanded.to_string_lossy(),
             PathFlavor::Posix,
         )
@@ -897,7 +897,7 @@ mod tests {
             .expect("the browser entry is in the catalog");
         let expanded = SignatureLoader::expand_path(&browsers.paths[0], &environment)
             .expect("the pattern resolves to its literal prefix");
-        let selector = zenith_platform::selector::PathSelector::parse(
+        let selector = neati_platform::selector::PathSelector::parse(
             &expanded.to_string_lossy(),
             PathFlavor::Windows,
         )
@@ -1758,7 +1758,7 @@ mod tests {
             assert!(
                 signature.platforms.contains(&PlatformKind::Macos)
                     || signature.platforms.contains(&PlatformKind::Windows),
-                "{} is offered on a platform Zenith ships",
+                "{} is offered on a platform Neati ships",
                 signature.id
             );
         }

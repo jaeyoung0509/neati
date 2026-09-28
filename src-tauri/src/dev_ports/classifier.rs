@@ -1,12 +1,12 @@
 use crate::process_owner::ProcessOwner;
+use neati_platform::path_algebra::{self, PathFlavor};
 use std::path::{Path, PathBuf};
-use zenith_platform::path_algebra::{self, PathFlavor};
 
 pub struct ProcessClassificationInput<'a> {
     pub pid: u32,
     pub owner: Option<ProcessOwner>,
     pub current_owner: ProcessOwner,
-    pub zenith_pid: u32,
+    pub neati_pid: u32,
     pub port: u16,
     pub raw_command: &'a str,
     pub process_name: &'a str,
@@ -49,11 +49,11 @@ pub fn classify_listener(
         };
     }
 
-    // 2. PID checks (0, 1, or Zenith's own PID)
-    if input.pid == 0 || input.pid == 1 || input.pid == input.zenith_pid {
+    // 2. PID checks (0, 1, or Neati's own PID)
+    if input.pid == 0 || input.pid == 1 || input.pid == input.neati_pid {
         return ClassificationResult {
-            server_name: if input.pid == input.zenith_pid {
-                "Zenith".to_string()
+            server_name: if input.pid == input.neati_pid {
+                "Neati".to_string()
             } else {
                 "System Core".to_string()
             },
@@ -570,7 +570,7 @@ mod tests {
             pid: 32892,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 5173,
             raw_command: "node",
             process_name: "node",
@@ -598,7 +598,7 @@ mod tests {
             pid: 40001,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 3000,
             raw_command: "node",
             process_name: "node",
@@ -625,7 +625,7 @@ mod tests {
             pid: 41000,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 3001,
             raw_command: "node",
             process_name: "node",
@@ -700,7 +700,7 @@ mod tests {
             pid: 50001,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 8000,
             raw_command: "python3",
             process_name: "python3",
@@ -722,7 +722,7 @@ mod tests {
             pid: 50002,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 8080,
             raw_command: "uvicorn",
             process_name: "uvicorn",
@@ -746,7 +746,7 @@ mod tests {
             pid: 24449,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 62849,
             raw_command: "agent-browser-darwin-arm64",
             process_name: "agent-browser-darwin-arm64",
@@ -771,7 +771,7 @@ mod tests {
             pid: 24450,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 62850,
             raw_command: "Google Chrome for Testing",
             process_name: "Google Chrome for Testing",
@@ -794,7 +794,7 @@ mod tests {
             pid: 30001,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 60001,
             raw_command: "agent-browser-darwin-arm64",
             process_name: "agent-browser-darwin-arm64",
@@ -814,7 +814,7 @@ mod tests {
             pid: 30002,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 9222,
             raw_command: "Google Chrome",
             process_name: "Google Chrome",
@@ -835,7 +835,7 @@ mod tests {
             pid: 30003,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 9223,
             raw_command: "Google Chrome for Testing",
             process_name: "Google Chrome for Testing",
@@ -856,7 +856,7 @@ mod tests {
             pid: 30004,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 9224,
             raw_command: "Google Chrome for Testing Helper",
             process_name: "Google Chrome for Testing Helper",
@@ -875,7 +875,7 @@ mod tests {
             pid: 32000,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 5000,
             raw_command: "node",
             process_name: "node",
@@ -904,7 +904,7 @@ mod tests {
                 pid: 32000,
                 owner: Some(ProcessOwner::Unix(501)),
                 current_owner: ProcessOwner::Unix(501),
-                zenith_pid: 1000,
+                neati_pid: 1000,
                 port: 5000,
                 raw_command: "node",
                 process_name: "node",
@@ -941,7 +941,7 @@ mod tests {
                 pid: 32892,
                 owner,
                 current_owner: ProcessOwner::Unix(501),
-                zenith_pid: 1000,
+                neati_pid: 1000,
                 port: 5173,
                 raw_command: "node",
                 process_name: "node",
@@ -966,7 +966,7 @@ mod tests {
             pid: 1234,
             owner: Some(ProcessOwner::Unix(0)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 8080,
             raw_command: "nginx",
             process_name: "nginx",
@@ -986,7 +986,7 @@ mod tests {
             pid: 2345,
             owner: Some(ProcessOwner::Unix(502)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 8080,
             raw_command: "node",
             process_name: "node",
@@ -1010,7 +1010,7 @@ mod tests {
             pid: 3000,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 80,
             raw_command: "node",
             process_name: "node",
@@ -1028,13 +1028,13 @@ mod tests {
     }
 
     #[test]
-    fn reject_protected_system_terminal_database_and_zenith_processes() {
+    fn reject_protected_system_terminal_database_and_neati_processes() {
         // PostgreSQL
         let input_pg = ProcessClassificationInput {
             pid: 5432,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 5432,
             raw_command: "postgres",
             process_name: "postgres",
@@ -1055,7 +1055,7 @@ mod tests {
             pid: 2222,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 2222,
             raw_command: "sshd",
             process_name: "sshd",
@@ -1066,23 +1066,23 @@ mod tests {
         };
         assert!(!classify_listener(&input_ssh, PathFlavor::current()).can_release);
 
-        // Zenith itself
-        let input_zenith = ProcessClassificationInput {
+        // Neati itself
+        let input_neati = ProcessClassificationInput {
             pid: 1000,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 9000,
-            raw_command: "Zenith",
-            process_name: "Zenith",
-            exe_path: Some(Path::new("/Applications/Zenith.app/Contents/MacOS/Zenith")),
+            raw_command: "Neati",
+            process_name: "Neati",
+            exe_path: Some(Path::new("/Applications/Neati.app/Contents/MacOS/Neati")),
             cwd: None,
             argv: &[],
             started_at: Some(1700000000),
         };
-        let res_zenith = classify_listener(&input_zenith, PathFlavor::current());
-        assert!(!res_zenith.can_release);
-        assert_eq!(res_zenith.server_name, "Zenith");
+        let res_neati = classify_listener(&input_neati, PathFlavor::current());
+        assert!(!res_neati.can_release);
+        assert_eq!(res_neati.server_name, "Neati");
     }
 
     #[test]
@@ -1097,7 +1097,7 @@ mod tests {
             pid: 32892,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
-            zenith_pid: 1000,
+            neati_pid: 1000,
             port: 5173,
             raw_command: "node",
             process_name: "node",

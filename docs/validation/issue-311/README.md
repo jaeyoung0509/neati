@@ -1,6 +1,6 @@
 # Direct Cache Cleanup and Blue Accent Validation
 
-- Issue: [#311](https://github.com/jaeyoung0509/zenith/issues/311)
+- Issue: [#311](https://github.com/jaeyoung0509/neati/issues/311)
 - Date: 2026-09-26
 - Version: 0.3.62 -> 0.3.63
 - Host: macOS 27.0, build 26A428
@@ -42,7 +42,7 @@ Screenshots use deterministic preview data, not the live disk measurement below.
 
 ## Read-Only Disk Observation
 
-`cargo run -q -p zenith-desktop --example scan_machine -- --live-read-only --full-catalog-read-only` completed without mutation on this host.
+`cargo run -q -p neati-desktop --example scan_machine -- --live-read-only --full-catalog-read-only` completed without mutation on this host.
 
 - Observed: 4,490,051,584 bytes.
 - Cleanable: 1,196,056,576 bytes.

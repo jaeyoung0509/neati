@@ -22,7 +22,7 @@ pub struct AiControlRuntime {
     /// The machine this runtime describes. Listener classification compares
     /// process paths and masks working directories, so it needs the stated
     /// environment rather than the host's.
-    environment: std::sync::Arc<zenith_platform::PlatformEnvironment>,
+    environment: std::sync::Arc<neati_platform::PlatformEnvironment>,
     agent_activity_cache: Arc<Mutex<Option<crate::agent_activity::AgentActivityRegistry>>>,
     activity_singleflight: Arc<SingleFlight<crate::agent_activity::AgentActivityRegistry, ()>>,
     activity_generation: Arc<AtomicU64>,
@@ -43,7 +43,7 @@ impl AiControlRuntime {
     pub fn new(
         memory_sampler: Arc<crate::metrics::MemorySampler>,
         dev_port_store: Arc<Mutex<crate::dev_ports::DevelopmentPortStore>>,
-        environment: std::sync::Arc<zenith_platform::PlatformEnvironment>,
+        environment: std::sync::Arc<neati_platform::PlatformEnvironment>,
         agent_activity_cache: Arc<Mutex<Option<crate::agent_activity::AgentActivityRegistry>>>,
         activity_singleflight: Arc<SingleFlight<crate::agent_activity::AgentActivityRegistry, ()>>,
         activity_generation: Arc<AtomicU64>,
@@ -134,7 +134,7 @@ impl AiControlRuntime {
         // Passive observations are built on explicit main-window refreshes. When every
         // native advisory is disabled there is no background policy work to perform, so
         // avoid a full process snapshot, memory sample, and `lsof` invocation every five
-        // seconds while Zenith is otherwise idle.
+        // seconds while Neati is otherwise idle.
         if !background_advisories_enabled(&preferences.autopilot) {
             return Vec::new();
         }
@@ -259,7 +259,7 @@ mod tests {
         test_runtime_with(
             memory_sampler,
             agent_activity_cache,
-            crate::models::ZenithSettings::default(),
+            crate::models::NeatiSettings::default(),
             crate::power::KeepAwakeManager::new(),
             Arc::new(Mutex::new(
                 crate::ai_control_center::state::AiControlCenterState::default(),
@@ -272,14 +272,14 @@ mod tests {
     fn test_runtime_with(
         memory_sampler: Arc<crate::metrics::MemorySampler>,
         agent_activity_cache: Arc<Mutex<Option<crate::agent_activity::AgentActivityRegistry>>>,
-        settings: crate::models::ZenithSettings,
+        settings: crate::models::NeatiSettings,
         awake: crate::power::KeepAwakeManager,
         control_state: Arc<Mutex<crate::ai_control_center::state::AiControlCenterState>>,
     ) -> Arc<AiControlRuntime> {
         Arc::new(AiControlRuntime::new(
             memory_sampler,
             Arc::new(Mutex::new(crate::dev_ports::DevelopmentPortStore::default())),
-            Arc::new(zenith_platform::PlatformEnvironment::native()),
+            Arc::new(neati_platform::PlatformEnvironment::native()),
             agent_activity_cache,
             Arc::new(SingleFlight::new()),
             Arc::new(AtomicU64::new(1)),
@@ -441,7 +441,7 @@ mod tests {
         activity_cache: Arc<Mutex<Option<crate::agent_activity::AgentActivityRegistry>>>,
         control_state: Arc<Mutex<crate::ai_control_center::state::AiControlCenterState>>,
     ) -> Arc<AiControlRuntime> {
-        let settings = crate::models::ZenithSettings {
+        let settings = crate::models::NeatiSettings {
             ai_control: crate::models::AiControlPreferences {
                 autopilot: crate::models::AutopilotPreferences {
                     notify_on_battery: true,
@@ -449,7 +449,7 @@ mod tests {
                 },
                 ..crate::models::AiControlPreferences::default()
             },
-            ..crate::models::ZenithSettings::default()
+            ..crate::models::NeatiSettings::default()
         };
         let awake = crate::power::KeepAwakeManager::with_providers(
             Arc::new(crate::power::MockPowerSource::new(

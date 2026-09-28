@@ -181,13 +181,13 @@ mod tests {
         let (title, body) = NotificationFilter::format_notification(
             &prefs,
             "Antigravity",
-            "zenith",
+            "neati",
             "waiting_for_user",
             Some(AttentionReason::Approval),
         );
 
         assert_eq!(title, "Antigravity");
-        assert_eq!(body, "Needs approval in zenith.");
+        assert_eq!(body, "Needs approval in neati.");
         assert!(!body.contains('/'));
 
         // With hide_project_basename enabled

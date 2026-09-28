@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use zenith_platform::{PlatformCapabilitiesProvider, PlatformEnvironment};
+use neati_platform::{PlatformCapabilitiesProvider, PlatformEnvironment};
 
 use crate::docker::adapter::ContainerHost;
 use crate::docker::DockerAdapter;
@@ -29,8 +29,8 @@ use crate::models::{
     AwakeBehavior, AwakeRule, AwakeState, BatteryMetrics, CapabilityAccess, CpuMetrics,
     DevelopmentListener, DiagnosticsSnapshot, DiskMetrics, DiskVolume, DockerStatus,
     LocalModelInventory, MemoryMetrics, MemoryTerminationMode, MemoryTerminationResult,
-    PlatformCapabilities, PlatformFeature, ReleaseDevelopmentListenerResult, ReleaseMode,
-    ZenithSettings,
+    NeatiSettings, PlatformCapabilities, PlatformFeature, ReleaseDevelopmentListenerResult,
+    ReleaseMode,
 };
 use crate::models_inventory::{LocalModelManager, LocalModelScanner};
 use crate::operation_gate::StorageOperationGate;
@@ -350,7 +350,7 @@ impl SystemService {
     /// bound is enforced by the manager itself; a stored list beyond it is
     /// reported here so the desktop shell can log that the stored rules were
     /// not applied.
-    pub fn apply_startup_policy(&self, settings: &ZenithSettings) -> Result<(), String> {
+    pub fn apply_startup_policy(&self, settings: &NeatiSettings) -> Result<(), String> {
         self.awake.set_rules(settings.awake_rules.clone())?;
         self.awake.set_control_center_awake_policy(
             settings
@@ -407,7 +407,7 @@ impl SystemService {
         .await
     }
 
-    pub fn settings(&self) -> Result<ZenithSettings, String> {
+    pub fn settings(&self) -> Result<NeatiSettings, String> {
         self.settings.snapshot()
     }
 
@@ -420,7 +420,7 @@ impl SystemService {
     pub async fn save_settings(
         &self,
         config_dir: &Path,
-        settings: ZenithSettings,
+        settings: NeatiSettings,
         notifications: &dyn DesktopNotifications,
     ) -> Result<(), String> {
         let next = settings.sanitize();
@@ -474,9 +474,9 @@ impl SystemService {
         let path = path.to_string();
         crate::blocking::run_blocking(
             move || {
-                use zenith_platform::SystemActionProvider;
+                use neati_platform::SystemActionProvider;
                 let path_buf = expand_display_path(&path, &environment)?;
-                zenith_platform::NativeSystemActions::new().reveal_path(&path_buf)
+                neati_platform::NativeSystemActions::new().reveal_path(&path_buf)
             },
             "File manager worker panicked",
         )
@@ -558,7 +558,7 @@ impl SystemService {
 /// of opening something unrelated.
 fn expand_display_path(path: &str, environment: &PlatformEnvironment) -> Result<PathBuf, String> {
     let path_obj = Path::new(path);
-    let normalized = zenith_platform::NativePlatformPaths::normalize_verbatim_path(path_obj);
+    let normalized = neati_platform::NativePlatformPaths::normalize_verbatim_path(path_obj);
     let path_str = normalized.to_string_lossy();
     let expanded = if let Some(relative) = path_str
         .strip_prefix("~/")
@@ -574,7 +574,7 @@ fn expand_display_path(path: &str, environment: &PlatformEnvironment) -> Result<
     let canonical = expanded
         .canonicalize()
         .map_err(|error| format!("Path is no longer available: {error}"))?;
-    Ok(zenith_platform::NativePlatformPaths::normalize_verbatim_path(&canonical))
+    Ok(neati_platform::NativePlatformPaths::normalize_verbatim_path(&canonical))
 }
 
 #[cfg(test)]
@@ -599,7 +599,7 @@ mod tests {
     impl SettingsChangeReaction for RecordingReaction {
         fn before_save(
             &self,
-            _next: &ZenithSettings,
+            _next: &NeatiSettings,
             _notifications: &dyn DesktopNotifications,
         ) -> Result<(), String> {
             self.calls.lock().unwrap().push("before_save");
@@ -665,7 +665,7 @@ mod tests {
             Arc::new(KeepAwakeManager::new()),
             Arc::new(DockerStatusCache::new()),
             Arc::new(Mutex::new(crate::dev_ports::DevelopmentPortStore::default())),
-            Arc::new(SettingsAuthority::new(ZenithSettings::default())),
+            Arc::new(SettingsAuthority::new(NeatiSettings::default())),
             reaction,
         )
     }
@@ -684,7 +684,7 @@ mod tests {
             Arc::new(KeepAwakeManager::new()),
             Arc::new(DockerStatusCache::new()),
             Arc::new(Mutex::new(crate::dev_ports::DevelopmentPortStore::default())),
-            Arc::new(SettingsAuthority::new(ZenithSettings::default())),
+            Arc::new(SettingsAuthority::new(NeatiSettings::default())),
             Arc::new(RecordingReaction::default()),
         )
     }
@@ -794,13 +794,13 @@ mod tests {
         }
     }
 
-    fn settings_with_notifications_enabled() -> ZenithSettings {
-        ZenithSettings {
+    fn settings_with_notifications_enabled() -> NeatiSettings {
+        NeatiSettings {
             agent_notifications: crate::models::AgentNotificationPreferences {
                 enabled: true,
                 ..Default::default()
             },
-            ..ZenithSettings::default()
+            ..NeatiSettings::default()
         }
     }
 
@@ -998,8 +998,8 @@ mod tests {
         let environment = PlatformEnvironment::native();
         let missing = environment
             .user_home()
-            .map(|home| home.join("zenith-200-missing-path-fixture"))
-            .unwrap_or_else(|| PathBuf::from("/zenith-200-missing-path-fixture"));
+            .map(|home| home.join("neati-200-missing-path-fixture"))
+            .unwrap_or_else(|| PathBuf::from("/neati-200-missing-path-fixture"));
 
         let error = expand_display_path(&missing.to_string_lossy(), &environment)
             .expect_err("a path that no longer exists must fail closed");

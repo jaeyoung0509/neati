@@ -1,13 +1,13 @@
 //! Shared protected-process classification.
 //!
 //! Memory, development-port, and agent termination workflows must not drift.
-//! This module owns the common deny-list covering terminals, shells, Zenith
+//! This module owns the common deny-list covering terminals, shells, Neati
 //! itself, and platform system processes. Domain-specific protections (for
 //! example databases or container runtimes) are layered on top by callers.
 
 use std::path::Path;
 
-/// Returns true when the process is a protected terminal, shell, Zenith
+/// Returns true when the process is a protected terminal, shell, Neati
 /// instance, or operating-system component that must never be signaled.
 pub fn is_protected_process(
     process_name: &str,
@@ -80,8 +80,8 @@ pub fn is_protected_process(
         return true;
     }
 
-    const ZENITH: &[&str] = &["zenith", "neati"];
-    if matches_any(ZENITH) {
+    const OWN_APPS: &[&str] = &["neati"];
+    if matches_any(OWN_APPS) {
         return true;
     }
 
@@ -137,8 +137,8 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    fn rebrand_protects_both_current_and_legacy_process_names() {
-        for name in ["Neati", "neati.exe", "Zenith", "Zenith.exe"] {
+    fn protects_neati_by_process_name_executable_and_path() {
+        for name in ["Neati", "neati.exe"] {
             assert!(is_protected_process(name, None, None));
             assert!(is_protected_process("unknown", Some(name), None));
             assert!(is_protected_process("unknown", None, Some(Path::new(name))));
@@ -169,19 +169,19 @@ mod tests {
     }
 
     #[test]
-    fn protects_shells_and_zenith_itself() {
+    fn protects_shells_and_neati_itself() {
         for name in ["zsh", "bash", "fish", "sh", "powershell", "cmd", "tmux"] {
             assert!(
                 is_protected_process(name, None, None),
                 "expected {name} to be protected"
             );
         }
-        assert!(is_protected_process("Zenith", None, None));
-        assert!(is_protected_process("zenith.exe", None, None));
+        assert!(is_protected_process("Neati", None, None));
+        assert!(is_protected_process("neati.exe", None, None));
         assert!(is_protected_process(
             "helper",
             None,
-            Some(Path::new("/Applications/Zenith.app/Contents/MacOS/Zenith"))
+            Some(Path::new("/Applications/Neati.app/Contents/MacOS/Neati"))
         ));
     }
 

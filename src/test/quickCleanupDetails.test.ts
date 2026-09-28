@@ -6,7 +6,7 @@ import Dialog from '../lib/components/QuickCleanupDetailsDialog.svelte';
 
 function item(eligibility: NonNullable<ScanItem['disposition']>['eligibility'], bytes = 64): ScanItem {
   return { id: eligibility, signature_id: 'system.fixture', name: 'Fixture cache',
-    category: 'system', risk: 'safe', path: '/tmp/zenith-fixture',
+    category: 'system', risk: 'safe', path: '/tmp/neati-fixture',
     size: { logical: bytes, allocated: bytes }, file_count: 1, description: '',
     is_selected: false, last_modified: null, exists: true, quality: 'fresh',
     incomplete_reason: null, disposition: { eligibility, reason: null, cleanable_bytes: bytes },
@@ -51,6 +51,6 @@ describe('Quick cleanup explanations', () => {
     expect(body).toContain('Open Storage');
     expect(body).toContain('Scan Again');
     expect(body).toContain('disabled');
-    expect(body).not.toContain('/tmp/zenith-fixture');
+    expect(body).not.toContain('/tmp/neati-fixture');
   });
 });

@@ -6,16 +6,16 @@
 /// Unix-only: spawns a helper process, discovers its listener, and releases it.
 #[cfg(unix)]
 mod release_integration {
+    use neati_lib::dev_ports::{
+        list_listeners, release_listener, DevelopmentPortStore, RawListenerRecord,
+        RealDevPortSystem,
+    };
+    use neati_lib::models::{ListenerExposure, ListenerProtocol, ReleaseMode, ReleaseOutcome};
+    use neati_lib::process_owner::ProcessOwner;
     use std::io::{BufRead, BufReader};
     use std::process::{Child, Command, Stdio};
     use std::sync::Mutex;
     use std::time::{Duration, Instant};
-    use zenith_lib::dev_ports::{
-        list_listeners, release_listener, DevelopmentPortStore, RawListenerRecord,
-        RealDevPortSystem,
-    };
-    use zenith_lib::models::{ListenerExposure, ListenerProtocol, ReleaseMode, ReleaseOutcome};
-    use zenith_lib::process_owner::ProcessOwner;
 
     struct ChildGuard {
         child: Child,
@@ -69,8 +69,8 @@ mod release_integration {
             test_port: u16,
         }
 
-        impl zenith_lib::dev_ports::DevPortSystem for TestIntegrationSystem {
-            fn path_flavor(&self) -> zenith_platform::path_algebra::PathFlavor {
+        impl neati_lib::dev_ports::DevPortSystem for TestIntegrationSystem {
+            fn path_flavor(&self) -> neati_platform::path_algebra::PathFlavor {
                 self.real.path_flavor()
             }
 
@@ -102,7 +102,7 @@ mod release_integration {
                 }
             }
 
-            fn get_process_info(&self, pid: u32) -> Option<zenith_lib::dev_ports::ProcessSnapshot> {
+            fn get_process_info(&self, pid: u32) -> Option<neati_lib::dev_ports::ProcessSnapshot> {
                 self.real.get_process_info(pid)
             }
 

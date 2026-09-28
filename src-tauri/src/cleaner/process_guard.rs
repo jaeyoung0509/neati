@@ -11,8 +11,8 @@
 //! never retries: a cache whose owner is running stays where it is until the
 //! user closes the tool, which is the outcome the user asked for.
 
+use neati_core::domain::cleanup::{RunningProcessPolicy, RunningProcessProbe};
 use sysinfo::{ProcessesToUpdate, System};
-use zenith_core::domain::cleanup::{RunningProcessPolicy, RunningProcessProbe};
 
 /// The process-table port an owner-scoped provider reads through.
 ///
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn the_live_probe_answers_without_a_false_positive() {
         let policy =
-            RunningProcessPolicy::guarding(vec!["zenith-guard-fixture-never-running".into()]);
+            RunningProcessPolicy::guarding(vec!["neati-guard-fixture-never-running".into()]);
         assert!(!blocked_by_running_process(&policy));
         assert!(running_executables(&policy).is_empty());
     }

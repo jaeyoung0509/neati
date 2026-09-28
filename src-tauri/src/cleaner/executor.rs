@@ -6,9 +6,9 @@ use crate::models::{
     CleanupMode, CleanupOperation, DeletePlan, DeleteTarget,
 };
 use crate::safety::SafeTreeDeleter;
+use neati_core::domain::cleanup::{OwnerUnitOutcome, ProviderOutcome, ProviderStatus};
+use neati_platform::PlatformEnvironment;
 use std::time::SystemTime;
-use zenith_core::domain::cleanup::{OwnerUnitOutcome, ProviderOutcome, ProviderStatus};
-use zenith_platform::PlatformEnvironment;
 
 pub struct CleanExecutor;
 
@@ -210,7 +210,7 @@ impl CleanExecutor {
         environment: &PlatformEnvironment,
         providers: &crate::cleaner::LifecycleProviderRegistry,
         owner_providers: &crate::cleaner::OwnerProviderRegistry,
-        trash_backend: &dyn zenith_platform::TrashBackend,
+        trash_backend: &dyn neati_platform::TrashBackend,
         on_event: F,
     ) -> CleanResult
     where
@@ -232,8 +232,8 @@ impl CleanExecutor {
         environment: &PlatformEnvironment,
         providers: &crate::cleaner::LifecycleProviderRegistry,
         owner_providers: &crate::cleaner::OwnerProviderRegistry,
-        trash_backend: &dyn zenith_platform::TrashBackend,
-        processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
+        trash_backend: &dyn neati_platform::TrashBackend,
+        processes: &dyn neati_core::domain::cleanup::RunningProcessProbe,
         mut on_event: F,
     ) -> CleanResult
     where
@@ -426,8 +426,8 @@ impl CleanExecutor {
         target: &DeleteTarget,
         environment: &PlatformEnvironment,
         providers: &crate::cleaner::LifecycleProviderRegistry,
-        trash_backend: &dyn zenith_platform::TrashBackend,
-        processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
+        trash_backend: &dyn neati_platform::TrashBackend,
+        processes: &dyn neati_core::domain::cleanup::RunningProcessProbe,
     ) -> CleanItemResult {
         // The classification decides what the target authorizes: a container
         // prune runs through the runtime's own CLI, a provider prune runs
@@ -584,7 +584,7 @@ impl CleanExecutor {
     fn clean_filesystem_target(
         target: &DeleteTarget,
         environment: &PlatformEnvironment,
-        trash_backend: &dyn zenith_platform::TrashBackend,
+        trash_backend: &dyn neati_platform::TrashBackend,
     ) -> CleanItemResult {
         let path = &target.path;
 
@@ -716,7 +716,7 @@ impl CleanExecutor {
             // A refusal under Controlled Folder Access is not something the user
             // can find from the raw OS error, so the message names the setting.
             let error_message = if failure_reason == CleanFailureReason::PermissionDenied {
-                zenith_platform::environment::describe_access_refusal(environment, path, &error_str)
+                neati_platform::environment::describe_access_refusal(environment, path, &error_str)
             } else {
                 error_str
             };
@@ -737,7 +737,7 @@ pub fn classify_cleanup_failure(error_str: &str) -> CleanFailureReason {
 
 /// Classifies a cleanup failure. Raw OS error codes take precedence over
 /// message text so localized Windows errors are still classified correctly;
-/// the message fallback covers guard errors that Zenith produces itself.
+/// the message fallback covers guard errors that Neati produces itself.
 pub fn classify_cleanup_failure_with_codes(
     os_error_codes: &[i32],
     error_str: &str,
@@ -812,7 +812,7 @@ mod tests {
 
     #[test]
     fn explicit_rebuild_disposition_removes_fixture_without_using_trash() {
-        use zenith_core::domain::cleanup::DeletionDisposition;
+        use neati_core::domain::cleanup::DeletionDisposition;
         let fixture = tempfile::tempdir().unwrap();
         let cache = fixture.path().join("cache");
         std::fs::create_dir(&cache).unwrap();
@@ -830,12 +830,12 @@ mod tests {
         );
         let result = CleanExecutor::execute(
             plan,
-            &PlatformEnvironment::simulated(zenith_platform::path_algebra::PathFlavor::current())
+            &PlatformEnvironment::simulated(neati_platform::path_algebra::PathFlavor::current())
                 .with_home(fixture.path())
                 .with_temp_dir(fixture.path()),
             &crate::cleaner::LifecycleProviderRegistry::new(vec![]),
             &crate::cleaner::OwnerProviderRegistry::new(vec![]),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
         assert!(!cache.exists(), "{:?}", result.items);
@@ -981,7 +981,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &crate::cleaner::LifecycleProviderRegistry::new(Vec::new()),
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
 
@@ -1039,7 +1039,7 @@ mod tests {
             created_at: 0,
             mode: CleanupMode::Trash,
         };
-        let backend = zenith_platform::MockTrashBackend::new();
+        let backend = neati_platform::MockTrashBackend::new();
 
         let result = CleanExecutor::execute(
             plan,
@@ -1072,7 +1072,7 @@ mod tests {
         std::fs::create_dir(&cache_root).unwrap();
         let keep = cache_root.join("keep.bin");
         std::fs::write(&keep, b"must remain").unwrap();
-        let backend = zenith_platform::MockTrashBackend::new();
+        let backend = neati_platform::MockTrashBackend::new();
         let plan = trash_directory_plan(
             &cache_root,
             1_048_576,
@@ -1108,7 +1108,7 @@ mod tests {
         let cache_root = fixture.path().join("excluded-cache");
         std::fs::create_dir(&cache_root).unwrap();
         std::fs::write(cache_root.join("payload.bin"), b"must remain").unwrap();
-        let backend = zenith_platform::MockTrashBackend::new();
+        let backend = neati_platform::MockTrashBackend::new();
         let plan = trash_directory_plan(
             &cache_root,
             4096,
@@ -1142,11 +1142,11 @@ mod tests {
         std::fs::create_dir_all(&protected).unwrap();
         std::fs::write(protected.join("document.bin"), b"must remain").unwrap();
         let environment =
-            PlatformEnvironment::simulated(zenith_platform::path_algebra::PathFlavor::current())
+            PlatformEnvironment::simulated(neati_platform::path_algebra::PathFlavor::current())
                 .with_home(fixture.path().join("profile"))
                 .with_temp_dir(fixture.path().join("temp"))
-                .with_known_folder(zenith_platform::KnownFolder::Documents, &protected);
-        let backend = zenith_platform::MockTrashBackend::new();
+                .with_known_folder(neati_platform::KnownFolder::Documents, &protected);
+        let backend = neati_platform::MockTrashBackend::new();
         let plan = trash_directory_plan(&cache_root, 4096, vec![]);
 
         let result = CleanExecutor::execute(
@@ -1174,7 +1174,7 @@ mod tests {
         let cache_root = fixture.path().join("measured-cache");
         std::fs::create_dir(&cache_root).unwrap();
         std::fs::write(cache_root.join("payload.bin"), vec![3u8; 8_192]).unwrap();
-        let backend = zenith_platform::MockTrashBackend::new();
+        let backend = neati_platform::MockTrashBackend::new();
         let plan = trash_directory_plan(&cache_root, 8 * 1_048_576, vec![]);
 
         let result = CleanExecutor::execute(
@@ -1207,7 +1207,7 @@ mod tests {
         // A link that resolves into the user profile is refused by the
         // canonical blacklist, so its sibling is deleted while this child is
         // recorded as an error: bytes were reclaimed without finishing.
-        let home = zenith_platform::NativePlatformPaths::new()
+        let home = neati_platform::NativePlatformPaths::new()
             .home()
             .expect("a POSIX host exposes a home directory");
         let refused = cache_root.join("linked-profile");
@@ -1251,7 +1251,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &crate::cleaner::LifecycleProviderRegistry::new(Vec::new()),
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
 
@@ -1448,19 +1448,19 @@ mod tests {
         std::fs::create_dir_all(&cache).unwrap();
         std::fs::write(cache.join("payload.bin"), vec![3u8; 128]).unwrap();
 
-        // The signature names no provider Zenith knows, so the prune cannot be
+        // The signature names no provider Neati knows, so the prune cannot be
         // performed. The target still carries a real path, which is exactly the
         // shape that must never become filesystem authority.
         let plan = provider_plan(&cache, "test.unknown.provider");
         let environment =
-            PlatformEnvironment::simulated(zenith_platform::path_algebra::PathFlavor::current());
+            PlatformEnvironment::simulated(neati_platform::path_algebra::PathFlavor::current());
 
         let result = CleanExecutor::execute(
             plan,
             &environment,
             &crate::cleaner::LifecycleProviderRegistry::new(Vec::new()),
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
 
@@ -1494,7 +1494,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &crate::cleaner::LifecycleProviderRegistry::new(Vec::new()),
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
         assert_eq!(result.failed_count, 0);
@@ -1526,7 +1526,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &crate::cleaner::LifecycleProviderRegistry::new(Vec::new()),
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
         assert_eq!(result.failed_count, 0);
@@ -1559,7 +1559,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &crate::cleaner::LifecycleProviderRegistry::new(Vec::new()),
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
         assert_eq!(result.failed_count, 0);
@@ -1621,7 +1621,7 @@ mod tests {
         use crate::cleaner::providers::test_support::StatedProvider;
 
         let provider = StatedProvider::holding(3_000, 4).with_outcome(
-            zenith_core::domain::cleanup::ProviderOutcome::cleaned(2_500, Some(500)),
+            neati_core::domain::cleanup::ProviderOutcome::cleaned(2_500, Some(500)),
         );
         let providers = crate::cleaner::LifecycleProviderRegistry::new(vec![provider.shared()]);
 
@@ -1630,7 +1630,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &providers,
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
 
@@ -1654,7 +1654,7 @@ mod tests {
     #[test]
     fn a_refused_lifecycle_action_never_falls_through_to_filesystem_deletion() {
         use crate::cleaner::providers::test_support::{refusing_provider, StatedProvider};
-        use zenith_core::domain::cleanup::{ProviderOutcome, ProviderStatus};
+        use neati_core::domain::cleanup::{ProviderOutcome, ProviderStatus};
 
         let fixture = tempfile::tempdir().unwrap();
         let reviewed = fixture.path().join("stated-store");
@@ -1674,7 +1674,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &providers,
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
 
@@ -1700,7 +1700,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &empty,
             &owner_providers,
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
         let item = &result.items[0];
@@ -1724,7 +1724,7 @@ mod tests {
             &PlatformEnvironment::native(),
             &providers,
             &crate::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
         let item = &result.items[0];

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Zenith Version Management Script
+ * Neati Version Management Script
  *
  * Synchronizes the application version across package.json,
  * src-tauri/tauri.conf.json, and the Cargo workspace: the version lives once in
- * the root manifest's `[workspace.package]` table, where both `zenith-core` and
- * `zenith-desktop` inherit it.
+ * the root manifest's `[workspace.package]` table, where both `neati-core` and
+ * `neati-desktop` inherit it.
  */
 
 const fs = require('fs');
@@ -22,10 +22,10 @@ const cargoLockPath = path.join(rootDir, 'Cargo.lock');
  * Workspace members that carry the application version.
  *
  * Cargo.lock is checked for every one of them: the lock lists the two crates
- * alphabetically, so a single `name = "zenith-core"` lookup would match the
+ * alphabetically, so a single `name = "neati-core"` lookup would match the
  * domain crate and silently stop comparing the application.
  */
-const VERSIONED_PACKAGES = ['zenith-core', 'zenith-desktop', 'zenith-platform'];
+const VERSIONED_PACKAGES = ['neati-core', 'neati-desktop', 'neati-platform'];
 
 /** Half-open range of the `[workspace.package]` table inside the manifest. */
 function workspacePackageTableRange(manifest) {

@@ -1,12 +1,12 @@
 use super::observation::{ScanLimits, TraversalCounters};
 use crate::models::{CancellationProbe, FileSize, NeverCancelled};
 use crate::safety::{Blacklist, SymlinkGuard};
+use neati_platform::PlatformEnvironment;
 use rayon::{Scope, ThreadPool};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Mutex;
-use zenith_platform::PlatformEnvironment;
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
@@ -120,8 +120,8 @@ pub fn get_allocated_size(path: &Path) -> Option<u64> {
 /// second one that could disagree with the totals it is compared against.
 pub struct SizeCalculatorMeasurement;
 
-impl zenith_core::domain::cleanup::OwnerUnitMeasurer for SizeCalculatorMeasurement {
-    fn measure(&self, path: &Path) -> zenith_core::domain::cleanup::OwnerUnitMeasurement {
+impl neati_core::domain::cleanup::OwnerUnitMeasurer for SizeCalculatorMeasurement {
+    fn measure(&self, path: &Path) -> neati_core::domain::cleanup::OwnerUnitMeasurement {
         let mut logical = 0u64;
         let mut allocated = 0u64;
         let mut entries = 0u64;
@@ -136,7 +136,7 @@ impl zenith_core::domain::cleanup::OwnerUnitMeasurer for SizeCalculatorMeasureme
                     if error.kind() == std::io::ErrorKind::NotFound {
                         continue;
                     }
-                    return zenith_core::domain::cleanup::OwnerUnitMeasurement::partial(
+                    return neati_core::domain::cleanup::OwnerUnitMeasurement::partial(
                         logical,
                         allocated,
                         entries,
@@ -156,7 +156,7 @@ impl zenith_core::domain::cleanup::OwnerUnitMeasurer for SizeCalculatorMeasureme
                             match child {
                                 Ok(child) => pending.push(child.path()),
                                 Err(error) => {
-                                    return zenith_core::domain::cleanup::OwnerUnitMeasurement::partial(
+                                    return neati_core::domain::cleanup::OwnerUnitMeasurement::partial(
                                         logical,
                                         allocated,
                                         entries,
@@ -170,7 +170,7 @@ impl zenith_core::domain::cleanup::OwnerUnitMeasurer for SizeCalculatorMeasureme
                         }
                     }
                     Err(error) => {
-                        return zenith_core::domain::cleanup::OwnerUnitMeasurement::partial(
+                        return neati_core::domain::cleanup::OwnerUnitMeasurement::partial(
                             logical,
                             allocated,
                             entries,
@@ -185,7 +185,7 @@ impl zenith_core::domain::cleanup::OwnerUnitMeasurer for SizeCalculatorMeasureme
                 allocated.saturating_add(get_allocated_size(&current).unwrap_or(metadata.len()));
             entries = entries.saturating_add(1);
         }
-        zenith_core::domain::cleanup::OwnerUnitMeasurement::complete(logical, allocated, entries)
+        neati_core::domain::cleanup::OwnerUnitMeasurement::complete(logical, allocated, entries)
     }
 }
 
@@ -981,9 +981,9 @@ mod tests {
     use crate::models::NeverCancelled;
 
     use super::{measurement_for_metadata_error, SizeCalculator};
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::PlatformEnvironment;
     use rayon::ThreadPoolBuilder;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::PlatformEnvironment;
 
     /// A probe that cancels once it has been consulted `after` times.
     struct CancelAfter {
@@ -1006,9 +1006,9 @@ mod tests {
         std::fs::write(root.join("nested/second.bin"), vec![2u8; 200]).unwrap();
         let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
 
@@ -1048,9 +1048,9 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
 
@@ -1093,9 +1093,9 @@ mod tests {
 
         let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let exclusions = vec!["excluded".to_string()];
@@ -1142,9 +1142,9 @@ mod tests {
 
         let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let bounded = SizeCalculator::measure_path_logged(&cache, &[], &environment);
@@ -1194,9 +1194,9 @@ mod tests {
         let exclusions = vec!["keep".to_string()];
         let windows = PlatformEnvironment::simulated(PathFlavor::Windows).with_home(
             if PathFlavor::Windows.is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let measured = SizeCalculator::measure_path_full(&cache, &exclusions, &windows);
@@ -1217,9 +1217,9 @@ mod tests {
         // stated flavor is what decided the third boundary.
         let posix = PlatformEnvironment::simulated(PathFlavor::Posix).with_home(
             if PathFlavor::Posix.is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let measured = SizeCalculator::measure_path_full(&cache, &exclusions, &posix);
@@ -1251,9 +1251,9 @@ mod tests {
 
         let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let bounded = SizeCalculator::measure_path_full(&cache, &[], &environment);
@@ -1298,13 +1298,13 @@ mod tests {
         let simulated = |redirect: bool| {
             let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_roots(
                 std::sync::Arc::new(
-                    zenith_platform::paths::SimulatedPaths::new()
+                    neati_platform::paths::SimulatedPaths::new()
                         .with_flavor(PathFlavor::current())
                         .with_home(&home),
                 ),
             );
             if redirect {
-                environment.with_known_folder(zenith_platform::KnownFolder::Downloads, &redirected)
+                environment.with_known_folder(neati_platform::KnownFolder::Downloads, &redirected)
             } else {
                 environment
             }
@@ -1350,9 +1350,9 @@ mod tests {
         }
         let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let pool = ThreadPoolBuilder::new().num_threads(4).build().unwrap();
@@ -1445,9 +1445,9 @@ mod tests {
 
         let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         for pool in [

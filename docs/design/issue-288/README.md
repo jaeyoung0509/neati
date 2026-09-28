@@ -1,7 +1,7 @@
 # Issue 288 interface audit
 
-This is the review record for Zenith 0.3.57. The originating 0.3.56 report is
-recorded in [issue 288](https://github.com/jaeyoung0509/zenith/issues/288).
+This is the review record for Neati 0.3.57. The originating 0.3.56 report is
+recorded in [issue 288](https://github.com/jaeyoung0509/neati/issues/288).
 The images below are **browser previews with mock data**. They demonstrate
 layout and state copy, not macOS vibrancy or native resize behavior.
 
@@ -12,7 +12,7 @@ layout and state copy, not macOS vibrancy or native resize behavior.
 | Browser preview | 2026-09-26 | 0.3.57 | Chromium on macOS 27.0 (26A428), built-in 2560 × 1600 Retina | Main 800 × 560; Quick 320, 360, 400 × 740 | Light, mock IPC. Navigation, visible layout, and working copy reviewed. |
 | Native QA bundle | 2026-09-26 | 0.3.57 | macOS 27.0 (26A428), built-in 2560 × 1600 Retina, 2× scale | Main 960 × 660; Quick 400 × 740 | Light, reduced transparency off (`matchMedia` in Web Inspector). Sidebar and Quick Panel were visually inspected before the final tint adjustment. Full Quick Panel had no unexplained blank region. |
 
-The QA bundle used `com.zenith.desktop.qa`, allowing inspection alongside the
+The QA bundle used `com.neati.desktop.qa`, allowing inspection alongside the
 installed 0.3.56 app. The native layer showed AppKit `Sidebar`/`Popover`
 materials and a transparent WebView backing. Against the dark desktop, the
 initial 28–30% light tint made chrome too gray and reduced label contrast;

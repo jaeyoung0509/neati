@@ -54,7 +54,7 @@ import type {
   SelectedApplication,
   TrashPlanPreview,
   TrashResult,
-  ZenithSettings,
+  NeatiSettings,
   AgentIntegrationInfo,
   AgentIntegrationResult,
   AgentQuickSummary,
@@ -298,11 +298,11 @@ export function tauriDisableManualAwake(): Promise<void> {
   return api.disableManualAwake();
 }
 
-export function tauriGetSettings(): Promise<ZenithSettings> {
+export function tauriGetSettings(): Promise<NeatiSettings> {
   return api.getSettings();
 }
 
-export function tauriSaveSettings(settings: ZenithSettings): Promise<void> {
+export function tauriSaveSettings(settings: NeatiSettings): Promise<void> {
   return api.saveSettings(settings);
 }
 

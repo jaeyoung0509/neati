@@ -3,24 +3,24 @@
 /**
  * Enforces the workspace dependency boundaries.
  *
- * `zenith-core` exists so Zenith's product semantics can outlive the desktop
- * framework: the crate must still compile and make sense if Zenith grew a CLI
+ * `neati-core` exists so Neati's product semantics can outlive the desktop
+ * framework: the crate must still compile and make sense if Neati grew a CLI
  * or a second front end. That property dies quietly the first time a domain
  * module imports a webview, a window, or a Win32 binding, and a review comment
  * is not a mechanism.
  *
- * `zenith-platform` exists so every native OS integration has one owner: the
+ * `neati-platform` exists so every native OS integration has one owner: the
  * same probing, path resolution, process control, and Trash adapter has to be
  * usable by a scan, a service, or a future CLI without a window, which fails
  * the first time a platform module imports the framework.
  *
- * Both boundaries also name `zenith-desktop`, the crate that owns the window,
+ * Both boundaries also name `neati-desktop`, the crate that owns the window,
  * the framework, and the command surface. Dependencies in this workspace point
- * into the domain, never back out of it: `zenith-desktop` depends on
- * `zenith-core` and `zenith-platform`, so an edge from either crate up to it
+ * into the domain, never back out of it: `neati-desktop` depends on
+ * `neati-core` and `neati-platform`, so an edge from either crate up to it
  * inverts the layering and lets a domain or platform rule start depending on a
- * window. Reaching only the framework one hop later — `zenith-core` to a
- * helper crate to `zenith-desktop` — is the same coupling, which is why rule 2
+ * window. Reaching only the framework one hop later — `neati-core` to a
+ * helper crate to `neati-desktop` — is the same coupling, which is why rule 2
  * below is transitive rather than a direct-edge check.
  *
  * So this check reads the resolved dependency graph from `cargo metadata` and
@@ -33,10 +33,10 @@
  *   2. Every crate reachable from it over normal and build edges must be
  *      outside the forbidden set, at any depth. Transitive reachability is the
  *      point: a direct-edge check would pass while
- *      `zenith-core -> some-helper -> tauri` rebuilt the coupling one layer
+ *      `neati-core -> some-helper -> tauri` rebuilt the coupling one layer
  *      down. Dev-only edges are excluded here because they describe what the
  *      test harness links, not what the library is; `tempfile` reaching
- *      `windows-sys` for its own implementation is not `zenith-core` depending
+ *      `windows-sys` for its own implementation is not `neati-core` depending
  *      on Win32.
  *
  * Usage:
@@ -59,19 +59,19 @@ const rootDir = path.resolve(__dirname, '..');
  * adds a crate. Every crate those prefixes match is a binding to the desktop
  * framework or to Win32.
  *
- * `zenith-platform` is the layer that *owns* the native bindings, so Win32 and
+ * `neati-platform` is the layer that *owns* the native bindings, so Win32 and
  * macOS frameworks are the point of the crate rather than a violation. What it
  * must never gain is the desktop framework: the reason the platform layer
  * exists is that the same native probing has to be usable by a scanner, a
  * service, or a future CLI without a window.
  *
- * `zenith-desktop` is matched exactly, not by prefix: it is a workspace member
+ * `neati-desktop` is matched exactly, not by prefix: it is a workspace member
  * that rule 1 and rule 2 both have to recognize by package name, and no
  * crates.io package shares it.
  */
 const BOUNDARIES = [
   {
-    crate: 'zenith-core',
+    crate: 'neati-core',
     intent:
       'the domain must not depend on the desktop framework, on native platform bindings, or on the desktop adapter',
     forbidden: [
@@ -80,32 +80,32 @@ const BOUNDARIES = [
       { name: 'security-framework', kind: 'prefix', why: 'macOS keychain bindings' },
       { name: 'rfd', kind: 'exact', why: 'native file dialogs' },
       {
-        name: 'zenith-desktop',
+        name: 'neati-desktop',
         kind: 'exact',
         why: 'the outer adapter, which owns the window and the framework',
       },
     ],
     remedy:
-      'Move the code that needs the binding or the window up to `zenith-desktop`, or express\n' +
-      'what the domain needs as a trait in `zenith-core` and implement it in the adapter that\n' +
-      'owns the binding. An edge from here to `zenith-desktop` is deleted rather than moved:\n' +
+      'Move the code that needs the binding or the window up to `neati-desktop`, or express\n' +
+      'what the domain needs as a trait in `neati-core` and implement it in the adapter that\n' +
+      'owns the binding. An edge from here to `neati-desktop` is deleted rather than moved:\n' +
       'the desktop crate depends on this one, never the other way round.',
   },
   {
-    crate: 'zenith-platform',
+    crate: 'neati-platform',
     intent:
       'the platform adapter layer must not depend on the desktop framework or on the desktop adapter',
     forbidden: [
       { name: 'tauri', kind: 'prefix', why: 'desktop framework' },
       {
-        name: 'zenith-desktop',
+        name: 'neati-desktop',
         kind: 'exact',
         why: 'the outer adapter, which owns the window and the framework',
       },
     ],
     remedy:
-      'Move the framework-facing part to `zenith-desktop` and keep the native call here,\n' +
-      'behind a port the adapter implements. `zenith-desktop` already depends on this crate,\n' +
+      'Move the framework-facing part to `neati-desktop` and keep the native call here,\n' +
+      'behind a port the adapter implements. `neati-desktop` already depends on this crate,\n' +
       'so an edge back to it inverts the layering and is removed, not relocated.',
   },
 ];

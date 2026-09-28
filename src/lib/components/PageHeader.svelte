@@ -46,7 +46,7 @@
         {/if}
       </div>
       {#if subtitle}
-        <p class="mt-0.5 text-meta text-muted-foreground break-words">{subtitle}</p>
+        <p class="mt-1 max-w-prose text-body text-muted-foreground break-words">{subtitle}</p>
       {/if}
     </div>
   </div>

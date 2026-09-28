@@ -131,7 +131,7 @@ jobs:
       # this file), so the same file is regenerated and diffed on both platform
       # jobs.
       - name: Generate the scan benchmark baseline
-        run: cargo test -p zenith-desktop --test scan_benchmark -- --ignored --exact export_scan_baseline
+        run: cargo test -p neati-desktop --test scan_benchmark -- --ignored --exact export_scan_baseline
 
       - name: Verify the generated scan benchmark baseline
         run: git diff --exit-code -- src-tauri/tests/fixtures/scan-baseline.json
@@ -140,7 +140,7 @@ jobs:
       # after a line naming the OS, the architecture, and the crate version, so a
       # real-machine baseline can be read out of the log.
       - name: Report the scan benchmark metrics
-        run: cargo test -p zenith-desktop --test scan_benchmark -- --nocapture
+        run: cargo test -p neati-desktop --test scan_benchmark -- --nocapture
 
       - name: Rust Cargo Check
         run: just check-rust
@@ -192,13 +192,13 @@ jobs:
       # its fixture facts are platform-independent by construction, and the
       # reported table is this machine's measurement of them.
       - name: Generate the scan benchmark baseline
-        run: cargo test -p zenith-desktop --test scan_benchmark -- --ignored --exact export_scan_baseline
+        run: cargo test -p neati-desktop --test scan_benchmark -- --ignored --exact export_scan_baseline
 
       - name: Verify the generated scan benchmark baseline
         run: git diff --exit-code -- src-tauri/tests/fixtures/scan-baseline.json
 
       - name: Report the scan benchmark metrics
-        run: cargo test -p zenith-desktop --test scan_benchmark -- --nocapture
+        run: cargo test -p neati-desktop --test scan_benchmark -- --nocapture
 
       - name: Rust Cargo Check
         run: just check-rust
@@ -368,7 +368,7 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one per-user NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination packaging/Zenith-windows-x64-setup.exe
+          Copy-Item -Path $installers[0].FullName -Destination packaging/Neati-windows-x64-setup.exe
           just test-package "$($installers[0].FullName)"
 
       - name: Clear NSIS output before the machine-wide build
@@ -388,17 +388,17 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one machine-wide NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination packaging/Zenith-windows-x64-setup-machine.exe
+          Copy-Item -Path $installers[0].FullName -Destination packaging/Neati-windows-x64-setup-machine.exe
 
       # The machine-wide package is the one a policy-managed machine needs, so it
       # gets the same install, doctor, and uninstall gate as the per-user one.
       - name: Smoke-test the machine-wide installer
         shell: pwsh
-        run: just test-package packaging/Zenith-windows-x64-setup-machine.exe perMachine
+        run: just test-package packaging/Neati-windows-x64-setup-machine.exe perMachine
 
       - name: Upload Windows packaging smoke artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: zenith-windows-x64-nsis-debug
+          name: neati-windows-x64-nsis-debug
           path: packaging/*-setup.exe
           if-no-files-found: error

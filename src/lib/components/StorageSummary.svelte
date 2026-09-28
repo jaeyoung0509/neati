@@ -13,16 +13,16 @@
 <section class="storage-summary" aria-label="Storage scan summary">
   <div class="summary-primary">
     <p class="text-meta font-medium text-muted-foreground">{scan ? estimateLabel : 'Available to clean'}</p>
-    <p class="mt-1 text-metric-lg font-semibold tracking-tight tabular-nums text-foreground">
+    <p class="mt-1 text-metric-lg font-mono font-semibold tracking-tight tabular-nums text-foreground">
       {scan ? summary.cleanable_bytes > 0 ? formatBytes(summary.cleanable_bytes) : summary.cleanable_count > 0 ? 'Not estimated' : formatBytes(0) : '—'}
     </p>
     <p class="mt-1 text-meta text-muted-foreground">
       {#if !scan}
-        Scan known caches to find cleanup candidates.
+        Scan caches to see what can be cleaned.
       {:else if !isCurrent}
         Scan again to verify these results.
       {:else if summary.cleanable_count > 0}
-        Includes caches that apps can download or rebuild again.
+        Apps may download or rebuild these caches later.
       {:else}
         No cleanup candidates in this scan.
       {/if}
@@ -32,7 +32,7 @@
     {/if}
   </div>
   <div class="summary-context">
-    <p class="text-meta text-muted-foreground">Observed in scan</p>
+    <p class="text-meta text-muted-foreground">Found in scanned locations</p>
     <p class="mt-1 text-sm font-medium font-mono tabular-nums text-foreground">
       {#if !scan}—
       {:else if observed.isAmbiguous}{formatBytes(observed.lower)}–{formatBytes(observed.upper)}

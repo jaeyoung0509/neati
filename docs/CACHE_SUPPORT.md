@@ -1,6 +1,6 @@
 # Cache and Runtime Support Matrix
 
-This matrix is the source of truth for cache ownership. `full` means Zenith can
+This matrix is the source of truth for cache ownership. `full` means Neati can
 delete a narrowly scoped generated directory, `project_only` requires direct
 project markers, `tool_managed` invokes an owner CLI with fixed arguments, and
 `advisory` is inventory/documentation only. `not_applicable` means there is no
@@ -48,7 +48,7 @@ also states the system-maintenance boundary for this coverage.
 
 ## Programming-language ecosystems
 
-| Priority | Language | Actual cache owner(s) | Zenith mode on macOS / Windows | Reason or consequence |
+| Priority | Language | Actual cache owner(s) | Neati mode on macOS / Windows | Reason or consequence |
 | ---: | --- | --- | --- | --- |
 | 1 | TypeScript | npm, pnpm, Yarn, Bun; project build tools | npm/pnpm `tool_managed`; Yarn/Bun `advisory`; project outputs `project_only` | packages may download again; the language owns no global cache |
 | 2 | JavaScript | npm, pnpm, Yarn, Bun; project build tools | same as TypeScript | shared with TypeScript; never count the same provider twice |
@@ -90,7 +90,7 @@ dot-directory.
 
 ## Developer AI and LLM tools
 
-| Tool family | Observed storage | Zenith disposition |
+| Tool family | Observed storage | Neati disposition |
 | --- | --- | --- |
 | Codex, Claude Code, Gemini CLI, Cursor | roots can mix sessions, settings, credentials, logs, extensions and transient files | Only separately documented cache/log subpaths may be catalogued; broad roots remain Manual |
 | Hugging Face Hub | content-addressed model and dataset revisions | Manual model inventory today; a future provider may use `hf cache prune --yes`, while targeted revision/model removal stays explicit |
@@ -106,7 +106,7 @@ Manual lifecycle even when they live beside disposable files.
 
 The first filesystem example is Cursor's five named renderer/code/GPU cache
 subtrees under `~/Library/Application Support/Cursor`:
-`Cache`, `CachedData`, `Code Cache`, `GPUCache`, and `ShaderCache`. Zenith offers
+`Cache`, `CachedData`, `Code Cache`, `GPUCache`, and `ShaderCache`. Neati offers
 each existing subtree as an explicit Rebuild review unit with no age or
 intensive-scope gate. It checks Cursor and its helper processes immediately
 before mutation; unreadable process state or a running owner skips that unit.
@@ -126,7 +126,7 @@ prevent an overlapping generic deletion path.
 
 The existing Windows Cursor rule keeps its Windows-only paths and current
 strategy. CloudKit is inventoried by one macOS Manual signature and excluded
-from broad third-party app-cache discovery; Zenith does not mutate that
+from broad third-party app-cache discovery; Neati does not mutate that
 service-owned store.
 
 ## GPU and local-AI runtimes
@@ -175,13 +175,13 @@ See the [issue #314 validation record](GPU_CACHE_COVERAGE_2026-09-27.md).
 
 | Runtime / owner | Artifact role | macOS | Windows | Mode / risk |
 | --- | --- | --- | --- | --- |
-| Direct3D | `compiled_kernel` | unavailable | `%LOCALAPPDATA%/D3DSCache` | Zenith / Rebuild |
-| NVIDIA driver | `compiled_kernel` | unavailable | per-user DXCache + GLCache | Zenith / Rebuild |
-| CUDA JIT | `compiled_kernel` | unavailable | documented ComputeCache default | Zenith / Rebuild |
-| PyTorch / TorchInductor / Triton | `compiled_kernel`, `autotune` | inactive `torchinductor_*` temp scope | same | Zenith / Rebuild |
+| Direct3D | `compiled_kernel` | unavailable | `%LOCALAPPDATA%/D3DSCache` | Neati / Rebuild |
+| NVIDIA driver | `compiled_kernel` | unavailable | per-user DXCache + GLCache | Neati / Rebuild |
+| CUDA JIT | `compiled_kernel` | unavailable | documented ComputeCache default | Neati / Rebuild |
+| PyTorch / TorchInductor / Triton | `compiled_kernel`, `autotune` | inactive `torchinductor_*` temp scope | same | Neati / Rebuild |
 | vLLM | compile artifacts; weights separate | configured roots `advisory` | WSL/container only `advisory` | advisory / Rebuild |
 | SGLang | mixed root with Torch/Triton/DeepGEMM owners | `advisory` | WSL/container `advisory` | advisory / Manual root |
-| llama.cpp / GGML | OpenCL `compiled_kernel`; GGUF/session separate | OpenCL cache `full` | OpenCL cache `full` | Zenith / Rebuild |
+| llama.cpp / GGML | OpenCL `compiled_kernel`; GGUF/session separate | OpenCL cache `full` | OpenCL cache `full` | Neati / Rebuild |
 | TensorFlow / XLA | configured persistent compilation cache | `advisory` | `advisory` | advisory / Rebuild |
 | JAX / XLA | trusted executable compilation cache | `advisory` | `advisory` | advisory / Rebuild; shared/world-writable rejected |
 | ONNX Runtime | optimized model / provider cache | `advisory` | `advisory` | advisory / Manual |

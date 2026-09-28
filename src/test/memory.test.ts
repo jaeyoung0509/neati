@@ -234,7 +234,7 @@ describe('Performance memory panel process provenance', () => {
       processFixture({
         name: 'Node.js',
         parent_process_names: ['Neati'],
-        ownership: 'zenith_child',
+        ownership: 'neati_child',
       }),
     ]);
     const { body } = render(MemoryPanel);

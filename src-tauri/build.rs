@@ -89,7 +89,7 @@ fn main() {
         attributes.windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest())
     };
 
-    tauri_build::try_build(attributes).expect("failed to build Zenith's Tauri manifest");
+    tauri_build::try_build(attributes).expect("failed to build Neati's Tauri manifest");
 }
 
 #[cfg(windows)]

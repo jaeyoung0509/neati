@@ -8,8 +8,8 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
+use neati_platform::PlatformEnvironment;
 use serde::Serialize;
-use zenith_platform::PlatformEnvironment;
 
 use crate::models::CleanResult;
 
@@ -72,16 +72,16 @@ pub(crate) fn record(result: &CleanResult, environment: &PlatformEnvironment) ->
     }
     contents.push_str(&record);
     contents.push('\n');
-    zenith_platform::file_ops::atomic_write(&path, contents.as_bytes())
+    neati_platform::file_ops::atomic_write(&path, contents.as_bytes())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::models::{CleanItemResult, CleanStatus};
+    use neati_platform::path_algebra::PathFlavor;
     use tempfile::tempdir;
     use uuid::Uuid;
-    use zenith_platform::path_algebra::PathFlavor;
 
     fn result_with_private_item_data() -> CleanResult {
         CleanResult {

@@ -139,7 +139,7 @@ const sampleSnapshot: AiControlCenterSnapshot = {
   resources: [
     {
       session_id: 'session-verified-1',
-      project_id: 'project-zenith',
+      project_id: 'project-neati',
       tool_name: 'Codex CLI',
       cpu_percent: 4.5,
       memory_bytes: 512 * 1024 * 1024,
@@ -175,7 +175,7 @@ const sampleSnapshot: AiControlCenterSnapshot = {
       created_at: 1700000000,
       cooldown_until: 1700000900,
       session_id: 'session-verified-1',
-      project_id: 'project-zenith',
+      project_id: 'project-neati',
       action_label: 'Open Development Servers',
       destination: 'development_servers',
     },
@@ -186,7 +186,7 @@ const sampleSnapshot: AiControlCenterSnapshot = {
     findings: [
       {
         id: 'finding-1',
-        project_id: 'project-zenith',
+        project_id: 'project-neati',
         kind: 'secrets_exposure',
         severity: 'critical',
         evidence_type: 'OpenAI-style API key',
@@ -201,7 +201,7 @@ const sampleSnapshot: AiControlCenterSnapshot = {
       },
       {
         id: 'finding-2',
-        project_id: 'project-zenith',
+        project_id: 'project-neati',
         kind: 'mcp_servers',
         severity: 'warning',
         evidence_type: 'MCP server configured',
@@ -225,13 +225,13 @@ const sampleSnapshot: AiControlCenterSnapshot = {
     ],
     scanned_files: 84,
     skipped_files: 2,
-    inspected_roots: ['project-zenith'],
+    inspected_roots: ['project-neati'],
     unreached_roots: [],
     status_message: 'Bounded local inspection completed.',
   },
   git_summaries: [
     {
-      project_id: 'project-zenith',
+      project_id: 'project-neati',
       baseline_head: 'abc1234',
       current_head: 'abc1234',
       baseline_at: 1699998000,
@@ -251,7 +251,7 @@ const sampleSnapshot: AiControlCenterSnapshot = {
       timestamp: 1700000000,
       event_kind: 'safety_scan',
       outcome: 'ok',
-      project_ref: 'project-zenith',
+      project_ref: 'project-neati',
       message: 'Bounded local inspection completed.',
     },
   ],
@@ -523,7 +523,7 @@ describe('AiControlStore logic and transitions', () => {
     const tauriModule = await import('../lib/utils/tauri');
     vi.spyOn(tauriModule, 'tauriGetAiControlGitDiff').mockResolvedValueOnce('diff --git a/test.ts\n+added');
 
-    await store.loadGitDiff('project-zenith');
+    await store.loadGitDiff('project-neati');
     expect(store.gitDiff).toContain('+added');
 
     store.clearGitDiff();

@@ -41,10 +41,10 @@ instead of failing halfway.
 ## Architecture contracts on Windows
 
 The layering rules are platform-independent and are checked on this runner as
-well as on macOS. `just check-architecture` compiles `zenith-core` and
-`zenith-platform` and refuses any dependency edge from either crate to the
+well as on macOS. `just check-architecture` compiles `neati-core` and
+`neati-platform` and refuses any dependency edge from either crate to the
 desktop framework, to Win32 bindings from the domain, or to the
-`zenith-desktop` crate; the Windows Rust job runs it beside the workspace test
+`neati-desktop` crate; the Windows Rust job runs it beside the workspace test
 suite, which is where the Windows-native contract tests execute. A rule that
 only holds on one platform is a rule only one runner checks, so:
 path-algebra rules stay pure functions over an explicit `PathFlavor` (asserted
@@ -104,10 +104,10 @@ The rotating diagnostics log is written under the per-user application data
 directory, not under the macOS location:
 
 ```text
-%LOCALAPPDATA%\Zenith\Logs\zenith.log
+%LOCALAPPDATA%\Neati\Logs\neati.log
 ```
 
-Once the live log exceeds 1 MB it is rotated to `zenith.log.1` in the same
+Once the live log exceeds 1 MB it is rotated to `neati.log.1` in the same
 directory, so a bug report can attach whichever file carries the failure. Log
 lines are redacted, and absolute paths are masked, before anything is written.
 The Settings diagnostics view prints the directory this machine actually
@@ -121,8 +121,8 @@ variant from `.github/tauri.nsis-permachine.json`.
 
 | Artifact | Install mode | Location | Elevation |
 | --- | --- | --- | --- |
-| `Zenith-windows-x64-setup.exe` | `currentUser` (default) | `%LOCALAPPDATA%\Neati` | none |
-| `Zenith-windows-x64-setup-machine.exe` | `perMachine` | `Program Files\Neati` | required |
+| `Neati-windows-x64-setup.exe` | `currentUser` (default) | `%LOCALAPPDATA%\Neati` | none |
+| `Neati-windows-x64-setup-machine.exe` | `perMachine` | `Program Files\Neati` | required |
 
 Why both exist:
 
@@ -147,8 +147,8 @@ Further contract points:
   first launch that never opens a window.
 - Downgrades are blocked; installing a newer version upgrades the same
   installation scope.
-- The public asset names are always `Zenith-windows-x64-setup.exe` and
-  `Zenith-windows-x64-setup-machine.exe`. The WinGet manifest references only
+- The public asset names are always `Neati-windows-x64-setup.exe` and
+  `Neati-windows-x64-setup-machine.exe`. The WinGet manifest references only
   the per-user installer.
 - WebView2 is expected to be present on supported Windows 10 and Windows 11
   installations, but it is not assumed: the embedded offline installer covers a
@@ -172,10 +172,10 @@ Release trust artifacts:
 - `SHA256SUMS.txt` combined from the platform manifests and the SBOM manifest,
   verified with `shasum -c` against the downloaded bytes before publication. The
   Windows manifest covers both installers.
-- `SBOM-zenith.spdx.json`, an SPDX software bill of materials generated from the
+- `SBOM-neati.spdx.json`, an SPDX software bill of materials generated from the
   locked dependency manifests of the tagged commit.
 - GitHub build provenance attestation for both installers and the SBOM:
-  `gh attestation verify Zenith-windows-x64-setup.exe --repo jaeyoung0509/zenith`.
+  `gh attestation verify Neati-windows-x64-setup.exe --repo jaeyoung0509/neati`.
 - `endpoint-review.json`, the recorded Microsoft endpoint-protection submission
   result for the exact published bytes. The publishing job runs in the
   `release-approval` environment, where a maintainer submits the installers to
@@ -217,7 +217,7 @@ emits both installers, platform checksums, build metadata, and a WinGet
 multi-file manifest rooted at:
 
 ```text
-manifests/z/jaeyoung0509/Neati/<version>/
+manifests/j/jaeyoung0509/Neati/<version>/
 ```
 
 The manifest identifies the per-user NSIS installer as `nullsoft`, uses
@@ -227,7 +227,7 @@ immutable versioned GitHub asset URL. Generate the same files locally with:
 ```powershell
 node scripts/generate_winget_manifest.cjs `
   --version 0.3.19 `
-  --installer .\Zenith-windows-x64-setup.exe `
+  --installer .\Neati-windows-x64-setup.exe `
   --output .\winget-output
 ```
 
@@ -263,7 +263,7 @@ managed machine will allow the binary to run.
 `.github/workflows/ci.yml` runs the same checks on `windows-latest`, plus the
 packaging gate described under [Doctor self-check](#doctor-self-check) for both
 installers, and uploads both debug NSIS installers as
-`zenith-windows-x64-nsis-debug`. The
+`neati-windows-x64-nsis-debug`. The
 `msrv` job builds with the declared Rust 1.95.0 toolchain and the `supply-chain`
 job audits both lockfiles.
 

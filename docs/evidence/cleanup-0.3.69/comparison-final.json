@@ -10,7 +10,7 @@
       "allocated_bytes_at_audit": 25460736,
       "items": 2,
       "rounded_preview_bytes": 26650214,
-      "zenith_descendants_items": 2
+      "neati_descendants_items": 2
     },
     "cargo": {
       "allocated_bytes_at_audit": 104169472,
@@ -22,7 +22,7 @@
       "allocated_bytes_at_audit": 38592512,
       "items": 1,
       "rounded_preview_bytes": 40475033,
-      "zenith_descendants_items": 1
+      "neati_descendants_items": 1
     },
     "other": {
       "allocated_bytes_at_audit": 94081024,
@@ -31,7 +31,7 @@
       "reference_only_items": 4,
       "rounded_preview_bytes": 98401689,
       "unmeasured_allocated_items": 1,
-      "zenith_ancestor_items": 80
+      "neati_ancestor_items": 80
     },
     "user_app_cache": {
       "allocated_bytes_at_audit": 78053376,
@@ -40,8 +40,8 @@
       "reference_only_items": 30,
       "rounded_preview_bytes": 81859376,
       "unmeasured_allocated_items": 1,
-      "zenith_ancestor_items": 1,
-      "zenith_descendants_items": 1
+      "neati_ancestor_items": 1,
+      "neati_descendants_items": 1
     },
     "user_log": {
       "allocated_bytes_at_audit": 2486272,
@@ -61,8 +61,8 @@
   "path_relationships": {
     "exact": 13,
     "reference_only": 38,
-    "zenith_ancestor": 81,
-    "zenith_descendants": 4
+    "neati_ancestor": 81,
+    "neati_descendants": 4
   },
   "reference_preview": {
     "item_count": 136,
@@ -75,14 +75,14 @@
       "top_level_rounded_preview_bytes": 332221025
     }
   },
-  "related_zenith_eligibility": {
+  "related_neati_eligibility": {
     "advisory": 2,
     "auto_cleanable": 4,
     "blocked": 1,
     "recent": 8,
     "reviewable": 87
   },
-  "zenith_scan": {
+  "neati_scan": {
     "cleanable_bytes": 254611456,
     "gaps": [
       {

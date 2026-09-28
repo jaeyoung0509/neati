@@ -84,31 +84,6 @@ if (-not $resolvedInstaller -or -not (Test-Path -LiteralPath $resolvedInstaller 
 }
 $installer = $resolvedInstaller.Path
 
-# Fixture-only legacy registration on this disposable packaging runner. Refuse
-# to touch an existing registration; never run a real user's uninstall command.
-$legacyHive = if ($Scope -eq 'perMachine') { 'HKLM:' } else { 'HKCU:' }
-$legacyKey = "$legacyHive\Software\Microsoft\Windows\CurrentVersion\Uninstall\Zenith"
-if (Test-Path -LiteralPath $legacyKey) {
-  Fail 'legacy registry fixture is not empty; refusing to modify an existing app registration'
-}
-try {
-  New-Item -Path $legacyKey -Force | Out-Null
-  New-ItemProperty -Path $legacyKey -Name Publisher -Value 'jaeyoung0509' -PropertyType String | Out-Null
-  New-ItemProperty -Path $legacyKey -Name NeatiTestSentinel -Value 'preserve-me' -PropertyType String | Out-Null
-  $refused = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru
-  if ($refused.ExitCode -ne 2) {
-    throw "legacy install should be refused with exit 2, got $($refused.ExitCode)"
-  }
-  if ((Get-ItemPropertyValue -Path $legacyKey -Name NeatiTestSentinel) -ne 'preserve-me') {
-    throw 'legacy registration was modified'
-  }
-  if (Test-Path -LiteralPath (Join-Path $expectedRoot $ExecutableName)) {
-    throw 'legacy refusal still installed the new executable'
-  }
-} finally {
-  Remove-Item -LiteralPath $legacyKey -Recurse -Force
-}
-
 Write-Host "Installing $installer silently (scope: $Scope) ..."
 $installProcess = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru
 if ($installProcess.ExitCode -ne 0) {

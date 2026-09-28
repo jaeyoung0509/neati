@@ -23,16 +23,16 @@
 
 use crate::models::PlatformKind;
 use crate::safety::{SymlinkGuard, ToctouGuard};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use zenith_core::domain::cleanup::{
+use neati_core::domain::cleanup::{
     OwnerProviderAuthorization, OwnerProviderExecution, OwnerProviderRefusal,
     OwnerProviderSelection, OwnerProviderUnit, OwnerStoreObservation, OwnerUnitMeasurement,
     OwnerUnitMeasurer, OwnerUnitObservation, OwnerUnitOutcome, ProviderStatus,
     RunningProcessPolicy, RunningProcessProbe,
 };
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 /// Which Cargo store one provider owns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -275,7 +275,7 @@ impl CargoStoreProvider {
             // real answer, not a failure.
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
             Err(error) => {
-                return Err(zenith_platform::environment::describe_access_refusal(
+                return Err(neati_platform::environment::describe_access_refusal(
                     environment,
                     root,
                     &error.to_string(),
@@ -290,7 +290,7 @@ impl CargoStoreProvider {
         }
 
         let entries = fs::read_dir(root).map_err(|error| {
-            zenith_platform::environment::describe_access_refusal(
+            neati_platform::environment::describe_access_refusal(
                 environment,
                 root,
                 &error.to_string(),
@@ -301,7 +301,7 @@ impl CargoStoreProvider {
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
-                    return Err(zenith_platform::environment::describe_access_refusal(
+                    return Err(neati_platform::environment::describe_access_refusal(
                         environment,
                         root,
                         &error.to_string(),
@@ -313,7 +313,7 @@ impl CargoStoreProvider {
             let metadata = match fs::symlink_metadata(&path) {
                 Ok(metadata) => metadata,
                 Err(error) => {
-                    return Err(zenith_platform::environment::describe_access_refusal(
+                    return Err(neati_platform::environment::describe_access_refusal(
                         environment,
                         &path,
                         &error.to_string(),
@@ -458,8 +458,7 @@ impl CargoStoreProvider {
         selections: &[OwnerProviderSelection],
     ) -> Result<OwnerProviderAuthorization, OwnerProviderRefusal> {
         let mut private_plan = OwnerProviderAuthorization {
-            deletion_disposition:
-                zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: String::new(),
             provider_id: self.id.to_string(),
             risk: crate::models::RiskTier::Rebuild,
@@ -512,7 +511,7 @@ impl CargoStoreProvider {
         for selection in selections {
             let found = observation.units.iter().find(|unit| {
                 unit.path == selection.path
-                    && unit.state == zenith_core::domain::cleanup::OwnerUnitState::Ready
+                    && unit.state == neati_core::domain::cleanup::OwnerUnitState::Ready
             });
             let Some(unit) = found else {
                 // The store was re-read and this unit is not one the provider
@@ -672,7 +671,7 @@ impl CargoStoreProvider {
                     unit.item_id.clone(),
                     unit.unit_key.clone(),
                     ProviderStatus::Blocked,
-                    zenith_platform::environment::describe_access_refusal(
+                    neati_platform::environment::describe_access_refusal(
                         environment,
                         &unit.path,
                         &error.to_string(),
@@ -803,11 +802,11 @@ mod tests {
     use crate::cleaner::owner_providers::OwnerScopedProvider;
     use crate::models::Category;
     use crate::signatures::SignatureRegistry;
+    use neati_core::domain::cleanup::OwnerUnitState;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
     use std::sync::Arc;
     use tempfile::tempdir;
-    use zenith_core::domain::cleanup::OwnerUnitState;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
 
     /// A process probe whose answer the test states.
     struct StatedProcess(Option<Vec<String>>);

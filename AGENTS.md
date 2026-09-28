@@ -61,11 +61,11 @@ safety conventions below when changing Neati.
 
 ## Crate boundary
 
-- Neati is a Cargo workspace. `crates/zenith-core` owns product semantics,
-  `crates/zenith-platform` owns the platform layer behind narrow ports
+- Neati is a Cargo workspace. `crates/neati-core` owns product semantics,
+  `crates/neati-platform` owns the platform layer behind narrow ports
   (environment probing, path resolution, process control, bounded child
   execution, system actions, atomic file replacement, Trash), and the
-  `src-tauri` package (`zenith-desktop`, library `zenith_lib`, binary `Neati`)
+  `src-tauri` package (`neati-desktop`, library `neati_lib`, binary `Neati`)
   owns the Tauri adapter. The version, edition, and MSRV are stated once in the
   root `Cargo.toml` `[workspace.package]` table and all members inherit them;
   `just check-version` and `just bump-patch` maintain that one copy.
@@ -74,23 +74,23 @@ safety conventions below when changing Neati.
   safety in `safety`, allocated-size measurement in `scanner::size`, and
   process/machine introspection in `metrics`, `power`, `dev_ports`,
   `process_owner`, and `diagnostics`. Moving one of those into
-  `zenith-platform` is its own change, not a boundary cleanup.
-- `zenith-core` must not depend on `tauri`, `tauri-build`, `tauri-plugin-*`,
+  `neati-platform` is its own change, not a boundary cleanup.
+- `neati-core` must not depend on `tauri`, `tauri-build`, `tauri-plugin-*`,
   `windows-sys`, `security-framework`, or `rfd`, directly or transitively, and
-  `zenith-platform` must never reach `tauri`. Neither crate may depend on
-  `zenith-desktop`: dependencies point into the domain, never back out of it.
+  `neati-platform` must never reach `tauri`. Neither crate may depend on
+  `neati-desktop`: dependencies point into the domain, never back out of it.
   `scripts/check_core_boundaries.cjs` enforces these boundaries from
   `cargo metadata`; run `just check-architecture` after adding or moving a
   dependency.
 - Ask of every Rust file: would this still make sense if Neati had a CLI
   instead of a Tauri window? Domain semantics say yes and belong in
-  `zenith-core`; native OS probing and OS API calls say yes and belong in
-  `zenith-platform`. A file that owns WebView IPC, tray or window lifecycle,
+  `neati-core`; native OS probing and OS API calls say yes and belong in
+  `neati-platform`. A file that owns WebView IPC, tray or window lifecycle,
   capability grants, or desktop composition is the only one that stays in
   `src-tauri`.
 - Domain authorization state is not a frontend contract. `DeletePlan` and
   `DeleteTarget` carry no `serde` or `specta` derives; an interface-facing
-  shape is a separate projection under `zenith_core::application::dto`.
+  shape is a separate projection under `neati_core::application::dto`.
 - Do not restate a domain type in the desktop crate. `src-tauri/src/models`
   re-exports the core types by name so command modules keep one import root,
   and adds only the DTOs the desktop adapter produces itself.
@@ -115,7 +115,7 @@ safety conventions below when changing Neati.
   `tauri::async_runtime::spawn_blocking`. Use Tauri channels for operations that
   report progress over time.
 - Every serialized `u64` or `Option<u64>` that crosses IPC must use the shared
-  `ipc_numeric` serde adapter (`zenith_core::ipc_numeric`, re-exported as
+  `ipc_numeric` serde adapter (`neati_core::ipc_numeric`, re-exported as
   `crate::ipc_numeric` in the desktop crate) plus a matching explicit Specta
   type annotation. Add a real model serialization regression test; never
   justify an unguarded integer with an assumed workstation-size bound.
@@ -165,14 +165,14 @@ safety conventions below when changing Neati.
 
 ## Platform environment and verification
 
-- Platform facts have one source: `zenith_platform::PlatformEnvironment` (built in
-  `crates/zenith-platform`). It is built
+- Platform facts have one source: `neati_platform::PlatformEnvironment` (built in
+  `crates/neati-platform`). It is built
   once at the composition root (`src-tauri/src/composition`), handed to the
   application services through `DesktopState`, and passed to scanning, cleanup,
   metrics, container, and storage code as an argument.
   Modules must not read `std::env` for paths, drives, or tool locations, and
   must not construct `PlatformEnvironment::native()` themselves.
-- Windows path semantics live in `zenith_platform::path_algebra` as pure functions
+- Windows path semantics live in `neati_platform::path_algebra` as pure functions
   parameterized by `PathFlavor`. Add coverage there, not in a `#[cfg(windows)]`
   branch: a rule that only compiles on one platform is a rule only one runner
   checks. Ambiguous input (an 8.3 alias, a trailing dot or space, an

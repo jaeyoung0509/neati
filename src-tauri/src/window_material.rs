@@ -70,8 +70,8 @@ pub fn install_glass<R: Runtime>(window: &WebviewWindow<R>) -> tauri::Result<()>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use neati_platform::path_algebra::PathFlavor;
     use tauri::utils::{config::WindowConfig, WindowEffect, WindowEffectState};
-    use zenith_platform::path_algebra::PathFlavor;
 
     #[test]
     fn both_windows_use_glass_without_stacked_vibrancy_when_available() {

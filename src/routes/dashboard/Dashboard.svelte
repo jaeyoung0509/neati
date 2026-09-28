@@ -266,7 +266,7 @@
           role="presentation"
           onmousedown={overlayTitleBar ? handleWindowDrag : undefined}
         >
-          <BrandIcon identity="zenith" label="Neati" size={24} />
+          <BrandIcon identity="neati" label="Neati" size={24} />
           {#if !sidebarCollapsed}
             <NeatiWordmark />
           {/if}
@@ -309,7 +309,7 @@
             {@const isTabActive = !directTabIds.has(currentTab) && dashboardNavigationOwner(currentTab) === dashboardNavigationOwner(tabId)}
 
             {#if showGroupHeader}
-              <div class="px-2.5 {i === 0 ? 'pt-1' : 'pt-3'} pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground select-none">
+              <div class="px-2.5 {i === 0 ? 'pt-1' : 'pt-3'} pb-1 text-caption font-medium tracking-normal text-muted-foreground select-none">
                 {currentGroup}
               </div>
             {:else if !sidebarCollapsed && currentGroup && prevGroup !== currentGroup && groupShownEarlier}
@@ -383,7 +383,7 @@
     <div class="shrink-0 space-y-2 {sidebarCollapsed ? 'items-center' : ''}">
       <div class="border-t border-border/70 pt-2">
         {#if !sidebarCollapsed}
-          <div class="px-2.5 pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground select-none">
+          <div class="px-2.5 pb-1 text-caption font-medium tracking-normal text-muted-foreground select-none">
             Preferences
           </div>
         {/if}

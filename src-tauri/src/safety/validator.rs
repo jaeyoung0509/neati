@@ -6,7 +6,7 @@ use crate::models::{
 };
 use crate::models_inventory::ValidatedModelTarget;
 use crate::safety::{Blacklist, SymlinkGuard, ToctouGuard};
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
 
 /// An authorized cleanup target that has passed execution-time safety revalidation.
 ///
@@ -97,7 +97,7 @@ impl ValidatedTarget {
 /// `Skipped` and `Failed` are different answers: a skip means the target is no
 /// longer the object the plan authorized (or is gone), and the safe response
 /// was to leave whatever is there alone; a failure means the object was still
-/// the right one and Zenith could not remove it.
+/// the right one and Neati could not remove it.
 #[derive(Debug)]
 pub enum RevalidationOutcome {
     Validated(ValidatedTarget),
@@ -300,7 +300,7 @@ impl SafetyValidator {
                 return failed(
                     target,
                     CleanFailureReason::PermissionDenied,
-                    zenith_platform::environment::describe_access_refusal(
+                    neati_platform::environment::describe_access_refusal(
                         environment,
                         path,
                         &error_str,

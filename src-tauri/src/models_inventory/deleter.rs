@@ -1,10 +1,10 @@
-use crate::models::{LocalModelItem, ModelSource, ZenithError};
+use crate::models::{LocalModelItem, ModelSource, NeatiError};
 use crate::models_inventory::LocalModelScanner;
 use crate::safety::{Blacklist, SafeTreeDeleter, SymlinkGuard, TreeDeleteReport};
 use crate::signatures::SignatureLoader;
 use crate::tooling;
+use neati_platform::PlatformEnvironment;
 use std::path::{Path, PathBuf};
-use zenith_platform::PlatformEnvironment;
 
 /// A local model path that passed model-inventory scope and symlink validation.
 ///
@@ -26,15 +26,15 @@ impl ValidatedModelTarget {
         source: ModelSource,
         path: &Path,
         environment: &PlatformEnvironment,
-    ) -> Result<Self, ZenithError> {
+    ) -> Result<Self, NeatiError> {
         let managed_root = source
             .managed_root()
-            .ok_or_else(|| ZenithError::PathNotAllowed(path.to_string_lossy().to_string()))?;
+            .ok_or_else(|| NeatiError::PathNotAllowed(path.to_string_lossy().to_string()))?;
         let allowed_root = SignatureLoader::expand_path(managed_root, environment)
-            .ok_or_else(|| ZenithError::PathNotAllowed(managed_root.to_string()))?;
+            .ok_or_else(|| NeatiError::PathNotAllowed(managed_root.to_string()))?;
 
         if path == allowed_root || !path.starts_with(&allowed_root) {
-            return Err(ZenithError::PathNotAllowed(
+            return Err(NeatiError::PathNotAllowed(
                 path.to_string_lossy().to_string(),
             ));
         }
@@ -59,7 +59,7 @@ impl LocalModelManager {
     pub fn delete_by_id(
         environment: &PlatformEnvironment,
         model_id: &str,
-    ) -> Result<Option<u64>, ZenithError> {
+    ) -> Result<Option<u64>, NeatiError> {
         let inventory = LocalModelScanner::scan_all_models(environment);
         let model = Self::resolve_by_id(&inventory.items, model_id)?;
         match model.source {
@@ -73,11 +73,11 @@ impl LocalModelManager {
     fn resolve_by_id<'a>(
         models: &'a [LocalModelItem],
         model_id: &str,
-    ) -> Result<&'a LocalModelItem, ZenithError> {
+    ) -> Result<&'a LocalModelItem, NeatiError> {
         models
             .iter()
             .find(|model| model.id == model_id)
-            .ok_or_else(|| ZenithError::PathNotAllowed(format!("unknown model id: {model_id}")))
+            .ok_or_else(|| NeatiError::PathNotAllowed(format!("unknown model id: {model_id}")))
     }
 
     /// Deletes one model through the owning CLI.
@@ -88,7 +88,7 @@ impl LocalModelManager {
     fn delete_ollama(
         environment: &PlatformEnvironment,
         model: &LocalModelItem,
-    ) -> Result<Option<u64>, ZenithError> {
+    ) -> Result<Option<u64>, NeatiError> {
         let blobs_dir = SignatureLoader::expand_path("~/.ollama/models/blobs", environment);
         let before = blobs_dir
             .as_ref()
@@ -97,19 +97,19 @@ impl LocalModelManager {
         let mut cmd = tooling::command("ollama");
         cmd.args(Self::ollama_delete_args(model));
         let output =
-            zenith_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(15))
+            neati_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(15))
                 .map_err(|error| {
-                    let err_str = error.to_string();
-                    if err_str.contains("No such file") || err_str.contains("not found") {
-                        ZenithError::ToolUnavailable("ollama".into())
-                    } else {
-                        ZenithError::ExternalCommandFailed(err_str)
-                    }
-                })?;
+                let err_str = error.to_string();
+                if err_str.contains("No such file") || err_str.contains("not found") {
+                    NeatiError::ToolUnavailable("ollama".into())
+                } else {
+                    NeatiError::ExternalCommandFailed(err_str)
+                }
+            })?;
         if !output.status.success() {
             let err_str = String::from_utf8_lossy(&output.stderr).trim().to_string();
             crate::diagnostics::log_error("models", &err_str);
-            return Err(ZenithError::ExternalCommandFailed(
+            return Err(NeatiError::ExternalCommandFailed(
                 crate::diagnostics::sanitize_log(&err_str),
             ));
         }
@@ -132,14 +132,14 @@ impl LocalModelManager {
         environment: &PlatformEnvironment,
         model: &LocalModelItem,
         source: ModelSource,
-    ) -> Result<Option<u64>, ZenithError> {
+    ) -> Result<Option<u64>, NeatiError> {
         let path = PathBuf::from(&model.path);
         let validated = ValidatedModelTarget::validate(source, &path, environment)?;
         let report = SafeTreeDeleter::delete_path_validated(&validated, environment);
         Self::filesystem_delete_result(report)
     }
 
-    fn filesystem_delete_result(report: TreeDeleteReport) -> Result<Option<u64>, ZenithError> {
+    fn filesystem_delete_result(report: TreeDeleteReport) -> Result<Option<u64>, NeatiError> {
         if report.is_success() {
             // The tree deleter's own accounting is exact: it reports what it
             // removed, not a difference between two measurements.
@@ -154,7 +154,7 @@ impl LocalModelManager {
             } else {
                 detail
             };
-            Err(ZenithError::Io(message))
+            Err(NeatiError::Io(message))
         }
     }
 }
@@ -162,10 +162,10 @@ impl LocalModelManager {
 #[cfg(test)]
 mod tests {
     use super::{LocalModelManager, ValidatedModelTarget};
-    use crate::models::{LocalModelItem, ModelSource, ZenithError};
+    use crate::models::{LocalModelItem, ModelSource, NeatiError};
     use crate::safety::TreeDeleteReport;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::PlatformEnvironment;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::PlatformEnvironment;
 
     fn model(id: &str, name: &str, path: &str) -> LocalModelItem {
         LocalModelItem {
@@ -216,8 +216,8 @@ mod tests {
 
         // The allowed root is the model source's own managed root, resolved
         // through the stated profile: no caller supplies one.
-        let environment = zenith_platform::PlatformEnvironment::simulated(
-            zenith_platform::path_algebra::PathFlavor::current(),
+        let environment = neati_platform::PlatformEnvironment::simulated(
+            neati_platform::path_algebra::PathFlavor::current(),
         )
         .with_home(dir.path());
         assert!(ValidatedModelTarget::validate(ModelSource::Mlx, &model, &environment).is_ok());
@@ -250,11 +250,11 @@ mod tests {
     #[test]
     fn the_adapter_root_comes_from_the_stated_environment() {
         let stated_home = tempfile::tempdir().unwrap();
-        let model_dir = stated_home.path().join(".cache/mlx/zenith-probe");
+        let model_dir = stated_home.path().join(".cache/mlx/neati-probe");
         std::fs::create_dir_all(&model_dir).unwrap();
         std::fs::write(model_dir.join("weights.npz"), vec![7u8; 2_048]).unwrap();
 
-        let mut item = model("mlx.zenith-probe", "zenith-probe", "");
+        let mut item = model("mlx.neati-probe", "neati-probe", "");
         item.source = ModelSource::Mlx;
         item.path = model_dir.to_string_lossy().into_owned();
 
@@ -291,7 +291,7 @@ mod tests {
         let error =
             LocalModelManager::delete_filesystem_model(&environment, &item, ModelSource::Mlx)
                 .expect_err("a path outside the adapter root must be refused");
-        assert!(matches!(error, ZenithError::PathNotAllowed(_)));
+        assert!(matches!(error, NeatiError::PathNotAllowed(_)));
         assert!(outside.path().exists());
     }
 }

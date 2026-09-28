@@ -160,7 +160,7 @@ fn read_callback_line(
 /// Starts the OpenRouter OAuth flow only when the credential store can persist
 /// the key it returns.
 ///
-/// OpenRouter's key-deletion API requires a management key that Zenith never
+/// OpenRouter's key-deletion API requires a management key that Neati never
 /// holds, so a key issued by a flow whose result cannot be stored would have to
 /// be revoked by hand in the dashboard. The store's availability is therefore
 /// checked before the browser is opened, and the authorization step is a

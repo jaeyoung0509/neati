@@ -84,7 +84,7 @@ function publish(): void {
 function announce(next: ApiBridgeNotice): void {
   if (notice === next) return;
   notice = next;
-  console.warn(`[zenith] ${NOTICE_MESSAGES[next]}`);
+  console.warn(`[neati] ${NOTICE_MESSAGES[next]}`);
 }
 
 function resolveBridgeMode(): ApiBridgeMode {
@@ -133,9 +133,9 @@ export function dispatchApi<T extends object>(nativeImpl: T, previewImpl: T): T 
   });
 }
 
-export type ZenithApi = typeof nativeApi;
+export type NeatiApi = typeof nativeApi;
 
-export const api: ZenithApi = dispatchApi(nativeApi, mockApi);
+export const api: NeatiApi = dispatchApi(nativeApi, mockApi);
 
 export { nativeApi } from './native';
 export { mockApi } from './mock';

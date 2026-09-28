@@ -126,7 +126,7 @@ impl CancellationRegistry {
     /// worker/probe owns another Arc to the same signal, so age alone must not
     /// make a still-running scan impossible to stop.
     fn is_abandoned(&self, entry: &CancellationEntry, now: u64) -> bool {
-        !zenith_core::domain::is_within_window(entry.created_at, now, self.ttl_secs)
+        !neati_core::domain::is_within_window(entry.created_at, now, self.ttl_secs)
             && Arc::strong_count(&entry.signal) == 1
     }
 

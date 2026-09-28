@@ -669,7 +669,7 @@
 
             {#if newApplication}
               <div class="rounded-lg border border-border/70 bg-secondary/25 p-3" aria-live="polite">
-                <p class="text-caption font-semibold uppercase tracking-wider text-muted-foreground">Before saving</p>
+                <p class="text-caption font-semibold tracking-normal text-muted-foreground">Before saving</p>
                 <p class="mt-1 text-xs leading-relaxed text-foreground">{awakeRuleSummary({ id: 'preview', app_name: newApplication.display_name, executable_pattern: newApplication.executable_name, requires_process_pattern: null, application: newApplication, agent_ids: selectedAgents, behavior: newBehavior, power_condition: newPowerCondition, enabled: false })}</p>
                 <p class="mt-1 text-caption text-warning">New rules are saved off. Turn the rule on after reviewing it.</p>
               </div>

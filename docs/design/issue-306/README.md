@@ -1,8 +1,8 @@
-# Zenith split Z
+# Neati split Z
 
 The user selected a minimal Z that stays clear at small sizes. The new mark
 keeps two substantial diagonal segments and a visible central cut, using
-Zenith's existing cobalt rather than a separate status-colored dot.
+Neati's existing cobalt rather than a separate status-colored dot.
 
 ![Logo review](logo-preview.png)
 
@@ -11,7 +11,7 @@ and 48 px artwork on light and dark surfaces, plus the 22 pt menu-bar template.
 
 ## Source and usage
 
-- Master geometry: `src-tauri/icons/zenith-mark.svg`.
+- Master geometry: `src-tauri/icons/neati-mark.svg`.
 - Authoring palette and exports: `scripts/generate_icons.mjs`.
 - Regenerate: `pnpm icons:generate`. Check committed exports: `pnpm icons:check`.
 - Dock/Finder/installer: full app tile, including `.icns`, `.ico`, and all

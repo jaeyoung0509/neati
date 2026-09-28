@@ -1,4 +1,4 @@
-use crate::models::ZenithSettings;
+use crate::models::NeatiSettings;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -8,17 +8,17 @@ pub fn settings_path(config_dir: &Path) -> PathBuf {
     config_dir.join(SETTINGS_FILE)
 }
 
-pub fn load(config_dir: &Path) -> ZenithSettings {
+pub fn load(config_dir: &Path) -> NeatiSettings {
     let path = settings_path(config_dir);
     if !path.exists() {
-        return ZenithSettings::default().sanitize();
+        return NeatiSettings::default().sanitize();
     }
 
     match fs::read_to_string(&path) {
-        Ok(contents) => match serde_json::from_str::<ZenithSettings>(&contents) {
+        Ok(contents) => match serde_json::from_str::<NeatiSettings>(&contents) {
             Ok(settings) => settings.sanitize(),
             Err(err) => {
-                let defaults = ZenithSettings::default().sanitize();
+                let defaults = NeatiSettings::default().sanitize();
                 backup_and_recover_corrupted_settings(config_dir, &err.to_string(), &defaults);
                 defaults
             }
@@ -28,7 +28,7 @@ pub fn load(config_dir: &Path) -> ZenithSettings {
                 "settings",
                 &format!("Failed to read settings file: {err}"),
             );
-            ZenithSettings::default().sanitize()
+            NeatiSettings::default().sanitize()
         }
     }
 }
@@ -38,7 +38,7 @@ pub const MAX_CORRUPT_BACKUPS: usize = 5;
 fn backup_and_recover_corrupted_settings(
     config_dir: &Path,
     err_msg: &str,
-    defaults: &ZenithSettings,
+    defaults: &NeatiSettings,
 ) {
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -165,10 +165,10 @@ pub fn has_corrupted_backup(config_dir: &Path) -> bool {
     count_corrupted_backups(config_dir) > 0
 }
 
-pub fn save(config_dir: &Path, settings: &ZenithSettings) -> Result<(), String> {
+pub fn save(config_dir: &Path, settings: &NeatiSettings) -> Result<(), String> {
     let path = settings_path(config_dir);
     let contents = serde_json::to_vec_pretty(settings).map_err(|error| error.to_string())?;
-    zenith_platform::file_ops::atomic_write(&path, &contents).map_err(|error| error.to_string())
+    neati_platform::file_ops::atomic_write(&path, &contents).map_err(|error| error.to_string())
 }
 
 #[cfg(test)]
@@ -177,16 +177,16 @@ mod tests {
         count_corrupted_backups, has_corrupted_backup, load, prune_corrupt_backups, save,
         settings_path, MAX_CORRUPT_BACKUPS,
     };
-    use crate::models::{ProviderId, QuickPanelSection, ZenithSettings};
+    use crate::models::{NeatiSettings, ProviderId, QuickPanelSection};
 
     #[test]
     fn settings_round_trip_through_config_directory() {
         let directory = tempfile::tempdir().unwrap();
-        let settings = ZenithSettings {
+        let settings = NeatiSettings {
             quick_panel_sections: vec![QuickPanelSection::AgentActivity],
             quick_panel_ai_providers: vec![ProviderId::OpenCode],
             ai_accounts_quota_providers: vec![ProviderId::Cursor, ProviderId::GrokBuild],
-            ..ZenithSettings::default()
+            ..NeatiSettings::default()
         };
 
         save(directory.path(), &settings).unwrap();
@@ -200,12 +200,12 @@ mod tests {
 
         // First load triggers recovery: moves corrupted to backup and saves default settings.json
         let loaded = load(directory.path());
-        assert_eq!(loaded, ZenithSettings::default());
+        assert_eq!(loaded, NeatiSettings::default());
         assert!(has_corrupted_backup(directory.path()));
 
         // settings.json must now be a valid JSON file on disk
         let disk_contents = std::fs::read_to_string(settings_path(directory.path())).unwrap();
-        let parsed = serde_json::from_str::<ZenithSettings>(&disk_contents);
+        let parsed = serde_json::from_str::<NeatiSettings>(&disk_contents);
         assert!(
             parsed.is_ok(),
             "Recovered settings.json on disk must be valid JSON"
@@ -216,7 +216,7 @@ mod tests {
         assert_eq!(backups_before, 1);
 
         let second_load = load(directory.path());
-        assert_eq!(second_load, ZenithSettings::default());
+        assert_eq!(second_load, NeatiSettings::default());
         assert_eq!(count_corrupted_backups(directory.path()), backups_before);
     }
 

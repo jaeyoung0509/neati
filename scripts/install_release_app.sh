@@ -4,7 +4,7 @@
 # Custom paths and failure injection are intentionally restricted to regression tests.
 set -euo pipefail
 
-readonly expected_bundle_id="com.zenith.desktop"
+readonly expected_bundle_id="com.neati.desktop"
 readonly plist_buddy="/usr/libexec/PlistBuddy"
 readonly script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly repository_root="$(cd "$script_dir/.." && pwd -P)"
@@ -13,8 +13,8 @@ source_app="$repository_root/target/release/bundle/macos/Neati.app"
 applications_dir="/Applications"
 launch_after_install=0
 custom_path_requested=0
-test_mode="${ZENITH_INSTALL_TEST_MODE:-0}"
-test_failpoint="${ZENITH_INSTALL_TEST_FAILPOINT:-}"
+test_mode="${NEATI_INSTALL_TEST_MODE:-0}"
+test_failpoint="${NEATI_INSTALL_TEST_FAILPOINT:-}"
 
 usage() {
   cat <<'USAGE'
@@ -22,7 +22,7 @@ Usage: scripts/install_release_app.sh [--launch]
 
 Installs target/release/bundle/macos/Neati.app as /Applications/Neati.app.
 
-Test-only options (require ZENITH_INSTALL_TEST_MODE=1):
+Test-only options (require NEATI_INSTALL_TEST_MODE=1):
   --source <path>            Source Neati.app fixture
   --applications-dir <path> Destination Applications fixture directory
 USAGE
@@ -63,7 +63,7 @@ while (($# > 0)); do
 done
 
 if ((custom_path_requested)) && [[ "$test_mode" != "1" ]]; then
-  fail "Custom install paths are available only with ZENITH_INSTALL_TEST_MODE=1."
+  fail "Custom install paths are available only with NEATI_INSTALL_TEST_MODE=1."
 fi
 if [[ -n "$test_failpoint" && "$test_mode" != "1" ]]; then
   fail "Failure injection is available only in test mode."
@@ -88,12 +88,6 @@ readonly source_parent="$(cd "$(dirname "$source_app")" && pwd -P)"
 source_app="$source_parent/Neati.app"
 applications_dir="$(cd "$applications_dir" && pwd -P)"
 readonly destination_app="$applications_dir/Neati.app"
-
-# A display rename is not permission to delete or leave duplicate installed apps.
-# The user explicitly moves the legacy bundle aside; data lives outside it.
-if [[ -e "$applications_dir/Zenith.app" || -L "$applications_dir/Zenith.app" ]]; then
-  fail "Move the previous Zenith.app out of Applications before installing Neati. The old app and all settings have been left untouched."
-fi
 
 if [[ "$source_app" == "$destination_app" ]]; then
   fail "Source and installed application paths must be different."
@@ -127,13 +121,13 @@ fi
 
 stage_dir=""
 cleanup_stage() {
-  if [[ -n "$stage_dir" && -d "$stage_dir" && "$stage_dir" == "$applications_dir"/.zenith-install.* ]]; then
+  if [[ -n "$stage_dir" && -d "$stage_dir" && "$stage_dir" == "$applications_dir"/.neati-install.* ]]; then
     rm -rf -- "$stage_dir"
   fi
 }
 trap cleanup_stage EXIT HUP INT TERM
 
-if ! stage_dir="$(mktemp -d "$applications_dir/.zenith-install.XXXXXX")"; then
+if ! stage_dir="$(mktemp -d "$applications_dir/.neati-install.XXXXXX")"; then
   fail "Cannot prepare an install transaction in $applications_dir. Check directory permissions."
 fi
 readonly staged_app="$stage_dir/new.app"

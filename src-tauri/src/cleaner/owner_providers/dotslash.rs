@@ -14,6 +14,12 @@ use crate::models::{
 };
 use crate::safety::owner_lock::OwnerFileLock;
 use crate::safety::{Blacklist, SymlinkGuard, ToctouGuard};
+use neati_core::domain::cleanup::{
+    OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitMeasurer, RunningProcessPolicy,
+    RunningProcessProbe,
+};
+use neati_core::domain::CleanupIdentity;
+use neati_platform::{PlatformEnvironment, TrashBackend};
 use std::fs;
 #[cfg(test)]
 use std::fs::File;
@@ -22,12 +28,6 @@ use std::sync::Arc;
 #[cfg(test)]
 use std::time::{Duration, SystemTime};
 use sysinfo::{ProcessesToUpdate, System};
-use zenith_core::domain::cleanup::{
-    OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitMeasurer, RunningProcessPolicy,
-    RunningProcessProbe,
-};
-use zenith_core::domain::CleanupIdentity;
-use zenith_platform::{PlatformEnvironment, TrashBackend};
 
 const MAX_ARTIFACT_ENTRIES: usize = 100_000;
 const MAX_ARTIFACT_DEPTH: usize = 64;
@@ -290,7 +290,7 @@ impl DotSlashArtifactsProvider {
         }
         let root = observed.root.expect("ready DotSlash observation has root");
         let mut plan = OwnerProviderAuthorization {
-            deletion_disposition: zenith_core::domain::cleanup::DeletionDisposition::Trash,
+            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::Trash,
             signature_id: String::new(),
             provider_id: self.id().into(),
             risk: crate::models::RiskTier::Rebuild,
@@ -472,8 +472,8 @@ impl OwnerScopedProvider for DotSlashArtifactsProvider {
     fn requires_confirmation(&self) -> bool {
         false
     }
-    fn deletion_disposition(&self) -> zenith_core::domain::cleanup::DeletionDisposition {
-        zenith_core::domain::cleanup::DeletionDisposition::Trash
+    fn deletion_disposition(&self) -> neati_core::domain::cleanup::DeletionDisposition {
+        neati_core::domain::cleanup::DeletionDisposition::Trash
     }
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
         let key = unit.unit_key.as_str();
@@ -1156,8 +1156,8 @@ mod tests {
     fn incomplete_measurement_is_visible_but_not_reviewable() {
         struct Partial;
         impl OwnerUnitMeasurer for Partial {
-            fn measure(&self, _path: &Path) -> zenith_core::domain::cleanup::OwnerUnitMeasurement {
-                zenith_core::domain::cleanup::OwnerUnitMeasurement::partial(
+            fn measure(&self, _path: &Path) -> neati_core::domain::cleanup::OwnerUnitMeasurement {
+                neati_core::domain::cleanup::OwnerUnitMeasurement::partial(
                     10,
                     10,
                     1,

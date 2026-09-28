@@ -1,18 +1,18 @@
 //! Explicit, read-only real-machine scan evidence. No cleanup plan or executor.
+use neati_lib::cleaner::{LifecycleProviderRegistry, OwnerProviderRegistry, SysinfoProcessProbe};
+use neati_lib::docker::{ContainerHost, DockerAdapter};
+use neati_lib::models::{CancellationProbe, Category, CleanStrategy, ScanEvent};
+use neati_lib::orbstack::OrbStackAdapter;
+use neati_lib::scanner::engine::scan_gap_kind;
+use neati_lib::scanner::{ScanEngine, SizeCalculatorMeasurement};
+use neati_lib::signatures::SignatureRegistry;
+use neati_platform::PlatformEnvironment;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use std::time::{Duration, Instant};
-use zenith_lib::cleaner::{LifecycleProviderRegistry, OwnerProviderRegistry, SysinfoProcessProbe};
-use zenith_lib::docker::{ContainerHost, DockerAdapter};
-use zenith_lib::models::{CancellationProbe, Category, CleanStrategy, ScanEvent};
-use zenith_lib::orbstack::OrbStackAdapter;
-use zenith_lib::scanner::engine::scan_gap_kind;
-use zenith_lib::scanner::{ScanEngine, SizeCalculatorMeasurement};
-use zenith_lib::signatures::SignatureRegistry;
-use zenith_platform::PlatformEnvironment;
 
 const SCAN_DEADLINE: Duration = Duration::from_secs(180);
 
@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .any(|argument| !allowed.contains(&argument.as_str()))
     {
         return Err(
-            "usage: cargo run -p zenith-desktop --example scan_machine -- --live-read-only [--full-catalog-read-only [--private-ledger]] [--providers-read-only [--providers-cancel-after-first-root]] [--containers-read-only]".into(),
+            "usage: cargo run -p neati-desktop --example scan_machine -- --live-read-only [--full-catalog-read-only [--private-ledger]] [--providers-read-only [--providers-cancel-after-first-root]] [--containers-read-only]".into(),
         );
     }
     // This executable is its own composition root. All platform facts are
@@ -169,7 +169,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "observed_bytes": items.iter().map(|item| item.size.observed_bytes()).sum::<u64>(),
                 "cleanable_bytes": items.iter().map(|item| item.cleanable_bytes()).sum::<u64>(),
                 "selected_bytes": items.iter().filter(|item| item.is_selected).map(|item| item.cleanable_bytes()).sum::<u64>(),
-                "incomplete_items": items.iter().filter(|item| item.quality != zenith_lib::models::ObservationQuality::Fresh).count(),
+                "incomplete_items": items.iter().filter(|item| item.quality != neati_lib::models::ObservationQuality::Fresh).count(),
                 "skipped_entries": items.iter().map(|item| item.skipped_entry_count).sum::<u64>(),
             })
         })
@@ -353,7 +353,7 @@ fn scan_providers(
                 .collect();
             serde_json::json!({
                 "signature_id": signature_id,
-                "tool_detected": zenith_lib::tooling::resolve_with(executable, environment).is_some(),
+                "tool_detected": neati_lib::tooling::resolve_with(executable, environment).is_some(),
                 "root_events": root_events.get(*signature_id).copied().unwrap_or_default(),
                 "items": items.len(),
                 "observed_bytes": items.iter().map(|item| item.size.observed_bytes()).sum::<u64>(),

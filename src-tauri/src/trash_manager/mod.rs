@@ -9,13 +9,13 @@ use crate::models::{
     TrashPlanPreview, TrashResult,
 };
 use crate::safety::{Blacklist, SymlinkGuard};
+use neati_platform::description::PlatformEnvironment;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
-use zenith_platform::description::PlatformEnvironment;
 
 #[derive(Debug, Clone)]
 pub struct TrashTarget {
@@ -279,7 +279,7 @@ impl<'a> ApprovedTrashTarget<'a> {
 /// production call site is [`Self::execute`], which validates each target
 /// immediately before the move.
 pub struct TrashExecutor {
-    backend: Arc<dyn zenith_platform::TrashBackend>,
+    backend: Arc<dyn neati_platform::TrashBackend>,
 }
 
 impl TrashExecutor {
@@ -288,7 +288,7 @@ impl TrashExecutor {
     /// The composition root decides which adapter is in use — the native one in
     /// production, a recording one in a test — and every reviewed-storage
     /// workflow goes through that decision.
-    pub fn new(backend: Arc<dyn zenith_platform::TrashBackend>) -> Self {
+    pub fn new(backend: Arc<dyn neati_platform::TrashBackend>) -> Self {
         Self { backend }
     }
 
@@ -360,7 +360,7 @@ impl TrashExecutor {
                             success: false,
                             // A refused move reads as a generic OS error; when
                             // the policy explains it, the text says so.
-                            message: zenith_platform::environment::describe_access_refusal(
+                            message: neati_platform::environment::describe_access_refusal(
                                 environment,
                                 Path::new(&target.path),
                                 &message,
@@ -624,7 +624,7 @@ fn app_data_root_for_path(environment: &PlatformEnvironment, path: &Path) -> Opt
 fn validate_no_symlink_components(
     path: &Path,
     root: &Path,
-    environment: &zenith_platform::PlatformEnvironment,
+    environment: &neati_platform::PlatformEnvironment,
 ) -> Result<(), String> {
     SymlinkGuard::validate_no_symlink_ancestors(path, root, environment)
         .map_err(|_| "Skipped because the reviewed path contains a symbolic link.".to_string())
@@ -636,7 +636,7 @@ fn is_application_running(path: &Path) -> bool {
     let Ok(canonical) = path.canonicalize() else {
         return true;
     };
-    let canonical = zenith_platform::NativePlatformPaths::normalize_verbatim_path(&canonical);
+    let canonical = neati_platform::NativePlatformPaths::normalize_verbatim_path(&canonical);
     let mut system = System::new_all();
     system.refresh_processes(ProcessesToUpdate::All, true);
     system
@@ -646,7 +646,7 @@ fn is_application_running(path: &Path) -> bool {
         .any(|executable| {
             #[cfg(target_os = "windows")]
             {
-                zenith_platform::NativePlatformPaths::windows_path_starts_with(
+                neati_platform::NativePlatformPaths::windows_path_starts_with(
                     executable, &canonical,
                 )
             }
@@ -668,11 +668,11 @@ fn unix_timestamp() -> u64 {
 mod tests {
     use super::*;
     use crate::models::FileIdentity;
+    use neati_platform::description::KnownFolder;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
     use std::collections::HashMap;
     use std::sync::Arc;
-    use zenith_platform::description::KnownFolder;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
 
     /// A POSIX environment stating exactly the profile the test means.
     fn posix_environment(home: &Path) -> PlatformEnvironment {
@@ -689,7 +689,7 @@ mod tests {
         // The pre-deletion check must report "running" when the bundle cannot
         // be resolved instead of allowing deletion.
         assert!(is_application_running(std::path::Path::new(
-            "/Applications/ZenithMissingApp_12345.app"
+            "/Applications/NeatiMissingApp_12345.app"
         )));
     }
 
@@ -779,9 +779,9 @@ mod tests {
     fn windows_flavor_refuses_app_uninstall_with_a_reason() {
         let environment = PlatformEnvironment::simulated(PathFlavor::Windows).with_home(
             if PathFlavor::Windows.is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let inspection = AppInspectionRecord {
@@ -1060,9 +1060,9 @@ mod tests {
         let mut move_attempts = 0;
         let environment = PlatformEnvironment::simulated(PathFlavor::current())
             .with_home(if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             })
             .with_temp_dir(temp.path());
         let result = TrashExecutor::execute_with(&environment, plan, |_| {
@@ -1131,9 +1131,9 @@ mod tests {
             TrashPlanner::from_developer_artifacts(&inventory, &["artifact".to_string()]).unwrap();
         let environment = PlatformEnvironment::simulated(PathFlavor::current())
             .with_home(if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             })
             .with_temp_dir(temp.path());
         let result = TrashExecutor::execute_with(&environment, plan, |approved| {
@@ -1238,9 +1238,9 @@ mod tests {
         };
         let environment = PlatformEnvironment::simulated(PathFlavor::Posix).with_home(
             if PathFlavor::Posix.is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let mut move_attempts = 0;
@@ -1344,9 +1344,9 @@ mod tests {
         };
         let environment = PlatformEnvironment::simulated(PathFlavor::current())
             .with_home(if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             })
             .with_temp_dir(dir.path());
         let err = validate_target(&environment, &target_item).unwrap_err();
@@ -1532,7 +1532,7 @@ mod tests {
             }],
         };
 
-        let mock_backend = Arc::new(zenith_platform::MockTrashBackend::new());
+        let mock_backend = Arc::new(neati_platform::MockTrashBackend::new());
         let executor = TrashExecutor::new(mock_backend.clone());
         let result = executor.execute(&environment, plan);
         assert_eq!(result.moved_count, 1);

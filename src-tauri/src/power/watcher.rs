@@ -21,7 +21,7 @@
 
 use crate::models::{
     ApplicationIdentity, AwakeAgentId, AwakeBehavior, AwakeRule, AwakeRuleEvaluation,
-    AwakeRuleStatus, AwakeState, PowerCondition, PowerSourceType, ZenithError,
+    AwakeRuleStatus, AwakeState, NeatiError, PowerCondition, PowerSourceType,
 };
 use crate::power::{
     NativeAssertionProvider, PowerAssertion, PowerAssertionProvider, PowerSourceProvider,
@@ -161,7 +161,7 @@ impl KeepAwakeManager {
         &self,
         duration_secs: Option<u64>,
         behavior: AwakeBehavior,
-    ) -> Result<(), ZenithError> {
+    ) -> Result<(), NeatiError> {
         let expires_at = duration_secs.map(|s| {
             SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
@@ -634,7 +634,7 @@ impl KeepAwakeManager {
         reason: &str,
         trigger_name: Option<String>,
         rule_id: Option<String>,
-    ) -> Result<(), ZenithError> {
+    ) -> Result<(), NeatiError> {
         let mut assertion = self
             .active_assertion
             .lock()
@@ -863,10 +863,10 @@ impl KeepAwakeManager {
         // The shared flavor-parameterized rule, so Keep Awake matching cannot
         // drift from the rest of the tree and the Windows semantics are
         // covered by `platform::path_algebra` on every runner.
-        zenith_platform::path_algebra::equal(
+        neati_platform::path_algebra::equal(
             &left.to_string_lossy(),
             &right.to_string_lossy(),
-            zenith_platform::path_algebra::PathFlavor::current(),
+            neati_platform::path_algebra::PathFlavor::current(),
         )
     }
 
@@ -947,9 +947,9 @@ mod tests {
             &self,
             behavior: AwakeBehavior,
             reason: &str,
-        ) -> Result<PowerAssertion, ZenithError> {
+        ) -> Result<PowerAssertion, NeatiError> {
             if self.should_fail.load(Ordering::SeqCst) {
-                Err(ZenithError::Io("Mock assertion acquisition failed".into()))
+                Err(NeatiError::Io("Mock assertion acquisition failed".into()))
             } else {
                 let _ = reason;
                 Ok(PowerAssertion::mock(behavior))

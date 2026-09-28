@@ -1,7 +1,7 @@
-//! Zenith invokes `git` in directories the user did not nominate.
+//! Neati invokes `git` in directories the user did not nominate.
 //!
 //! The project root comes from an observed agent process working directory, so
-//! a repository Zenith did not create can supply `.git/config` and
+//! a repository Neati did not create can supply `.git/config` and
 //! `.gitattributes` for the invocation. Several documented Git keys name a
 //! program Git then runs: `core.fsmonitor` is consulted by `git status`
 //! specifically, and `core.pager`, `core.hooksPath`, `diff.external`,
@@ -17,10 +17,10 @@
 //!   repository's attributes decide what a checkout looks like, so a clean
 //!   checkout reads as clean here exactly as it does in the user's own shell.
 
+use neati_platform::PlatformEnvironment;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
-use zenith_platform::PlatformEnvironment;
 
 fn environment() -> PlatformEnvironment {
     PlatformEnvironment::native()
@@ -161,7 +161,7 @@ fn the_scan_reads_a_windows_shaped_checkout_the_same_way() {
 /// The configuration the constructor carries, read off a real command.
 #[test]
 fn the_constructor_replaces_the_fixed_program_keys_and_keeps_the_users_own_configuration() {
-    let command = zenith_lib::git::git_command(Path::new("/workspace/project"), &environment())
+    let command = neati_lib::git::git_command(Path::new("/workspace/project"), &environment())
         .expect("a directory without a repository is not refused");
     let args = command
         .get_args()
@@ -349,10 +349,10 @@ impl FixedKeyRepository {
     }
 
     fn guarded(&self, args: &[&str]) -> std::process::Output {
-        let mut command = zenith_lib::git::git_command(&self.root, &environment())
+        let mut command = neati_lib::git::git_command(&self.root, &environment())
             .expect("the fixture repository is not refused");
         command.args(args);
-        zenith_platform::subprocess::run_with_timeout(command, Duration::from_secs(10))
+        neati_platform::subprocess::run_with_timeout(command, Duration::from_secs(10))
             .expect("the neutralized invocation completes")
     }
 }
@@ -414,8 +414,8 @@ impl DriverRepository {
         fixture_git(&self.root, args)
     }
 
-    fn refusal(&self) -> zenith_lib::git::GitRefusal {
-        zenith_lib::git::git_command(&self.root, &environment())
+    fn refusal(&self) -> neati_lib::git::GitRefusal {
+        neati_lib::git::git_command(&self.root, &environment())
             .expect_err("a repository that defines a driver program is refused")
     }
 }
@@ -531,7 +531,7 @@ fn a_repository_that_defines_a_filter_program_is_refused_rather_than_read() {
         "the refusal leaked an absolute path: {message}"
     );
 
-    let diff_error = zenith_lib::ai_control_center::git::explicit_diff(
+    let diff_error = neati_lib::ai_control_center::git::explicit_diff(
         &repository.root,
         &environment(),
         None,
@@ -553,7 +553,7 @@ fn an_inspection_is_revalidated_before_each_command_is_built() {
     commit_baseline(&root);
 
     let environment = environment();
-    let inspection = zenith_lib::git::GitInspection::open(&root, &environment);
+    let inspection = neati_lib::git::GitInspection::open(&root, &environment);
     assert!(inspection.refusal().is_none());
 
     fixture_git_or_panic(&root, &["config", "filter.late.clean", "no-such-program"]);
@@ -623,7 +623,7 @@ fn a_common_directory_that_holds_the_configuration_is_probed_through_the_pointer
         .expect("fixture file");
     });
 
-    let message = zenith_lib::git::git_command(&root, &environment())
+    let message = neati_lib::git::git_command(&root, &environment())
         .expect_err("a driver definition behind `commondir` must refuse the repository")
         .message();
     assert!(
@@ -639,7 +639,7 @@ fn a_common_directory_that_holds_info_attributes_is_refused() {
         std::fs::write(common.join("info/attributes"), "* filter=probe\n").expect("fixture file");
     });
 
-    let message = zenith_lib::git::git_command(&root, &environment())
+    let message = neati_lib::git::git_command(&root, &environment())
         .expect_err("an attribute source behind `commondir` must refuse the repository")
         .message();
     assert!(
@@ -677,7 +677,7 @@ fn a_repository_that_carries_info_attributes_is_refused_rather_than_read() {
         "the refusal leaked an absolute path: {message}"
     );
     assert_eq!(
-        zenith_lib::git::git_command(&repository.root, &environment())
+        neati_lib::git::git_command(&repository.root, &environment())
             .expect_err("the constructor must refuse the repository"),
         refusal
     );
@@ -696,7 +696,7 @@ fn undecodable_info_attributes_are_refused_instead_of_treated_as_absent() {
     )
     .expect("fixture file");
 
-    let message = zenith_lib::git::git_command(&root, &environment())
+    let message = neati_lib::git::git_command(&root, &environment())
         .expect_err("an attribute file that cannot be fully inspected must be refused")
         .message();
     assert!(
@@ -787,7 +787,7 @@ impl Checkout {
 
         // A tool that rewrites a file without changing it (an editor save, a
         // formatter, a checkout script) makes Git compare content again. That is
-        // the state in which a checkout whose normalization Zenith cannot see
+        // the state in which a checkout whose normalization Neati cannot see
         // reads as modified, so the fixture touches the file the same way.
         let touched = std::fs::read(root.join("a.txt")).expect("the checked-out file");
         std::fs::write(root.join("a.txt"), &touched).expect("the file is rewritable");
@@ -824,13 +824,12 @@ impl Checkout {
         .to_string()
     }
 
-    fn zenith_status(&self) -> String {
-        let mut command = zenith_lib::git::git_command(&self.root, &environment())
+    fn neati_status(&self) -> String {
+        let mut command = neati_lib::git::git_command(&self.root, &environment())
             .expect("a repository with a clean configuration is not refused");
         command.args(["status", "--porcelain=v1", "-z", "--untracked-files=all"]);
-        let output =
-            zenith_platform::subprocess::run_with_timeout(command, Duration::from_secs(10))
-                .expect("the neutralized invocation completes");
+        let output = neati_platform::subprocess::run_with_timeout(command, Duration::from_secs(10))
+            .expect("the neutralized invocation completes");
         assert!(
             output.status.success(),
             "the neutralized status must succeed: {}",
@@ -841,7 +840,7 @@ impl Checkout {
 }
 
 /// A clean checkout has to read as clean, for the user's own `git status` and
-/// for Zenith's.
+/// for Neati's.
 ///
 /// The attribute-driven cases are the ones a neutralized attribute source broke:
 /// with `attr.tree` pinned to the empty tree, Git compared the raw bytes of a
@@ -850,7 +849,7 @@ impl Checkout {
 /// configuration, and the Windows checkout that failed CI had it set from the
 /// system configuration.
 #[test]
-fn a_clean_checkout_reads_clean_for_the_user_and_for_zenith() {
+fn a_clean_checkout_reads_clean_for_the_user_and_for_neati() {
     let cases: [(&str, Option<&str>, Option<&str>, WorktreeEol); 4] = [
         ("core.autocrlf=true", None, Some("true"), WorktreeEol::Crlf),
         ("core.autocrlf=false", None, Some("false"), WorktreeEol::Lf),
@@ -881,10 +880,10 @@ fn a_clean_checkout_reads_clean_for_the_user_and_for_zenith() {
                 user.is_empty(),
                 "the fixture must be clean for the user's own git ({label}, {kind}): {user:?}"
             );
-            let zenith = checkout.zenith_status();
+            let neati = checkout.neati_status();
             assert!(
-                zenith.is_empty(),
-                "Zenith must report the clean {label} {kind} as clean, but read {zenith:?}"
+                neati.is_empty(),
+                "Neati must report the clean {label} {kind} as clean, but read {neati:?}"
             );
         }
     }

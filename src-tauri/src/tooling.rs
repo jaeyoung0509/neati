@@ -7,14 +7,14 @@ use std::process::Command;
 /// installation locations. Desktop-launched applications can receive a minimal
 /// PATH, so relying on `Command::new("tool")` alone makes installed tools disappear.
 pub fn command(name: &str) -> Command {
-    command_with(name, &zenith_platform::PlatformEnvironment::native())
+    command_with(name, &neati_platform::PlatformEnvironment::native())
 }
 
 /// Environment-aware [`command`].
-pub fn command_with(name: &str, environment: &zenith_platform::PlatformEnvironment) -> Command {
+pub fn command_with(name: &str, environment: &neati_platform::PlatformEnvironment) -> Command {
     let mut command =
         Command::new(resolve_with(name, environment).unwrap_or_else(|| PathBuf::from(name)));
-    zenith_platform::subprocess::configure_background_command(&mut command);
+    neati_platform::subprocess::configure_background_command(&mut command);
     command
 }
 
@@ -68,7 +68,7 @@ fn versioned_install_dirs(versions_dir: &Path, leaf: &str) -> Vec<PathBuf> {
 
 /// Native tool resolution: the PATH and tool roots of the running process.
 pub fn resolve(name: &str) -> Option<PathBuf> {
-    resolve_with(name, &zenith_platform::PlatformEnvironment::native())
+    resolve_with(name, &neati_platform::PlatformEnvironment::native())
 }
 
 /// Environment-aware tool resolution.
@@ -80,7 +80,7 @@ pub fn resolve(name: &str) -> Option<PathBuf> {
 /// search runs only when the environment states nothing for `name`.
 pub fn resolve_with(
     name: &str,
-    environment: &zenith_platform::PlatformEnvironment,
+    environment: &neati_platform::PlatformEnvironment,
 ) -> Option<PathBuf> {
     if let Some(stated) = environment.tool(name) {
         return stated.path().map(Path::to_path_buf);
@@ -103,10 +103,10 @@ pub fn resolve_with(
 /// Directories consulted by [`resolve`], in priority order. Used to report
 /// honest "not detected" diagnostics with the locations that were searched.
 pub fn search_locations() -> Vec<PathBuf> {
-    search_candidates(&zenith_platform::PlatformEnvironment::native())
+    search_candidates(&neati_platform::PlatformEnvironment::native())
 }
 
-fn search_candidates(environment: &zenith_platform::PlatformEnvironment) -> Vec<PathBuf> {
+fn search_candidates(environment: &neati_platform::PlatformEnvironment) -> Vec<PathBuf> {
     // The stated PATH is the primary search path; the OS-owned tool roots below
     // stay host-derived, which is what "fall back to the platform search" means.
     let mut candidates = environment.path_entries().to_vec();
@@ -116,7 +116,7 @@ fn search_candidates(environment: &zenith_platform::PlatformEnvironment) -> Vec<
     // Chocolatey/Scoop shims, WinGet Links, and nvm-windows on Windows. The
     // profile comes from the description, so a stated machine searches its own
     // roots instead of the runner's.
-    candidates.extend(zenith_platform::NativePlatformPaths::tool_search_locations(
+    candidates.extend(neati_platform::NativePlatformPaths::tool_search_locations(
         environment.user_home().as_deref(),
     ));
 
@@ -194,10 +194,10 @@ mod tests {
     use super::is_executable;
     // Used by portable tests as well as the Unix ones, so it must not be
     // gated on `unix`: gating it made the Windows job fail to compile.
+    use neati_platform::PlatformEnvironment;
     use std::fs;
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
-    use zenith_platform::PlatformEnvironment;
 
     #[cfg(unix)]
     #[test]
@@ -218,8 +218,8 @@ mod tests {
 
     #[test]
     fn a_stated_tool_resolution_is_the_authority() {
+        use neati_platform::path_algebra::PathFlavor;
         use std::path::PathBuf;
-        use zenith_platform::path_algebra::PathFlavor;
 
         let stated = if cfg!(windows) {
             PathBuf::from(r"D:\tools\npm.cmd")
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn a_stated_missing_tool_is_never_re_discovered_from_the_host() {
-        use zenith_platform::path_algebra::PathFlavor;
+        use neati_platform::path_algebra::PathFlavor;
 
         // The host resolves this tool; the environment states it is absent.
         assert!(

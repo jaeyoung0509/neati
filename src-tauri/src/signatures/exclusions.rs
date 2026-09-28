@@ -1,9 +1,9 @@
 //! One exclusion contract for discovery, measurement, and execution.
 use super::SignatureLoader;
+use neati_platform::path_algebra::{self, PathFlavor};
+use neati_platform::selector::PathSelector;
+use neati_platform::PlatformEnvironment;
 use std::path::Path;
-use zenith_platform::path_algebra::{self, PathFlavor};
-use zenith_platform::selector::PathSelector;
-use zenith_platform::PlatformEnvironment;
 
 pub fn is_excluded(path: &Path, exclusions: &[String], environment: &PlatformEnvironment) -> bool {
     exclusions.iter().any(|exclusion| {
@@ -53,7 +53,7 @@ fn symbolic(value: &str) -> String {
     }
     if let Some(rest) = value.strip_prefix("${") {
         if let Some((name, tail)) = rest.split_once('}') {
-            return format!("/__zenith_placeholder/{name}{tail}");
+            return format!("/__neati_placeholder/{name}{tail}");
         }
     }
     value
@@ -61,13 +61,13 @@ fn symbolic(value: &str) -> String {
 
 pub(crate) fn validate_reachability(
     signature: &crate::models::Signature,
-) -> Result<(), crate::models::ZenithError> {
+) -> Result<(), crate::models::NeatiError> {
     for exclusion in &signature.exclusions {
         let path_shaped = exclusion.starts_with(['~', '$', '/', '\\'])
             || path_algebra::is_absolute(exclusion, PathFlavor::Windows);
         if !path_shaped {
             if exclusion.is_empty() || exclusion.contains(['/', '\\']) {
-                return Err(crate::models::ZenithError::InvalidPlan(format!(
+                return Err(crate::models::NeatiError::InvalidPlan(format!(
                     "Signature `{}` exclusion `{exclusion}` must be a bare entry name or rooted path",
                     signature.id,
                 )));
@@ -87,7 +87,7 @@ pub(crate) fn validate_reachability(
             reachable_from(&root, &excluded, flavor)
         });
         if !reachable {
-            return Err(crate::models::ZenithError::InvalidPlan(format!(
+            return Err(crate::models::NeatiError::InvalidPlan(format!(
                 "Signature `{}` has unreachable exclusion `{exclusion}`",
                 signature.id,
             )));

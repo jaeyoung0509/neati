@@ -1,11 +1,11 @@
-# Blue ribbon Zenith Z
+# Blue ribbon Neati Z
 
 The user rejected the first handwritten draft and approved the second of three
 supplied ribbon references. This revision follows that reference: two straight
 horizontal bars with rounded ends, one broad diagonal, restrained blue gradients,
 and a cool near-white tile. The earlier handwritten direction is superseded.
 
-`src-tauri/icons/zenith-mark.svg` owns the three filled ribbon paths and their
+`src-tauri/icons/neati-mark.svg` owns the three filled ribbon paths and their
 gradients. `scripts/generate_icons.mjs` places that artwork on the app/compact
 tiles and derives a black-alpha template from the exact same three paths. No
 separate menu-bar drawing is maintained. Window materials and app UI tokens are

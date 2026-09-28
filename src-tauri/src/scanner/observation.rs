@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::models::{CancellationProbe, ScanItem, Signature};
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
 
 /// The bounds one scan runs under.
 ///

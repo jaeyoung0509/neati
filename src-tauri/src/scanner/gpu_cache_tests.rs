@@ -3,16 +3,16 @@ use crate::applications::RunningApplications;
 use crate::cleaner::{CleanExecutor, LifecycleProviderRegistry, OwnerProviderRegistry};
 use crate::models::{
     CleanFailureReason, CleanStatus, CleanStrategy, CleanupEligibility, CleanupMode,
-    CleanupUnitKind, DeletePlan, NeverCancelled, ObservationQuality, RiskTier, ScanItem, Signature,
-    StructuredStatePolicy, ZenithError,
+    CleanupUnitKind, DeletePlan, NeatiError, NeverCancelled, ObservationQuality, RiskTier,
+    ScanItem, Signature, StructuredStatePolicy,
 };
 use crate::safety::SafetyPlanner;
 use crate::signatures::{SignatureLoader, SignatureRegistry};
+use neati_platform::path_algebra::PathFlavor;
+use neati_platform::paths::SimulatedPaths;
+use neati_platform::{MockTrashBackend, PlatformEnvironment};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use zenith_platform::path_algebra::PathFlavor;
-use zenith_platform::paths::SimulatedPaths;
-use zenith_platform::{MockTrashBackend, PlatformEnvironment};
 
 const CACHE_NAMES: [&str; 3] = ["DawnGraphiteCache", "DawnWebGPUCache", "GrShaderCache"];
 const OWNERS: [&str; 3] = ["Codex", "Antigravity", "Cursor"];
@@ -88,7 +88,7 @@ impl Fixture {
         &self,
         items: &[ScanItem],
         processes: &RunningApplications,
-    ) -> Result<DeletePlan, ZenithError> {
+    ) -> Result<DeletePlan, NeatiError> {
         SafetyPlanner::create_plan_with_process_probe(
             items,
             &self.registry,
@@ -102,7 +102,7 @@ impl Fixture {
         &self,
         plan: DeletePlan,
         processes: &RunningApplications,
-        trash: &dyn zenith_platform::TrashBackend,
+        trash: &dyn neati_platform::TrashBackend,
     ) -> crate::models::CleanResult {
         CleanExecutor::execute_with_process_probe(
             plan,
@@ -138,7 +138,7 @@ struct FixtureTrash {
     destination: PathBuf,
 }
 
-impl zenith_platform::TrashBackend for FixtureTrash {
+impl neati_platform::TrashBackend for FixtureTrash {
     fn move_to_trash(&self, path: &Path) -> Result<(), String> {
         if !path.starts_with(&self.source) {
             return Err("fixture Trash must not move real user paths".into());
@@ -149,8 +149,8 @@ impl zenith_platform::TrashBackend for FixtureTrash {
     }
 }
 
-fn assert_refused(result: Result<DeletePlan, ZenithError>, reason: CleanFailureReason) {
-    let Err(ZenithError::RefusedSelection(refusals)) = result else {
+fn assert_refused(result: Result<DeletePlan, NeatiError>, reason: CleanFailureReason) {
+    let Err(NeatiError::RefusedSelection(refusals)) = result else {
         panic!("expected an item-scoped refusal, got {result:?}");
     };
     assert!(!refusals.is_empty());
@@ -508,7 +508,7 @@ fn gpu_windows_paths_resolve_against_relocated_roaming_data() {
     ));
     let signature = registry.get("ai.codex.gpu_cache.windows").unwrap();
     let expanded = SignatureLoader::expand_path(&signature.paths[0], &environment).unwrap();
-    assert!(zenith_platform::path_algebra::equal(
+    assert!(neati_platform::path_algebra::equal(
         &expanded.to_string_lossy(),
         r"D:\Roaming\Codex\{DawnGraphiteCache,DawnWebGPUCache,GrShaderCache}",
         PathFlavor::Windows,

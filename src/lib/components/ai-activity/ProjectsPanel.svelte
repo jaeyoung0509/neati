@@ -118,21 +118,21 @@
 
     <section aria-label="Project activity summary" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <Card class="p-4 bg-card/70">
-        <div class="text-caption text-muted-foreground font-medium uppercase tracking-wider">Verified projects</div>
+        <div class="text-caption text-muted-foreground font-medium tracking-normal">Verified projects</div>
         <div class="mt-1 text-2xl font-bold tabular-nums">{snapshot.projects.length}</div>
       </Card>
       <Card class="p-4 bg-card/70">
-        <div class="text-caption text-muted-foreground font-medium uppercase tracking-wider">Active sessions</div>
+        <div class="text-caption text-muted-foreground font-medium tracking-normal">Active sessions</div>
         <div class="mt-1 text-2xl font-bold tabular-nums text-foreground">{agentActivityStore.activeSessionCount}</div>
       </Card>
       <Card class="p-4 bg-card/70">
-        <div class="text-caption text-muted-foreground font-medium uppercase tracking-wider">Attention needed</div>
+        <div class="text-caption text-muted-foreground font-medium tracking-normal">Attention needed</div>
         <div class="mt-1 text-2xl font-bold tabular-nums {agentActivityStore.attentionSessionCount > 0 ? 'text-destructive' : 'text-foreground'}">
           {agentActivityStore.attentionSessionCount}
         </div>
       </Card>
       <Card class="p-4 bg-card/70">
-        <div class="text-caption text-muted-foreground font-medium uppercase tracking-wider">Snapshot quality</div>
+        <div class="text-caption text-muted-foreground font-medium tracking-normal">Snapshot quality</div>
         <div class="mt-2">
           <Badge variant={snapshot.quality === 'fresh' ? 'success' : 'warning'}>{snapshot.quality}</Badge>
         </div>

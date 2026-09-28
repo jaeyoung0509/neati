@@ -17,7 +17,7 @@
 
 use std::time::{Duration, SystemTime};
 
-use zenith_core::domain::cleanup::{classify_structured_state, EntryKind, PathFacts};
+use neati_core::domain::cleanup::{classify_structured_state, EntryKind, PathFacts};
 
 /// The threshold, as a duration, with the evaluation both callers share.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

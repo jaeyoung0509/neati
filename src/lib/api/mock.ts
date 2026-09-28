@@ -41,8 +41,8 @@ import type {
   ScanItem,
   ScanResult,
   SelectedApplication,
-  ZenithSettings,
-  ZenithSettings_Serialize,
+  NeatiSettings,
+  NeatiSettings_Serialize,
 } from '../models/types';
 import type { nativeApi } from './native';
 import { createDevelopmentPortsMock } from './mocks/developmentPorts';
@@ -51,7 +51,7 @@ import { goldenCapabilitiesByPlatform } from '../models/platformCapabilities';
 import { goldenPlatformContextByPlatform } from '../models/platformContext';
 import { cleanableBytes, isAutoCleanable, isCleanable, observedBytes } from '../utils/cleanup';
 
-type ZenithApi = typeof nativeApi;
+type NeatiApi = typeof nativeApi;
 
 /** Every eligibility state, in the order an aggregate reports its buckets. */
 const ELIGIBILITY_ORDER = [
@@ -303,10 +303,10 @@ function mockControlSnapshot(): AiControlCenterSnapshot {
       })),
     ],
     budget_statuses: [],
-    resources: [{ session_id: 'session-codex-preview', project_id: 'project-zenith-preview', tool_name: 'Codex CLI', cpu_percent: 6.4, memory_bytes: 490733568, process_count: 1, duration_seconds: 1320, open_dev_ports: 1, power_eligible: true, confidence: 'verified', reason: 'Canonical session and project identity matched.', mutable_actions_allowed: true }],
-    recommendations: [{ id: 'recommendation-port-preview', kind: 'development_port', title: 'Review open development port', message: 'A verified project session has an open development listener.', created_at: now, cooldown_until: now + 900, session_id: 'session-codex-preview', project_id: 'project-zenith-preview', action_label: 'Preview', destination: 'development_servers' }],
+    resources: [{ session_id: 'session-codex-preview', project_id: 'project-neati-preview', tool_name: 'Codex CLI', cpu_percent: 6.4, memory_bytes: 490733568, process_count: 1, duration_seconds: 1320, open_dev_ports: 1, power_eligible: true, confidence: 'verified', reason: 'Canonical session and project identity matched.', mutable_actions_allowed: true }],
+    recommendations: [{ id: 'recommendation-port-preview', kind: 'development_port', title: 'Review open development port', message: 'A verified project session has an open development listener.', created_at: now, cooldown_until: now + 900, session_id: 'session-codex-preview', project_id: 'project-neati-preview', action_label: 'Preview', destination: 'development_servers' }],
     safety: { observed_at: now, quality: 'unavailable', findings: [], scanned_files: 0, skipped_files: 0, inspected_roots: [], unreached_roots: [], status_message: 'Run an explicit bounded inspection.' },
-    git_summaries: [{ project_id: 'project-zenith-preview', baseline_head: 'abc1234', current_head: 'abc1234', baseline_at: now - 1200, added: 0, modified: 2, deleted: 0, renamed: 0, untracked: 1, changed_paths: ['src/routes/dashboard/AiControlCenterView.svelte', 'src-tauri/src/ai_control_center/mod.rs'], available: true, status_message: '3 paths changed after the Neati baseline.' }],
+    git_summaries: [{ project_id: 'project-neati-preview', baseline_head: 'abc1234', current_head: 'abc1234', baseline_at: now - 1200, added: 0, modified: 2, deleted: 0, renamed: 0, untracked: 1, changed_paths: ['src/routes/dashboard/AiControlCenterView.svelte', 'src-tauri/src/ai_control_center/mod.rs'], available: true, status_message: '3 paths changed after the Neati baseline.' }],
     audit: [],
     quick_summary: { observed_at: now, active_sessions: 1, budget_alerts: 0, safety_findings: 0, quality: 'fresh' },
     keep_awake_active: false,
@@ -378,11 +378,11 @@ export const mockApi = {
       projects: [
         {
           identity: {
-            id: 'project-zenith-preview',
-            display_name: 'zenith',
+            id: 'project-neati-preview',
+            display_name: 'neati',
             location_hint: 'Myproject/clean1',
             display_path: '~/Myproject/clean1',
-            repository_id: 'repository-zenith-preview',
+            repository_id: 'repository-neati-preview',
             worktree_id: null,
             is_worktree: false,
             branch: 'feature/75-agent-project-cockpit',
@@ -402,7 +402,7 @@ export const mockApi = {
               elapsed_seconds: 1320,
               cpu_percent: 6.4,
               memory_bytes: 468 * 1024 * 1024,
-              project_id: 'project-zenith-preview',
+              project_id: 'project-neati-preview',
               worktree_id: null,
               detail: 'Process observed · detailed status unavailable',
               can_stop: true,
@@ -472,7 +472,7 @@ export const mockApi = {
 
   async getAgentIntegrations(): Promise<AgentIntegrationInfo[]> {
     return [
-      { tool_id: 'antigravity', display_name: 'Antigravity', supported: true, installed: true, integration_active: true, config_path: '~/.gemini/antigravity/hooks.json', description: 'Legacy Zenith marker detected; removal only.' },
+      { tool_id: 'antigravity', display_name: 'Antigravity', supported: true, installed: true, integration_active: true, config_path: '~/.gemini/antigravity/hooks.json', description: 'Legacy Neati marker detected; removal only.' },
       { tool_id: 'claude', display_name: 'Claude Code', supported: true, installed: true, integration_active: false, config_path: '~/.claude/settings.json', description: 'Process-only observation; no verified bridge.' },
       { tool_id: 'cursor', display_name: 'Cursor Agent CLI', supported: true, installed: false, integration_active: false, config_path: '~/.cursor/hooks.json', description: 'Process-only observation; no verified bridge.' },
       { tool_id: 'grok', display_name: 'Grok Build', supported: true, installed: false, integration_active: false, config_path: '~/.grok/hooks.json', description: 'Process-only observation; no verified bridge.' },
@@ -499,7 +499,7 @@ export const mockApi = {
         {
           session_id: 'session-antigravity-preview',
           tool_name: 'Antigravity',
-          project_name: 'zenith',
+          project_name: 'neati',
           status: 'working',
           evidence: 'process_observed',
           elapsed_seconds: 1320,
@@ -705,7 +705,7 @@ export const mockApi = {
     let selectedProviderIds = defaultProviderIds;
     if (typeof localStorage !== 'undefined') {
       try {
-        const saved = JSON.parse(localStorage.getItem('zenith.settings') ?? '{}');
+        const saved = JSON.parse(localStorage.getItem('neati.settings') ?? '{}');
         if (Array.isArray(saved.ai_accounts_quota_providers)) {
           selectedProviderIds = saved.ai_accounts_quota_providers;
         }
@@ -753,7 +753,7 @@ export const mockApi = {
       ...snapshot,
       quality: 'fresh',
       scanned_files: 12,
-      inspected_roots: ['zenith-preview'],
+      inspected_roots: ['neati-preview'],
       unreached_roots: [],
       status_message: 'Bounded inspection complete.',
     };
@@ -820,7 +820,7 @@ export const mockApi = {
             size: { logical: 2.1 * 1024 * 1024 * 1024, allocated: 2.1 * 1024 * 1024 * 1024 },
             file_count: 3200,
             description: 'V8 code cache and GPU shader cache',
-            cache_metadata: { provider: 'Cursor', management_mode: 'zenith', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Cursor', management_mode: 'neati', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             is_selected: true,
             last_modified: null,
             exists: true,
@@ -844,7 +844,7 @@ export const mockApi = {
             size: { logical: 1.1 * 1024 * 1024 * 1024, allocated: 1.1 * 1024 * 1024 * 1024 },
             file_count: 140,
             description: 'Session diagnostic logs',
-            cache_metadata: { provider: 'Claude Code', management_mode: 'zenith', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Claude Code', management_mode: 'neati', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             is_selected: true,
             last_modified: null,
             exists: true,
@@ -882,7 +882,7 @@ export const mockApi = {
             size: { logical: 3.1 * 1024 * 1024 * 1024, allocated: 3.1 * 1024 * 1024 * 1024 },
             file_count: 12000,
             description: 'Compiled packages cache',
-            cache_metadata: { provider: 'Go', management_mode: 'zenith', artifact_kind: 'build_artifact', consequence: 'Packages will compile again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Go', management_mode: 'neati', artifact_kind: 'build_artifact', consequence: 'Packages will compile again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             is_selected: true,
             last_modified: null,
             exists: true,
@@ -906,7 +906,7 @@ export const mockApi = {
             size: { logical: 2.0 * 1024 * 1024 * 1024, allocated: 2.0 * 1024 * 1024 * 1024 },
             file_count: 850,
             description: 'Downloaded crates archive',
-            cache_metadata: { provider: 'Cargo', management_mode: 'zenith', artifact_kind: 'download_cache', consequence: 'Crates will download again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Cargo', management_mode: 'neati', artifact_kind: 'download_cache', consequence: 'Crates will download again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             is_selected: true,
             last_modified: null,
             exists: true,
@@ -939,7 +939,7 @@ export const mockApi = {
           size: { logical: intensiveBytes, allocated: intensiveBytes },
           file_count: 2400,
           description: 'Regenerable third-party application cache',
-          cache_metadata: { provider: 'Neati', management_mode: 'zenith', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'approximate' },
+          cache_metadata: { provider: 'Neati', management_mode: 'neati', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'approximate' },
           disposition: {
             eligibility: 'auto_cleanable',
             cleanable_bytes: intensiveBytes,
@@ -970,7 +970,7 @@ export const mockApi = {
           description: 'Third-party cache inactive for at least 7 days',
           cache_metadata: {
             provider: 'Neati',
-            management_mode: 'zenith',
+            management_mode: 'neati',
             artifact_kind: 'temporary',
             consequence: '',
             size_semantics: 'informational',
@@ -1095,7 +1095,7 @@ export const mockApi = {
             // The listed row carries what the progress event carried: the real
             // scan result states the same facts the streamed item did, and the
             // preview must not be a thinner shape than the backend's.
-            cache_metadata: { provider: 'Cursor', management_mode: 'zenith', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Cursor', management_mode: 'neati', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             unit: { kind: 'fixed_path', root: '~/Library/Caches/Cursor', path: '~/Library/Caches/Cursor' },
             ownership: { owner: 'Cursor', confidence: 'declared' },
             entry_kind: 'directory',
@@ -1120,7 +1120,7 @@ export const mockApi = {
             size: { logical: 1.1 * 1024 * 1024 * 1024, allocated: 1.1 * 1024 * 1024 * 1024 },
             file_count: 140,
             description: 'Session diagnostic logs',
-            cache_metadata: { provider: 'Claude Code', management_mode: 'zenith', artifact_kind: 'log', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Claude Code', management_mode: 'neati', artifact_kind: 'log', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             unit: { kind: 'fixed_path', root: '~/.claude/logs', path: '~/.claude/logs' },
             ownership: { owner: 'Claude Code', confidence: 'declared' },
             entry_kind: 'directory',
@@ -1147,7 +1147,7 @@ export const mockApi = {
             size: { logical: 3.1 * 1024 * 1024 * 1024, allocated: 3.1 * 1024 * 1024 * 1024 },
             file_count: 12000,
             description: 'Compiled packages cache',
-            cache_metadata: { provider: 'Go', management_mode: 'zenith', artifact_kind: 'build_artifact', consequence: 'Packages will compile again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Go', management_mode: 'neati', artifact_kind: 'build_artifact', consequence: 'Packages will compile again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             unit: { kind: 'fixed_path', root: '~/Library/Caches/go-build', path: '~/Library/Caches/go-build' },
             ownership: { owner: 'Go toolchain', confidence: 'declared' },
             entry_kind: 'directory',
@@ -1172,7 +1172,7 @@ export const mockApi = {
             size: { logical: 2.0 * 1024 * 1024 * 1024, allocated: 2.0 * 1024 * 1024 * 1024 },
             file_count: 850,
             description: 'Downloaded crates archive',
-            cache_metadata: { provider: 'Cargo', management_mode: 'zenith', artifact_kind: 'download_cache', consequence: 'Crates will download again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
+            cache_metadata: { provider: 'Cargo', management_mode: 'neati', artifact_kind: 'download_cache', consequence: 'Crates will download again.', size_semantics: 'physical_reclaimable', last_used_confidence: 'unknown' },
             unit: { kind: 'fixed_path', root: '~/.cargo/registry/cache', path: '~/.cargo/registry/cache' },
             ownership: { owner: 'Cargo', confidence: 'declared' },
             entry_kind: 'directory',
@@ -1763,8 +1763,8 @@ export const mockApi = {
     // No-op in browser mock
   },
 
-  async getSettings(): Promise<ZenithSettings_Serialize> {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('zenith.settings') : null;
+  async getSettings(): Promise<NeatiSettings_Serialize> {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('neati.settings') : null;
     if (raw) {
       try {
         return JSON.parse(raw);
@@ -1830,9 +1830,9 @@ export const mockApi = {
     };
   },
 
-  async saveSettings(settings: ZenithSettings): Promise<void> {
+  async saveSettings(settings: NeatiSettings): Promise<void> {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('zenith.settings', JSON.stringify(settings));
+      localStorage.setItem('neati.settings', JSON.stringify(settings));
     }
   },
 
@@ -1844,15 +1844,15 @@ export const mockApi = {
     if (typeof window !== 'undefined') {
       // The browser preview cannot hand a route to a second window, so it
       // records the request and jumps to the dashboard view.
-      if (route) window.sessionStorage?.setItem('zenith.pending-navigation', route);
+      if (route) window.sessionStorage?.setItem('neati.pending-navigation', route);
       window.location.hash = '#dashboard';
     }
   },
 
   async takePendingNavigation(): Promise<DashboardRoute | null> {
     if (typeof window === 'undefined') return null;
-    const route = window.sessionStorage?.getItem('zenith.pending-navigation') ?? null;
-    window.sessionStorage?.removeItem('zenith.pending-navigation');
+    const route = window.sessionStorage?.getItem('neati.pending-navigation') ?? null;
+    window.sessionStorage?.removeItem('neati.pending-navigation');
     return (route as DashboardRoute | null) ?? null;
   },
 
@@ -1876,7 +1876,7 @@ export const mockApi = {
       elevated: false,
       locale: 'en-US',
       log_failure: null,
-      log_path: '~/Library/Logs/Zenith/zenith.log',
+      log_path: '~/Library/Logs/Neati/neati.log',
       enabled_features: [
         'dashboard_tabs: Overview, Storage, Performance, Projects, Docker, LocalModel, DevelopmentServers, Awake',
         'quick_panel_sections: Cleanup, Cpu, Memory, Battery, Storage, AgentActivity, Awake',
@@ -1931,4 +1931,4 @@ export const mockApi = {
   async hideCurrentWindow(): Promise<void> {
     // No-op in browser mock
   },
-} satisfies ZenithApi;
+} satisfies NeatiApi;

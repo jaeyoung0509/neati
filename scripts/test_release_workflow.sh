@@ -3,7 +3,7 @@
 set -euo pipefail
 
 readonly repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/zenith-release-workflow-test.XXXXXX")"
+fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/neati-release-workflow-test.XXXXXX")"
 trap 'rm -rf -- "$fixture_root"' EXIT HUP INT TERM
 
 fail() {
@@ -24,20 +24,20 @@ fi
 mkdir -p "$fixture_root/bin" "$fixture_root/logs"
 cat > "$fixture_root/bin/pnpm" <<'EOF'
 #!/usr/bin/env bash
-printf '%s\n' "$*" >> "$ZENITH_FAKE_PNPM_CALLS"
-if [[ "$ZENITH_FAKE_PNPM_STATUS" == "0" ]]; then
+printf '%s\n' "$*" >> "$NEATI_FAKE_PNPM_CALLS"
+if [[ "$NEATI_FAKE_PNPM_STATUS" == "0" ]]; then
   echo "fixture build succeeded"
 else
   echo "fixture build failed" >&2
 fi
-exit "$ZENITH_FAKE_PNPM_STATUS"
+exit "$NEATI_FAKE_PNPM_STATUS"
 EOF
 chmod +x "$fixture_root/bin/pnpm"
 
-export ZENITH_FAKE_PNPM_CALLS="$fixture_root/calls"
+export NEATI_FAKE_PNPM_CALLS="$fixture_root/calls"
 export PATH="$fixture_root/bin:$PATH"
 export TMPDIR="$fixture_root/logs"
-export ZENITH_FAKE_PNPM_STATUS=17
+export NEATI_FAKE_PNPM_STATUS=17
 build_status=0
 output="$(cd "$repo_root" && ./scripts/tauri_release_build.sh --bundles app 2>&1)" || build_status=$?
 [[ "$build_status" == "17" ]] || fail "a failed app build returned $build_status instead of 17"
@@ -45,11 +45,11 @@ output="$(cd "$repo_root" && ./scripts/tauri_release_build.sh --bundles app 2>&1
 failure_log="${output##*Local build log: }"
 [[ -f "$failure_log" ]] || fail "failed build log was removed"
 grep -q "fixture build failed" "$failure_log" || fail "failed build output was not retained"
-[[ "$(cat "$ZENITH_FAKE_PNPM_CALLS")" == "tauri build --bundles app" ]] || fail "unexpected fake build command"
+[[ "$(cat "$NEATI_FAKE_PNPM_CALLS")" == "tauri build --bundles app" ]] || fail "unexpected fake build command"
 
-export ZENITH_FAKE_PNPM_STATUS=0
+export NEATI_FAKE_PNPM_STATUS=0
 success_output="$(cd "$repo_root" && ./scripts/tauri_release_build.sh --bundles app 2>&1)"
 [[ "$success_output" == *"fixture build succeeded"* ]] || fail "successful build output was lost"
-[[ "$(find "$TMPDIR" -type f -name 'zenith-tauri-build.*' | wc -l | tr -d ' ')" == "1" ]] || fail "successful build retained a log"
+[[ "$(find "$TMPDIR" -type f -name 'neati-tauri-build.*' | wc -l | tr -d ' ')" == "1" ]] || fail "successful build retained a log"
 
 echo "✅ Release recipe and build-log regression tests passed."

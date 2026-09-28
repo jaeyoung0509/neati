@@ -42,7 +42,7 @@ identifier — as *simulated* inputs, not as a real machine's configuration:
 - `a_drive_rooted_fixture_protects_its_system_roots`
 
 The packaging job also proves the per-user installer installs silently, passes
-`Zenith --doctor`, uninstalls silently, and leaves no install directory, and it
+`Neati --doctor`, uninstalls silently, and leaves no install directory, and it
 proves the machine-wide installer packages. See
 [`docs/WINDOWS.md`](WINDOWS.md).
 
@@ -123,7 +123,7 @@ Result:            pass | fail (details, evidence)
 - Junctions, symbolic links, and other reparse points are skipped. Cloud-only
   OneDrive placeholders may therefore be absent; this change does not hydrate or
   traverse them. Use locally available ordinary files for the baseline test.
-- Running as another user/admin selects that process account's profile. Zenith
+- Running as another user/admin selects that process account's profile. Neati
   does not enumerate or clean all accounts on a shared PC.
 
 ## Completed domain adapters (#123)
@@ -145,7 +145,7 @@ they do not replace the manual matrix above for real-machine behavior.
 
 3. **App Uninstaller & Inventory Boundary (#159):**
    - Deleting `Program Files` or trashing Windows directories is prohibited.
-   - `PlatformCapabilities::windows()` explicitly marks `installed_apps` and `app_uninstall` as `Unavailable` with an explanatory reason. Zenith does not fabricate or synthesize unverified applications from folder names or assumed `.exe` locations.
+   - `PlatformCapabilities::windows()` explicitly marks `installed_apps` and `app_uninstall` as `Unavailable` with an explanatory reason. Neati does not fabricate or synthesize unverified applications from folder names or assumed `.exe` locations.
    - Backend commands `get_installed_apps`, `inspect_app_uninstall`, and `prepare_app_uninstall` strictly enforce capability requirements and fail closed on Windows with `PlatformCapabilityError::Unavailable`.
    - `StorageView.svelte` omits the Applications tab when `installed_apps` is unavailable, and `ApplicationsView.svelte` renders an informational banner explaining that application inventory is not supported on Windows.
 
@@ -189,7 +189,7 @@ Microsoft references: [Known Folders](https://learn.microsoft.com/en-us/windows/
 
 ## Reusable aggregate evidence for #224 / #227
 
-`cargo run -p zenith-desktop --example scan_machine -- --live-read-only`
+`cargo run -p neati-desktop --example scan_machine -- --live-read-only`
 records selected TEMP, application-data, packaged-app, browser, and developer
 filesystem signatures through the ordinary scan engine. Save its JSON with the
 exact Windows 11 build, application version, run date, and hardware. It reports

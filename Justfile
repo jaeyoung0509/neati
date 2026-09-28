@@ -124,7 +124,7 @@ test: test-rust test-front test-release-installer
 
 # Run Rust safety invariants & unit tests (the same command CI runs)
 #
-# The workspace is tested as a whole so `zenith-core`'s own suite runs on every
+# The workspace is tested as a whole so `neati-core`'s own suite runs on every
 # platform the desktop crate does, not only where someone remembers to ask.
 test-rust:
     cargo test --workspace
@@ -158,7 +158,7 @@ test-package installer scope="perUser":
 
 # Run the doctor self-check against a binary built from this source tree.
 doctor: ensure-dist
-    cargo run -p zenith-desktop --bin Neati -- --doctor
+    cargo run -p neati-desktop --bin Neati -- --doctor
 
 # Rust format and lint gate (the same command the CI Rust jobs run).
 lint-rust:
@@ -179,8 +179,8 @@ check-rust:
 # not reach the framework. Enforced from the resolved dependency graph rather
 # than by convention.
 check-architecture:
-    cargo check -p zenith-core
-    cargo check -p zenith-platform
+    cargo check -p neati-core
+    cargo check -p neati-platform
     node scripts/check_core_boundaries.cjs
 
 # Check code types & compile check

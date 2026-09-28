@@ -1,6 +1,6 @@
 # GPU cache coverage and the remaining Mole gap
 
-Issue [#314](https://github.com/jaeyoung0509/zenith/issues/314), based on develop
+Issue [#314](https://github.com/jaeyoung0509/neati/issues/314), based on develop
 `7c7a1a8` (v0.3.64), implemented as v0.3.65. The product priority is to close
 verified cleanup coverage gaps against the **installed `mo clean`**, not to
 accumulate signatures or improve a displayed total without an executable action.
@@ -60,8 +60,8 @@ contribution must not be described as a large reclaim or performance gain.
 Installed CLI: `/opt/homebrew/bin/mo`, Homebrew Mole **1.55.0**. The command was
 `mo clean --dry-run` with `MOLE_DRY_RUN=1`, non-interactive, with no sudo request.
 Mole reported system cleanup skipped and completed its preview at **02:09:53
-UTC**, 15 seconds before Zenith's post-change scan began. The raw preview and
-Zenith private ledger stayed outside the repository with owner-only permissions.
+UTC**, 15 seconds before Neati's post-change scan began. The raw preview and
+Neati private ledger stayed outside the repository with owner-only permissions.
 The installed `bin/clean.sh` SHA-256 was
 `5d4c864ed8afaa67216dbff6a41dca9ae44735bcd353a1db8b722c69e4b46d04`;
 no upstream tag was assumed to prove these locally installed bytes.
@@ -73,20 +73,20 @@ not a record of actual removal; neither scan establishes a live disk-free delta.
 | Comparison | Result |
 | --- | ---: |
 | Mole displayed potential | 2.96 GB, 401 entries, 5 categories |
-| Mole listed paths without a Zenith match | 365 |
-| Exact / Zenith ancestor / Zenith descendants matches | 15 / 17 / 4 |
+| Mole listed paths without a Neati match | 365 |
+| Exact / Neati ancestor / Neati descendants matches | 15 / 17 / 4 |
 | Structurally nested preview rows | 2 |
 | Measured allocation of non-nested preview rows | 2,893,717,504 bytes; 1 row unmeasured |
-| Zenith selected bytes | 1,126,576,128 |
+| Neati selected bytes | 1,126,576,128 |
 
 The two nested rows do **not** explain away the discrepancy. The largest groups
 are missing scope or a provider refusal:
 
-| Group | Measured allocated bytes | Current Zenith state | Follow-up |
+| Group | Measured allocated bytes | Current Neati state | Follow-up |
 | --- | ---: | --- | --- |
-| Browser Service Worker CacheStorage | 947,761,152 across 84 rows | Not in the catalog; offline website assets require a distinct owner-backed action, not generic GPU cleanup | [#318](https://github.com/jaeyoung0509/zenith/issues/318) |
-| DotSlash artifacts | 537,231,360 across 2 artifacts | Observed, both blocked by the required owner-lock file being absent | [#316](https://github.com/jaeyoung0509/zenith/issues/316) |
-| Browser component download cache | 181,391,360 across 29 rows | `component_crx_cache` is not in the catalog | [#317](https://github.com/jaeyoung0509/zenith/issues/317) |
+| Browser Service Worker CacheStorage | 947,761,152 across 84 rows | Not in the catalog; offline website assets require a distinct owner-backed action, not generic GPU cleanup | [#318](https://github.com/jaeyoung0509/neati/issues/318) |
+| DotSlash artifacts | 537,231,360 across 2 artifacts | Observed, both blocked by the required owner-lock file being absent | [#316](https://github.com/jaeyoung0509/neati/issues/316) |
+| Browser component download cache | 181,391,360 across 29 rows | `component_crx_cache` is not in the catalog | [#317](https://github.com/jaeyoung0509/neati/issues/317) |
 
 These groups total **1,666,383,872 measured bytes**, not a guaranteed reclaim
 amount. DotSlash is the first implementation priority: a 02:12:22 UTC read-only

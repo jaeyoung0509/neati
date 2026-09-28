@@ -1,7 +1,7 @@
 //! Progress sinks the application services emit into.
 //!
 //! Cleanup and scan events are domain events, so their sinks are defined in
-//! `zenith_core` next to the events themselves. The reviewed-storage and
+//! `neati_core` next to the events themselves. The reviewed-storage and
 //! provider-usage events are desktop DTOs, so their sinks live here.
 //!
 //! A service emits a domain event and stops there; only [`crate::events`]

@@ -11,13 +11,13 @@ use crate::models::{
 use crate::orbstack::OrbStackAdapter;
 use crate::scanner::DirectoryScanner;
 use crate::signatures::SignatureRegistry;
+use neati_core::domain::scan::ScanSpan;
+use neati_core::domain::ScanMetrics;
+use neati_platform::PlatformEnvironment;
 use std::cell::RefCell;
 use std::path::Path;
 use std::time::{Instant, SystemTime};
 use uuid::Uuid;
-use zenith_core::domain::scan::ScanSpan;
-use zenith_core::domain::ScanMetrics;
-use zenith_platform::PlatformEnvironment;
 
 use crate::scanner::relationship::ScanRelationships;
 
@@ -188,7 +188,7 @@ pub fn scan_gap_kind(environment: &PlatformEnvironment, item: &ScanItem) -> Opti
         || lower.contains("operation not permitted")
         || lower.contains("access denied");
     if is_access_refusal
-        && zenith_platform::environment::refusal_may_be_full_disk_access(
+        && neati_platform::environment::refusal_may_be_full_disk_access(
             environment,
             Path::new(&item.path),
         )
@@ -217,7 +217,7 @@ fn apply_verified_cache_owner_state(item: &mut ScanItem, running: Option<bool>) 
 pub(crate) fn apply_signature_owner_state(
     items: &mut [ScanItem],
     signature: &crate::models::Signature,
-    processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
+    processes: &dyn neati_core::domain::cleanup::RunningProcessProbe,
 ) {
     let guard = signature.process_guard();
     if !guard.is_empty() {
@@ -972,11 +972,11 @@ mod tests {
     use crate::scanner::relationship::{same_directory_entry, unit_relationship};
     use crate::scanner::{ScanLimits, TraversalCounters};
     use crate::signatures::SignatureRegistry;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::PlatformEnvironment;
     use std::path::Path;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::PlatformEnvironment;
 
     struct FixedCacheProviders {
         result: CacheProviderScan,
@@ -1016,9 +1016,9 @@ mod tests {
     fn scan_environment() -> PlatformEnvironment {
         PlatformEnvironment::simulated(PathFlavor::current())
             .with_home(if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             })
             .with_missing_tool("docker")
             .with_missing_tool("npm")
@@ -1035,7 +1035,7 @@ mod tests {
         let home = "/Users/fixture";
         let environment = PlatformEnvironment::simulated(PathFlavor::Posix)
             .with_roots(std::sync::Arc::new(
-                zenith_platform::paths::SimulatedPaths::new()
+                neati_platform::paths::SimulatedPaths::new()
                     .with_flavor(PathFlavor::Posix)
                     .with_home(home),
             ))
@@ -1046,7 +1046,7 @@ mod tests {
             "Protected",
             Category::System,
             RiskTier::Safe,
-            zenith_platform::path_algebra::join(
+            neati_platform::path_algebra::join(
                 home,
                 "Library/Containers/com.example/Data/Library/Caches",
                 PathFlavor::Posix,
@@ -1067,7 +1067,7 @@ mod tests {
             Some(ScanGapKind::DepthLimit)
         );
 
-        protected.path = zenith_platform::path_algebra::join(home, "ordinary", PathFlavor::Posix);
+        protected.path = neati_platform::path_algebra::join(home, "ordinary", PathFlavor::Posix);
         protected.incomplete_reason = Some("I/O failure".to_string());
         assert_eq!(
             scan_gap_kind(&environment, &protected),

@@ -2,7 +2,7 @@
 
 This record covers issues #294, #295, #317, and #318. The initial coverage
 observations were read-only. A later user-approved cleanup run exercised the
-normal Zenith plan and execution path against real regenerable caches; the
+normal Neati plan and execution path against real regenerable caches; the
 results and the defect it exposed are recorded below.
 
 ## Implemented contracts
@@ -95,12 +95,12 @@ for this verification and was not installed over the user's existing app.
 - `cargo check`: passed.
 - `cargo test`: passed, including 859 desktop library tests and 101 platform
   tests plus workspace and integration suites.
-- `just check-architecture`: passed for `zenith-core` and `zenith-platform`.
+- `just check-architecture`: passed for `neati-core` and `neati-platform`.
 - `pnpm check`: passed with zero warnings.
 - `pnpm test -- --run`: passed, 407 tests in 42 files.
 - `pnpm build`: passed.
 - `just check-version`: all manifests report 0.3.67.
-- `just build-fast`: passed. The debug `Zenith.app` reports 0.3.67, names
+- `just build-fast`: passed. The debug `Neati.app` reports 0.3.67, names
   `icon.icns`, and its packaged icon SHA-256 matches the source icon.
 
 Windows runtime behavior remains unverified locally and is left to PR CI. No

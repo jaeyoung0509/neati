@@ -1,10 +1,10 @@
 use crate::git::{GitDirectory, GitInspection, GitRefusal};
 use crate::models::GitChangeSummary;
+use neati_platform::PlatformEnvironment;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use zenith_platform::PlatformEnvironment;
 
 #[derive(Debug, Clone, Default)]
 pub struct GitBaselineStore {
@@ -36,7 +36,7 @@ pub(crate) enum GitUnavailable {
     /// The root is not inside a repository: no `.git`, or one that resolves to
     /// nothing.
     NoRepository,
-    /// Zenith refuses to run `git` there, and the reason says why.
+    /// Neati refuses to run `git` there, and the reason says why.
     Refused(GitRefusal),
     /// `git` ran but did not answer: a failure, not an empty state.
     CommandFailed(String),
@@ -95,7 +95,7 @@ pub(crate) struct ReadState {
     head: Option<String>,
     statuses: HashMap<String, String>,
     fingerprints: HashMap<String, String>,
-    /// Whether the working-tree listing reached Zenith's capture cap, so the
+    /// Whether the working-tree listing reached Neati's capture cap, so the
     /// untracked paths are missing from this state.
     untracked_dropped: bool,
 }
@@ -335,7 +335,7 @@ fn read_status(inspection: &GitInspection) -> Result<(HashMap<String, String>, b
     if truncated(&output) {
         return Err(format!(
             "git status answered with more than {} bytes even without the untracked listing, which cannot be read as a complete status",
-            zenith_platform::subprocess::MAX_CAPTURE_BYTES
+            neati_platform::subprocess::MAX_CAPTURE_BYTES
         ));
     }
     Ok((parse_status(output.stdout.as_bytes()), true))
@@ -355,7 +355,7 @@ fn observation_caveat(current: &ReadState, committed_failure: Option<String>) ->
     if current.untracked_dropped {
         notes.push(format!(
             "untracked paths were not listed (the working-tree listing exceeded {} bytes)",
-            zenith_platform::subprocess::MAX_CAPTURE_BYTES
+            neati_platform::subprocess::MAX_CAPTURE_BYTES
         ));
     }
     (!notes.is_empty()).then(|| notes.join("; "))
@@ -364,7 +364,7 @@ fn observation_caveat(current: &ReadState, committed_failure: Option<String>) ->
 /// Whether an answer reached the capture cap, which means it may have been cut
 /// short. A partial listing must not be read as a complete one.
 fn truncated(output: &GitOutput) -> bool {
-    output.stdout.len() >= zenith_platform::subprocess::MAX_CAPTURE_BYTES
+    output.stdout.len() >= neati_platform::subprocess::MAX_CAPTURE_BYTES
 }
 
 fn describe_exit(code: Option<i32>) -> String {
@@ -383,7 +383,7 @@ struct GitOutput {
 fn run_git(inspection: &GitInspection, args: &[&str]) -> Result<GitOutput, String> {
     let mut command = inspection.command().map_err(|refusal| refusal.message())?;
     command.args(args);
-    let output = zenith_platform::subprocess::run_with_timeout(command, COMMAND_TIMEOUT)
+    let output = neati_platform::subprocess::run_with_timeout(command, COMMAND_TIMEOUT)
         .map_err(|error| error.to_string())?;
     Ok(GitOutput {
         // NUL delimiters and path whitespace are preserved for the
@@ -537,7 +537,7 @@ fn committed_entries(
     if truncated(&output) {
         return Err(format!(
             "git diff {base} {head} answered with more than {} bytes, which cannot be read as a complete listing",
-            zenith_platform::subprocess::MAX_CAPTURE_BYTES
+            neati_platform::subprocess::MAX_CAPTURE_BYTES
         ));
     }
     Ok(parse_name_status(output.stdout.as_bytes()))
@@ -635,7 +635,7 @@ fn parse_status(bytes: &[u8]) -> HashMap<String, String> {
 fn run_diff_command(inspection: &GitInspection, args: &[&str]) -> Result<String, String> {
     let mut command = inspection.command().map_err(|refusal| refusal.message())?;
     command.args(args);
-    let output = zenith_platform::subprocess::run_with_timeout(command, COMMAND_TIMEOUT)
+    let output = neati_platform::subprocess::run_with_timeout(command, COMMAND_TIMEOUT)
         .map_err(|error| error.to_string())?;
     if output.status.success() || output.status.code() == Some(1) {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
@@ -646,7 +646,7 @@ fn run_diff_command(inspection: &GitInspection, args: &[&str]) -> Result<String,
 
 /// The explicit diff between the baseline and the working tree.
 ///
-/// A repository Zenith refuses is not an unchanged one: reporting an empty diff
+/// A repository Neati refuses is not an unchanged one: reporting an empty diff
 /// would present unread state as a measurement.
 pub fn explicit_diff(
     root: &Path,
@@ -737,7 +737,7 @@ pub fn fingerprint_path(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zenith_platform::PlatformEnvironment;
+    use neati_platform::PlatformEnvironment;
 
     fn environment() -> PlatformEnvironment {
         PlatformEnvironment::native()
@@ -1092,7 +1092,7 @@ mod tests {
                 .changed_paths
                 .is_empty());
             // A rewrite that keeps the bytes identical is what an editor save
-            // does; the checkout is still clean, for the user and for Zenith.
+            // does; the checkout is still clean, for the user and for Neati.
             let user = std::process::Command::new("git")
                 .arg("-C")
                 .arg(root)

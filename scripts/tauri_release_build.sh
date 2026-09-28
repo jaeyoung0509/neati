@@ -6,7 +6,7 @@
 # the specific local-cache corruption Cargo cannot repair on its own.
 set -uo pipefail
 
-build_log="$(mktemp "${TMPDIR:-/tmp}/zenith-tauri-build.XXXXXX")"
+build_log="$(mktemp "${TMPDIR:-/tmp}/neati-tauri-build.XXXXXX")"
 repair_dir=""
 finish() {
   local build_status=$?
@@ -48,7 +48,7 @@ if [[ "$missing_manifest" != /* || "$(basename "$registry_src_dir")" != "src" ||
   exit "$build_status"
 fi
 
-repair_dir="$(mktemp -d "${TMPDIR:-/tmp}/zenith-cargo-repair.XXXXXX")"
+repair_dir="$(mktemp -d "${TMPDIR:-/tmp}/neati-cargo-repair.XXXXXX")"
 
 echo "Detected an incomplete Cargo source cache at $package_dir. Refreshing only that crate and retrying once..." >&2
 mv "$package_dir" "$repair_dir/"

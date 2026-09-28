@@ -1,9 +1,9 @@
 {
-  "name": "zenith",
+  "name": "neati",
   "private": true,
-  "version": "0.3.73",
+  "version": "0.3.74",
   "license": "MIT",
-  "repository": "https://github.com/jaeyoung0509/zenith",
+  "repository": "https://github.com/jaeyoung0509/neati",
   "type": "module",
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"

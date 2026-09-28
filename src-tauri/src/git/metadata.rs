@@ -1,9 +1,9 @@
-//! Bounded reads of the metadata files a repository pointer makes Zenith read.
+//! Bounded reads of the metadata files a repository pointer makes Neati read.
 
 use crate::safety::symlink::SymlinkGuard;
 use std::path::{Path, PathBuf};
 
-/// Byte cap for the files a repository pointer makes Zenith read: `<root>/.git`
+/// Byte cap for the files a repository pointer makes Neati read: `<root>/.git`
 /// when it is a pointer, the `HEAD` it resolves to, and the attribute file that
 /// is inspected before any invocation. The size is stated before the read,
 /// following the stat-then-cap convention the tree already uses for hashed and

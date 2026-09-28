@@ -102,7 +102,7 @@
     <Card class="p-5">
       <div class="flex items-start justify-between gap-6">
         <div>
-          <p class="text-caption uppercase tracking-wider text-muted-foreground">Primary storage</p>
+          <p class="text-caption tracking-normal text-muted-foreground">Primary storage</p>
           <p class="mt-1 text-sm font-semibold">{primary.name || 'Primary Volume'}</p>
           <p class="mt-0.5 text-caption font-mono text-muted-foreground">{primary.mount_point} · {primary.file_system} · {primary.disk_type}</p>
         </div>

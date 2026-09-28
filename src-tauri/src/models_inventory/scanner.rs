@@ -1,10 +1,10 @@
 use crate::models::{LocalModelInventory, LocalModelItem, ModelSource, ObservationQuality};
 use crate::scanner::SizeCalculator;
 use crate::signatures::SignatureLoader;
+use neati_platform::PlatformEnvironment;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-use zenith_platform::PlatformEnvironment;
 
 const MAX_INCOMPLETE_REASONS: usize = 32;
 
@@ -663,16 +663,16 @@ impl LocalModelScanner {
 mod tests {
     use super::LocalModelScanner;
     use crate::models::ObservationQuality;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::{KnownFolder, PlatformEnvironment};
     use std::path::{Path, PathBuf};
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::{KnownFolder, PlatformEnvironment};
 
     /// A stated POSIX home holding one fixture per supported model source.
     fn fixture_home() -> tempfile::TempDir {
         let home = tempfile::tempdir().unwrap();
         let manifests = home
             .path()
-            .join(".ollama/models/manifests/registry.ollama.ai/library/zenith-env-probe");
+            .join(".ollama/models/manifests/registry.ollama.ai/library/neati-env-probe");
         std::fs::create_dir_all(&manifests).unwrap();
         std::fs::write(
             manifests.join("local"),
@@ -682,15 +682,15 @@ mod tests {
 
         let hf = home
             .path()
-            .join(".cache/huggingface/hub/models--zenith--probe");
+            .join(".cache/huggingface/hub/models--neati--probe");
         std::fs::create_dir_all(&hf).unwrap();
         std::fs::write(hf.join("weights.safetensors"), vec![1u8; 2_048]).unwrap();
 
-        let lm = home.path().join(".cache/lm-studio/models/zenith-gguf");
+        let lm = home.path().join(".cache/lm-studio/models/neati-gguf");
         std::fs::create_dir_all(&lm).unwrap();
         std::fs::write(lm.join("model.gguf"), vec![2u8; 1_024]).unwrap();
 
-        let mlx = home.path().join(".cache/mlx/zenith-mlx");
+        let mlx = home.path().join(".cache/mlx/neati-mlx");
         std::fs::create_dir_all(&mlx).unwrap();
         std::fs::write(mlx.join("weights.npz"), vec![3u8; 512]).unwrap();
 
@@ -707,7 +707,7 @@ mod tests {
 
         let ollama = LocalModelScanner::scan_ollama(&environment);
         assert_eq!(ollama.len(), 1, "the stated home holds one Ollama manifest");
-        assert_eq!(ollama[0].id, "ollama.zenith-env-probe:local");
+        assert_eq!(ollama[0].id, "ollama.neati-env-probe:local");
         assert_eq!(
             ollama[0].size_bytes, 4_608,
             "layer and config sizes come from the manifest"
@@ -716,7 +716,7 @@ mod tests {
 
         let huggingface = LocalModelScanner::scan_huggingface(&environment);
         assert_eq!(huggingface.len(), 1);
-        assert_eq!(huggingface[0].name, "zenith/probe");
+        assert_eq!(huggingface[0].name, "neati/probe");
         // Measured from disk, so the block-rounded allocation is at least the
         // file's logical length; a scanner that reported nothing would fail.
         assert!(
@@ -732,7 +732,7 @@ mod tests {
 
         let mlx = LocalModelScanner::scan_mlx(&environment);
         assert_eq!(mlx.len(), 1);
-        assert_eq!(mlx[0].name, "zenith-mlx");
+        assert_eq!(mlx[0].name, "neati-mlx");
         assert!(
             mlx[0].size_bytes >= 512,
             "mlx weights size: {}",
@@ -784,7 +784,7 @@ mod tests {
     #[test]
     fn missing_roots_yield_no_models_instead_of_host_paths() {
         let environment = PlatformEnvironment::simulated(PathFlavor::Posix)
-            .with_home(Path::new("/nonexistent-zenith-test-home"));
+            .with_home(Path::new("/nonexistent-neati-test-home"));
         assert!(LocalModelScanner::scan_all_models(&environment)
             .items
             .is_empty());

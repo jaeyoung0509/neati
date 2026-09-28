@@ -26,7 +26,7 @@ use crate::models::{
     AgentActivitySnapshot, AgentActivityStatus, AgentIntegrationInfo, AgentIntegrationResult,
     AgentQuickSessionRow, AgentQuickSummary, AiControlCenterSnapshot, AiControlPreferences,
     AiProviderUsage, AiUsageSnapshot, CapabilityAccess, ControlCenterQuickSummary,
-    IngestedAgentEvent, PlatformFeature, RecommendationPreview, SafetySnapshot, ZenithSettings,
+    IngestedAgentEvent, NeatiSettings, PlatformFeature, RecommendationPreview, SafetySnapshot,
 };
 use crate::power::KeepAwakeManager;
 use crate::runtime_metrics::RuntimeMetrics;
@@ -36,7 +36,7 @@ use crate::services::settings_service::{
     SettingsAuthority, SettingsChange, SettingsChangeReaction,
 };
 use crate::services::StorageService;
-use zenith_platform::{PlatformCapabilitiesProvider, PlatformEnvironment};
+use neati_platform::{PlatformCapabilitiesProvider, PlatformEnvironment};
 
 /// Resolves a user root against the environment the process was described by,
 /// never the host's.
@@ -255,7 +255,7 @@ impl AiService {
         let project_id = project_id.to_string();
         crate::blocking::run_blocking(
             move || {
-                use zenith_platform::SystemActionProvider;
+                use neati_platform::SystemActionProvider;
                 // The shared registry lock resolves the id only; the OS
                 // process spawn happens outside it so no snapshot refresh
                 // waits on a spawned terminal (the same direction #136 set
@@ -278,7 +278,7 @@ impl AiService {
                                 .to_string()
                         })?
                 };
-                zenith_platform::NativeSystemActions::new().open_terminal(&root)
+                neati_platform::NativeSystemActions::new().open_terminal(&root)
             },
             "Terminal worker panicked",
         )
@@ -1102,7 +1102,7 @@ impl AiService {
         Ok(())
     }
 
-    /// Removes a provider credential stored by Zenith.
+    /// Removes a provider credential stored by Neati.
     pub async fn delete_provider_credential(
         &self,
         provider: crate::models::ProviderId,
@@ -1113,8 +1113,8 @@ impl AiService {
         crate::blocking::run_blocking(
             move || {
                 // Local disconnect only: the provider key is removed from
-                // Zenith. OpenRouter manages this key with a management
-                // credential that Zenith never holds, so the UI links to the
+                // Neati. OpenRouter manages this key with a management
+                // credential that Neati never holds, so the UI links to the
                 // dashboard for manual deletion rather than claiming a remote
                 // revocation.
                 credentials
@@ -1132,7 +1132,7 @@ impl AiService {
 impl SettingsChangeReaction for AiService {
     fn before_save(
         &self,
-        next: &ZenithSettings,
+        next: &NeatiSettings,
         notifications: &dyn DesktopNotifications,
     ) -> Result<(), String> {
         if next.agent_notifications.enabled {
@@ -1161,11 +1161,11 @@ mod tests {
     use super::*;
     use crate::ai_providers::InMemoryCredentialStore;
     use crate::operation_gate::StorageOperationGate;
-    use zenith_platform::MockTrashBackend;
+    use neati_platform::MockTrashBackend;
 
     struct TestSystemActions;
 
-    impl zenith_platform::SystemActionProvider for TestSystemActions {
+    impl neati_platform::SystemActionProvider for TestSystemActions {
         fn reveal_path(&self, _path: &Path) -> Result<(), String> {
             Ok(())
         }
@@ -1199,7 +1199,7 @@ mod tests {
         let environment = Arc::new(PlatformEnvironment::native());
         let platform_capabilities: Arc<dyn PlatformCapabilitiesProvider> =
             Arc::new(TestCapabilitiesProvider(capabilities));
-        let settings = Arc::new(SettingsAuthority::new(ZenithSettings::default()));
+        let settings = Arc::new(SettingsAuthority::new(NeatiSettings::default()));
         let runtime_metrics = Arc::new(RuntimeMetrics::new());
         let budgets = Arc::new(ExecutionBudgets::new());
         let memory_sampler = Arc::new(MemorySampler::new());
@@ -1314,7 +1314,7 @@ mod tests {
             },
             project_roots: std::iter::once((
                 known_id.clone(),
-                std::env::temp_dir().join("zenith_project_terminal_test"),
+                std::env::temp_dir().join("neati_project_terminal_test"),
             ))
             .collect(),
         });

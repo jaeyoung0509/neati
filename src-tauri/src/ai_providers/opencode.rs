@@ -27,7 +27,7 @@ impl ProviderAdapter for OpenCodeAdapter {
         let mut auth_cmd = tooling::command("opencode");
         auth_cmd.args(["auth", "list"]);
         let auth =
-            match zenith_platform::subprocess::run_with_timeout(auth_cmd, Duration::from_secs(4)) {
+            match neati_platform::subprocess::run_with_timeout(auth_cmd, Duration::from_secs(4)) {
                 Ok(output) => output,
                 Err(error) => {
                     let error_str = error.to_string();
@@ -59,7 +59,7 @@ impl ProviderAdapter for OpenCodeAdapter {
         let mut stats_cmd = tooling::command("opencode");
         stats_cmd.args(["stats", "--days", "7"]);
         if let Ok(output) =
-            zenith_platform::subprocess::run_with_timeout(stats_cmd, Duration::from_secs(4))
+            neati_platform::subprocess::run_with_timeout(stats_cmd, Duration::from_secs(4))
         {
             let stats = strip_ansi(&String::from_utf8_lossy(&output.stdout));
             provider.summary.local_sessions = parse_stat_u64(&stats, "Sessions");

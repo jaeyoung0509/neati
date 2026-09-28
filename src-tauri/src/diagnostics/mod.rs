@@ -1,12 +1,12 @@
-use crate::models::{DiagnosticsSnapshot, ZenithSettings};
+use crate::models::{DiagnosticsSnapshot, NeatiSettings};
+use neati_platform::path_algebra::PathFlavor as PlatformFlavor;
+use neati_platform::PlatformEnvironment;
 use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::SystemTime;
-use zenith_platform::path_algebra::PathFlavor as PlatformFlavor;
-use zenith_platform::PlatformEnvironment;
 
 pub mod doctor;
 
@@ -16,8 +16,8 @@ static LOG_PROBE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 const MAX_LOG_BYTES: u64 = 1_000_000; // 1 MB rotation threshold
 
 /// Directory holding the log file, resolved through the described environment:
-/// Windows `LOCAL_APPDATA/Zenith/Logs`, macOS `~/Library/Logs/Zenith`, other
-/// Unix `~/.local/share/zenith/logs`, and the temporary directory when the
+/// Windows `LOCAL_APPDATA/Neati/Logs`, macOS `~/Library/Logs/Neati`, other
+/// Unix `~/.local/share/neati/logs`, and the temporary directory when the
 /// platform exposes no usable root. The flavor — not the host — selects the
 /// Windows branch, so a redirected `LOCAL_APPDATA` can be simulated anywhere.
 pub fn log_dir(environment: &PlatformEnvironment) -> PathBuf {
@@ -28,37 +28,37 @@ pub fn log_dir(environment: &PlatformEnvironment) -> PathBuf {
         // `expand_placeholder` does, so the Windows branch yields Windows-shaped
         // paths on any runner instead of the host's separator.
         let join = |root: &Path, relative: &str| {
-            PathBuf::from(zenith_platform::path_algebra::normalize(
+            PathBuf::from(neati_platform::path_algebra::normalize(
                 &root.join(relative).to_string_lossy(),
                 PlatformFlavor::Windows,
             ))
         };
         if let Some(local) = environment.local_app_data() {
-            return join(&local, "Zenith/Logs");
+            return join(&local, "Neati/Logs");
         }
         // No stated application-data root: fall back to the profile-relative
         // location Windows would use rather than a POSIX-shaped one.
         if let Some(home) = environment.user_home() {
-            return join(&home, "AppData/Local/Zenith/Logs");
+            return join(&home, "AppData/Local/Neati/Logs");
         }
     } else if let Some(home) = environment.user_home() {
         #[cfg(target_os = "macos")]
         {
-            return home.join("Library/Logs/Zenith");
+            return home.join("Library/Logs/Neati");
         }
         #[cfg(not(target_os = "macos"))]
         {
-            return home.join(".local/share/zenith/logs");
+            return home.join(".local/share/neati/logs");
         }
     }
-    environment.temp_dir().join("zenith_logs")
+    environment.temp_dir().join("neati_logs")
 }
 
 /// Log file of the running process. The global log sink always follows the real
 /// environment; `--doctor` and the environment-aware entry points take the
 /// environment explicitly.
 pub fn log_file_path() -> PathBuf {
-    log_dir(&PlatformEnvironment::native()).join("zenith.log")
+    log_dir(&PlatformEnvironment::native()).join("neati.log")
 }
 
 /// Redacts known credential shapes and masks absolute paths from log messages.
@@ -108,7 +108,7 @@ fn record_log_failure(reason: impl Into<String>) {
 /// the one place a user cannot be told about a refusal otherwise.
 fn record_log_failure_in(dir: &Path, reason: impl Into<String>) {
     let reason = reason.into();
-    record_log_failure(zenith_platform::environment::describe_access_refusal(
+    record_log_failure(neati_platform::environment::describe_access_refusal(
         &PlatformEnvironment::native(),
         dir,
         &reason,
@@ -146,9 +146,9 @@ fn write_log_line(dir: &Path, category: &str, message: &str, restrict: RestrictP
     // Best effort for the directory; the files below are fail-closed.
     let _ = restrict(dir, 0o700);
 
-    let file_path = dir.join("zenith.log");
+    let file_path = dir.join("neati.log");
     // Repair every log file before anything is written. Rotation only rewrites
-    // `zenith.log`, so a `0644` `zenith.log.1` created by an older Zenith would
+    // `neati.log`, so a `0644` `neati.log.1` created by an older Neati would
     // otherwise stay readable until the next rotation, possibly for months. A
     // failure means a log is not known to be owner-only, so the line is dropped
     // rather than written insecurely.
@@ -299,7 +299,7 @@ fn show_native_error_dialog(title: &str, detail: &str) {
         let mut cmd = std::process::Command::new("osascript");
         cmd.args(["-e", &script]);
         let _ =
-            zenith_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(30));
+            neati_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(30));
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
@@ -341,7 +341,7 @@ fn probe_log_writability_with(dir: &Path, write_probe: ProbeWrite) -> Result<(),
             .map_err(|error| format!("the temporary log directory could not be removed: {error}"))
     };
 
-    let file_path = dir.join("zenith.log");
+    let file_path = dir.join("neati.log");
     let file_exists = match fs::symlink_metadata(&file_path) {
         Ok(_) => true,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
@@ -362,7 +362,7 @@ fn probe_log_writability_with(dir: &Path, write_probe: ProbeWrite) -> Result<(),
     if file_exists {
         // Verify that the real log can be opened, but never append the probe to
         // it. Restoring by truncating to an earlier length could discard lines
-        // written concurrently by a running Zenith process.
+        // written concurrently by a running Neati process.
         if let Err(error) = OpenOptions::new().append(true).open(&file_path) {
             return Err(format!(
                 "the log file could not be opened for writing: {error}"
@@ -374,7 +374,7 @@ fn probe_log_writability_with(dir: &Path, write_probe: ProbeWrite) -> Result<(),
     // system without changing the user's log. A unique, create-only path makes
     // cleanup safe even when multiple doctor processes run at once.
     let probe_path = dir.join(format!(
-        ".zenith-write-probe-{}-{}",
+        ".neati-write-probe-{}-{}",
         std::process::id(),
         LOG_PROBE_SEQUENCE.fetch_add(1, Ordering::Relaxed)
     ));
@@ -422,7 +422,7 @@ fn probe_log_writability_with(dir: &Path, write_probe: ProbeWrite) -> Result<(),
 /// through it would reach a file outside the log directory, and the log would
 /// be redirected by whoever created the link.
 fn repair_log_permissions(dir: &Path, restrict: RestrictPermissions) -> std::io::Result<()> {
-    for name in ["zenith.log", "zenith.log.1"] {
+    for name in ["neati.log", "neati.log.1"] {
         let path = dir.join(name);
         match fs::symlink_metadata(&path) {
             Ok(metadata) => {
@@ -445,7 +445,7 @@ fn repair_log_permissions(dir: &Path, restrict: RestrictPermissions) -> std::io:
     Ok(())
 }
 
-/// Rotates the log into `zenith.log.1` once it exceeds the threshold.
+/// Rotates the log into `neati.log.1` once it exceeds the threshold.
 ///
 /// Both files were repaired to `0600` before this runs, and a rename inside one
 /// directory preserves the mode, so a world-readable legacy log can never
@@ -459,7 +459,7 @@ fn rotate_log_if_needed(dir: &Path, file_path: &Path) -> std::io::Result<()> {
         return Ok(());
     }
 
-    let backup = dir.join("zenith.log.1");
+    let backup = dir.join("neati.log.1");
     // Rotation is best effort: the log itself was just made owner-only, so
     // appending to it stays safe even when the rename is refused.
     let _ = fs::rename(file_path, &backup);
@@ -496,12 +496,12 @@ pub fn normalized_log_path() -> String {
 
 /// Environment-aware [`normalized_log_path`].
 pub fn normalized_log_path_of(environment: &PlatformEnvironment) -> String {
-    display_log_path(environment, &log_dir(environment).join("zenith.log"))
+    display_log_path(environment, &log_dir(environment).join("neati.log"))
 }
 
 /// Display form of the directory holding the current log file, with the
 /// profile masked. The interface shows this instead of a platform-specific
-/// literal such as `~/Library/Logs/Zenith`, which is wrong off macOS.
+/// literal such as `~/Library/Logs/Neati`, which is wrong off macOS.
 pub fn log_directory_display() -> String {
     log_directory_display_of(&PlatformEnvironment::native())
 }
@@ -517,7 +517,7 @@ fn display_log_path(environment: &PlatformEnvironment, path: &Path) -> String {
     crate::privacy::paths::display_path_with_home(path, environment.user_home().as_deref())
 }
 
-pub fn get_snapshot(settings: &ZenithSettings, config_dir: &Path) -> DiagnosticsSnapshot {
+pub fn get_snapshot(settings: &NeatiSettings, config_dir: &Path) -> DiagnosticsSnapshot {
     let mut features = Vec::new();
 
     features.push(format!(
@@ -549,7 +549,7 @@ pub fn get_snapshot(settings: &ZenithSettings, config_dir: &Path) -> Diagnostics
         settings.awake_rules.iter().filter(|r| r.enabled).count()
     ));
 
-    let environment = zenith_platform::environment::current();
+    let environment = neati_platform::environment::current();
     features.extend(environment.diagnostics_lines());
     let os_version = environment.os_version_label();
 
@@ -575,16 +575,16 @@ pub fn open_logs_folder() -> Result<(), String> {
     let dir = log_dir(&PlatformEnvironment::native());
     fs::create_dir_all(&dir).map_err(|e| format!("Failed to create log directory: {e}"))?;
 
-    use zenith_platform::SystemActionProvider;
-    zenith_platform::NativeSystemActions::new().open_folder(&dir)
+    use neati_platform::SystemActionProvider;
+    neati_platform::NativeSystemActions::new().open_folder(&dir)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
     use std::sync::Arc;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
 
     /// Builds the `"key": "value"` JSON pair at runtime, so the fixture source
     /// carries no complete credential assignment for the safety scanner.
@@ -674,7 +674,7 @@ mod tests {
     #[test]
     fn diagnostics_snapshot_contains_system_info_and_normalized_path() {
         let dir = tempfile::tempdir().unwrap();
-        let settings = ZenithSettings::default();
+        let settings = NeatiSettings::default();
         let snapshot = get_snapshot(&settings, dir.path());
         assert_eq!(snapshot.app_version, env!("CARGO_PKG_VERSION"));
         assert!(!snapshot.arch.is_empty());
@@ -705,7 +705,7 @@ mod tests {
             normalized.starts_with("~/"),
             "Expected a profile-masked log path, got {normalized}"
         );
-        assert!(normalized.ends_with("zenith.log"), "{normalized}");
+        assert!(normalized.ends_with("neati.log"), "{normalized}");
         assert!(!normalized.contains("/home/tester"), "{normalized}");
     }
 
@@ -721,7 +721,7 @@ mod tests {
         ));
         assert_eq!(
             log_dir(&windows),
-            PathBuf::from(r"D:\AppData\Local\Zenith\Logs")
+            PathBuf::from(r"D:\AppData\Local\Neati\Logs")
         );
         assert_eq!(
             log_directory_display_of(&windows),
@@ -739,11 +739,11 @@ mod tests {
         ));
         assert_eq!(
             log_dir(&in_profile),
-            PathBuf::from(r"D:\Users\me\AppData\Local\Zenith\Logs")
+            PathBuf::from(r"D:\Users\me\AppData\Local\Neati\Logs")
         );
         assert_eq!(
             log_directory_display_of(&in_profile),
-            "~/AppData/Local/Zenith/Logs"
+            "~/AppData/Local/Neati/Logs"
         );
 
         // A Windows environment with no stated application data still resolves
@@ -752,7 +752,7 @@ mod tests {
             PlatformEnvironment::simulated(PathFlavor::Windows).with_home(r"D:\Users\me");
         assert_eq!(
             log_dir(&windows_without_appdata),
-            PathBuf::from(r"D:\Users\me\AppData\Local\Zenith\Logs")
+            PathBuf::from(r"D:\Users\me\AppData\Local\Neati\Logs")
         );
 
         // Posix: the profile location, then the temporary directory.
@@ -760,12 +760,12 @@ mod tests {
         #[cfg(target_os = "macos")]
         assert_eq!(
             log_dir(&posix),
-            PathBuf::from("/home/tester/Library/Logs/Zenith")
+            PathBuf::from("/home/tester/Library/Logs/Neati")
         );
         #[cfg(not(target_os = "macos"))]
         assert_eq!(
             log_dir(&posix),
-            PathBuf::from("/home/tester/.local/share/zenith/logs")
+            PathBuf::from("/home/tester/.local/share/neati/logs")
         );
 
         let flavor = PathFlavor::Posix;
@@ -775,7 +775,7 @@ mod tests {
                 .with_flavor(flavor)
                 .with_temp_dir(&temp),
         ));
-        assert_eq!(log_dir(&no_home), temp.join("zenith_logs"));
+        assert_eq!(log_dir(&no_home), temp.join("neati_logs"));
     }
 
     #[test]
@@ -853,7 +853,7 @@ mod tests {
     #[test]
     fn a_log_write_failure_is_recorded_instead_of_being_silent() {
         let dir = tempfile::tempdir().unwrap();
-        let log = dir.path().join("zenith.log");
+        let log = dir.path().join("neati.log");
         std::fs::write(&log, b"line\n").unwrap();
 
         write_log_line(dir.path(), "test", "must be dropped", refuse_permissions);
@@ -879,7 +879,7 @@ mod tests {
 
         // A directory that already exists keeps its contents.
         std::fs::create_dir_all(&logs).unwrap();
-        let existing = logs.join("zenith.log");
+        let existing = logs.join("neati.log");
         std::fs::write(&existing, b"previous line\n").unwrap();
         assert!(probe_log_writability(&logs).is_ok());
         assert_eq!(
@@ -915,7 +915,7 @@ mod tests {
         std::fs::create_dir(&logs).unwrap();
         let outside = dir.path().join("outside.log");
         std::fs::write(&outside, b"outside\n").unwrap();
-        let log = logs.join("zenith.log");
+        let log = logs.join("neati.log");
         std::os::unix::fs::symlink(&outside, &log).unwrap();
 
         assert!(probe_log_writability(&logs).is_err());
@@ -945,27 +945,27 @@ mod tests {
     fn owner_only_permissions_are_applied() {
         use std::os::unix::fs::PermissionsExt;
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("zenith.log");
+        let path = dir.path().join("neati.log");
         std::fs::write(&path, b"line").unwrap();
         restrict_permissions(&path, 0o600).unwrap();
         let mode = std::fs::metadata(&path).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600);
     }
 
-    /// A log created by an older Zenith is world readable. Rotation must repair
+    /// A log created by an older Neati is world readable. Rotation must repair
     /// it before the rename, so neither the fresh log nor its backup is left
     /// readable by other users.
     #[cfg(unix)]
     #[test]
     fn a_legacy_world_readable_log_is_repaired_before_rotation() {
         let dir = tempfile::tempdir().unwrap();
-        let log = dir.path().join("zenith.log");
+        let log = dir.path().join("neati.log");
         grow_to_rotation_threshold(&log, 0o644);
         assert_eq!(mode_of(&log), 0o644, "fixture must start world readable");
 
         write_log_line(dir.path(), "test", "rotation fixture", restrict_permissions);
 
-        let backup = dir.path().join("zenith.log.1");
+        let backup = dir.path().join("neati.log.1");
         assert_eq!(mode_of(&log), 0o600, "the fresh log must be owner-only");
         assert_eq!(
             mode_of(&backup),
@@ -989,15 +989,15 @@ mod tests {
         assert_eq!(mode_of(&backup), 0o600);
     }
 
-    /// A backup written by an older Zenith stays `0644` until the next
+    /// A backup written by an older Neati stays `0644` until the next
     /// rotation, which may be months away. Every write repairs it instead.
     #[cfg(unix)]
     #[test]
     fn a_legacy_world_readable_backup_is_repaired_on_the_next_write() {
         use std::os::unix::fs::PermissionsExt;
         let dir = tempfile::tempdir().unwrap();
-        let log = dir.path().join("zenith.log");
-        let backup = dir.path().join("zenith.log.1");
+        let log = dir.path().join("neati.log");
+        let backup = dir.path().join("neati.log.1");
         std::fs::write(&log, b"current log\n").unwrap();
         std::fs::write(&backup, b"legacy rotated log\n").unwrap();
         std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o600)).unwrap();
@@ -1030,7 +1030,7 @@ mod tests {
         let target = dir.path().join("elsewhere.log");
         std::fs::write(&target, b"outside\n").unwrap();
         std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o644)).unwrap();
-        std::os::unix::fs::symlink(&target, dir.path().join("zenith.log")).unwrap();
+        std::os::unix::fs::symlink(&target, dir.path().join("neati.log")).unwrap();
 
         write_log_line(
             dir.path(),
@@ -1050,7 +1050,7 @@ mod tests {
     #[test]
     fn a_non_file_log_path_is_refused_without_being_modified() {
         let dir = tempfile::tempdir().unwrap();
-        let log = dir.path().join("zenith.log");
+        let log = dir.path().join("neati.log");
         std::fs::create_dir(&log).unwrap();
 
         #[cfg(unix)]
@@ -1069,7 +1069,7 @@ mod tests {
     #[test]
     fn a_failed_permission_repair_never_rotates_or_writes() {
         let dir = tempfile::tempdir().unwrap();
-        let log = dir.path().join("zenith.log");
+        let log = dir.path().join("neati.log");
         std::fs::write(&log, b"legacy line").unwrap();
         let before = std::fs::metadata(&log).unwrap().len();
 
@@ -1087,7 +1087,7 @@ mod tests {
             "the log must not grow when its mode cannot be repaired"
         );
         assert!(
-            !dir.path().join("zenith.log.1").exists(),
+            !dir.path().join("neati.log.1").exists(),
             "no backup may be produced from a log whose mode is unknown"
         );
     }
@@ -1097,21 +1097,21 @@ mod tests {
     fn rotation_is_not_triggered_below_the_threshold() {
         use std::os::unix::fs::PermissionsExt;
         let dir = tempfile::tempdir().unwrap();
-        let log = dir.path().join("zenith.log");
+        let log = dir.path().join("neati.log");
         std::fs::write(&log, b"small log").unwrap();
         std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o644)).unwrap();
 
         write_log_line(dir.path(), "test", "below threshold", restrict_permissions);
 
         assert!(
-            !dir.path().join("zenith.log.1").exists(),
+            !dir.path().join("neati.log.1").exists(),
             "a log under the threshold must not be rotated"
         );
         assert_eq!(mode_of(&log), 0o600);
     }
 
     /// Creates an oversized log with an explicit mode, standing in for a file
-    /// written by an older Zenith release.
+    /// written by an older Neati release.
     #[cfg(unix)]
     fn grow_to_rotation_threshold(path: &Path, mode: u32) {
         use std::os::unix::fs::PermissionsExt;

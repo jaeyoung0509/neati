@@ -8,7 +8,7 @@ import type {
   ScanDiscovery,
   ScanItem,
   ScanResult,
-  ZenithSettings,
+  NeatiSettings,
 } from '../models/types';
 import { CleanupRefusalError } from '../api/native';
 import {
@@ -427,7 +427,7 @@ export class ScanStore {
     }
   }
 
-  quickCleanCategoryEnabled(category: Category, settings: ZenithSettings): boolean {
+  quickCleanCategoryEnabled(category: Category, settings: NeatiSettings): boolean {
     switch (category) {
       case 'ai':
         return settings.clean_ai_tools;
@@ -444,13 +444,13 @@ export class ScanStore {
     }
   }
 
-  isQuickCleanEligible(category: Category, item: ScanItem, settings: ZenithSettings): boolean {
+  isQuickCleanEligible(category: Category, item: ScanItem, settings: NeatiSettings): boolean {
     return isAutoCleanable(item)
       && cleanableBytes(item) > 0
       && this.quickCleanCategoryEnabled(category, settings);
   }
 
-  quickCleanableBytes(settings: ZenithSettings): number {
+  quickCleanableBytes(settings: NeatiSettings): number {
     if (!this.lastScan || this.lastScan.quality === 'unavailable') return 0;
     let total = 0;
     for (const category of this.lastScan.categories) {
@@ -472,7 +472,7 @@ export class ScanStore {
     }
   }
 
-  selectQuickCleanDefaults(settings: ZenithSettings) {
+  selectQuickCleanDefaults(settings: NeatiSettings) {
     if (!this.lastScan || this.lastScan.quality === 'unavailable') return;
     const next: Record<string, boolean> = {};
     for (const category of this.lastScan.categories) {

@@ -12,15 +12,15 @@ use crate::models::{
     ProviderStatus,
 };
 use crate::safety::ToctouGuard;
+use neati_core::domain::cleanup::{
+    OwnerProviderAuthorization, OwnerProviderExecution, RunningProcessPolicy, RunningProcessProbe,
+};
+use neati_platform::PlatformEnvironment;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
-use zenith_core::domain::cleanup::{
-    OwnerProviderAuthorization, OwnerProviderExecution, RunningProcessPolicy, RunningProcessProbe,
-};
-use zenith_platform::PlatformEnvironment;
 
 const PREVIEW_TIMEOUT: Duration = Duration::from_secs(30);
 const CLEANUP_TIMEOUT: Duration = Duration::from_secs(120);
@@ -82,14 +82,14 @@ impl NativeBrewCommandRunner {
         command.env("HOMEBREW_NO_COLOR", "1");
         command.env("HOMEBREW_NO_ENV_HINTS", "1");
         command.env("NO_COLOR", "1");
-        zenith_platform::subprocess::configure_background_command(&mut command);
+        neati_platform::subprocess::configure_background_command(&mut command);
         command
     }
 
     fn version(executable: &Path) -> Result<String, String> {
         let mut command = Command::new(executable);
         command.arg("--version");
-        zenith_platform::subprocess::configure_background_command(&mut command);
+        neati_platform::subprocess::configure_background_command(&mut command);
         let output = Self::run(command, Duration::from_secs(5))?;
         if !output.status.success() {
             return Err("Homebrew version probe failed".into());
@@ -106,7 +106,7 @@ impl NativeBrewCommandRunner {
     fn prefix(executable: &Path) -> Result<PathBuf, String> {
         let mut command = Command::new(executable);
         command.arg("--prefix");
-        zenith_platform::subprocess::configure_background_command(&mut command);
+        neati_platform::subprocess::configure_background_command(&mut command);
         let output = Self::run(command, Duration::from_secs(5))?;
         if !output.status.success() {
             return Err("Homebrew prefix probe failed".into());
@@ -122,7 +122,7 @@ impl NativeBrewCommandRunner {
     }
 
     fn run(command: Command, timeout: Duration) -> Result<std::process::Output, String> {
-        zenith_platform::subprocess::run_with_timeout(command, timeout)
+        neati_platform::subprocess::run_with_timeout(command, timeout)
             .map_err(|error| format!("Homebrew command failed to run: {error}"))
     }
 }
@@ -246,8 +246,7 @@ impl HomebrewCleanupProvider {
         }
         let root = observation.root.expect("ready Homebrew preview has a root");
         let mut plan = OwnerProviderAuthorization {
-            deletion_disposition:
-                zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: String::new(),
             provider_id: self.id().into(),
             risk: crate::models::RiskTier::Rebuild,

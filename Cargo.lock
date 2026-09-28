@@ -2292,6 +2292,69 @@ dependencies = [
 ]
 
 [[package]]
+name = "neati-core"
+version = "0.3.74"
+dependencies = [
+ "serde",
+ "serde_json",
+ "specta",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
+name = "neati-desktop"
+version = "0.3.74"
+dependencies = [
+ "base64 0.23.1",
+ "libc",
+ "neati-core",
+ "neati-platform",
+ "objc2",
+ "objc2-app-kit",
+ "plist",
+ "rayon",
+ "regex",
+ "reqwest 0.12.28",
+ "rfd",
+ "security-framework",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "specta",
+ "specta-typescript",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-notification",
+ "tauri-plugin-single-instance",
+ "tauri-specta",
+ "tempfile",
+ "tokio",
+ "toml 1.1.6+spec-1.1.0",
+ "unicode-normalization",
+ "url",
+ "uuid",
+ "walkdir",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "neati-platform"
+version = "0.3.74"
+dependencies = [
+ "libc",
+ "neati-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "trash",
+ "uuid",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5908,69 +5971,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d1afec51604565183aeb5c54c20aeab286120d4e4460f7f76e3e8bb8c0d99473"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "zenith-core"
-version = "0.3.73"
-dependencies = [
- "serde",
- "serde_json",
- "specta",
- "tempfile",
- "uuid",
-]
-
-[[package]]
-name = "zenith-desktop"
-version = "0.3.73"
-dependencies = [
- "base64 0.23.1",
- "libc",
- "objc2",
- "objc2-app-kit",
- "plist",
- "rayon",
- "regex",
- "reqwest 0.12.28",
- "rfd",
- "security-framework",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "specta",
- "specta-typescript",
- "sysinfo",
- "tauri",
- "tauri-build",
- "tauri-plugin-notification",
- "tauri-plugin-single-instance",
- "tauri-specta",
- "tempfile",
- "tokio",
- "toml 1.1.6+spec-1.1.0",
- "unicode-normalization",
- "url",
- "uuid",
- "walkdir",
- "windows-sys 0.61.2",
- "zenith-core",
- "zenith-platform",
-]
-
-[[package]]
-name = "zenith-platform"
-version = "0.3.73"
-dependencies = [
- "libc",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "trash",
- "uuid",
- "windows-sys 0.61.2",
- "zenith-core",
 ]
 
 [[package]]

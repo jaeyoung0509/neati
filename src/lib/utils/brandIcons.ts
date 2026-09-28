@@ -59,7 +59,7 @@ import ollamaAsset from '../assets/brands/ollama.svg?url&no-inline';
 import opencodeAsset from '../assets/brands/opencode.svg?url&no-inline';
 import viteAsset from '../assets/brands/vite.svg?url&no-inline';
 import vscodeAsset from '../assets/brands/vscode.png?url&no-inline';
-import zenithAsset from '../assets/brands/zenith.svg?url&no-inline';
+import neatiAsset from '../assets/brands/neati.svg?url&no-inline';
 
 /**
  * Canonical identity ids: the AI provider ids Neati already uses
@@ -86,7 +86,7 @@ export type BrandIdentity =
   | 'ollama'
   | 'vite'
   | 'vscode'
-  | 'zenith';
+  | 'neati';
 
 /** Names of the neutral glyphs a resolved-but-unbundled identity renders. */
 export type BrandFallbackGlyph =
@@ -339,14 +339,14 @@ export const BRAND_IDENTITIES: Record<BrandIdentity, BrandIdentityRecord> = {
     },
     unresolvedReason: null,
   },
-  zenith: {
+  neati: {
     label: 'Neati',
-    aliases: ['zenith-app', 'neati', 'neati-app'],
+    aliases: ['neati-app'],
     minSizePx: 20,
     fallbackGlyph: 'mountain',
     asset: {
-      file: 'zenith.svg',
-      src: zenithAsset,
+      file: 'neati.svg',
+      src: neatiAsset,
       sha256: '82bfb6c378e65cfd0bb248cc9f3d65929c36423823d8aab68cfd0f80a42a7c0d',
     },
     unresolvedReason: null,

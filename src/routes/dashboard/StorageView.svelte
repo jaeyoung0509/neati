@@ -384,6 +384,7 @@
   {#if review}
     <CleanupReviewDialog
       plan={review.plan}
+      items={scan?.categories.flatMap(category => category.items) ?? []}
       disabled={review.scanId !== scan?.scan_id || !scanStore.canClean}
       onCancel={() => (review = null)}
       onConfirm={confirmCleanup}

@@ -493,6 +493,11 @@ must not suggest that the account has exhausted its quota.
   movement releases no disk space until emptied; only a measured free-space
   delta describes a disk reading. Policy-preserved entries are reported as
   kept. Long diagnostic paths wrap within one scrolling result dialog.
+- Required cleanup review leads with backend-defined permanent-delete and
+  recoverable-movement totals, unknown-estimate counts, owner summaries and
+  consequences. Exact names and paths live in closed, keyboard-accessible
+  disclosures. Keep different modes and consequences separate, retain every
+  authorized target in details, and keep Cancel/confirm visible while scrolling.
 - `Cleanup`: category rows with risk tiers, an actionable selection footer, and
   the existing backend eligibility, consent, and one-shot plan rules.
 - Owner-managed actions remain visually distinct by name and consequence.

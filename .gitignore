@@ -1,6 +1,10 @@
 # Rust / Cargo
 /target
 
+# Python analysis tools
+__pycache__/
+*.pyc
+
 # Node / Vite
 node_modules
 /dist
@@ -23,4 +27,3 @@ review.md
 study.md
 *.study.md
 study-*.md
-

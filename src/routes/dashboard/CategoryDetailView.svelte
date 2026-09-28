@@ -293,6 +293,7 @@
   {#if review}
     <CleanupReviewDialog
       plan={review.plan}
+      items={categoryResult.items}
       disabled={review.scanId !== scanStore.lastScan?.scan_id || !scanStore.canClean}
       onCancel={() => (review = null)}
       onConfirm={confirmCleanup}

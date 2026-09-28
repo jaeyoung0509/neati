@@ -277,7 +277,7 @@ Large Files       direct shortcut to file selection and recoverable deletion
 Applications      direct shortcut to application inspection and supported uninstall
 Performance       CPU / Memory / Battery detail
 Memory            focused memory page, no nested section selector
-AI Activity       Usage / Projects & Sessions / Tool Adapters / AI Control Center
+AI Activity       Usage / Projects & Sessions; AI Control Center remains an explicit action
 
 Tools             visible group, expanded by default
   Containers
@@ -543,6 +543,15 @@ process activity stay separate; incomparable provider quotas are never summed.
 Session identity comes from the observed adapter/session state, so a parent
 editor's logo is never used as proof of a specific agent. Unknown and
 unavailable states are named explicitly.
+
+AI Activity has two task tabs: Usage and Projects. Built-in tool detection is
+diagnostic information, not a plugin marketplace. It lives in an initially
+collapsed Settings diagnostics disclosure, mounted and refreshed only when
+opened, with manual refresh and no polling. Use compact rows and a single
+plain-language status per tool; raw evidence, versions and paths are optional
+technical details. Process observation never establishes inference or task
+progress. Keep legacy-marker removal available without implying plugin setup.
+Control Center retains its budget, manual-usage and advisory controls.
 
 ### Containers (Docker)
 

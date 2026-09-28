@@ -6,7 +6,6 @@
   import Button from '../../lib/components/Button.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import ProjectsPanel from '../../lib/components/ai-activity/ProjectsPanel.svelte';
-  import ToolAdaptersPanel from '../../lib/components/ai-activity/ToolAdaptersPanel.svelte';
   import UsagePanel from '../../lib/components/ai-activity/UsagePanel.svelte';
   import {
     AI_ACTIVITY_TAB_ORDER,
@@ -22,7 +21,6 @@
   const tabLabels: Record<AiActivitySubTab, string> = {
     usage: 'Usage',
     projects: 'Projects',
-    adapters: 'Tool Adapters',
   };
 
   let { onNavigateTab }: Props = $props();
@@ -37,9 +35,7 @@
   let activeTabLoading = $derived(
     visibleSubTab === 'usage'
       ? usageStore.isLoading
-      : visibleSubTab === 'projects'
-        ? agentActivityStore.isLoading
-        : agentActivityStore.isLoading || agentActivityStore.isIntegrationsLoading
+      : agentActivityStore.isLoading
   );
 
   const loadedTabs = new Set<AiActivitySubTab>();
@@ -65,13 +61,9 @@
     try {
       if (tab === 'usage') {
         await usageStore.refreshIfStale();
-      } else if (tab === 'projects') {
+      } else {
         // An already observed snapshot is the agent-activity cache. Refresh only on first load.
         if (!agentActivityStore.snapshot) await agentActivityStore.refresh();
-      } else {
-        // Adapters share the agent snapshot but have their own integration lookup boundary.
-        if (!agentActivityStore.snapshot) await agentActivityStore.refresh();
-        await agentActivityStore.fetchIntegrations();
       }
       loadedTabs.add(tab);
     } finally {
@@ -83,13 +75,8 @@
     const tab = visibleSubTab;
     if (tab === 'usage') {
       await usageStore.refresh(true);
-    } else if (tab === 'projects') {
-      await agentActivityStore.refresh(true);
     } else {
-      await Promise.all([
-        agentActivityStore.refresh(true),
-        agentActivityStore.fetchIntegrations(),
-      ]);
+      await agentActivityStore.refresh(true);
     }
   }
 
@@ -128,7 +115,6 @@
     title="AI Activity"
     subtitle="Account limits, observed agent sessions, and local workspace activity."
     icon={FolderGit2}
-    badge="Local only"
   >
     {#snippet actions()}
       {#if onNavigateTab}
@@ -198,9 +184,16 @@
     </div>
   {:else if visibleSubTab === 'usage'}
     <UsagePanel />
-  {:else if visibleSubTab === 'projects'}
-    <ProjectsPanel />
   {:else}
-    <ToolAdaptersPanel />
+    <ProjectsPanel />
+  {/if}
+
+  {#if onNavigateTab}
+    <p class="text-meta text-muted-foreground">
+      Missing a tool?
+      <button type="button" class="rounded-sm text-primary underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring" onclick={() => onNavigateTab('settings')}>
+        Check tool detection in Settings → Diagnostics.
+      </button>
+    </p>
   {/if}
 </div>

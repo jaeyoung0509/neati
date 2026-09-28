@@ -63,7 +63,7 @@ pub fn normalize(
             quality: ObservationQuality::Fresh,
             installed: true,
             connected: true,
-            status_message: "Manual value entered in Zenith; not a provider-enforced limit.".into(),
+            status_message: "Manual value entered in Neati; not a provider-enforced limit.".into(),
             metrics: vec![ProviderMetric {
                 label: "User-entered spend".into(),
                 tokens: None,
@@ -170,7 +170,7 @@ fn from_provider_usage(provider: &AiProviderUsage, observed_at: u64) -> Provider
     let status_message = match provider.id.as_str() {
         "antigravity" if provider.connected => provider.status_message.clone(),
         "antigravity" => "Manual/external subscription usage. Antigravity is Google's primary individual coding CLI; no documented structured usage API was detected.".into(),
-        "claude" => "Manual/external subscription usage. Use Claude Code /usage; Zenith does not scrape the TUI or credentials.".into(),
+        "claude" => "Manual/external subscription usage. Use Claude Code /usage; Neati does not scrape the TUI or credentials.".into(),
         _ => provider.status_message.clone(),
     };
     // Provider and subprocess errors can echo URLs or tool output; never let an
@@ -242,7 +242,7 @@ fn optional_organization_rows(
         ("gemini-enterprise", "Gemini Code Assist Standard / Enterprise", ObservationScope::Organization, "Enterprise/API usage remains supported; consumer individual access moved to Antigravity.", Some("Google"), None),
         ("grok-individual", "Grok Build subscription", ObservationScope::Subscription, "Manual/external; no documented subscription usage endpoint is available.", Some("xAI"), None),
         ("grok-build", "Grok Build", ObservationScope::Subscription, "Manual/external; quota stays in the provider client.", Some("xAI"), None),
-        ("cursor-individual", "Cursor individual", ObservationScope::Subscription, "Manual/external; Zenith does not inspect private editor state.", None, None),
+        ("cursor-individual", "Cursor individual", ObservationScope::Subscription, "Manual/external; Neati does not inspect private editor state.", None, None),
         ("claude-individual", "Claude individual", ObservationScope::Subscription, "Manual/external; use Claude Code /usage without scraping credentials or the TUI.", Some("Anthropic"), None),
         ("muse-code", "Muse Code", ObservationScope::Subscription, "Meta terminal coding agent powered by Muse Spark.", Some("Meta"), Some("Muse Spark")),
         ("meta-model-api", "Meta Model API", ObservationScope::ApiKey, "Direct API access to Muse Spark 1.3 models.", Some("Meta"), Some("Muse Spark 1.3")),

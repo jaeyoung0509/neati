@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Zenith",
-  "version": "0.3.72",
+  "productName": "Neati",
+  "version": "0.3.73",
   "identifier": "com.zenith.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -14,7 +14,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Zenith",
+        "title": "Neati",
         "label": "main",
         "create": false,
         "width": 960,
@@ -29,7 +29,7 @@
         "visible": false
       },
       {
-        "title": "Zenith Quick",
+        "title": "Neati Quick",
         "label": "quick",
         "create": false,
         "width": 400,
@@ -74,7 +74,8 @@
         "languages": ["English", "Korean"],
         "displayLanguageSelector": false,
         "compression": "lzma",
-        "startMenuFolder": "Zenith"
+        "installerHooks": "windows/rebrand-hooks.nsh",
+        "startMenuFolder": "Neati"
       }
     }
   }

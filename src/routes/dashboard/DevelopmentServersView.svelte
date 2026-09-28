@@ -279,7 +279,7 @@
             </p>
           </div>
         </div>
-        <div class="rounded-lg border border-border/70 bg-secondary/40 px-3 py-2.5 text-meta leading-relaxed text-muted-foreground">Active browser tabs, hot module reload sessions, or in-flight HTTP requests to this server will stop. Zenith will check if the port is freed.</div>
+        <div class="rounded-lg border border-border/70 bg-secondary/40 px-3 py-2.5 text-meta leading-relaxed text-muted-foreground">Active browser tabs, hot module reload sessions, or in-flight HTTP requests to this server will stop. Neati will check if the port is freed.</div>
         <div class="flex justify-end gap-2 pt-1">
           <Button id="release-cancel" variant="ghost" size="sm" onclick={closeDialogs}>Cancel</Button>
           <Button variant="outline" size="sm" disabled={developmentPortsStore.releasingId !== null} onclick={handleReleaseNormally}>Release Normally</Button>

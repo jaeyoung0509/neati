@@ -235,10 +235,10 @@ impl PlatformCapabilities {
             large_files: PlatformFeatureCapability::available(),
             developer_artifacts: PlatformFeatureCapability::available(),
             installed_apps: PlatformFeatureCapability::unavailable(
-                "Zenith does not implement Windows application inventory yet; registry uninstall keys exist but are not read.",
+                "Neati does not implement Windows application inventory yet; registry uninstall keys exist but are not read.",
             ),
             app_uninstall: PlatformFeatureCapability::unavailable(
-                "Zenith does not implement Windows application uninstallation yet; the registry UninstallString exists but is not executed.",
+                "Neati does not implement Windows application uninstallation yet; the registry UninstallString exists but is not executed.",
             ),
             memory_metrics: PlatformFeatureCapability::available(),
             process_termination: PlatformFeatureCapability::available(),

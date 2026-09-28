@@ -415,7 +415,7 @@ fn validate_target<'a>(
         }
         TrashScope::AppRelated => {
             if Blacklist::is_blacklisted_with(&target.path, environment) {
-                return Err("Skipped because the path is protected by Zenith.".to_string());
+                return Err("Skipped because the path is protected by Neati.".to_string());
             }
             let root = app_data_root_for_path(environment, &target.path).ok_or_else(|| {
                 "Skipped because related data moved outside the approved Library scope.".to_string()
@@ -509,7 +509,7 @@ fn validate_developer_artifact_target(
         );
     }
     if Blacklist::is_blacklisted_with(target.path.as_path(), environment) {
-        return Err("Skipped because the developer artifact is protected by Zenith.".to_string());
+        return Err("Skipped because the developer artifact is protected by Neati.".to_string());
     }
     if !target.path.starts_with(workspace_root)
         || !project_root.starts_with(workspace_root)

@@ -432,7 +432,7 @@ impl NativePlatformPaths {
         }
     }
 
-    /// Returns executable trust roots: only platform install locations Zenith
+    /// Returns executable trust roots: only platform install locations Neati
     /// is willing to execute. User-writable containers (`%LOCALAPPDATA%`,
     /// `%APPDATA%`, `%ProgramData%` themselves) are excluded; only their
     /// documented tool/package-manager children are trusted.

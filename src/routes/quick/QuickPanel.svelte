@@ -1,4 +1,5 @@
 <script lang="ts">
+  import NeatiWordmark from '../../lib/components/NeatiWordmark.svelte';
   import { onMount } from 'svelte';
   import type {
     DashboardRoute,
@@ -384,8 +385,8 @@
     onmousedown={handleWindowDrag}
   >
     <div class="flex items-center gap-2 min-w-0">
-      <BrandIcon identity="zenith" label="Zenith" size={20} />
-      <span class="text-body font-semibold tracking-tight truncate">Zenith</span>
+      <BrandIcon identity="zenith" label="Neati" size={20} />
+      <NeatiWordmark />
     </div>
     <div class="flex items-center gap-1 no-drag shrink-0">
       <Button
@@ -420,7 +421,7 @@
         <InlineNotice
           variant="error"
           title="Platform capabilities unavailable"
-          message={platformCapabilitiesStore.error ?? 'Zenith could not read this platform\'s capability matrix from the backend.'}
+          message={platformCapabilitiesStore.error ?? 'Neati could not read this platform\'s capability matrix from the backend.'}
           actionLabel="Retry"
           onAction={() => void retryCapabilities()}
         />
@@ -461,7 +462,7 @@
         onclick={handleOpenDashboard}
         class="gap-1.5 text-meta"
       >
-        <span>Open Zenith</span>
+        <span>Open Neati</span>
         <ArrowRight size={13} aria-hidden="true" />
       </Button>
     </div>

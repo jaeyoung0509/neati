@@ -145,7 +145,7 @@
         <h3 class="mt-3 text-sm font-semibold">No active agent sessions</h3>
         <p class="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">
           Start a supported CLI (Antigravity, Claude Code, Cursor, Grok, Copilot, Codex, OpenCode) inside a project.
-          Zenith observes local processes only and never reads prompts, transcripts, or credentials.
+          Neati observes local processes only and never reads prompts, transcripts, or credentials.
         </p>
       </Card>
     {:else}
@@ -277,7 +277,7 @@
       <Bot size={28} class="mx-auto text-muted-foreground" />
       <h3 class="mt-3 text-sm font-semibold">No project activity snapshot</h3>
       <p class="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">
-        Zenith will show verified local project and agent activity after the first refresh.
+        Neati will show verified local project and agent activity after the first refresh.
       </p>
     </Card>
   {/if}

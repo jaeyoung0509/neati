@@ -1,7 +1,7 @@
-# Zenith Engineering Guide
+# Neati Engineering Guide
 
 These instructions apply to the entire repository. Preserve the product and
-safety conventions below when changing Zenith.
+safety conventions below when changing Neati.
 
 ## Stack and commands
 
@@ -54,18 +54,18 @@ safety conventions below when changing Zenith.
   transition (or documented no-bump reason), checks run and their results, visual
   evidence for UI/asset changes, and any unverified platform behavior. Report CI
   status separately from local checks; do not call a pending check successful.
-- Brand changes start at `src-tauri/icons/zenith-mark.svg`. Run
+- Brand changes start at `src-tauri/icons/neati-mark.svg`. Run
   `pnpm icons:generate` and `pnpm icons:check`, inspect app/compact/template
   variants at real display sizes, and update the branding contract in
   `DESIGN.md`. Do not redesign protected native glass as part of a logo change.
 
 ## Crate boundary
 
-- Zenith is a Cargo workspace. `crates/zenith-core` owns product semantics,
+- Neati is a Cargo workspace. `crates/zenith-core` owns product semantics,
   `crates/zenith-platform` owns the platform layer behind narrow ports
   (environment probing, path resolution, process control, bounded child
   execution, system actions, atomic file replacement, Trash), and the
-  `src-tauri` package (`zenith-desktop`, library `zenith_lib`, binary `Zenith`)
+  `src-tauri` package (`zenith-desktop`, library `zenith_lib`, binary `Neati`)
   owns the Tauri adapter. The version, edition, and MSRV are stated once in the
   root `Cargo.toml` `[workspace.package]` table and all members inherit them;
   `just check-version` and `just bump-patch` maintain that one copy.
@@ -82,7 +82,7 @@ safety conventions below when changing Zenith.
   `scripts/check_core_boundaries.cjs` enforces these boundaries from
   `cargo metadata`; run `just check-architecture` after adding or moving a
   dependency.
-- Ask of every Rust file: would this still make sense if Zenith had a CLI
+- Ask of every Rust file: would this still make sense if Neati had a CLI
   instead of a Tauri window? Domain semantics say yes and belong in
   `zenith-core`; native OS probing and OS API calls say yes and belong in
   `zenith-platform`. A file that owns WebView IPC, tray or window lifecycle,
@@ -130,8 +130,8 @@ safety conventions below when changing Zenith.
 - The Cargo default feature must include `custom-protocol`; otherwise a binary
   built outside `tauri dev` opens a blank webview because the frontend is not
   embedded.
-- Create the tray icon once in Rust. The tray menu must include Open Zenith,
-  Toggle Quick Panel, and Quit Zenith.
+- Create the tray icon once in Rust. The tray menu must include Open Neati,
+  Toggle Quick Panel, and Quit Neati.
 - Position the quick panel from the tray click coordinates, clamp it to the
   active display, and align its right edge beneath the menu-bar icon.
 - Window labels are `main` and `quick`. Closing the quick panel hides it; it
@@ -146,7 +146,7 @@ safety conventions below when changing Zenith.
   provider snapshots use a bounded backend cache with manual refresh support.
 - Never expose arbitrary PID kill commands. Memory actions must resolve a fresh
   process snapshot from an allowlisted user-app group (including executables in
-  installed `.app` bundles), protect system/terminal/Zenith processes, and
+  installed `.app` bundles), protect system/terminal/Neati processes, and
   offer graceful termination before force termination.
 - Native app selection for Keep Awake starts in `/Applications`, reads
   `CFBundleExecutable`, and returns only the display name, executable name, and
@@ -183,7 +183,7 @@ safety conventions below when changing Zenith.
 - Capability snapshots are exported as `src/lib/bindings/platform-capabilities.golden.json`
   by the ignored `tests::export_platform_capability_golden` test; frontend
   tests consume that file instead of a hand-written literal.
-- `Zenith --doctor` prints a de-identified environment fingerprint and a
+- `Neati --doctor` prints a de-identified environment fingerprint and a
   self-check table sharing its assertions with CI, and exits 1 when a check
   fails. Committed fixtures in `src-tauri/tests/fixtures/environments` are
   picked up automatically by `tests/environment_fixture_tests.rs`; a pasted

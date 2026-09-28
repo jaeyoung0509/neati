@@ -465,7 +465,7 @@ impl MemoryTerminationSystem for RealMemorySystem {
 
     fn signal(&self, pid: u32, mode: MemoryTerminationMode) -> Result<(), String> {
         if pid <= 1 || pid == std::process::id() {
-            return Err("Cannot terminate system or Zenith process.".to_string());
+            return Err("Cannot terminate system or Neati process.".to_string());
         }
         match mode {
             MemoryTerminationMode::Graceful => {
@@ -486,7 +486,7 @@ impl MemoryTerminationSystem for RealMemorySystem {
                         Ok(())
                     } else {
                         Err(
-                            "The operating system did not allow Zenith to terminate the process"
+                            "The operating system did not allow Neati to terminate the process"
                                 .to_string(),
                         )
                     }
@@ -513,7 +513,7 @@ impl MemoryTerminationSystem for RealMemorySystem {
                     Ok(())
                 } else {
                     Err(
-                        "The operating system did not allow Zenith to terminate the process"
+                        "The operating system did not allow Neati to terminate the process"
                             .to_string(),
                     )
                 }
@@ -641,7 +641,7 @@ impl MemoryInspector {
         let own_pid = system.own_pid();
         for member in &lease.members {
             if member.pid <= 1 || member.pid == own_pid {
-                return Err("Cannot terminate system or Zenith process.".to_string());
+                return Err("Cannot terminate system or Neati process.".to_string());
             }
             let Some(current) = system.lookup(member.pid) else {
                 // Process already exited; treat as released only when every
@@ -750,7 +750,7 @@ impl MemoryInspector {
         }
         if signaled == 0 && mode == MemoryTerminationMode::Force {
             return Err(
-                "The operating system did not allow Zenith to terminate the process group"
+                "The operating system did not allow Neati to terminate the process group"
                     .to_string(),
             );
         }
@@ -1286,7 +1286,7 @@ mod tests {
 
         fn signal(&self, pid: u32, mode: MemoryTerminationMode) -> Result<(), String> {
             if pid <= 1 || pid == self.own_pid {
-                return Err("Cannot terminate system or Zenith process.".to_string());
+                return Err("Cannot terminate system or Neati process.".to_string());
             }
             self.signaled.lock().unwrap().push((pid, mode));
             if self
@@ -2124,7 +2124,7 @@ mod tests {
         assert_eq!(
             group_provenance(&[100], &captured, &links, 100),
             (Vec::new(), ProcessOwnership::Observed),
-            "a process is not its own child, even though it is the Zenith pid"
+            "a process is not its own child, even though it is the Neati pid"
         );
     }
 }

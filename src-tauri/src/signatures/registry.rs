@@ -947,7 +947,7 @@ mod tests {
 
     /// The stores Windows itself maintains are never generic delete targets:
     /// every entry that names a path under the installation root is
-    /// observation-only, and the one Windows-owned store Zenith may act on is
+    /// observation-only, and the one Windows-owned store Neati may act on is
     /// reached through the provider the catalog names rather than through a
     /// path. This is the #230 boundary, pinned as a class so a future entry
     /// cannot quietly turn update payloads or kernel dumps into deletable

@@ -45,6 +45,15 @@ Consequences that release notes, README, and download instructions must state:
 - Until reputation accumulates, users verify releases by SHA256 checksum and
   GitHub build provenance rather than by publisher reputation alone.
 
+## Neati naming transition (2026-09-28)
+
+Neati is the public name from 0.3.73 onward. Historical Zenith decisions,
+repository/package identities and artifact filenames below remain records of
+the same project, not a claim that a new certificate has been issued. No signing
+identity or credential is changed by the rebrand. Public Neati distribution is
+gated on issue #334's signing/notarization review. Do not recommend clearing
+quarantine for the rebranded app; this supersedes the older alternative below.
+
 ## macOS notarization
 
 **Decision (2026-09-12): macOS public beta artifacts are not notarized.** Zenith

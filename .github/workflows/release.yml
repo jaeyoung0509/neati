@@ -176,7 +176,7 @@ jobs:
 
           cp "$DMG_PATH" artifacts/Zenith-macos-arm64.dmg
           cat > artifacts/BUILD_INFO-macos-arm64.txt <<EOF
-          Zenith macOS Public Beta
+          Neati macOS Public Beta
           Target: aarch64-apple-darwin (Apple Silicon)
           Version: $(node -p "require('./package.json').version")
           Commit: ${GITHUB_SHA}
@@ -293,7 +293,7 @@ jobs:
           $version = (Get-Content package.json | ConvertFrom-Json).version
           $buildDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
           @"
-          Zenith Windows Public Beta
+          Neati Windows Public Beta
           Target: x86_64-pc-windows-msvc
           Package: NSIS per-user installer (default) + NSIS machine-wide installer
           WebView2: embedded offline installer, no network required
@@ -445,6 +445,6 @@ jobs:
 
             Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/zenith`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
 
-            Zenith has no updater and performs no background network activity. Open https://github.com/jaeyoung0509/zenith/releases to check whether a corrected release exists.
+            Neati has no updater and performs no background network activity. Open https://github.com/jaeyoung0509/zenith/releases to check whether a corrected release exists.
 
             The per-user installer (`Zenith-windows-x64-setup.exe`) installs under `%LOCALAPPDATA%` without elevation. The machine-wide installer (`Zenith-windows-x64-setup-machine.exe`) installs under Program Files, requires elevation, and exists for managed machines whose application-control policy refuses to execute binaries from user-writable locations; it does not make the binary trusted. Both installers embed the WebView2 offline installer, so installation needs no network access.

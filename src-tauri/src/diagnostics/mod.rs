@@ -208,11 +208,11 @@ fn write_log_line(dir: &Path, category: &str, message: &str, restrict: RestrictP
 /// times; the user needs to be told once, not once per click.
 static REPORTED_STARTUP_FAILURES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
-const STARTUP_FAILURE_TITLE: &str = "Zenith could not open its window";
+const STARTUP_FAILURE_TITLE: &str = "Neati could not open its window";
 
 fn prepare_startup_failure(context: &str, error: &str) -> Option<(String, String)> {
     let detail = format!(
-        "{context}: {error}\n\nRun `Zenith --doctor` for a self-check, or open the log at {}.",
+        "{context}: {error}\n\nRun `Neati --doctor` for a self-check, or open the log at {}.",
         normalized_log_path()
     );
     log_error("startup", &detail);
@@ -314,7 +314,7 @@ fn show_native_error_dialog(title: &str, detail: &str) {
 /// cannot be written is the failure that hides every other failure.
 pub(crate) fn probe_log_writability(dir: &Path) -> Result<(), String> {
     probe_log_writability_with(dir, |file| {
-        file.write_all(b"Zenith diagnostics write probe\n")?;
+        file.write_all(b"Neati diagnostics write probe\n")?;
         file.flush()
     })
 }

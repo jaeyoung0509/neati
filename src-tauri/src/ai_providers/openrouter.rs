@@ -32,7 +32,7 @@ impl ProviderAdapter for OpenRouterAdapter {
         provider.installed = true;
         provider.connected = false;
         provider.support = UsageSupport::Live;
-        provider.status_message = "No Zenith OAuth session is connected yet.".into();
+        provider.status_message = "No Neati OAuth session is connected yet.".into();
         provider.action_url = Some("https://openrouter.ai/activity".into());
 
         let key = match ctx.credentials.get(ProviderId::OpenRouter) {
@@ -218,7 +218,7 @@ pub fn connect_openrouter() -> Result<String, String> {
                             write_callback_response(
                                 &mut stream,
                                 "200 OK",
-                                "OpenRouter connected to Zenith. You can close this tab.",
+                                "OpenRouter connected to Neati. You can close this tab.",
                             );
                             break code;
                         }

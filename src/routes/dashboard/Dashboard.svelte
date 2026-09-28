@@ -1,4 +1,5 @@
 <script lang="ts">
+  import NeatiWordmark from '../../lib/components/NeatiWordmark.svelte';
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
@@ -265,9 +266,9 @@
           role="presentation"
           onmousedown={overlayTitleBar ? handleWindowDrag : undefined}
         >
-          <BrandIcon identity="zenith" label="Zenith" size={24} />
+          <BrandIcon identity="zenith" label="Neati" size={24} />
           {#if !sidebarCollapsed}
-            <span class="text-sm font-semibold tracking-tight text-foreground">Zenith</span>
+            <NeatiWordmark />
           {/if}
         </div>
 
@@ -416,7 +417,7 @@
       <PreviewModeIndicator compact={sidebarCollapsed} />
       {#if !sidebarCollapsed}
         <div class="px-2.5 flex items-center justify-between text-caption text-muted-foreground font-mono select-none">
-          <span>Zenith</span>
+          <span>Neati</span>
           <span>{formatVersion(APP_VERSION)}</span>
         </div>
       {/if}
@@ -436,7 +437,7 @@
           <div class="space-y-1">
             <h2 class="text-sm font-semibold text-foreground">Platform capabilities unavailable</h2>
             <p class="text-body text-muted-foreground break-words">
-              {platformCapabilitiesStore.error ?? 'Zenith could not read this platform\'s capability matrix from the backend.'}
+              {platformCapabilitiesStore.error ?? 'Neati could not read this platform\'s capability matrix from the backend.'}
             </p>
             <p class="text-meta text-muted-foreground">
               Tabs stay closed until the backend answers so no native action runs on an unverified platform.

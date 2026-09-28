@@ -326,7 +326,7 @@ fn info_attributes_refusal(git_dir: &Path, common: &Path) -> Option<GitRefusal> 
                 // path in it is masked the same way a log line is: no absolute
                 // location leaves this module.
                 return Some(GitRefusal::InfoAttributes(mask_paths_in_text(&format!(
-                    "{} exists and can select a program for git to run, which Zenith does not run",
+                    "{} exists and can select a program for git to run, which Neati does not run",
                     path.display()
                 ))));
             }

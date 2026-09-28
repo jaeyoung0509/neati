@@ -1,6 +1,6 @@
 [package]
 name = "zenith-desktop"
-description = "Zenith - cross-platform AI & Developer System Manager"
+description = "Neati - cross-platform AI & Developer System Manager"
 # The desktop adapter is an application, not a library anyone installs, and it
 # depends on `zenith-core` by path. `cargo deny` refuses a version-less
 # dependency on a publishable crate for the right reason — a wildcard
@@ -20,7 +20,7 @@ name = "zenith_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "Zenith"
+name = "Neati"
 path = "src/main.rs"
 
 [build-dependencies]

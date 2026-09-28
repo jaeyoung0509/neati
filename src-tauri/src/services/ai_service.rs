@@ -1047,7 +1047,7 @@ impl AiService {
                     if !diff.is_empty() && !diff.ends_with('\n') {
                         diff.push('\n');
                     }
-                    diff.push_str(&format!("\n[Zenith note: {caveat}]"));
+                    diff.push_str(&format!("\n[Neati note: {caveat}]"));
                 }
                 let audit_store = {
                     let mut control = control_state

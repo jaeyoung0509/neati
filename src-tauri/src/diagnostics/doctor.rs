@@ -1,4 +1,4 @@
-//! `Zenith --doctor`: the same pure assertions CI runs, evaluated against the
+//! `Neati --doctor`: the same pure assertions CI runs, evaluated against the
 //! real environment and printed as a de-identified report.
 //!
 //! The report is safe to paste into a bug report by construction: the
@@ -47,12 +47,12 @@ pub struct EnvironmentReport {
 }
 
 const USAGE: &str = "\
-Zenith platform self-check
+Neati platform self-check
 
 USAGE:
-  Zenith --doctor          Print the de-identified environment fingerprint and self-check table
-  Zenith --doctor --json   Print the same report as a single JSON object
-  Zenith --help            Show this message
+  Neati --doctor          Print the de-identified environment fingerprint and self-check table
+  Neati --doctor --json   Print the same report as a single JSON object
+  Neati --help            Show this message
 
 EXIT CODES:
   0  every self-check passed
@@ -179,7 +179,7 @@ pub fn self_check(environment: &PlatformEnvironment) -> EnvironmentReport {
 
 pub fn render_text(report: &EnvironmentReport) -> String {
     let mut lines = Vec::new();
-    lines.push("Zenith environment self-check".to_string());
+    lines.push("Neati environment self-check".to_string());
     lines.push(String::new());
     lines.push(format!("platform: {}", platform_name(report.platform)));
     lines.push("fingerprint:".to_string());

@@ -1,6 +1,6 @@
-# Zenith Design System
+# Neati Design System
 
-Zenith is a compact, native-feeling macOS and desktop utility for developers.
+Neati is a compact, native-feeling macOS and desktop utility for developers.
 Its visual direction pairs cool near-white surfaces and ink-blue type with
 soft blue-to-cyan actions and blue navigation. Frosted translucency gives navigation and
 the Quick Panel a native sense of depth. Technical data and cleanup decisions
@@ -27,7 +27,7 @@ The material reference is the macOS Bluetooth popover supplied during the
 September 25, 2026 design review: one rounded translucent surface, fine internal
 dividers, and crisp text. Use this material for transient chrome and navigation;
 keep operational lists on solid working surfaces. The UI UX Pro Max glassmorphism
-and accessibility guidance informs this treatment; existing Zenith tokens and
+and accessibility guidance informs this treatment; existing Neati tokens and
 desktop sizing remain the source of truth.
 
 On macOS 26 and later, an `NSGlassEffectView` using the public `Regular`
@@ -89,12 +89,13 @@ for the supported native hosting relationship.
   periwinkle identifies primary actions, with cobalt for selected navigation.
   One obvious primary action per task. Generic resource readings use cobalt;
   green is reserved for a completed success or cleanup eligibility.
-- The blue ribbon `Z` is the product identity, following the user's approved
-  second reference: straight horizontal bars with rounded ends and one broad
-  diagonal. Three restrained blue gradients describe the overlap. Preserve the
-  clean silhouette without extra twists, holes, swashes, or a central cut.
-  Use the compact light tile in app chrome, the full app tile for Finder/Dock,
-  and the same silhouette as a monochrome template for the macOS menu bar.
+- The user-approved Neati B identity (September 28, 2026, #334) is a flowing,
+  rounded lowercase `n`, white on a restrained blue tile. Its lifted tail adds
+  warmth without a face, mascot, cleaning prop, or status badge. Use the same
+  stroke geometry and round terminals in the monochrome macOS template.
+  The original handwritten `neati` wordmark is reserved for brand headers;
+  controls and operational text retain the system font. Its color follows the
+  foreground token in both themes and it exposes the accessible name Neati.
   The mark has no status dot or badge.
 - A logo is identity, not a trust certificate. No screen claims a machine is
   healthy, safe, or protected in general terms.
@@ -211,7 +212,7 @@ offset rings, rather than assuming every control sits on the page background.
 
 ### Native window corners
 
-The rounded main-window silhouette is owned by macOS. Zenith keeps the real
+The rounded main-window silhouette is owned by macOS. Neati keeps the real
 overlay title-bar controls, drag region, resizing, full-screen behaviour, and
 the OS shadow. On macOS its WebView backing is transparent so native vibrancy
 shows through the sidebar; the main content paints an opaque surface. CSS
@@ -345,21 +346,22 @@ inventory is still valid.
 
 ### Brand identity
 
-- Zenith's own mark is authored once in `src-tauri/icons/zenith-mark.svg`.
+- Neati's own mark is authored once in `src-tauri/icons/neati-mark.svg`.
   `pnpm icons:generate` derives every packaged size, native `.icns` / `.ico`,
   the menu-bar PNG, public assets, compact frontend SVG, and its registry hash.
   `pnpm icons:check` detects drift. Do not hand-edit generated copies or recreate
-  the Z with a font, emoji, or another icon library.
-- The mark's blue gradients live in the master SVG; the generator owns the
-  cool near-white tile. Compact artwork has no external shadow or Dock padding,
+  the n with a font, emoji, or another icon library. The retained `zenith.svg`
+  registry filename is an internal compatibility key, not the public name.
+- The master owns the white n stroke; the generator owns the blue tile.
+  Compact artwork has no external shadow or Dock padding,
   so the 20 px Quick Panel and 24 px sidebar uses remain readable. The native
-  tile has its own padding and restrained relief. Preserve the reference's broad,
-  rounded ribbon proportions. The monochrome template derives all three paths
-  from the same master; never draw a different menu-bar Z.
+  tile has its own padding and restrained relief. Preserve B's rounded pen
+  gesture. The monochrome template derives its path, width and caps from the
+  same master; never draw a different menu-bar n.
 - macOS uses a black-alpha 44 px template PNG for its 22 pt menu-bar surface;
   AppKit owns the light/dark appearance. Windows/Linux use the full-color tray
   icon, never a black template. These logo variants do not change window glass
-  materials or their tint. Use the same compact tile in light and dark themes.
+  materials or their tint. Use the same blue compact tile in light and dark themes.
 - `BrandIcon` resolves an identity through one typed registry: a reviewed local
   asset when the copyright holder's licence clearly permits redistribution, and
   otherwise a neutral two-letter monogram beside the factual product name.
@@ -374,7 +376,7 @@ inventory is still valid.
 - Tool rows use 18–20 px action glyphs and a 32 px identity slot (24 px
   artwork) so logos sit next to useful names rather than in a wall of
   promotional cards.
-- The Quick Panel and main sidebar share the same Zenith asset and restrained
+- The Quick Panel and main sidebar share the same Neati asset and restrained
   functional navigation icons. Provider rows never borrow sparkle or rocket
   symbols as substitute logos.
 
@@ -572,7 +574,7 @@ typed deletion where the backend supports it.
 ### Development servers
 
 Port, project/tool identity, observed address and exposure come first, then the
-resource and action menu. A listening process is not a server Zenith started,
+resource and action menu. A listening process is not a server Neati started,
 and release/termination keeps its verified flow.
 
 ### Keep Awake

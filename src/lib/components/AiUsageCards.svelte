@@ -142,7 +142,7 @@
       {:else if !loading && provider.id === 'openrouter' && provider.connected && onDisconnectOpenRouter}
         <div class="mt-auto space-y-1.5">
           <p class="text-caption text-muted-foreground">
-            Disconnecting removes the key from Zenith. Revoke it in the OpenRouter dashboard to invalidate it everywhere.
+            Disconnecting removes the key from Neati. Revoke it in the OpenRouter dashboard to invalidate it everywhere.
           </p>
           <Button
             variant="outline"

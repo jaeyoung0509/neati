@@ -32,7 +32,7 @@ export function cpuStateDescription(state: CpuSampleState, reason: string | null
     case 'stale':
       return 'No reading since the last sample; the number shown is the last measured one.';
     case 'unavailable':
-      return `Zenith has no CPU adapter for this platform.${detail}`;
+      return `Neati has no CPU adapter for this platform.${detail}`;
     case 'failed':
       return `The CPU probe did not answer.${detail}`;
   }

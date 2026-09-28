@@ -1,4 +1,4 @@
-# Zenith task runner
+# Neati task runner
 # https://github.com/casey/just
 #
 # Cross-platform recipes run on macOS, Linux, and Windows. Recipes that only
@@ -29,24 +29,22 @@ dev:
 dev-web:
     pnpm dev
 
-# Build a debug macOS app bundle so Finder and Dock use Zenith branding.
+# Build a debug macOS app bundle so Finder and Dock use Neati branding.
 [macos]
 build-fast:
     pnpm tauri build --debug --bundles app
     @echo ""
-    @echo "⚡ Debug app built at: target/debug/bundle/macos/Zenith.app"
+    @echo "⚡ Debug app built at: target/debug/bundle/macos/Neati.app"
 
 # Run fast debug binary directly (macOS app bundle)
 [macos]
 run-fast:
-    @if [ -d "target/debug/bundle/macos/Zenith.app" ]; then \
-        open "target/debug/bundle/macos/Zenith.app"; \
-    elif [ -d "src-tauri/target/debug/bundle/macos/Zenith.app" ]; then \
-        open "src-tauri/target/debug/bundle/macos/Zenith.app"; \
-    elif [ -f "target/debug/Zenith" ]; then \
-        ./target/debug/Zenith; \
+    @if [ -d "target/debug/bundle/macos/Neati.app" ]; then \
+        open "target/debug/bundle/macos/Neati.app"; \
+    elif [ -d "src-tauri/target/debug/bundle/macos/Neati.app" ]; then \
+        open "src-tauri/target/debug/bundle/macos/Neati.app"; \
     else \
-        cargo run; \
+        just build-fast && open "target/debug/bundle/macos/Neati.app"; \
     fi
 
 # ------------------------------------------------------------------------------
@@ -59,11 +57,11 @@ distribute: stop clean-bin
     ./scripts/tauri_release_build.sh
     @echo ""
     @echo "📦 Fresh release packages built successfully:"
-    @echo "  - App Bundle: target/release/bundle/macos/Zenith.app"
+    @echo "  - App Bundle: target/release/bundle/macos/Neati.app"
     @echo "  - DMG Installer: target/release/bundle/dmg/"
     @echo "👉 Run directly with: just run-bin"
 
-# Build the app only, then validate and replace /Applications/Zenith.app.
+# Build the app only, then validate and replace /Applications/Neati.app.
 # Distribution DMG creation is a separate `just distribute` operation.
 [macos]
 release: release-app install-release
@@ -77,14 +75,14 @@ install-release:
 [macos]
 release-and-run: release
     @echo "🚀 Launching installed release..."
-    @open "/Applications/Zenith.app"
+    @open "/Applications/Neati.app"
 
 # Clean existing binaries and build fresh standalone release macOS App bundle
 [macos]
 release-app: stop clean-bin
     ./scripts/tauri_release_build.sh --bundles app
     @echo ""
-    @echo "✅ Standalone release App built at: target/release/bundle/macos/Zenith.app"
+    @echo "✅ Standalone release App built at: target/release/bundle/macos/Neati.app"
     @echo "👉 Run directly with: just run-bin"
 
 # Build fresh standalone release app and launch immediately
@@ -102,7 +100,7 @@ build:
 build-bin:
     pnpm tauri build --bundles app
     @echo ""
-    @echo "✅ Standalone release App built at: target/release/bundle/macos/Zenith.app"
+    @echo "✅ Standalone release App built at: target/release/bundle/macos/Neati.app"
     @echo "👉 Run directly with: just run-bin"
 
 # Build frontend static assets into dist/
@@ -160,7 +158,7 @@ test-package installer scope="perUser":
 
 # Run the doctor self-check against a binary built from this source tree.
 doctor: ensure-dist
-    cargo run -p zenith-desktop --bin Zenith -- --doctor
+    cargo run -p zenith-desktop --bin Neati -- --doctor
 
 # Rust format and lint gate (the same command the CI Rust jobs run).
 lint-rust:
@@ -238,34 +236,34 @@ set-version version_str:
 # Run the release app bundle directly (with full macOS Dock icon)
 [macos]
 run-bin:
-    @if [ -d "target/release/bundle/macos/Zenith.app" ]; then \
-        open "target/release/bundle/macos/Zenith.app"; \
-    elif [ -d "src-tauri/target/release/bundle/macos/Zenith.app" ]; then \
-        open "src-tauri/target/release/bundle/macos/Zenith.app"; \
-    elif [ -f "target/release/Zenith" ]; then \
-        ./target/release/Zenith; \
-    elif [ -f "src-tauri/target/release/Zenith" ]; then \
-        ./src-tauri/target/release/Zenith; \
+    @if [ -d "target/release/bundle/macos/Neati.app" ]; then \
+        open "target/release/bundle/macos/Neati.app"; \
+    elif [ -d "src-tauri/target/release/bundle/macos/Neati.app" ]; then \
+        open "src-tauri/target/release/bundle/macos/Neati.app"; \
+    elif [ -f "target/release/Neati" ]; then \
+        ./target/release/Neati; \
+    elif [ -f "src-tauri/target/release/Neati" ]; then \
+        ./src-tauri/target/release/Neati; \
     else \
-        pnpm tauri build --bundles app && open "target/release/bundle/macos/Zenith.app"; \
+        pnpm tauri build --bundles app && open "target/release/bundle/macos/Neati.app"; \
     fi
 
 # ------------------------------------------------------------------------------
 # 🧹 Clean & Maintenance
 # ------------------------------------------------------------------------------
 
-# Stop running Zenith desktop application instances
+# Stop running Neati desktop application instances
 [macos]
 stop:
-    @-killall Zenith 2>/dev/null || true
+    @-killall Neati 2>/dev/null || true
 
 [windows]
 stop:
-    -taskkill /IM Zenith.exe /F
+    -taskkill /IM Neati.exe /F
 
 [linux]
 stop:
-    -pkill -x Zenith
+    -pkill -x Neati
 
 # Install all project dependencies
 install:
@@ -273,7 +271,7 @@ install:
 
 # Clean previous built binary, app bundles, dmg packages, and dist frontend
 clean-bin:
-    @node -e "for (const p of ['dist','target/release/bundle','target/release/Zenith','target/debug/bundle','target/debug/Zenith','src-tauri/target/release/bundle','src-tauri/target/release/Zenith','src-tauri/target/debug/bundle','src-tauri/target/debug/Zenith']) require('fs').rmSync(p, { recursive: true, force: true })"
+    @node -e "for (const p of ['dist','target/release/bundle','target/release/Neati','target/debug/bundle','target/debug/Neati','src-tauri/target/release/bundle','src-tauri/target/release/Neati','src-tauri/target/debug/bundle','src-tauri/target/debug/Neati']) require('fs').rmSync(p, { recursive: true, force: true })"
     @echo "🗑️ Existing binary and bundle artifacts removed."
 
 # Clean all build artifacts, Cargo target, and node_modules

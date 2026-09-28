@@ -515,7 +515,7 @@ impl ApplicationScanner {
             .get(app_id)
             .ok_or_else(|| "Application inventory is stale. Refresh applications.".to_string())?;
         if is_zenith_app(&record.app) {
-            return Err("Zenith cannot uninstall itself.".to_string());
+            return Err("Neati cannot uninstall itself.".to_string());
         }
         if record.app.is_running {
             return Err(format!(
@@ -747,7 +747,7 @@ fn empty_inventory() -> AppInventory {
 }
 
 fn is_zenith_identity(name: &str, bundle_id: Option<&str>) -> bool {
-    name == "Zenith" || bundle_id == Some("com.zenith.desktop")
+    matches!(name, "Zenith" | "Neati") || bundle_id == Some("com.zenith.desktop")
 }
 
 const MAX_APP_WALK_DEPTH: usize = 32;
@@ -1217,6 +1217,10 @@ mod tests {
 
     #[test]
     fn recognizes_the_configured_zenith_bundle_identifier() {
+        assert!(is_zenith_identity("Neati", None));
+        assert!(is_zenith_identity("Zenith", None));
+        assert!(is_zenith_identity("Renamed", Some("com.zenith.desktop")));
+        assert!(!is_zenith_identity("Neat", None));
         let app = InstalledApp {
             id: "zenith".to_string(),
             name: "Renamed App".to_string(),

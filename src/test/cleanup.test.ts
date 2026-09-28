@@ -33,7 +33,7 @@ function item(overrides: Partial<ScanItem>): ScanItem {
     file_count: 1,
     description: 'Generated cache',
     cache_metadata: {
-      provider: 'Zenith',
+      provider: 'Neati',
       management_mode: 'zenith',
       artifact_kind: 'temporary',
       consequence: '',
@@ -195,7 +195,7 @@ describe('presentation predicates and selection', () => {
       quality: 'unavailable',
       incomplete_reason: 'Protected application bundle encountered',
       cache_metadata: {
-        provider: 'Zenith',
+        provider: 'Neati',
         management_mode: 'zenith',
         artifact_kind: 'download_cache',
         consequence: '',

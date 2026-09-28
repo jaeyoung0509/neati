@@ -224,7 +224,7 @@ impl CleanupEligibility {
             Self::Reviewable => "Review before cleaning",
             Self::Recent => "Recently used",
             Self::PolicyGated => "Outside the current scope",
-            Self::Advisory => "Managed outside Zenith",
+            Self::Advisory => "Managed outside Neati",
             Self::Blocked => "Blocked or inaccessible",
         }
     }
@@ -671,7 +671,7 @@ fn derive_own_disposition(facts: DispositionFacts<'_>) -> CleanupDisposition {
     // 4. Advisory caches cannot enter generic cleanup
     if cache_metadata.management_mode == CacheManagementMode::Advisory {
         return CleanupDisposition::advisory(
-            incomplete_reason.unwrap_or("Advisory cache: managed manually or outside Zenith"),
+            incomplete_reason.unwrap_or("Advisory cache: managed manually or outside Neati"),
         );
     }
 

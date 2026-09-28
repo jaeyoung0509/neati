@@ -132,7 +132,7 @@ const sampleSnapshot: AiControlCenterSnapshot = {
       limit: { micros: 50000000, currency: 'USD' },
       used_basis_points: 8000,
       crossed_thresholds: [50, 80],
-      source_label: 'Zenith alert budget',
+      source_label: 'Neati alert budget',
       mixed_sources: true,
     },
   ],
@@ -242,7 +242,7 @@ const sampleSnapshot: AiControlCenterSnapshot = {
       untracked: 2,
       changed_paths: ['src/routes/dashboard/AiControlCenterView.svelte'],
       available: true,
-      status_message: 'Changes compared to Zenith baseline.',
+      status_message: 'Changes compared to Neati baseline.',
     },
   ],
   audit: [
@@ -313,7 +313,7 @@ describe('AI Control Center Svelte component rendering', () => {
     const rendered = render(AiControlCenterView);
     expect(rendered.body).toContain('Observed sessions');
     expect(rendered.body).toContain('Provider sources');
-    expect(rendered.body).toContain('Zenith alerts');
+    expect(rendered.body).toContain('Neati alerts');
     expect(rendered.body).toContain('Safety findings');
     expect(rendered.body).toContain('Recent local audit');
     expect(rendered.body).toContain('Bounded local log · no telemetry · opaque project references');

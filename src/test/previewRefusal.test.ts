@@ -91,7 +91,7 @@ describe('destructive dispatches in preview mode', () => {
     } as never;
 
     await expect(developmentPortsStore.release(listener, 'graceful')).rejects.toThrow(
-      'Stopping a development server is unavailable while Zenith is showing preview data.'
+      'Stopping a development server is unavailable while Neati is showing preview data.'
     );
     expect(developmentPortsStore.error).toBe(refusalForPreview('Stopping a development server'));
     expect(tauriUtils.tauriReleaseDevelopmentListener).not.toHaveBeenCalled();
@@ -107,13 +107,13 @@ describe('destructive dispatches in preview mode', () => {
 
   it('refuses stopping a session and removing an integration', async () => {
     await expect(agentActivityStore.stopSession('session-1', 'lease-1')).rejects.toThrow(
-      'Stopping a session is unavailable while Zenith is showing preview data.'
+      'Stopping a session is unavailable while Neati is showing preview data.'
     );
     expect(agentActivityStore.error).toBe(refusalForPreview('Stopping a session'));
     expect(tauriUtils.tauriRequestStopAgentSession).not.toHaveBeenCalled();
 
     await expect(agentActivityStore.uninstallIntegration('claude')).rejects.toThrow(
-      'Removing an agent integration is unavailable while Zenith is showing preview data.'
+      'Removing an agent integration is unavailable while Neati is showing preview data.'
     );
     expect(tauriUtils.tauriRemoveAgentIntegration).not.toHaveBeenCalled();
   });

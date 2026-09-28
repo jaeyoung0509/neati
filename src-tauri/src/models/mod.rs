@@ -6,7 +6,7 @@
 //! to know which side of the boundary a given concept landed on.
 //!
 //! What is here rather than in `zenith_core` is what does not survive the
-//! question "would this still make sense if Zenith had a CLI instead of a
+//! question "would this still make sense if Neati had a CLI instead of a
 //! Tauri window?" — AI provider snapshots, Docker and metrics readings,
 //! keep-awake rules, developer-port state, agent activity, developer
 //! artifacts, diagnostics, and the persisted user settings document.

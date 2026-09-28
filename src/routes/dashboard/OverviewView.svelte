@@ -123,7 +123,7 @@
       case 'stale': return 'Scan again before reviewing cleanup.';
       case 'failed': return 'Scan could not finish. Open Storage for details.';
       case 'partial': return 'Some locations were not checked. Review measured items.';
-      case 'ready': return 'Safe development and app caches Zenith can reclaim.';
+      case 'ready': return 'Safe development and app caches Neati can reclaim.';
       case 'clean': return 'Nothing verifiably cleanable in the last measured inventory.';
       default: return '';
     }

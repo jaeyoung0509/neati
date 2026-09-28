@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1120" viewBox="0 -160 1120 1120">
+  <title>Neati — original vector directions for approval</title>
+  <desc>Two rounded lowercase n symbols with a custom handwritten neati wordmark. A is upright and tidy; B is more flowing. Draft, not shipped artwork.</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5277ED"/><stop offset="1" stop-color="#2865C8"/></linearGradient>
+    <g id="a" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 46V20 M17 34C17 15 43 13 43 31V40Q43 47 50 44"/>
+    </g>
+    <g id="b" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 44Q17 31 21 19L15 45C24 19 41 15 42 28C43 35 36 43 43 46Q48 49 54 41"/>
+    </g>
+    <!-- Original hand-drawn lettering; no font or third-party logo dependency. -->
+    <g id="word" fill="none" stroke="currentColor" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 46L14 20L8 44C16 24 30 16 32 28C33 33 27 43 32 46Q36 49 42 41"/>
+      <path d="M42 36C66 35 62 18 50 24C38 31 38 47 50 47Q58 47 65 40"/>
+      <path d="M89 26C72 15 60 46 74 47Q84 46 90 25L85 41Q83 51 96 41"/>
+      <path d="M112 8L102 37Q98 54 116 42 M99 23L119 22"/>
+      <path d="M130 25L126 39Q122 54 141 41"/>
+      <path d="M134 11L134 12" stroke-width="7"/>
+    </g>
+  </defs>
+  <rect y="-160" width="1120" height="1120" fill="#F3F5FA"/>
+  <g font-family="Helvetica, Arial, sans-serif" fill="#252B3B">
+    <text x="48" y="53" font-size="14" letter-spacing="2">NEATI / IDENTITY STUDY 01</text>
+    <text x="48" y="99" font-size="30" font-weight="600">A little character. Everything in order.</text>
+    <text x="48" y="129" font-size="14" fill="#626B7B">Original vector concepts • approval preview only • existing app materials stay unchanged</text>
+    <rect x="40" y="166" width="512" height="534" rx="24" fill="white"/>
+    <rect x="568" y="166" width="512" height="534" rx="24" fill="white"/>
+    <text x="72" y="205" font-size="16" font-weight="600">A — Soft arch</text>
+    <text x="600" y="205" font-size="16" font-weight="600">B — Handwritten loop</text>
+    <text x="72" y="230" font-size="13" fill="#626B7B">Upright, rounded, quietly playful. Recommended.</text>
+    <text x="600" y="230" font-size="13" fill="#626B7B">More movement, a softer handwritten gesture.</text>
+    <rect x="96" y="271" width="128" height="128" rx="30" fill="url(#blue)"/>
+    <use href="#a" transform="translate(96 271) scale(2)" color="white"/>
+    <use href="#word" transform="translate(250 288) scale(1.65)" color="#2A3959"/>
+    <rect x="624" y="271" width="128" height="128" rx="30" fill="url(#blue)"/>
+    <use href="#b" transform="translate(624 271) scale(2)" color="white"/>
+    <use href="#word" transform="translate(778 288) scale(1.65)" color="#2A3959"/>
+    <path d="M72 433H520 M600 433H1048" stroke="#E2E6EE"/>
+    <text x="72" y="465" font-size="12" fill="#626B7B">COMPACT / 16 · 22 · 32 PX</text>
+    <text x="600" y="465" font-size="12" fill="#626B7B">COMPACT / 16 · 22 · 32 PX</text>
+    <use href="#a" transform="translate(76 487) scale(.25)" color="#2865C8"/>
+    <use href="#a" transform="translate(115 484) scale(.34375)" color="#2865C8"/>
+    <use href="#a" transform="translate(166 479) scale(.5)" color="#2865C8"/>
+    <use href="#b" transform="translate(604 487) scale(.25)" color="#2865C8"/>
+    <use href="#b" transform="translate(643 484) scale(.34375)" color="#2865C8"/>
+    <use href="#b" transform="translate(694 479) scale(.5)" color="#2865C8"/>
+    <rect x="72" y="541" width="448" height="80" rx="15" fill="#222937"/>
+    <rect x="600" y="541" width="448" height="80" rx="15" fill="#222937"/>
+    <use href="#a" transform="translate(92 558) scale(.7)" color="white"/>
+    <use href="#word" transform="translate(160 553) scale(.9)" color="white"/>
+    <use href="#b" transform="translate(620 558) scale(.7)" color="white"/>
+    <use href="#word" transform="translate(688 553) scale(.9)" color="white"/>
+    <text x="72" y="660" font-size="13" fill="#626B7B">One clear arch; a small lifted tail adds warmth.</text>
+    <text x="600" y="660" font-size="13" fill="#626B7B">A flowing pen stroke; more expressive at large sizes.</text>
+    <text x="48" y="736" font-size="12" fill="#626B7B">Draft shapes and color treatment — not a final icon, trademark clearance, or native-app screenshot.</text>
+  </g>
+</svg>

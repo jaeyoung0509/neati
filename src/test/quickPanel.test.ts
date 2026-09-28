@@ -121,7 +121,7 @@ describe('compact AI summary', () => {
       action_url: null,
     };
     const session: AgentQuickSessionRow = {
-      session_id: 'session-1', tool_name: 'Codex', project_name: 'Zenith',
+      session_id: 'session-1', tool_name: 'Codex', project_name: 'Neati',
       status: 'working', evidence: 'process_observed', elapsed_seconds: 120,
     };
     const rows = projectQuickAiRows([provider], [session]);

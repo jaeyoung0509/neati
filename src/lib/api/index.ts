@@ -22,9 +22,9 @@ export interface ApiBridgeSnapshot {
 
 const NOTICE_MESSAGES: Record<ApiBridgeNotice, string> = {
   'bridge-appeared-late':
-    'The native Tauri bridge appeared after the preview data layer had already answered a command. Zenith is using native commands from now on.',
+    'The native Tauri bridge appeared after the preview data layer had already answered a command. Neati is using native commands from now on.',
   'native-bridge-missing':
-    'This window is running inside the Tauri webview but the native bridge is unavailable. Zenith is showing preview data instead of live results.',
+    'This window is running inside the Tauri webview but the native bridge is unavailable. Neati is showing preview data instead of live results.',
 };
 
 /**
@@ -56,7 +56,7 @@ export function isTauri(): boolean {
  */
 export function refusalForPreview(action: string): string | null {
   if (isTauri()) return null;
-  return `${action} is unavailable while Zenith is showing preview data.`;
+  return `${action} is unavailable while Neati is showing preview data.`;
 }
 
 export function apiBridgeSnapshot(): ApiBridgeSnapshot {

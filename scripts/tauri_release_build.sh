@@ -44,7 +44,7 @@ registry_index_dir="$(dirname "$package_dir")"
 registry_src_dir="$(dirname "$registry_index_dir")"
 
 if [[ "$missing_manifest" != /* || "$(basename "$registry_src_dir")" != "src" || "$(basename "$(dirname "$registry_src_dir")")" != "registry" || ! -d "$package_dir" || -L "$package_dir" || -L "$registry_index_dir" || -L "$registry_src_dir" ]]; then
-  echo "Cargo reported a registry source path that Zenith cannot safely repair: $missing_manifest" >&2
+  echo "Cargo reported a registry source path that Neati cannot safely repair: $missing_manifest" >&2
   exit "$build_status"
 fi
 

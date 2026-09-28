@@ -87,7 +87,7 @@ pub fn statuses(
                     .copied()
                     .filter(|threshold| used_basis_points >= u16::from(*threshold) * 100)
                     .collect(),
-                source_label: "Zenith alert budget".into(),
+                source_label: "Neati alert budget".into(),
                 mixed_sources: kinds.len() > 1,
             }
         })

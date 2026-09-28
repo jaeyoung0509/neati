@@ -495,6 +495,11 @@ must not suggest that the account has exhausted its quota.
 
 ### Storage
 
+- The category list starts with a global Select all checkbox showing mixed
+  selection. It selects eligible idle items, including owner actions that still
+  require confirmation; running owners and protected rows are excluded. The
+  estimate explains ready-now, close-app-first and review-required bytes rather
+  than implying that every candidate is immediately removable.
 - Cleanup reads in task order: scan summary, freshness, category selection,
   then `Clean selected`. The primary figure is the cleanup estimate; observed bytes use
   a smaller secondary figure and respect ambiguous overlap ranges. Selected

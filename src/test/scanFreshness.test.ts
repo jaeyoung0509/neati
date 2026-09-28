@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ScanStore } from '../lib/stores/scan.svelte';
 import { CleanupRefusalError } from '../lib/api/native';
 import type { ScanEvent, ScanResult } from '../lib/models/types';
+import type { ScanResult_Deserialize } from '../lib/bindings/tauri';
 import { tauriCancelScan, tauriCreatePlan, tauriExecuteClean, tauriGetLastScan, tauriQuickCleanSafe, tauriResumeScan, tauriScan, tauriScanDiscovery } from '../lib/utils/tauri';
 
 vi.mock('../lib/utils/tauri', async (importOriginal) => {
@@ -19,7 +20,7 @@ vi.mock('../lib/utils/tauri', async (importOriginal) => {
   };
 });
 
-function fixture(id = 'scan', finished = 1000): ScanResult {
+function fixture(id = 'scan', finished = 1000): ScanResult_Deserialize {
   return {
     scan_id: id, valid_for_seconds: 300, started_at: finished - 1, finished_at: finished,
     total_bytes: 10, safe_bytes: 10, rebuild_bytes: 0, manual_bytes: 0,
@@ -61,6 +62,33 @@ async function loaded() {
 }
 
 describe('cleanup freshness and recovery', () => {
+  it('bulk selection spans categories, includes review actions, and excludes running or protected rows', async () => {
+    const result = fixture();
+    const base = result.categories[0].items[0];
+    result.categories.push({ ...result.categories[0], category: 'system', items: [
+      { ...base, id: 'review', category: 'system', disposition: { eligibility: 'reviewable', reason: 'Confirm owner action', cleanable_bytes: 10 } },
+      { ...base, id: 'running', category: 'system', owner_running: true, disposition: { eligibility: 'reviewable', reason: 'Running', cleanable_bytes: 10 } },
+      { ...base, id: 'blocked', category: 'system', disposition: { eligibility: 'blocked', reason: 'Protected', cleanable_bytes: null } },
+      { ...base, id: 'manual', category: 'system', risk: 'manual', disposition: { eligibility: 'advisory', reason: 'Owner managed', cleanable_bytes: null } },
+    ] });
+    vi.mocked(tauriGetLastScan).mockResolvedValue(result);
+    const store = new ScanStore();
+    await store.init();
+    expect(store.bulkSelection).toEqual({ count: 2, all: false, mixed: true });
+    store.setAllSelected(true);
+    expect(store.bulkSelection).toEqual({ count: 2, all: true, mixed: false });
+    expect(store.selectedMap).toEqual({ 'scan-item': true, review: true, running: false, blocked: false, manual: false });
+    store.setAllSelected(false);
+    expect(store.selectedCount).toBe(0);
+    store.toggleCategory('system', true);
+    expect(store.selectedMap.review).toBe(true);
+    expect(store.selectedMap.running).toBe(false);
+    vi.setSystemTime(1300_000);
+    store.updateFreshness();
+    store.setAllSelected(true);
+    expect(store.selectedCount).toBe(0);
+  });
+
   it('shows cleanup and its follow-up scan as separate phases', async () => {
     const store = await loaded();
     const refresh = deferred<ScanResult>();

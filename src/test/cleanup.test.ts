@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { ScanItem, NeatiSettings } from '../lib/models/types';
 import {
   cleanableBytes,
+  cleanupAvailability,
+  isBulkSelectable,
   cleanableTotals,
   describeIneligibleStates,
   filterAndSortCleanupItems,
@@ -20,6 +22,17 @@ import {
 } from '../lib/utils/cleanup';
 import { cleanOutcome } from '../lib/utils/cleanResult';
 import { scanStore } from '../lib/stores/scan.svelte';
+
+it('explains ready, close-app-first and review bytes without including protected observations', () => {
+  const ready = item({ size: { logical: 10, allocated: 10 } });
+  const running = item({ owner_running: true, size: { logical: 20, allocated: 20 }, disposition: { eligibility: 'reviewable', reason: 'Localized owner message', cleanable_bytes: 20 } });
+  const review = item({ size: { logical: 30, allocated: 30 }, disposition: { eligibility: 'reviewable', reason: null, cleanable_bytes: 30 } });
+  const protectedRow = item({ risk: 'manual', size: { logical: 1000, allocated: 1000 } });
+  expect(cleanupAvailability([ready, running, review, protectedRow])).toEqual({ ready: 10, running: 20, review: 30 });
+  expect(isBulkSelectable(running)).toBe(false);
+  expect(isBulkSelectable(review)).toBe(true);
+  expect(isBulkSelectable(protectedRow)).toBe(false);
+});
 
 function item(overrides: Partial<ScanItem>): ScanItem {
   const fixture = {

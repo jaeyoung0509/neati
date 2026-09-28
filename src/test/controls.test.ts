@@ -44,6 +44,12 @@ describe('Switch component SSR / visual contracts', () => {
 });
 
 describe('Checkbox component SSR / visual contracts', () => {
+  it('keeps the visible bulk label inside the checkbox hit target and shows a mixed glyph', () => {
+    const { body } = render(Checkbox, { props: { checked: false, indeterminate: true, label: 'Select all', ariaLabel: 'Select all available cleanup items' } });
+    expect(body).toMatch(/<label[\s\S]*Select all[\s\S]*<\/label>/);
+    expect(body).toContain('lucide-minus');
+    expect(body).toContain('bg-success');
+  });
   it('renders checked checkbox with emerald styling and white checkmark icon', () => {
     const rendered = render(Checkbox, {
       props: {
@@ -55,7 +61,7 @@ describe('Checkbox component SSR / visual contracts', () => {
     expect(rendered.body).toContain('aria-label="Select Storage"');
     expect(rendered.body).toContain('bg-success');
     expect(rendered.body).toContain('border-success');
-    expect(rendered.body).toContain('peer-focus-visible:ring-success/40');
+    expect(rendered.body).toContain('peer-focus-visible:ring-ring');
     // Verify lucide Check SVG is rendered
     expect(rendered.body).toContain('<svg');
     expect(rendered.body).toContain('stroke-white');

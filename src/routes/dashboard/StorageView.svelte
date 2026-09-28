@@ -14,6 +14,7 @@
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
   import CategoryCard from '../../lib/components/CategoryCard.svelte';
+  import Checkbox from '../../lib/components/Checkbox.svelte';
   import StorageSummary from '../../lib/components/StorageSummary.svelte';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import DeletingDots from '../../lib/components/DeletingDots.svelte';
@@ -330,6 +331,18 @@
 
       {#if scan}
         <div class="category-list rounded-xl border border-border bg-card">
+          <div class="flex flex-wrap items-center gap-x-2 border-b border-border px-1 py-2">
+            <Checkbox
+              class="min-h-8 gap-3 px-2"
+              label="Select all"
+              checked={scanStore.bulkSelection.all}
+              indeterminate={scanStore.bulkSelection.mixed}
+              disabled={!scanStore.canClean || isPreparingReview || scanStore.bulkSelection.count === 0}
+              ariaLabel="Select all available cleanup items"
+              onchange={(checked) => scanStore.setAllSelected(checked)}
+            />
+            <span class="text-meta text-muted-foreground">{scanStore.bulkSelection.count} available · running apps excluded</span>
+          </div>
           {#each orderedCategories as categoryResult (categoryResult.category)}
             <CategoryCard
               {categoryResult}

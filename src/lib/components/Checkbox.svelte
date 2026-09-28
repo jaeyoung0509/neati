@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { Check } from '@lucide/svelte';
+  import { Check, Minus } from '@lucide/svelte';
 
   interface Props {
     checked: boolean;
+    indeterminate?: boolean;
     disabled?: boolean;
     ariaLabel: string;
+    label?: string;
     class?: string;
     title?: string;
     onchange?: (checked: boolean) => void;
@@ -12,8 +14,10 @@
 
   let {
     checked = false,
+    indeterminate = false,
     disabled = false,
     ariaLabel,
+    label,
     class: className = '',
     title,
     onchange,
@@ -33,6 +37,7 @@
   <input
     type="checkbox"
     {checked}
+    {indeterminate}
     {disabled}
     {title}
     aria-label={ariaLabel}
@@ -40,12 +45,15 @@
     class="sr-only peer"
   />
   <div
-    class="h-4 w-4 rounded-[4px] border transition-colors duration-140 flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-success/40 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background {checked
+    class="h-4 w-4 rounded-[4px] border transition-colors duration-140 flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background {checked || indeterminate
       ? 'bg-success border-success text-white'
       : 'border-border-strong bg-card hover:border-foreground text-transparent'}"
   >
-    {#if checked}
+    {#if indeterminate}
+      <Minus size={11} strokeWidth={3} aria-hidden="true" />
+    {:else if checked}
       <Check size={11} strokeWidth={3} class="stroke-white" />
     {/if}
   </div>
+  {#if label}<span class="text-body font-medium">{label}</span>{/if}
 </label>

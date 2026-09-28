@@ -1,13 +1,14 @@
 <script lang="ts">
   import { scanStore } from '../stores/scan.svelte';
-  import { observedByteRange, summarizeCategory } from '../utils/cleanup';
+  import { cleanupAvailability, observedByteRange, summarizeCategory } from '../utils/cleanup';
   import { formatBytes } from '../utils/format';
 
   let scan = $derived(scanStore.lastScan);
   let summary = $derived(summarizeCategory(scan?.categories.flatMap(category => category.items) ?? []));
+  let availability = $derived(cleanupAvailability(scan?.categories.flatMap(category => category.items) ?? []));
   let observed = $derived(observedByteRange(scan?.total_bytes ?? 0, scan?.ambiguous_overlap_bytes));
   let isCurrent = $derived(scanStore.freshness === 'fresh' || scanStore.freshness === 'partial');
-  let estimateLabel = $derived(isCurrent ? 'Available to clean' : 'Last cleanup estimate');
+  let estimateLabel = $derived(isCurrent ? 'Cleanup candidates' : 'Last cleanup estimate');
 </script>
 
 <section class="storage-summary" aria-label="Storage scan summary">
@@ -29,6 +30,13 @@
     </p>
     {#if isCurrent && summary.unestimated_count > 0}
       <p class="mt-1 text-meta text-muted-foreground">{summary.unestimated_count} tool-managed {summary.unestimated_count === 1 ? 'cleanup has' : 'cleanups have'} no size estimate. The tool decides what is unused.</p>
+    {/if}
+    {#if isCurrent}
+      <p class="mt-2 text-meta text-muted-foreground">
+        <span class="font-medium text-foreground">{formatBytes(availability.ready)} ready now</span>
+        {#if availability.running > 0} · {formatBytes(availability.running)} after closing apps{/if}
+        {#if availability.review > 0} · {formatBytes(availability.review)} needs review{/if}
+      </p>
     {/if}
   </div>
   <div class="summary-context">

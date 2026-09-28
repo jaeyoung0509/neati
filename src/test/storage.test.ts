@@ -104,7 +104,8 @@ describe('Storage scan summary', () => {
     scanStore.lastScan!.ambiguous_overlap_bytes = 2048;
 
     const { body } = render(StorageSummary);
-    expect(body).toContain('Available to clean');
+    expect(body).toContain('Cleanup candidates');
+    expect(body).toContain('ready now');
     expect(body).toContain('1 KB');
     expect(body).toContain('8 KB–10 KB');
     expect(body).toContain('Includes items that must be kept.');

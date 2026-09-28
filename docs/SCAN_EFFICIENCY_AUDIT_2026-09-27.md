@@ -1,6 +1,6 @@
 # Scan efficiency audit, September 27, 2026
 
-Issue [#313](https://github.com/jaeyoung0509/zenith/issues/313), based on develop
+Issue [#313](https://github.com/jaeyoung0509/neati/issues/313), based on develop
 `050ec15` (v0.3.63). The implementation is v0.3.64. This audit focuses on the
 scan/overlap/link-classification paths and candidate cache coverage; it is not
 an exhaustive review of every product feature.
@@ -12,8 +12,8 @@ an exhaustive review of every product feature.
 | Overlap resolution captures unit and ancestor identities repeatedly for every candidate pair. Equivalent entries also repeat parent-directory enumeration. | Reuse observations within one overlap pass, through the same relationship algorithm the uncached planner uses. Nothing is cached across scans or into authorization. |
 | The size and age walkers stat ordinary entries twice: once for link classification, once for size/type. | Classify the already-read non-following metadata. Windows still queries reparse tags; classification failures report a partial measurement. |
 | Scan spans omit overlap resolution and slice merging. | Add `scan.overlap_resolution` and `scan.overlap_merge`; include the current merge pass in merged duration. |
-| External cache-provider work consumes roughly half this machine's full scan. | Still open under [#294](https://github.com/jaeyoung0509/zenith/issues/294). The group span combines discovery commands and measurement, so it does not establish which provider or subprocess is slow. Per-provider profiling should precede concurrency or persistent-cache changes. |
-| Application-data selectors omit locally observed `DawnGraphiteCache`, `DawnWebGPUCache`, and `GrShaderCache` names. Generic named-subtree scans do not infer a running owner like enumerated namespaces or verified renderer contracts. | Track scoped discovery plus owner verification in [#314](https://github.com/jaeyoung0509/zenith/issues/314). No new deletion scope or signature is added here. |
+| External cache-provider work consumes roughly half this machine's full scan. | Still open under [#294](https://github.com/jaeyoung0509/neati/issues/294). The group span combines discovery commands and measurement, so it does not establish which provider or subprocess is slow. Per-provider profiling should precede concurrency or persistent-cache changes. |
+| Application-data selectors omit locally observed `DawnGraphiteCache`, `DawnWebGPUCache`, and `GrShaderCache` names. Generic named-subtree scans do not infer a running owner like enumerated namespaces or verified renderer contracts. | Track scoped discovery plus owner verification in [#314](https://github.com/jaeyoung0509/neati/issues/314). No new deletion scope or signature is added here. |
 | Per-entry blacklist checks rebuild environment-derived values, and exclusion checks repeatedly expand patterns. | Further profiling opportunity, not an established timing attribution. Any precomputation must preserve the stated environment and platform path semantics. |
 
 No UI, native glass, cleanup policy, provider command, dependency, or permission
@@ -37,8 +37,8 @@ observations, and identity replacement between observation and fresh checks.
 The existing fixture scan accounting remains unchanged.
 
 ```sh
-cargo test -p zenith-desktop scanner::relationship::tests -- --nocapture
-cargo test -p zenith-desktop --test scan_benchmark -- --nocapture
+cargo test -p neati-desktop scanner::relationship::tests -- --nocapture
+cargo test -p neati-desktop --test scan_benchmark -- --nocapture
 ```
 
 ## Read-only machine observations
@@ -72,7 +72,7 @@ as successful scans.
 To reproduce the observation without a private path ledger:
 
 ```sh
-cargo run -q -p zenith-desktop --example scan_machine -- \
+cargo run -q -p neati-desktop --example scan_machine -- \
   --live-read-only --full-catalog-read-only
 ```
 

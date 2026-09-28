@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ScanItem, ZenithSettings } from '../lib/models/types';
+import type { ScanItem, NeatiSettings } from '../lib/models/types';
 import {
   cleanableBytes,
   cleanableTotals,
@@ -34,7 +34,7 @@ function item(overrides: Partial<ScanItem>): ScanItem {
     description: 'Generated cache',
     cache_metadata: {
       provider: 'Neati',
-      management_mode: 'zenith',
+      management_mode: 'neati',
       artifact_kind: 'temporary',
       consequence: '',
       size_semantics: 'physical_reclaimable',
@@ -70,7 +70,7 @@ function item(overrides: Partial<ScanItem>): ScanItem {
 }
 
 /** Settings that enable every cleanup category, used by the store tests. */
-const allCategoriesEnabledSettings: ZenithSettings = {
+const allCategoriesEnabledSettings: NeatiSettings = {
   launch_at_login: false,
   clean_ai_tools: true,
   clean_developer_tools: true,
@@ -196,7 +196,7 @@ describe('presentation predicates and selection', () => {
       incomplete_reason: 'Protected application bundle encountered',
       cache_metadata: {
         provider: 'Neati',
-        management_mode: 'zenith',
+        management_mode: 'neati',
         artifact_kind: 'download_cache',
         consequence: '',
         size_semantics: 'conservative_lower_bound',
@@ -560,7 +560,7 @@ describe('cleanup disposition authority & byte semantics', () => {
     candidate.cache_metadata = { ...candidate.cache_metadata!, management_mode: 'advisory' };
     expect(isCleanable(candidate)).toBe(true);
     candidate.disposition = { eligibility: 'advisory', cleanable_bytes: 0, reason: 'Owner-managed store' };
-    candidate.cache_metadata.management_mode = 'zenith';
+    candidate.cache_metadata.management_mode = 'neati';
     expect(isCleanable(candidate)).toBe(false);
   });
 

@@ -9,6 +9,8 @@ use crate::models::{
     ReviewedFileIdentity,
 };
 use crate::safety::{Blacklist, SymlinkGuard};
+use neati_platform::description::PlatformEnvironment;
+use neati_platform::path_algebra;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
@@ -17,8 +19,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-use zenith_platform::description::PlatformEnvironment;
-use zenith_platform::path_algebra;
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
@@ -72,7 +72,7 @@ impl DeveloperArtifactInventory {
     }
 
     pub fn is_fresh_at(&self, now: u64) -> bool {
-        zenith_core::domain::is_within_window(self.created_at, now, INVENTORY_TTL_SECS)
+        neati_core::domain::is_within_window(self.created_at, now, INVENTORY_TTL_SECS)
     }
 }
 
@@ -594,7 +594,7 @@ fn store_workspace(
         workspace: DeveloperWorkspace {
             id: id.clone(),
             name,
-            display_path: zenith_platform::path_algebra::normalize_lexical(&canonical)
+            display_path: neati_platform::path_algebra::normalize_lexical(&canonical)
                 .to_string_lossy()
                 .into_owned(),
         },
@@ -1569,8 +1569,8 @@ fn unix_timestamp() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use neati_platform::description::KnownFolder;
     use std::fs;
-    use zenith_platform::description::KnownFolder;
 
     /// A simulated environment whose profile is the stated directory.
     fn environment_with_home(home: &Path) -> PlatformEnvironment {
@@ -2228,7 +2228,7 @@ mod tests {
         let home = Path::new(r"D:\Users\홍 길동");
 
         assert!(
-            workspace_root_scope_refusal(flavor, Path::new(r"D:\dev\zenith"), Some(home)).is_none()
+            workspace_root_scope_refusal(flavor, Path::new(r"D:\dev\neati"), Some(home)).is_none()
         );
         assert!(workspace_root_scope_refusal(flavor, Path::new(r"D:\"), Some(home)).is_some());
         assert!(workspace_root_scope_refusal(flavor, home, Some(home)).is_some());
@@ -2292,7 +2292,7 @@ mod tests {
         assert!(!record.workspace.display_path.starts_with(r"\\?\"));
         assert_eq!(
             PathBuf::from(&record.workspace.display_path),
-            zenith_platform::path_algebra::normalize_lexical(&record.path)
+            neati_platform::path_algebra::normalize_lexical(&record.path)
         );
     }
 

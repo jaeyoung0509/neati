@@ -187,6 +187,18 @@ offset rings, rather than assuming every control sits on the page background.
 - A critical warning never uses `text-micro`, and "9 px" warnings are not
   allowed anywhere. Arbitrary `text-[Npx]` utilities are rejected by the design
   test; use the named steps.
+- Native system fonts come first; no optional locally installed font changes
+  the application's default appearance. Do not download a body font.
+- Body copy uses 13/20 px and supporting text 12/18 px. Page subtitles use body
+  text with a bounded reading width. Headings may balance across lines; Korean
+  words stay together, with overflow wrapping as the long-token fallback.
+- Section labels use sentence case instead of all-caps tracking. Technical
+  values retain monospace/tabular numerals; descriptions and status sentences
+  use the body font. The approved handwritten wordmark remains unchanged.
+- Copy names the user's task and measured outcome, not implementation jargon:
+  `Found in scanned locations`, `Cleanup complete`, and `Completed items`.
+  A completed action is not a promise of disk-space recovery. Unknown estimates,
+  partial scans, protected items, and Trash movement keep their distinct meaning.
 
 ### Spacing, geometry, and density
 
@@ -350,8 +362,8 @@ inventory is still valid.
   `pnpm icons:generate` derives every packaged size, native `.icns` / `.ico`,
   the menu-bar PNG, public assets, compact frontend SVG, and its registry hash.
   `pnpm icons:check` detects drift. Do not hand-edit generated copies or recreate
-  the n with a font, emoji, or another icon library. The retained `zenith.svg`
-  registry filename is an internal compatibility key, not the public name.
+  the n with a font, emoji, or another icon library. The registry key and
+  generated frontend filename are both `neati`.
 - The master owns the white n stroke; the generator owns the blue tile.
   Compact artwork has no external shadow or Dock padding,
   so the 20 px Quick Panel and 24 px sidebar uses remain readable. The native

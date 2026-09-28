@@ -89,7 +89,7 @@ pub fn shared_scan_pool() -> Option<&'static ThreadPool> {
         }
         ThreadPoolBuilder::new()
             .num_threads(workers)
-            .thread_name(|index| format!("zenith-scan-{index}"))
+            .thread_name(|index| format!("neati-scan-{index}"))
             .build()
             .ok()
     })

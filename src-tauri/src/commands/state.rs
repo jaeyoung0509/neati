@@ -21,7 +21,7 @@ use crate::signatures::SignatureRegistry;
 pub struct DesktopState {
     /// Platform facts the backend may depend on. Tests inject a simulated
     /// environment here instead of reading the host's.
-    pub environment: Arc<zenith_platform::PlatformEnvironment>,
+    pub environment: Arc<neati_platform::PlatformEnvironment>,
     /// The cleanup catalog this process loaded, for the startup refusal below
     /// and for callers that need the same catalog the scan will use.
     pub registry: Arc<SignatureRegistry>,
@@ -50,7 +50,7 @@ pub struct DesktopState {
 impl DesktopState {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        environment: Arc<zenith_platform::PlatformEnvironment>,
+        environment: Arc<neati_platform::PlatformEnvironment>,
         registry: Arc<SignatureRegistry>,
         registry_load_error: Option<String>,
         settings: Arc<SettingsAuthority>,
@@ -116,7 +116,7 @@ mod tests {
 
     fn state() -> DesktopState {
         crate::composition::desktop_state(
-            Arc::new(zenith_platform::PlatformEnvironment::native()),
+            Arc::new(neati_platform::PlatformEnvironment::native()),
             ContainerHost::unstated(),
         )
     }

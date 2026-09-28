@@ -92,8 +92,8 @@ export const commands = {
 	setAwakeRules: (rules: AwakeRule_Deserialize[]) => typedError<null, string>(__TAURI_INVOKE("set_awake_rules", { rules })),
 	setManualAwake: (durationSecs: number | null, behavior: AwakeBehavior) => typedError<null, string>(__TAURI_INVOKE("set_manual_awake", { durationSecs, behavior })),
 	disableManualAwake: () => typedError<null, string>(__TAURI_INVOKE("disable_manual_awake")),
-	getSettings: () => typedError<ZenithSettings_Serialize, string>(__TAURI_INVOKE("get_settings")),
-	saveSettings: (settings: ZenithSettings_Deserialize) => typedError<null, string>(__TAURI_INVOKE("save_settings", { settings })),
+	getSettings: () => typedError<NeatiSettings_Serialize, string>(__TAURI_INVOKE("get_settings")),
+	saveSettings: (settings: NeatiSettings_Deserialize) => typedError<null, string>(__TAURI_INVOKE("save_settings", { settings })),
 	showInFileManager: (path: string) => typedError<null, string>(__TAURI_INVOKE("show_in_file_manager", { path })),
 	/**
 	 *  Opens the dashboard, optionally on a named destination.
@@ -797,7 +797,7 @@ export type BudgetStatus = {
 
 export type CacheArtifactKind = "temporary" | "download_cache" | "package_store" | "build_artifact" | "renderer_cache" | "compiled_kernel" | "optimized_engine" | "autotune" | "model_weight" | "prompt_or_session_state" | "runtime_memory" | "log";
 
-export type CacheManagementMode = "zenith" | "tool_managed" | "advisory";
+export type CacheManagementMode = "neati" | "tool_managed" | "advisory";
 
 export type CacheMetadata = {
 	provider: string,
@@ -1131,7 +1131,7 @@ export type CleanupEligibility =
  */
 "policy_gated" |
 /**
- *  Not Zenith's operation: an external manager or provider owns the
+ *  Not Neati's operation: an external manager or provider owns the
  *  invalidation.
  */
 "advisory" | "blocked";
@@ -2278,6 +2278,48 @@ export type MoneyMicros = {
 	currency: string,
 };
 
+export type NeatiSettings = NeatiSettings_Serialize | NeatiSettings_Deserialize;
+
+export type NeatiSettings_Deserialize = {
+	launch_at_login?: boolean,
+	clean_ai_tools?: boolean,
+	clean_developer_tools?: boolean,
+	clean_docker?: boolean,
+	include_rebuild_caches?: boolean,
+	intensive_cleanup?: boolean,
+	theme?: string,
+	excluded_signatures?: string[],
+	awake_rules?: AwakeRule_Deserialize[],
+	quick_panel_sections?: QuickPanelSection[],
+	quick_panel_ai_providers?: ProviderId_Deserialize[],
+	ai_accounts_quota_providers?: ProviderId_Deserialize[],
+	dashboard_tabs?: DashboardTab_Deserialize[],
+	dashboard_tabs_revision?: number,
+	sidebar_collapsed?: boolean,
+	ai_control?: AiControlPreferences_Deserialize,
+	agent_notifications?: AgentNotificationPreferences,
+};
+
+export type NeatiSettings_Serialize = {
+	launch_at_login: boolean,
+	clean_ai_tools: boolean,
+	clean_developer_tools: boolean,
+	clean_docker: boolean,
+	include_rebuild_caches: boolean,
+	intensive_cleanup: boolean,
+	theme: string,
+	excluded_signatures: string[],
+	awake_rules: AwakeRule_Serialize[],
+	quick_panel_sections: QuickPanelSection[],
+	quick_panel_ai_providers: ProviderId_Serialize[],
+	ai_accounts_quota_providers: ProviderId_Serialize[],
+	dashboard_tabs: DashboardTab_Serialize[],
+	dashboard_tabs_revision: number,
+	sidebar_collapsed: boolean,
+	ai_control: AiControlPreferences_Serialize,
+	agent_notifications: AgentNotificationPreferences,
+};
+
 export type NormalizedSafetyEvidence = {
 	server_name: string | null,
 	scope: string | null,
@@ -2498,7 +2540,7 @@ export type PlatformCapabilities_Serialize = {
  *  Platform vocabulary and locations the interface must not hardcode.
  *
  *  Copy such as "Move to Trash", "Menu Bar Quick Panel", or
- *  `~/Library/Logs/Zenith` is only true on one platform. Deriving it from the
+ *  `~/Library/Logs/Neati` is only true on one platform. Deriving it from the
  *  running backend keeps the Windows and Linux builds from describing
  *  themselves with macOS nouns, and keeps a mocked browser preview from
  *  inventing paths the native build would never produce.
@@ -2593,14 +2635,14 @@ export type ProcessMemory_Serialize = {
 };
 
 /**
- *  How Zenith relates to a process group it is displaying.
+ *  How Neati relates to a process group it is displaying.
  *
- *  The grouping is an observation of the system process table. `ZenithChild`
- *  is only ever reported when the same fresh snapshot shows this Zenith process
- *  in every member's parent chain, so the view never implies Zenith started a
+ *  The grouping is an observation of the system process table. `NeatiChild`
+ *  is only ever reported when the same fresh snapshot shows this Neati process
+ *  in every member's parent chain, so the view never implies Neati started a
  *  process it merely observed.
  */
-export type ProcessOwnership = "observed" | "zenith_child";
+export type ProcessOwnership = "observed" | "neati_child";
 
 export type ProjectContext = ProjectContext_Serialize | ProjectContext_Deserialize;
 
@@ -3595,48 +3637,6 @@ export type UsageWindow_Serialize = {
 	label: string,
 	used_percent: number | null,
 	resets_at: number | null,
-};
-
-export type ZenithSettings = ZenithSettings_Serialize | ZenithSettings_Deserialize;
-
-export type ZenithSettings_Deserialize = {
-	launch_at_login?: boolean,
-	clean_ai_tools?: boolean,
-	clean_developer_tools?: boolean,
-	clean_docker?: boolean,
-	include_rebuild_caches?: boolean,
-	intensive_cleanup?: boolean,
-	theme?: string,
-	excluded_signatures?: string[],
-	awake_rules?: AwakeRule_Deserialize[],
-	quick_panel_sections?: QuickPanelSection[],
-	quick_panel_ai_providers?: ProviderId_Deserialize[],
-	ai_accounts_quota_providers?: ProviderId_Deserialize[],
-	dashboard_tabs?: DashboardTab_Deserialize[],
-	dashboard_tabs_revision?: number,
-	sidebar_collapsed?: boolean,
-	ai_control?: AiControlPreferences_Deserialize,
-	agent_notifications?: AgentNotificationPreferences,
-};
-
-export type ZenithSettings_Serialize = {
-	launch_at_login: boolean,
-	clean_ai_tools: boolean,
-	clean_developer_tools: boolean,
-	clean_docker: boolean,
-	include_rebuild_caches: boolean,
-	intensive_cleanup: boolean,
-	theme: string,
-	excluded_signatures: string[],
-	awake_rules: AwakeRule_Serialize[],
-	quick_panel_sections: QuickPanelSection[],
-	quick_panel_ai_providers: ProviderId_Serialize[],
-	ai_accounts_quota_providers: ProviderId_Serialize[],
-	dashboard_tabs: DashboardTab_Serialize[],
-	dashboard_tabs_revision: number,
-	sidebar_collapsed: boolean,
-	ai_control: AiControlPreferences_Serialize,
-	agent_notifications: AgentNotificationPreferences,
 };
 
 /* Tauri Specta runtime */

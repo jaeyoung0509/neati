@@ -1,15 +1,13 @@
+use neati_lib::docker::DockerAdapter;
+use neati_lib::models::{AwakeBehavior, Category, CleanStrategy, DiskMetrics, RiskTier, Signature};
+use neati_lib::power::{KeepAwakeManager, PowerAssertion};
+use neati_lib::scanner::{DirectoryScanner, ScanEngine, SizeCalculator};
+use neati_lib::signatures::SignatureRegistry;
+use neati_platform::path_algebra::PathFlavor;
+use neati_platform::PlatformEnvironment;
 use std::fs::File;
 use std::io::Write;
 use tempfile::tempdir;
-use zenith_lib::docker::DockerAdapter;
-use zenith_lib::models::{
-    AwakeBehavior, Category, CleanStrategy, DiskMetrics, RiskTier, Signature,
-};
-use zenith_lib::power::{KeepAwakeManager, PowerAssertion};
-use zenith_lib::scanner::{DirectoryScanner, ScanEngine, SizeCalculator};
-use zenith_lib::signatures::SignatureRegistry;
-use zenith_platform::path_algebra::PathFlavor;
-use zenith_platform::PlatformEnvironment;
 
 #[test]
 fn test_signature_registry_categories_and_risk_counts() {
@@ -108,7 +106,7 @@ fn test_temp_scanner_only_includes_known_direct_children() {
     let items = DirectoryScanner::scan_signature(
         &signature,
         &PlatformEnvironment::native(),
-        &zenith_core::application::dto::scan::NeverCancelled,
+        &neati_core::application::dto::scan::NeverCancelled,
     );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].path, known.to_string_lossy());
@@ -169,13 +167,13 @@ fn test_scan_hides_empty_paths_and_orders_largest_first() {
 
     let result = ScanEngine::scan(
         &registry,
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
         Some(&[Category::System]),
         &[],
         false,
         &PlatformEnvironment::native(),
-        &zenith_lib::models::NeverCancelled,
+        &neati_lib::models::NeverCancelled,
         |_| {},
     );
     let items = &result.categories[0].items;
@@ -186,13 +184,13 @@ fn test_scan_hides_empty_paths_and_orders_largest_first() {
     let excluded = vec!["large".to_string()];
     let filtered = ScanEngine::scan(
         &registry,
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
         Some(&[Category::System]),
         &excluded,
         false,
         &PlatformEnvironment::native(),
-        &zenith_lib::models::NeverCancelled,
+        &neati_lib::models::NeverCancelled,
         |_| {},
     );
     assert_eq!(filtered.categories[0].items.len(), 1);
@@ -256,7 +254,7 @@ fn test_power_assertion_raii_lifecycle() {
     {
         let assertion = PowerAssertion::acquire(
             AwakeBehavior::PreventSystemSleep,
-            "Zenith Rust Test Assertion",
+            "Neati Rust Test Assertion",
         );
         assert!(assertion.is_ok(), "PowerAssertion acquire must succeed");
         let assertion = assertion.unwrap();
@@ -289,7 +287,7 @@ fn test_power_assertion_raii_lifecycle() {
 fn test_power_assertion_fails_closed_without_native_adapter() {
     let assertion = PowerAssertion::acquire(
         AwakeBehavior::PreventSystemSleep,
-        "Zenith Rust Test Assertion",
+        "Neati Rust Test Assertion",
     );
     assert!(assertion.is_err());
 
@@ -302,9 +300,9 @@ fn test_power_assertion_fails_closed_without_native_adapter() {
 
 #[test]
 fn test_keep_awake_power_conditions_and_ac_awareness() {
+    use neati_lib::models::{AwakeRule, AwakeRuleStatus, PowerCondition, PowerSourceType};
+    use neati_lib::power::{MockPowerSource, NativeAssertionProvider};
     use std::sync::Arc;
-    use zenith_lib::models::{AwakeRule, AwakeRuleStatus, PowerCondition, PowerSourceType};
-    use zenith_lib::power::{MockPowerSource, NativeAssertionProvider};
 
     let power_mock = Arc::new(MockPowerSource::new(PowerSourceType::Battery));
     let assertion_mock = Arc::new(NativeAssertionProvider::new());
@@ -351,12 +349,12 @@ fn test_keep_awake_power_conditions_and_ac_awareness() {
 
 #[test]
 fn test_windows_blacklist_and_path_defense() {
+    use neati_lib::safety::blacklist::{classify_windows, BlacklistEnvironment, BlacklistVerdict};
+    use neati_lib::safety::Blacklist;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
+    use neati_platform::KnownFolder;
     use std::path::Path;
-    use zenith_lib::safety::blacklist::{classify_windows, BlacklistEnvironment, BlacklistVerdict};
-    use zenith_lib::safety::Blacklist;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
-    use zenith_platform::KnownFolder;
 
     // Stated environment: the profile lives on `Z:`, the redirected Documents
     // folder lives on `D:`, and nothing here mirrors this host's layout.
@@ -402,7 +400,7 @@ fn test_windows_blacklist_and_path_defense() {
     // Only the `X:\Users` root itself is protected: descendants (temp
     // directories, projects, caches) stay scannable and cleanable.
     for path in [
-        r"Z:\Users\tester\AppData\Local\Temp\zenith-test",
+        r"Z:\Users\tester\AppData\Local\Temp\neati-test",
         r"Z:\Users\tester\dev\repo",
         r"D:\Users\tester\dev\repo",
         r"Z:\Users\tester\.cargo\registry\cache",
@@ -454,9 +452,9 @@ fn test_windows_blacklist_and_path_defense() {
 #[cfg(target_os = "windows")]
 #[test]
 fn test_windows_verbatim_paths_preserve_blacklist_boundaries() {
+    use neati_lib::safety::Blacklist;
+    use neati_platform::path_algebra;
     use std::path::{Path, PathBuf};
-    use zenith_lib::safety::Blacklist;
-    use zenith_platform::path_algebra;
 
     let host = PlatformEnvironment::native();
 
@@ -493,8 +491,8 @@ fn test_windows_verbatim_paths_preserve_blacklist_boundaries() {
 
 #[test]
 fn test_windows_reparse_point_symlink_defense() {
+    use neati_lib::safety::SymlinkGuard;
     use std::path::Path;
-    use zenith_lib::safety::SymlinkGuard;
 
     let non_existent = Path::new("C:\\path\\does\\not\\exist\\123");
     assert!(!SymlinkGuard::is_symlink(non_existent));
@@ -502,7 +500,7 @@ fn test_windows_reparse_point_symlink_defense() {
 
 #[test]
 fn test_windows_platform_capabilities_batch2() {
-    use zenith_lib::models::{PlatformCapabilities, PlatformFeatureStatus, PlatformKind};
+    use neati_lib::models::{PlatformCapabilities, PlatformFeatureStatus, PlatformKind};
 
     let caps = PlatformCapabilities::windows();
     assert_eq!(caps.platform, PlatformKind::Windows);
@@ -554,9 +552,9 @@ fn test_windows_platform_capabilities_batch2() {
 
 #[test]
 fn test_windows_dev_ports_classification_defense() {
+    use neati_lib::dev_ports::{classify_listener, ProcessClassificationInput};
+    use neati_lib::process_owner::ProcessOwner;
     use std::path::Path;
-    use zenith_lib::dev_ports::{classify_listener, ProcessClassificationInput};
-    use zenith_lib::process_owner::ProcessOwner;
 
     let current_owner = ProcessOwner::Windows("S-1-5-21-test".to_string());
 
@@ -565,7 +563,7 @@ fn test_windows_dev_ports_classification_defense() {
         pid: 4500,
         owner: Some(current_owner.clone()),
         current_owner: current_owner.clone(),
-        zenith_pid: 9999,
+        neati_pid: 9999,
         port: 8080,
         raw_command: "powershell.exe",
         process_name: "powershell.exe",
@@ -585,7 +583,7 @@ fn test_windows_dev_ports_classification_defense() {
         pid: 5600,
         owner: Some(current_owner.clone()),
         current_owner,
-        zenith_pid: 9999,
+        neati_pid: 9999,
         port: 5173,
         raw_command: "node.exe",
         process_name: "node.exe",
@@ -604,9 +602,9 @@ fn test_windows_dev_ports_classification_defense() {
 
 #[test]
 fn port_release_refuses_a_privileged_or_unidentified_owner_only() {
+    use neati_lib::dev_ports::{classify_listener, ProcessClassificationInput};
+    use neati_lib::process_owner::ProcessOwner;
     use std::path::Path;
-    use zenith_lib::dev_ports::{classify_listener, ProcessClassificationInput};
-    use zenith_lib::process_owner::ProcessOwner;
 
     fn input<'a>(
         owner: ProcessOwner,
@@ -617,7 +615,7 @@ fn port_release_refuses_a_privileged_or_unidentified_owner_only() {
             pid: 5600,
             owner: Some(owner),
             current_owner,
-            zenith_pid: 9999,
+            neati_pid: 9999,
             port: 5173,
             raw_command: "node.exe",
             process_name: "node.exe",
@@ -672,7 +670,7 @@ fn port_release_refuses_a_privileged_or_unidentified_owner_only() {
 fn test_real_ipc_model_rejects_unsafe_u64_values() {
     let metrics = DiskMetrics {
         mount_point: "/".into(),
-        total_bytes: zenith_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
+        total_bytes: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
         used_bytes: 0,
         free_bytes: 0,
         available_bytes: 0,
@@ -689,8 +687,8 @@ fn test_real_ipc_model_rejects_unsafe_u64_values() {
 /// silently losing precision.
 #[test]
 fn test_cpu_and_battery_metrics_keep_their_ipc_integers_javascript_safe() {
-    use zenith_lib::ipc_numeric::MAX_SAFE_INTEGER;
-    use zenith_lib::models::{
+    use neati_lib::ipc_numeric::MAX_SAFE_INTEGER;
+    use neati_lib::models::{
         BatteryChargeState, BatteryMetrics, BatteryPresence, CpuMetrics, CpuSampleState,
         PowerSourceType,
     };
@@ -818,8 +816,8 @@ fn test_cpu_and_battery_metrics_keep_their_ipc_integers_javascript_safe() {
 #[cfg(target_os = "macos")]
 #[test]
 fn test_live_battery_provider_describes_this_machine() {
-    use zenith_lib::models::{BatteryChargeState, BatteryPresence};
-    use zenith_lib::power::{battery_metrics_from_reading, BatteryProvider, SystemBatteryProvider};
+    use neati_lib::models::{BatteryChargeState, BatteryPresence};
+    use neati_lib::power::{battery_metrics_from_reading, BatteryProvider, SystemBatteryProvider};
 
     let reading = SystemBatteryProvider::new().read();
 
@@ -860,7 +858,7 @@ fn test_live_battery_provider_describes_this_machine() {
 
 #[test]
 fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
-    use zenith_lib::models::{
+    use neati_lib::models::{
         AppInstallSource, InstalledApp, InstalledAppInventory, LocalModelInventory, LocalModelItem,
         ModelSource, ObservationQuality,
     };
@@ -890,7 +888,7 @@ fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
     let unsafe_model = LocalModelInventory {
         items: vec![],
         quality: ObservationQuality::Partial,
-        skipped_entry_count: zenith_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
+        skipped_entry_count: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
         incomplete_reasons: Vec::new(),
     };
     let error = serde_json::to_string(&unsafe_model)
@@ -927,13 +925,13 @@ fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
     let unsafe_app = InstalledAppInventory {
         apps: vec![],
         quality: ObservationQuality::Partial,
-        skipped_entry_count: zenith_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
+        skipped_entry_count: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
         incomplete_reasons: Vec::new(),
     };
     let app_error = serde_json::to_string(&unsafe_app).unwrap_err().to_string();
     assert!(app_error.contains("Number.MAX_SAFE_INTEGER"));
 
-    use zenith_lib::models::{TrashPlanPreview, TrashResult};
+    use neati_lib::models::{TrashPlanPreview, TrashResult};
 
     let safe_preview = TrashPlanPreview {
         id: uuid::Uuid::nil(),
@@ -949,7 +947,7 @@ fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
     let unsafe_preview = TrashPlanPreview {
         id: uuid::Uuid::nil(),
         item_count: 1,
-        logical_size: zenith_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
+        logical_size: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
         allocated_size: 1024,
         expires_at: 5000,
         size_is_lower_bound: false,
@@ -974,7 +972,7 @@ fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
         moved_count: 1,
         failed_count: 0,
         skipped_count: 0,
-        moved_allocated_size: zenith_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
+        moved_allocated_size: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
         items: vec![],
         size_is_lower_bound: false,
     };
@@ -1041,6 +1039,6 @@ fn generated_bindings_never_declare_authorization_types() {
 
     assert!(
         leaked.is_empty(),
-        "authorization state crossed the IPC boundary as {leaked:?}; project it through `zenith_core::application::dto` instead"
+        "authorization state crossed the IPC boundary as {leaked:?}; project it through `neati_core::application::dto` instead"
     );
 }

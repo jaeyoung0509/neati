@@ -1,11 +1,11 @@
 use crate::models::{
     derive_cleanup_disposition, Category, CleanupEligibility, CleanupOwnership, CleanupUnit,
     CleanupUnitKind, DispositionFacts, DockerContainerItem, DockerImageItem, DockerOverview,
-    DockerStatus, DockerVolumeItem, EligibilityGate, EntryKind, FileSize, ObservationQuality,
-    RiskTier, ScanItem, ZenithError,
+    DockerStatus, DockerVolumeItem, EligibilityGate, EntryKind, FileSize, NeatiError,
+    ObservationQuality, RiskTier, ScanItem,
 };
 use crate::tooling;
-use zenith_platform::description::{PlatformEnvironment, ToolResolution};
+use neati_platform::description::{PlatformEnvironment, ToolResolution};
 
 /// The container host the adapter may report, stated by the caller.
 ///
@@ -119,7 +119,7 @@ impl DockerAdapter {
         let mut cmd = Self::cli_command(environment, cli);
         cmd.args(["info", "--format", "{{.ServerVersion}}"]);
         matches!(
-            zenith_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(4)),
+            neati_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(4)),
             Ok(output) if output.status.success()
         )
     }
@@ -142,7 +142,7 @@ impl DockerAdapter {
     fn cli_version(environment: &PlatformEnvironment, cli: ContainerCli) -> Option<String> {
         let mut cmd = Self::cli_command(environment, cli);
         cmd.arg("--version");
-        zenith_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(3))
+        neati_platform::subprocess::run_with_timeout(cmd, std::time::Duration::from_secs(3))
             .ok()
             .filter(|output| output.status.success())
             .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
@@ -516,7 +516,7 @@ impl DockerAdapter {
     ) -> Vec<serde_json::Value> {
         let mut cmd = Self::cli_command(environment, cli);
         cmd.args(args);
-        let output = zenith_platform::subprocess::run_with_timeout(
+        let output = neati_platform::subprocess::run_with_timeout(
             cmd,
             std::time::Duration::from_secs(timeout_secs),
         );
@@ -862,7 +862,7 @@ impl DockerAdapter {
     pub fn prune_category(
         environment: &PlatformEnvironment,
         signature_id: &str,
-    ) -> Result<u64, ZenithError> {
+    ) -> Result<u64, NeatiError> {
         let overview_before = Self::get_overview(environment);
 
         enum CategoryDelta {
@@ -880,7 +880,7 @@ impl DockerAdapter {
                 let mut cmd = Self::cli_command(environment, cli);
                 cmd.args(["image", "prune", "-f"]);
                 (
-                    zenith_platform::subprocess::run_with_timeout(cmd, prune_timeout),
+                    neati_platform::subprocess::run_with_timeout(cmd, prune_timeout),
                     CategoryDelta::Images,
                 )
             }
@@ -888,7 +888,7 @@ impl DockerAdapter {
                 let mut cmd = Self::cli_command(environment, cli);
                 cmd.args(["image", "prune", "-a", "-f"]);
                 (
-                    zenith_platform::subprocess::run_with_timeout(cmd, prune_timeout),
+                    neati_platform::subprocess::run_with_timeout(cmd, prune_timeout),
                     CategoryDelta::Images,
                 )
             }
@@ -896,7 +896,7 @@ impl DockerAdapter {
                 let mut cmd = Self::cli_command(environment, cli);
                 cmd.args(["builder", "prune", "-f"]);
                 (
-                    zenith_platform::subprocess::run_with_timeout(cmd, prune_timeout),
+                    neati_platform::subprocess::run_with_timeout(cmd, prune_timeout),
                     CategoryDelta::BuildCache,
                 )
             }
@@ -904,7 +904,7 @@ impl DockerAdapter {
                 let mut cmd = Self::cli_command(environment, cli);
                 cmd.args(["container", "prune", "-f"]);
                 (
-                    zenith_platform::subprocess::run_with_timeout(cmd, prune_timeout),
+                    neati_platform::subprocess::run_with_timeout(cmd, prune_timeout),
                     CategoryDelta::Containers,
                 )
             }
@@ -912,12 +912,12 @@ impl DockerAdapter {
                 let mut cmd = Self::cli_command(environment, cli);
                 cmd.args(["volume", "prune", "-f"]);
                 (
-                    zenith_platform::subprocess::run_with_timeout(cmd, prune_timeout),
+                    neati_platform::subprocess::run_with_timeout(cmd, prune_timeout),
                     CategoryDelta::Volumes,
                 )
             }
             _ => {
-                return Err(ZenithError::SignatureMismatch(format!(
+                return Err(NeatiError::SignatureMismatch(format!(
                     "Unknown docker signature: {}",
                     signature_id
                 )))
@@ -950,14 +950,14 @@ impl DockerAdapter {
             Ok(output) => {
                 let err_str = String::from_utf8_lossy(&output.stderr).to_string();
                 crate::diagnostics::log_error("docker", &err_str);
-                Err(ZenithError::ExternalCommandFailed(
+                Err(NeatiError::ExternalCommandFailed(
                     crate::diagnostics::sanitize_log(&err_str),
                 ))
             }
             Err(e) => {
                 let err_str = e.to_string();
                 crate::diagnostics::log_error("docker", &err_str);
-                Err(ZenithError::ExternalCommandFailed(
+                Err(NeatiError::ExternalCommandFailed(
                     crate::diagnostics::sanitize_log(&err_str),
                 ))
             }
@@ -968,8 +968,8 @@ impl DockerAdapter {
 #[cfg(test)]
 mod tests {
     use super::{container_cli_detected, ContainerHost, DockerAdapter};
-    use zenith_platform::description::PlatformEnvironment;
-    use zenith_platform::path_algebra::PathFlavor;
+    use neati_platform::description::PlatformEnvironment;
+    use neati_platform::path_algebra::PathFlavor;
 
     #[test]
     fn volume_total_is_not_reported_as_reclaimable() {
@@ -1053,13 +1053,13 @@ mod tests {
         use std::path::Path;
 
         let environment = PlatformEnvironment::simulated(PathFlavor::Posix)
-            .with_tool("docker", "/opt/zenith-fixtures/bin/docker")
+            .with_tool("docker", "/opt/neati-fixtures/bin/docker")
             .with_missing_tool("podman");
 
         let command = DockerAdapter::cli_command(&environment, ContainerCli::Docker);
         assert_eq!(
             command.get_program(),
-            Path::new("/opt/zenith-fixtures/bin/docker").as_os_str()
+            Path::new("/opt/neati-fixtures/bin/docker").as_os_str()
         );
     }
 

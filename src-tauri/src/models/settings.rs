@@ -169,7 +169,7 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(default)]
-pub struct ZenithSettings {
+pub struct NeatiSettings {
     pub launch_at_login: bool,
     pub clean_ai_tools: bool,
     pub clean_developer_tools: bool,
@@ -201,7 +201,7 @@ pub struct ZenithSettings {
     pub agent_notifications: crate::models::AgentNotificationPreferences,
 }
 
-impl Default for ZenithSettings {
+impl Default for NeatiSettings {
     fn default() -> Self {
         Self {
             launch_at_login: false,
@@ -316,7 +316,7 @@ impl Default for ZenithSettings {
     }
 }
 
-impl ZenithSettings {
+impl NeatiSettings {
     pub fn sanitize(mut self) -> Self {
         let mut sections = HashSet::new();
         self.quick_panel_sections
@@ -534,16 +534,16 @@ fn legacy_dashboard_tabs_revision() -> u8 {
 mod tests {
     use crate::models::{ApplicationIdentity, AwakeAgentId};
 
-    use super::{DashboardTab, ProviderId, QuickPanelSection, ZenithSettings};
+    use super::{DashboardTab, NeatiSettings, ProviderId, QuickPanelSection};
 
     #[test]
     fn sanitize_keeps_at_least_one_section_and_tab() {
-        let empty = ZenithSettings {
+        let empty = NeatiSettings {
             quick_panel_sections: Vec::new(),
             dashboard_tabs: Vec::new(),
             quick_panel_ai_providers: Vec::new(),
             ai_accounts_quota_providers: Vec::new(),
-            ..ZenithSettings::default()
+            ..NeatiSettings::default()
         };
 
         let sanitized = empty.sanitize();
@@ -560,7 +560,7 @@ mod tests {
 
     #[test]
     fn sanitize_deduplicates_and_rejects_unknown_values() {
-        let configured = ZenithSettings {
+        let configured = NeatiSettings {
             quick_panel_sections: vec![
                 QuickPanelSection::AiUsage,
                 QuickPanelSection::AiUsage,
@@ -573,7 +573,7 @@ mod tests {
                 ProviderId::GrokBuild,
                 ProviderId::Cursor,
             ],
-            ..ZenithSettings::default()
+            ..NeatiSettings::default()
         };
 
         let sanitized = configured.sanitize();
@@ -595,7 +595,7 @@ mod tests {
             "ai_accounts_quota_providers": ["grok"],
             "quick_panel_ai_providers": ["grok"]
         }"#;
-        let parsed: ZenithSettings = serde_json::from_str(raw).unwrap();
+        let parsed: NeatiSettings = serde_json::from_str(raw).unwrap();
         let sanitized = parsed.sanitize();
         assert_eq!(
             sanitized.ai_accounts_quota_providers,
@@ -610,7 +610,7 @@ mod tests {
             "ai_accounts_quota_providers": ["codex", "future-ai-superprovider", "claude"],
             "quick_panel_ai_providers": ["unknown-ai", "cursor"]
         }"#;
-        let parsed: ZenithSettings =
+        let parsed: NeatiSettings =
             serde_json::from_str(raw).expect("unknown providers should be safely skipped");
         assert_eq!(
             parsed.ai_accounts_quota_providers,
@@ -626,7 +626,7 @@ mod tests {
             "theme": "dark"
         }"#;
 
-        let parsed: ZenithSettings = serde_json::from_str(raw).unwrap();
+        let parsed: NeatiSettings = serde_json::from_str(raw).unwrap();
         assert_eq!(parsed.quick_panel_sections.len(), 7);
         assert_eq!(parsed.dashboard_tabs.len(), 8);
         assert_eq!(parsed.dashboard_tabs_revision, 0);
@@ -653,7 +653,7 @@ mod tests {
             "theme": "system"
         }"#;
 
-        let parsed: ZenithSettings = serde_json::from_str(raw).unwrap();
+        let parsed: NeatiSettings = serde_json::from_str(raw).unwrap();
         let migrated = parsed.sanitize();
         assert_eq!(
             migrated.dashboard_tabs,
@@ -673,7 +673,7 @@ mod tests {
         );
         assert_eq!(migrated.dashboard_tabs_revision, 6);
 
-        let hidden_again = ZenithSettings {
+        let hidden_again = NeatiSettings {
             dashboard_tabs: vec![DashboardTab::Storage, DashboardTab::Performance],
             ..migrated
         }
@@ -693,7 +693,7 @@ mod tests {
             "theme": "system"
         }"#;
 
-        let migrated: ZenithSettings = serde_json::from_str::<ZenithSettings>(raw)
+        let migrated: NeatiSettings = serde_json::from_str::<NeatiSettings>(raw)
             .unwrap()
             .sanitize();
 
@@ -736,7 +736,7 @@ mod tests {
             "theme": "system"
         }"#;
 
-        let sanitized: ZenithSettings = serde_json::from_str::<ZenithSettings>(raw)
+        let sanitized: NeatiSettings = serde_json::from_str::<NeatiSettings>(raw)
             .unwrap()
             .sanitize();
 
@@ -752,7 +752,7 @@ mod tests {
 
     #[test]
     fn sanitize_preserves_default_awake_rules_and_restores_empty_tabs() {
-        let defaults = ZenithSettings::default();
+        let defaults = NeatiSettings::default();
         let sanitized = defaults.clone().sanitize();
         assert_eq!(sanitized.awake_rules.len(), 8);
         assert!(sanitized
@@ -763,7 +763,7 @@ mod tests {
 
     #[test]
     fn sanitize_canonicalizes_typed_awake_rules_without_touching_identity() {
-        let mut settings = ZenithSettings::default();
+        let mut settings = NeatiSettings::default();
         let rule = settings.awake_rules.first_mut().unwrap();
         rule.application = Some(ApplicationIdentity {
             display_name: "Warp".into(),
@@ -796,7 +796,7 @@ mod tests {
 
     #[test]
     fn sanitize_restores_empty_tabs_and_sections_to_defaults() {
-        let mut settings = ZenithSettings::default();
+        let mut settings = NeatiSettings::default();
         settings.dashboard_tabs.clear();
         settings.quick_panel_sections.clear();
         let sanitized = settings.sanitize();

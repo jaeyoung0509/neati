@@ -54,7 +54,7 @@ impl std::error::Error for CredentialError {}
 /// Whether a credential store can persist a secret on this platform right now.
 ///
 /// Flows that *create* a credential (for example the OpenRouter OAuth handoff,
-/// whose key Zenith cannot revoke on its own) must check this before they start
+/// whose key Neati cannot revoke on its own) must check this before they start
 /// provider-side work, so a store that cannot save the result never causes a
 /// credential to be issued.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -164,13 +164,13 @@ impl OsCredentialStore {
 
     #[cfg(target_os = "macos")]
     fn service_name(provider: ProviderId) -> String {
-        format!("app.zenith.ai.{provider}")
+        format!("app.neati.ai.{provider}")
     }
 
     #[cfg(target_os = "macos")]
     fn get_os(&self, provider: ProviderId) -> Result<Option<SecretString>, CredentialError> {
         let service = Self::service_name(provider);
-        match security_framework::passwords::get_generic_password(&service, "zenith") {
+        match security_framework::passwords::get_generic_password(&service, "neati") {
             Ok(bytes) => {
                 let secret = String::from_utf8_lossy(&bytes).trim().to_string();
                 if secret.is_empty() {
@@ -198,7 +198,7 @@ impl OsCredentialStore {
         let service = Self::service_name(provider);
         security_framework::passwords::set_generic_password(
             &service,
-            "zenith",
+            "neati",
             secret.expose_secret().as_bytes(),
         )
         .map_err(|err| {
@@ -209,7 +209,7 @@ impl OsCredentialStore {
     #[cfg(target_os = "macos")]
     fn remove_os(&self, provider: ProviderId) -> Result<(), CredentialError> {
         let service = Self::service_name(provider);
-        match security_framework::passwords::delete_generic_password(&service, "zenith") {
+        match security_framework::passwords::delete_generic_password(&service, "neati") {
             Ok(()) => Ok(()),
             Err(err) => {
                 let code = err.code();
@@ -227,7 +227,7 @@ impl OsCredentialStore {
 
     #[cfg(target_os = "windows")]
     fn target_name(provider: ProviderId) -> Vec<u16> {
-        format!("ZenithAI:{provider}\0").encode_utf16().collect()
+        format!("NeatiAI:{provider}\0").encode_utf16().collect()
     }
 
     #[cfg(target_os = "windows")]
@@ -279,7 +279,7 @@ impl OsCredentialStore {
         };
 
         let target_name = Self::target_name(provider);
-        let user_name: Vec<u16> = "zenith\0".encode_utf16().collect();
+        let user_name: Vec<u16> = "neati\0".encode_utf16().collect();
         let secret_bytes = secret.expose_secret().as_bytes();
 
         let cred = CREDENTIALW {

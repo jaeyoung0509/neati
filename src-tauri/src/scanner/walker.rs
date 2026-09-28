@@ -10,11 +10,11 @@ use crate::models::{
 use crate::safety::SymlinkGuard;
 use crate::scanner::{PathMeasurement, SizeCalculator};
 use crate::signatures::SignatureLoader;
+use neati_platform::PlatformEnvironment;
 use rayon::ThreadPool;
 use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
-use zenith_platform::PlatformEnvironment;
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
@@ -156,7 +156,7 @@ impl DirectoryScanner {
                 let reason = format!(
                     "Could not inspect {}: {}",
                     failure.path.display(),
-                    zenith_platform::environment::describe_access_refusal(
+                    neati_platform::environment::describe_access_refusal(
                         context.environment,
                         &failure.path,
                         &failure.error,
@@ -192,8 +192,8 @@ impl DirectoryScanner {
                     continue;
                 }
                 let flavor = context.environment.flavor();
-                let key = zenith_platform::path_algebra::fold(
-                    &zenith_platform::path_algebra::normalize(&root_path.to_string_lossy(), flavor),
+                let key = neati_platform::path_algebra::fold(
+                    &neati_platform::path_algebra::normalize(&root_path.to_string_lossy(), flavor),
                     flavor,
                 );
                 if !seen_roots.insert(key) {
@@ -275,11 +275,11 @@ impl DirectoryScanner {
         cancellation: &dyn crate::models::CancellationProbe,
     ) -> (
         Vec<SignatureRoot>,
-        Vec<zenith_platform::selector::SelectionFailure>,
+        Vec<neati_platform::selector::SelectionFailure>,
         bool,
     ) {
         let text = expanded.to_string_lossy().into_owned();
-        if !zenith_platform::selector::PathSelector::is_pattern(&text) {
+        if !neati_platform::selector::PathSelector::is_pattern(&text) {
             return (
                 vec![SignatureRoot {
                     path: expanded.to_path_buf(),
@@ -291,7 +291,7 @@ impl DirectoryScanner {
         }
 
         let Ok(selector) =
-            zenith_platform::selector::PathSelector::parse(&text, environment.flavor())
+            neati_platform::selector::PathSelector::parse(&text, environment.flavor())
         else {
             // The catalog refuses a malformed selector at load time; a pattern
             // that reaches here is refused rather than treated as a literal
@@ -410,7 +410,7 @@ impl DirectoryScanner {
                 PathMeasurement::unavailable(format!(
                     "Could not inspect configured path {}: {}",
                     path_buf.display(),
-                    zenith_platform::environment::describe_access_refusal(
+                    neati_platform::environment::describe_access_refusal(
                         environment,
                         path_buf,
                         &err.to_string(),
@@ -602,7 +602,7 @@ impl DirectoryScanner {
                     format!(
                         "Could not inspect {}: {}",
                         path_buf.display(),
-                        zenith_platform::environment::describe_access_refusal(
+                        neati_platform::environment::describe_access_refusal(
                             environment,
                             path_buf,
                             &err.to_string(),
@@ -829,7 +829,7 @@ impl DirectoryScanner {
                     format!(
                         "Could not inspect {}: {}",
                         root.display(),
-                        zenith_platform::environment::describe_access_refusal(
+                        neati_platform::environment::describe_access_refusal(
                             environment,
                             root,
                             &err.to_string(),
@@ -862,7 +862,7 @@ impl DirectoryScanner {
                     format!(
                         "Could not inspect {}: {}",
                         root.display(),
-                        zenith_platform::environment::describe_access_refusal(
+                        neati_platform::environment::describe_access_refusal(
                             environment,
                             root,
                             &err.to_string(),
@@ -945,7 +945,7 @@ impl DirectoryScanner {
                         format!(
                             "Could not inspect {}: {}",
                             path.display(),
-                            zenith_platform::environment::describe_access_refusal(
+                            neati_platform::environment::describe_access_refusal(
                                 environment,
                                 &path,
                                 &err.to_string(),
@@ -1409,7 +1409,7 @@ impl DirectoryScanner {
                 stats.incomplete_reason = Some(format!(
                     "Failed to read directory {}: {}",
                     path.display(),
-                    zenith_platform::environment::describe_access_refusal(
+                    neati_platform::environment::describe_access_refusal(
                         environment,
                         path,
                         &err.to_string(),
@@ -1438,7 +1438,7 @@ impl DirectoryScanner {
                         stats.incomplete_reason = Some(format!(
                             "Failed to read entry in {}: {}",
                             path.display(),
-                            zenith_platform::environment::describe_access_refusal(
+                            neati_platform::environment::describe_access_refusal(
                                 environment,
                                 path,
                                 &err.to_string(),
@@ -1541,15 +1541,15 @@ mod tests {
     use crate::models::{
         CacheSizeSemantics, Category, CleanStrategy, ObservationQuality, RiskTier, Signature,
     };
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::PlatformEnvironment;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::PlatformEnvironment;
 
     fn environment() -> PlatformEnvironment {
         PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         )
     }
@@ -1777,7 +1777,7 @@ mod tests {
     fn a_namespace_larger_than_one_page_is_inventoried_completely() {
         let fixture = tempfile::tempdir().expect("fixture");
         let containers = fixture.path().join("Containers");
-        let parents = zenith_platform::selector::SELECTOR_PAGE_LIMIT + 12;
+        let parents = neati_platform::selector::SELECTOR_PAGE_LIMIT + 12;
         for index in 0..parents {
             let cache = containers
                 .join(format!("com.example.app{index:04}"))
@@ -2422,9 +2422,9 @@ mod tests {
 
         let windows = PlatformEnvironment::simulated(PathFlavor::Windows).with_home(
             if PathFlavor::Windows.is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let stats =
@@ -2444,9 +2444,9 @@ mod tests {
 
         let posix = PlatformEnvironment::simulated(PathFlavor::Posix).with_home(
             if PathFlavor::Posix.is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let stats =

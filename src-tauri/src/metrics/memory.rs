@@ -1071,7 +1071,7 @@ impl MemoryInspector {
     #[cfg(target_os = "macos")]
     fn get_compressed_memory_macos() -> Option<u64> {
         use std::process::Command;
-        let out = zenith_platform::subprocess::run_with_timeout(
+        let out = neati_platform::subprocess::run_with_timeout(
             Command::new("vm_stat"),
             std::time::Duration::from_secs(3),
         )
@@ -1106,7 +1106,7 @@ impl MemoryInspector {
 }
 
 /// Maximum number of parent edges walked when tracing a displayed group member
-/// back to this Zenith process. The bound keeps a cyclic or otherwise hostile
+/// back to this Neati process. The bound keeps a cyclic or otherwise hostile
 /// process table from turning provenance into an unbounded walk.
 const MAX_ANCESTRY_HOPS: usize = 8;
 
@@ -1141,18 +1141,18 @@ fn ancestry_reaches(start: u32, target: u32, parents: &HashMap<u32, u32>, max_ho
 
 /// Derives a displayed group's origin from the same captured snapshot as its
 /// memory figures: the distinct, sorted names of direct parents outside the
-/// group, and whether every member traces back to this Zenith process.
+/// group, and whether every member traces back to this Neati process.
 ///
 /// Parents that are themselves members are implementation detail (for example,
 /// `rust-analyzer-proc-macro-srv` is normalized into the `rust-analyzer` group)
 /// and are omitted so the UI reports the group's external source. `ownership`
-/// is `ZenithChild` only when every member has Zenith as a strict ancestor, so
+/// is `NeatiChild` only when every member has Neati as a strict ancestor, so
 /// one untraceable member leaves the group `Observed`.
 fn group_provenance(
     members: &[u32],
     captured: &HashMap<u32, CapturedProcess>,
     parent_links: &HashMap<u32, u32>,
-    zenith_pid: u32,
+    neati_pid: u32,
 ) -> (Vec<String>, ProcessOwnership) {
     let mut parent_process_names: Vec<String> = Vec::new();
     let member_set: HashSet<u32> = members.iter().copied().collect();
@@ -1173,10 +1173,10 @@ fn group_provenance(
     let owned = !members.is_empty()
         && members
             .iter()
-            .all(|member| ancestry_reaches(*member, zenith_pid, parent_links, MAX_ANCESTRY_HOPS));
+            .all(|member| ancestry_reaches(*member, neati_pid, parent_links, MAX_ANCESTRY_HOPS));
 
     let ownership = if owned {
-        ProcessOwnership::ZenithChild
+        ProcessOwnership::NeatiChild
     } else {
         ProcessOwnership::Observed
     };
@@ -1421,7 +1421,7 @@ mod tests {
             ));
         }
 
-        assert!(!MemoryInspector::can_terminate_process("Zenith", None));
+        assert!(!MemoryInspector::can_terminate_process("Neati", None));
     }
 
     #[test]
@@ -1429,7 +1429,7 @@ mod tests {
         assert!(!MemoryInspector::can_terminate_process("Terminal", None));
         assert!(!MemoryInspector::can_terminate_process("iTerm2", None));
         assert!(!MemoryInspector::can_terminate_process("Ghostty", None));
-        assert!(!MemoryInspector::can_terminate_process("Zenith", None));
+        assert!(!MemoryInspector::can_terminate_process("Neati", None));
     }
 
     #[test]
@@ -1597,7 +1597,7 @@ mod tests {
     #[test]
     fn protected_targets_are_rejected() {
         assert!(!MemoryInspector::can_terminate_process("Terminal", None));
-        assert!(!MemoryInspector::can_terminate_process("Zenith", None));
+        assert!(!MemoryInspector::can_terminate_process("Neati", None));
     }
 
     #[test]
@@ -2044,23 +2044,23 @@ mod tests {
     }
 
     #[test]
-    fn group_with_every_member_traced_to_zenith_is_zenith_child() {
+    fn group_with_every_member_traced_to_neati_is_neati_child() {
         let captured = captured_table(&[
-            (100, "Zenith", None),
+            (100, "Neati", None),
             (101, "Node.js", Some(100)),
             (102, "Node.js", Some(100)),
         ]);
         let links = link_table(&captured);
         assert_eq!(
             group_provenance(&[101, 102], &captured, &links, 100),
-            (vec!["Zenith".to_string()], ProcessOwnership::ZenithChild)
+            (vec!["Neati".to_string()], ProcessOwnership::NeatiChild)
         );
     }
 
     #[test]
     fn mixed_group_is_observed_because_a_partial_match_never_claims_ownership() {
         let captured = captured_table(&[
-            (100, "Zenith", None),
+            (100, "Neati", None),
             (101, "Node.js", Some(100)),
             (200, "rust-analyzer", Some(300)),
         ]);
@@ -2068,13 +2068,13 @@ mod tests {
         let (names, ownership) = group_provenance(&[101, 200], &captured, &links, 100);
         assert_eq!(ownership, ProcessOwnership::Observed);
         // Only the resolvable parent is reported; the unknown pid adds nothing.
-        assert_eq!(names, vec!["Zenith".to_string()]);
+        assert_eq!(names, vec!["Neati".to_string()]);
     }
 
     #[test]
     fn group_reports_every_distinct_parent_name_sorted() {
         let captured = captured_table(&[
-            (100, "Zenith", None),
+            (100, "Neati", None),
             (105, "Warp", None),
             (101, "rust-analyzer", Some(105)),
             (102, "rust-analyzer", Some(100)),
@@ -2084,7 +2084,7 @@ mod tests {
         let (names, ownership) = group_provenance(&[101, 102, 103], &captured, &links, 100);
         assert_eq!(
             names,
-            vec!["Warp".to_string(), "Zenith".to_string()],
+            vec!["Neati".to_string(), "Warp".to_string()],
             "parents are de-duplicated and sorted"
         );
         assert_eq!(ownership, ProcessOwnership::Observed);
@@ -2118,8 +2118,8 @@ mod tests {
     }
 
     #[test]
-    fn group_containing_the_zenith_process_itself_is_not_owned() {
-        let captured = captured_table(&[(100, "Zenith", None), (101, "Node.js", Some(100))]);
+    fn group_containing_the_neati_process_itself_is_not_owned() {
+        let captured = captured_table(&[(100, "Neati", None), (101, "Node.js", Some(100))]);
         let links = link_table(&captured);
         assert_eq!(
             group_provenance(&[100], &captured, &links, 100),

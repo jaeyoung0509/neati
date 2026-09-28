@@ -2,6 +2,8 @@ use crate::models::{
     FileIdentity, LargeFileItem, LargeFileKind, LargeFileScanEvent, LargeFileScanRequest,
     LargeFileScanResult, ReviewedFileIdentity,
 };
+use neati_platform::description::PlatformEnvironment;
+use neati_platform::path_algebra;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -9,8 +11,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-use zenith_platform::description::PlatformEnvironment;
-use zenith_platform::path_algebra;
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
@@ -397,7 +397,7 @@ fn resolve_roots_with(
 
 fn safe_scan_root_metadata(
     path: &Path,
-    environment: &zenith_platform::PlatformEnvironment,
+    environment: &neati_platform::PlatformEnvironment,
 ) -> Option<fs::Metadata> {
     let metadata = fs::symlink_metadata(path).ok()?;
     if !metadata.is_dir() || crate::safety::SymlinkGuard::is_symlink(path) {
@@ -449,8 +449,8 @@ fn unix_timestamp() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zenith_platform::description::KnownFolder;
-    use zenith_platform::path_algebra::PathFlavor;
+    use neati_platform::description::KnownFolder;
+    use neati_platform::path_algebra::PathFlavor;
 
     /// A simulated environment stating exactly the folders the test means.
     fn environment_with_folders(

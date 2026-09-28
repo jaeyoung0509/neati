@@ -442,13 +442,13 @@ fn allowlist_entries(contents: &str) -> Vec<(String, String)> {
 ///
 /// The workspace splits product code across crates, and a rule that only
 /// covered the desktop package would stop applying the day a module moved into
-/// `zenith-platform` or `zenith-core` — the guard would report a clean tree
+/// `neati-platform` or `neati-core` — the guard would report a clean tree
 /// while no longer looking at the code.
 const SOURCE_ROOTS: [&str; 4] = [
     "src",
     "tests",
-    "../crates/zenith-platform/src",
-    "../crates/zenith-core/src",
+    "../crates/neati-platform/src",
+    "../crates/neati-core/src",
 ];
 
 #[test]

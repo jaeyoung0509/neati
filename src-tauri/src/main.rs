@@ -6,8 +6,8 @@ fn main() {
     // headless CI with no window, no runtime, and no WebView. The default path
     // is unchanged: no arguments means the application starts normally.
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if let Some(exit_code) = zenith_lib::diagnostics::doctor::run_cli(&args) {
+    if let Some(exit_code) = neati_lib::diagnostics::doctor::run_cli(&args) {
         std::process::exit(exit_code);
     }
-    zenith_lib::run();
+    neati_lib::run();
 }

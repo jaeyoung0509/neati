@@ -49,11 +49,11 @@ impl ProviderAdapter for AntigravityAdapter {
         };
         let mut cmd = tooling::command(bin);
         cmd.args(["-p", "/usage", "--output-format", "json"]);
-        let output = zenith_platform::subprocess::run_with_timeout(cmd, ANTIGRAVITY_USAGE_TIMEOUT)
+        let output = neati_platform::subprocess::run_with_timeout(cmd, ANTIGRAVITY_USAGE_TIMEOUT)
             .map_err(|err| match err {
-                zenith_platform::subprocess::SubprocessError::Timeout(..) => ProviderError::Timeout,
-                other => ProviderError::CliFailed(other.to_string()),
-            })?;
+            neati_platform::subprocess::SubprocessError::Timeout(..) => ProviderError::Timeout,
+            other => ProviderError::CliFailed(other.to_string()),
+        })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

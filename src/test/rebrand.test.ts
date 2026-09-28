@@ -5,18 +5,25 @@ import NeatiWordmark from '../lib/components/NeatiWordmark.svelte';
 
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-describe('Neati identity continuity', () => {
-  it('changes display identity without moving persistent data or credentials', () => {
+describe('Neati independent pre-release identity', () => {
+  it('uses Neati namespaces without importing legacy data or credentials', () => {
     const config = JSON.parse(read('src-tauri/tauri.conf.json'));
     expect(config.productName).toBe('Neati');
-    expect(config.identifier).toBe('com.zenith.desktop');
+    expect(config.identifier).toBe('com.neati.desktop');
     expect(config.app.windows.map((w: { title: string }) => w.title)).toEqual(['Neati', 'Neati Quick']);
     const credentials = read('src-tauri/src/ai_providers/credentials.rs');
-    expect(credentials).toContain('app.zenith.ai.{provider}');
-    expect(credentials).toContain('ZenithAI:{provider}');
-    expect(read('src-tauri/src/diagnostics/mod.rs')).toContain('Library/Logs/Zenith');
+    expect(credentials).toContain('app.neati.ai.{provider}');
+    expect(credentials).toContain('NeatiAI:{provider}');
+    expect(read('src-tauri/src/diagnostics/mod.rs')).toContain('Library/Logs/Neati');
     expect(read('src-tauri/Cargo.toml')).toContain('name = "Neati"');
-    expect(read('src-tauri/Cargo.toml')).toContain('name = "zenith-desktop"');
+    expect(read('src-tauri/Cargo.toml')).toContain('name = "neati-desktop"');
+    expect(read('src-tauri/Cargo.toml')).toContain('name = "neati_lib"');
+    expect(read('Cargo.toml')).toContain('"crates/neati-core"');
+    expect(read('Cargo.toml')).toContain('"crates/neati-platform"');
+    expect(JSON.parse(read('package.json')).name).toBe('neati');
+    expect(read('src-tauri/src/ai_providers/credentials.rs')).toContain('"neati"');
+    expect(read('scripts/install_release_app.sh')).toContain('expected_bundle_id="com.neati.desktop"');
+    expect(read('scripts/install_release_app.sh')).not.toContain('previous Neati.app');
   });
 
   it('keeps the approved B silhouette identical in the monochrome template', () => {
@@ -30,15 +37,10 @@ describe('Neati identity continuity', () => {
     expect(master).toContain('stroke="#fff"');
   });
 
-  it('refuses legacy Windows installs without executing an uninstall command', () => {
+  it('does not require or execute a legacy Windows uninstall', () => {
     const config = JSON.parse(read('src-tauri/tauri.conf.json'));
-    expect(config.bundle.windows.nsis.installerHooks).toBe('windows/rebrand-hooks.nsh');
-    const hook = read('src-tauri/windows/rebrand-hooks.nsh');
-    expect(hook).toContain('ReadRegStr $R0 HKCU');
-    expect(hook).toContain('ReadRegStr $R1 HKLM');
-    expect(hook).toContain('SetErrorLevel 2');
-    expect(hook).toContain('Abort');
-    expect(hook).not.toMatch(/ExecWait|ExecShell|DeleteRegKey|RMDir/);
+    expect(config.bundle.windows.nsis.installerHooks).toBeUndefined();
+    expect(read('scripts/windows_packaging_smoke.ps1')).not.toContain('legacyKey');
   });
 
   it('exposes one accessible product name without a downloaded handwriting font', () => {

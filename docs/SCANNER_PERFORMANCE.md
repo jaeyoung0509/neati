@@ -109,10 +109,10 @@ directories than the fixture contains and never produces the later candidates.
 
 ```bash
 # Run the harness and print this machine's metrics table.
-cargo test -p zenith-desktop --test scan_benchmark -- --nocapture
+cargo test -p neati-desktop --test scan_benchmark -- --nocapture
 
 # Regenerate the committed baseline after adding or changing a fixture.
-cargo test -p zenith-desktop --test scan_benchmark -- --ignored --exact export_scan_baseline
+cargo test -p neati-desktop --test scan_benchmark -- --ignored --exact export_scan_baseline
 ```
 
 `src-tauri/tests/fixtures/scan-baseline.json` holds the deterministic facts per
@@ -139,13 +139,13 @@ Counts are properties of the fixtures and are identical on every machine; the
 numbers below are what the machines measured, recorded so a future run can be
 compared against a known point rather than against a feeling.
 
-| Machine | OS build | Date | Zenith | Baseline |
+| Machine | OS build | Date | Neati | Baseline |
 |---|---|---|---|---|
 | MacBook Air (Apple M1, 8 cores) | macOS 27.0 (26A428), Darwin 27.0.0 | 2026-09-19 | 0.3.36 | the table below |
 | MacBook Air (Apple M1, 8 cores, 16 GiB) | macOS 27.0 (26A428) | 2026-09-21 UTC | 0.3.45 | [synthetic and live evidence](validation/2026-09-21-macos-0.3.45.json) |
 | MacBook Air (Apple M1, 8 cores, 16 GiB) | macOS 27.0 (26A428) | 2026-09-22 UTC | 0.3.48 | [filesystem, provider, container, and cancellation evidence](validation/2026-09-22-macos-0.3.48.json) |
 
-macOS, `cargo test -p zenith-desktop --test scan_benchmark -- --nocapture`:
+macOS, `cargo test -p neati-desktop --test scan_benchmark -- --nocapture`:
 
 ```text
 fixture            duration_ms  visited  directories  peak_tasks  candidates  skipped  logical_bytes  on-disk_bytes
@@ -196,23 +196,23 @@ measurement alike rather than only in one of them.
 Run the synthetic suite above first, then the explicit live observation tool:
 
 ```sh
-cargo run -p zenith-desktop --example scan_machine -- --live-read-only
+cargo run -p neati-desktop --example scan_machine -- --live-read-only
 
 # Add fixed-argument tool-provider and container inspection. These modes still
 # construct no cleanup plan and invoke no prune/delete operation.
-cargo run -p zenith-desktop --example scan_machine -- \
+cargo run -p neati-desktop --example scan_machine -- \
   --live-read-only --providers-read-only --containers-read-only
 
 # Stop provider measurement immediately after its first root progress event.
-cargo run -p zenith-desktop --example scan_machine -- \
+cargo run -p neati-desktop --example scan_machine -- \
   --live-read-only --providers-read-only --providers-cancel-after-first-root
 
 # Inspect the full embedded catalog with the app's native provider registries.
 # The optional private ledger includes paths and must stay in an owner-only file.
 umask 077
-cargo run -p zenith-desktop --example scan_machine -- \
+cargo run -p neati-desktop --example scan_machine -- \
   --live-read-only --full-catalog-read-only --private-ledger \
-  > /tmp/zenith-full-private.json
+  > /tmp/neati-full-private.json
 ```
 
 By default the tool scans a fixed subset of the shipped filesystem catalog

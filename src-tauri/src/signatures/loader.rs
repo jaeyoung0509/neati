@@ -1,7 +1,7 @@
-use crate::models::{Signature, SignatureManifest, ZenithError};
+use crate::models::{NeatiError, Signature, SignatureManifest};
+use neati_platform::path_algebra::PathFlavor;
+use neati_platform::{KnownFolder, PlatformEnvironment};
 use std::path::PathBuf;
-use zenith_platform::path_algebra::PathFlavor;
-use zenith_platform::{KnownFolder, PlatformEnvironment};
 
 pub struct SignatureLoader;
 
@@ -68,9 +68,9 @@ impl SignatureLoader {
     /// and a manifest that half-loads is a catalog nobody can reason about. An
     /// id that is missing entirely is the one exception — the entry names
     /// nothing to report and nothing to register.
-    pub fn load_str(content: &str) -> Result<Vec<Signature>, ZenithError> {
+    pub fn load_str(content: &str) -> Result<Vec<Signature>, NeatiError> {
         let manifest: SignatureManifest = toml::from_str(content)
-            .map_err(|e| ZenithError::Io(format!("Failed to parse TOML signature: {}", e)))?;
+            .map_err(|e| NeatiError::Io(format!("Failed to parse TOML signature: {}", e)))?;
 
         let mut valid_signatures = Vec::new();
         for mut sig in manifest.signatures {
@@ -125,7 +125,7 @@ impl SignatureLoader {
         }
         let path_shaped = trimmed.starts_with('~')
             || trimmed.starts_with('$')
-            || zenith_platform::path_algebra::is_absolute(trimmed, environment.flavor());
+            || neati_platform::path_algebra::is_absolute(trimmed, environment.flavor());
         if !path_shaped {
             return None;
         }
@@ -142,7 +142,7 @@ impl SignatureLoader {
         if tail.is_empty() {
             return Some(root.to_string_lossy().into_owned());
         }
-        Some(zenith_platform::path_algebra::join(
+        Some(neati_platform::path_algebra::join(
             &root.to_string_lossy(),
             &tail,
             environment.flavor(),
@@ -184,11 +184,11 @@ fn known_folder_component(component: &str, flavor: PathFlavor) -> Option<KnownFo
 #[cfg(test)]
 mod tests {
     use super::SignatureLoader;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
+    use neati_platform::{KnownFolder, PlatformEnvironment};
     use std::path::PathBuf;
     use std::sync::Arc;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
-    use zenith_platform::{KnownFolder, PlatformEnvironment};
 
     #[test]
     fn catalog_requires_an_explicit_strategy_and_reachable_exclusions() {
@@ -357,9 +357,9 @@ exclusions = ["%APPDATA%\\tool\\settings.json"]
     #[test]
     fn expand_path_expands_the_stated_temp_directory() {
         let temp = if cfg!(windows) {
-            PathBuf::from(r"D:\Temp\zenith")
+            PathBuf::from(r"D:\Temp\neati")
         } else {
-            PathBuf::from("/tmp/zenith-stated")
+            PathBuf::from("/tmp/neati-stated")
         };
         let flavor = PathFlavor::current();
         let environment = PlatformEnvironment::simulated(flavor).with_roots(Arc::new(

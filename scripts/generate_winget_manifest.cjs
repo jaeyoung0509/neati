@@ -4,9 +4,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const PACKAGE_IDENTIFIER = 'jaeyoung0509.Zenith';
+const PACKAGE_IDENTIFIER = 'jaeyoung0509.Neati';
 const MANIFEST_VERSION = '1.12.0';
-const REPOSITORY_URL = 'https://github.com/jaeyoung0509/zenith';
+const REPOSITORY_URL = 'https://github.com/jaeyoung0509/neati';
 
 function fail(message) {
   console.error(`Error: ${message}`);
@@ -53,7 +53,7 @@ if (!fs.statSync(installerPath, { throwIfNoEntry: false })?.isFile()) {
   fail(`installer does not exist: ${installerPath}`);
 }
 
-const installerName = 'Zenith-windows-x64-setup.exe';
+const installerName = 'Neati-windows-x64-setup.exe';
 if (path.basename(installerPath) !== installerName) {
   fail(`installer filename must be ${installerName}`);
 }
@@ -61,9 +61,9 @@ if (path.basename(installerPath) !== installerName) {
 const manifestDirectory = path.join(
   outputRoot,
   'manifests',
-  'z',
+  PACKAGE_IDENTIFIER[0].toLowerCase(),
   'jaeyoung0509',
-  'Zenith',
+  'Neati',
   version,
 );
 fs.mkdirSync(manifestDirectory, { recursive: true });
@@ -121,12 +121,12 @@ PackageLocale: en-US
 Publisher: jaeyoung0509
 PublisherUrl: ${REPOSITORY_URL}
 PublisherSupportUrl: ${REPOSITORY_URL}/issues
-Author: Zenith contributors
+Author: Neati contributors
 PackageName: Neati
 PackageUrl: ${REPOSITORY_URL}
 License: MIT
 LicenseUrl: ${REPOSITORY_URL}/blob/v${version}/LICENSE
-Copyright: Copyright (c) 2026 Zenith contributors
+Copyright: Copyright (c) 2026 Neati contributors
 ShortDescription: Local developer storage, process, AI usage, and power management utility.
 Description: Neati is a cross-platform desktop utility for reviewing developer storage, processes, local services, AI usage, and sleep-control state with explicit safety boundaries.
 Tags:

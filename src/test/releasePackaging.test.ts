@@ -32,9 +32,9 @@ describe('release packaging contracts', () => {
   });
 
   it('generates a versioned WinGet multi-file manifest for the immutable installer URL', () => {
-    const fixtureRoot = mkdtempSync(join(tmpdir(), 'zenith-winget-'));
+    const fixtureRoot = mkdtempSync(join(tmpdir(), 'neati-winget-'));
     temporaryDirectories.push(fixtureRoot);
-    const installer = join(fixtureRoot, 'Zenith-windows-x64-setup.exe');
+    const installer = join(fixtureRoot, 'Neati-windows-x64-setup.exe');
     const installerBytes = Buffer.from('deterministic NSIS fixture');
     writeFileSync(installer, installerBytes);
 
@@ -55,18 +55,18 @@ describe('release packaging contracts', () => {
     const manifestRoot = join(
       fixtureRoot,
       'manifests',
-      'z',
+      'j',
       'jaeyoung0509',
-      'Zenith',
+      'Neati',
       '0.2.0',
     );
-    const versionManifest = readFileSync(join(manifestRoot, 'jaeyoung0509.Zenith.yaml'), 'utf8');
+    const versionManifest = readFileSync(join(manifestRoot, 'jaeyoung0509.Neati.yaml'), 'utf8');
     const installerManifest = readFileSync(
-      join(manifestRoot, 'jaeyoung0509.Zenith.installer.yaml'),
+      join(manifestRoot, 'jaeyoung0509.Neati.installer.yaml'),
       'utf8',
     );
     const localeManifest = readFileSync(
-      join(manifestRoot, 'jaeyoung0509.Zenith.locale.en-US.yaml'),
+      join(manifestRoot, 'jaeyoung0509.Neati.locale.en-US.yaml'),
       'utf8',
     );
     const expectedHash = createHash('sha256').update(installerBytes).digest('hex').toUpperCase();
@@ -77,7 +77,7 @@ describe('release packaging contracts', () => {
     expect(installerManifest).toContain('MinimumOSVersion: 10.0.17763.0');
     expect(installerManifest).toContain('ElevationRequirement: elevationProhibited');
     expect(installerManifest).toContain(
-      'InstallerUrl: https://github.com/jaeyoung0509/zenith/releases/download/v0.2.0/Zenith-windows-x64-setup.exe',
+      'InstallerUrl: https://github.com/jaeyoung0509/neati/releases/download/v0.2.0/Neati-windows-x64-setup.exe',
     );
     expect(installerManifest).toContain(`InstallerSha256: ${expectedHash}`);
     expect(localeManifest).toContain('License: MIT');
@@ -85,10 +85,10 @@ describe('release packaging contracts', () => {
   });
 
   it('writes and combines portable LF-only checksum manifests', () => {
-    const fixtureRoot = mkdtempSync(join(tmpdir(), 'zenith-checksums-'));
+    const fixtureRoot = mkdtempSync(join(tmpdir(), 'neati-checksums-'));
     temporaryDirectories.push(fixtureRoot);
-    const macArtifact = join(fixtureRoot, 'Zenith-macos-arm64.dmg');
-    const windowsArtifact = join(fixtureRoot, 'Zenith-windows-x64-setup.exe');
+    const macArtifact = join(fixtureRoot, 'Neati-macos-arm64.dmg');
+    const windowsArtifact = join(fixtureRoot, 'Neati-windows-x64-setup.exe');
     const macManifest = join(fixtureRoot, 'SHA256SUMS-macos-arm64.txt');
     const windowsManifest = join(fixtureRoot, 'SHA256SUMS-windows-x64.txt');
     const combinedManifest = join(fixtureRoot, 'SHA256SUMS.txt');
@@ -123,15 +123,15 @@ describe('release packaging contracts', () => {
 
     const combined = readFileSync(combinedManifest, 'utf8');
     expect(combined).not.toContain('\r');
-    expect(combined).toMatch(/Zenith-macos-arm64\.dmg\n/);
-    expect(combined).toMatch(/Zenith-windows-x64-setup\.exe\n$/);
+    expect(combined).toMatch(/Neati-macos-arm64\.dmg\n/);
+    expect(combined).toMatch(/Neati-windows-x64-setup\.exe\n$/);
   });
 
   it('binds endpoint review records to one exact, unique artifact set', () => {
-    const fixtureRoot = mkdtempSync(join(tmpdir(), 'zenith-endpoint-review-'));
+    const fixtureRoot = mkdtempSync(join(tmpdir(), 'neati-endpoint-review-'));
     temporaryDirectories.push(fixtureRoot);
-    const macArtifact = join(fixtureRoot, 'Zenith-macos-arm64.dmg');
-    const windowsArtifact = join(fixtureRoot, 'Zenith-windows-x64-setup.exe');
+    const macArtifact = join(fixtureRoot, 'Neati-macos-arm64.dmg');
+    const windowsArtifact = join(fixtureRoot, 'Neati-windows-x64-setup.exe');
     const reviewPath = join(fixtureRoot, 'endpoint-review.json');
     writeFileSync(macArtifact, 'reviewed mac bytes');
     writeFileSync(windowsArtifact, 'reviewed windows bytes');

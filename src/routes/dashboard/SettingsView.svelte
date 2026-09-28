@@ -266,7 +266,7 @@
   <!-- Page Header -->
   <PageHeader
     title="Settings"
-    subtitle="Configure cleaning defaults, appearance, and system integration."
+    subtitle="Choose how Neati looks, cleans, and works with your tools."
     icon={Settings}
   />
 
@@ -280,7 +280,7 @@
 
   <!-- General Preferences -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
       General
     </h3>
     <Card class="p-4 space-y-4 bg-card/70">
@@ -301,8 +301,8 @@
   <!-- Dashboard Navigation Customization -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        Dashboard Navigation Menu
+      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+        Sidebar navigation
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
         Choose sidebar destinations. Drag or use arrows to reorder within each task group.
@@ -310,7 +310,7 @@
     </div>
     <Card class="p-4 bg-card/70 space-y-3">
       <div class="flex items-center gap-2 text-xs font-medium text-foreground pb-1">
-        <LayoutList size={14} /> Sidebar Menu Order
+        <LayoutList size={14} /> Sidebar order
       </div>
       {#each orderedDashboardTabs() as tabOption (tabOption.id)}
         {@const enabled = (settings.dashboard_tabs ?? []).includes(tabOption.id)}
@@ -372,8 +372,8 @@
   <!-- AI Accounts & Quota Customization -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        AI Accounts & Quota
+      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+        AI accounts and usage
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
         Choose which account providers Neati checks and displays. Disabled providers are not queried.
@@ -442,7 +442,7 @@
   <!-- Quick Panel Customization -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
         {platformContextStore.quickPanelSurfaceLabel
           ? `${titleCaseLabel(platformContextStore.quickPanelSurfaceLabel)} Quick Panel`
           : 'Quick Panel'}
@@ -573,8 +573,8 @@
   <!-- Cleanup Scan Scope -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        Cleanup Scan Scope
+      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+        Cache scanning
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
         Choose how broadly Neati searches for reclaimable cache and log data.
@@ -623,8 +623,8 @@
 
   <!-- Cleaning Categories Defaults -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-      Default Quick Clean Categories
+    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      Quick Clean categories
     </h3>
     <Card class="p-4 space-y-4 bg-card/70 divide-y divide-border/60">
       <!-- AI Tools -->
@@ -672,8 +672,8 @@
   <!-- Agent Activity Notifications -->
   <div class="space-y-3">
     <div class="flex items-center justify-between">
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        Agent Activity Notifications
+      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+        Agent notifications
       </h3>
       <Badge variant="outline">Privacy Safe</Badge>
     </div>
@@ -766,7 +766,7 @@
 
   <!-- Appearance -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
       Appearance
     </h3>
     <Card class="p-4 bg-card/70">
@@ -812,8 +812,8 @@
 
   <!-- Diagnostics & Logs -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-      Diagnostics & Privacy Logs
+    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      Diagnostics and logs
     </h3>
     <ToolDetectionDisclosure />
     <Card class="p-4 bg-card/70 space-y-4">
@@ -834,11 +834,11 @@
       <div class="flex flex-wrap gap-2 pt-1">
         <Button variant="secondary" size="sm" onclick={handleOpenLogs}>
           <FolderOpen size={14} />
-          <span>Open Logs Folder</span>
+          <span>Open logs</span>
         </Button>
         <Button variant="secondary" size="sm" onclick={handleExportDiagnostics}>
           <FileText size={14} />
-          <span>{copiedDiagnostics ? 'Copied Diagnostics JSON' : 'Export Diagnostics'}</span>
+          <span>{copiedDiagnostics ? 'Diagnostics copied' : 'Copy diagnostics'}</span>
         </Button>
         <Button
           variant="secondary"
@@ -847,7 +847,7 @@
           disabled={selfCheckRunning}
         >
           <ShieldCheck size={14} />
-          <span>{selfCheckRunning ? 'Running Self-Check…' : 'Run Environment Self-Check'}</span>
+          <span>{selfCheckRunning ? 'Checking environment…' : 'Check environment'}</span>
         </Button>
       </div>
 
@@ -977,7 +977,7 @@
 
   <!-- About -->
   <div class="space-y-3 pt-2">
-    <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
       About Neati
     </h3>
     <Card class="p-4 bg-card/70 text-xs space-y-2">

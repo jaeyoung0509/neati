@@ -47,12 +47,12 @@ use crate::models::{
     ScanItem, Signature,
 };
 use crate::signatures::SignatureRegistry;
-use std::collections::BTreeMap;
-use std::sync::Arc;
-use zenith_core::domain::cleanup::{
+use neati_core::domain::cleanup::{
     CleanFailureReason, OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitRefusal,
 };
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 /// One reviewed provider of an owner-managed store.
 ///
@@ -76,8 +76,8 @@ pub trait OwnerScopedProvider: Send + Sync {
     /// Whether removing one of its units needs explicit confirmation.
     fn requires_confirmation(&self) -> bool;
 
-    fn deletion_disposition(&self) -> zenith_core::domain::cleanup::DeletionDisposition {
-        zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete
+    fn deletion_disposition(&self) -> neati_core::domain::cleanup::DeletionDisposition {
+        neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
     }
 
     /// A short label for one unit; its opaque key remains the authorization identity.
@@ -96,7 +96,7 @@ pub trait OwnerScopedProvider: Send + Sync {
     fn scan(
         &self,
         environment: &PlatformEnvironment,
-        guard: &zenith_core::domain::cleanup::RunningProcessPolicy,
+        guard: &neati_core::domain::cleanup::RunningProcessPolicy,
     ) -> OwnerStoreObservation;
 
     /// Builds the private authorization for the selected units.
@@ -107,7 +107,7 @@ pub trait OwnerScopedProvider: Send + Sync {
     fn prepare(
         &self,
         environment: &PlatformEnvironment,
-        guard: &zenith_core::domain::cleanup::RunningProcessPolicy,
+        guard: &neati_core::domain::cleanup::RunningProcessPolicy,
         selections: &[OwnerProviderSelection],
     ) -> Result<OwnerProviderAuthorization, OwnerProviderRefusal>;
 
@@ -136,11 +136,11 @@ impl OwnerProviderRegistry {
     /// table belongs to `cleaner::process_guard`, the allocated-size
     /// measurement to `scanner::size`, and neither is re-implemented here.
     pub fn native(
-        process: Arc<dyn zenith_core::domain::cleanup::RunningProcessProbe>,
-        measuring: Arc<dyn zenith_core::domain::cleanup::OwnerUnitMeasurer>,
+        process: Arc<dyn neati_core::domain::cleanup::RunningProcessProbe>,
+        measuring: Arc<dyn neati_core::domain::cleanup::OwnerUnitMeasurer>,
     ) -> Self {
-        let trash: Arc<dyn zenith_platform::TrashBackend> =
-            Arc::new(zenith_platform::NativeTrashBackend);
+        let trash: Arc<dyn neati_platform::TrashBackend> =
+            Arc::new(neati_platform::NativeTrashBackend);
         #[cfg(target_os = "macos")]
         let homebrew = Arc::new(homebrew::HomebrewDownloadsProvider::new(
             process.clone(),
@@ -244,7 +244,7 @@ impl OwnerProviderRegistry {
         intensive_cleanup: bool,
         excluded_signatures: &[String],
         environment: &PlatformEnvironment,
-        spans: &mut Vec<zenith_core::domain::scan::ScanSpan>,
+        spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
     ) -> Vec<ScanItem> {
         let mut items = Vec::new();
         for signature in registry.by_category_for_mode(category, intensive_cleanup) {
@@ -277,7 +277,7 @@ impl OwnerProviderRegistry {
             let guard = signature.process_guard();
             let started = std::time::Instant::now();
             let observation = provider.scan(environment, &guard);
-            spans.push(zenith_core::domain::scan::ScanSpan {
+            spans.push(neati_core::domain::scan::ScanSpan {
                 source_id: signature.id.clone(),
                 duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
             });
@@ -372,7 +372,7 @@ impl OwnerProviderRegistry {
                     .units
                     .iter()
                     .map(|unit| {
-                        zenith_core::domain::cleanup::OwnerUnitOutcome::refused(
+                        neati_core::domain::cleanup::OwnerUnitOutcome::refused(
                             unit.item_id.clone(),
                             unit.unit_key.clone(),
                             crate::models::ProviderStatus::Unsupported,
@@ -390,7 +390,7 @@ impl OwnerProviderRegistry {
                     .units
                     .iter()
                     .map(|unit| {
-                        zenith_core::domain::cleanup::OwnerUnitOutcome::refused(
+                        neati_core::domain::cleanup::OwnerUnitOutcome::refused(
                             unit.item_id.clone(),
                             unit.unit_key.clone(),
                             crate::models::ProviderStatus::Blocked,
@@ -648,7 +648,7 @@ pub fn plan_unit(
     name: &str,
     root: &std::path::Path,
     unit: &OwnerUnitObservation,
-    identity: zenith_core::domain::identity::CleanupIdentity,
+    identity: neati_core::domain::identity::CleanupIdentity,
 ) -> OwnerProviderUnit {
     OwnerProviderUnit {
         item_id: item_id.to_string(),
@@ -667,12 +667,12 @@ mod tests {
     use super::*;
     use crate::models::{Category, CleanStrategy, RiskTier, Signature};
     use crate::signatures::SignatureRegistry;
-    use std::path::PathBuf;
-    use zenith_core::domain::cleanup::{
+    use neati_core::domain::cleanup::{
         OwnerProviderRefusal, OwnerProviderSelection, OwnerStoreObservation, OwnerUnitObservation,
         OwnerUnitOutcome, ProviderStatus, RunningProcessPolicy,
     };
-    use zenith_platform::path_algebra::PathFlavor;
+    use neati_platform::path_algebra::PathFlavor;
+    use std::path::PathBuf;
 
     struct StatedProvider {
         id: &'static str,
@@ -753,7 +753,7 @@ mod tests {
                 (None, Some(refusal)) => Err(refusal.clone()),
                 (None, None) => Ok(OwnerProviderAuthorization {
                     deletion_disposition:
-                        zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+                        neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
                     signature_id: String::new(),
                     provider_id: self.id.to_string(),
                     risk: RiskTier::Rebuild,
@@ -949,7 +949,7 @@ mod tests {
         let outcome = providers.execute(
             &OwnerProviderAuthorization {
                 deletion_disposition:
-                    zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+                    neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
                 signature_id: "test.owner.store".to_string(),
                 provider_id: "test.owner".to_string(),
                 risk: RiskTier::Rebuild,
@@ -958,11 +958,11 @@ mod tests {
                     "unit a",
                     std::path::Path::new("/store"),
                     &unit("a", 2_048),
-                    zenith_core::domain::identity::CleanupIdentity::new(
-                        zenith_core::domain::identity::FileIdentity::new(0, 0),
+                    neati_core::domain::identity::CleanupIdentity::new(
+                        neati_core::domain::identity::FileIdentity::new(0, 0),
                         true,
                         0,
-                        zenith_core::domain::identity::ModifiedStamp::new(0, 0),
+                        neati_core::domain::identity::ModifiedStamp::new(0, 0),
                     ),
                 )],
                 refusals: Vec::new(),
@@ -1040,7 +1040,7 @@ mod tests {
         let outcome = providers.execute(
             &OwnerProviderAuthorization {
                 deletion_disposition:
-                    zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+                    neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
                 signature_id: "test.owner.store".to_string(),
                 provider_id: "test.owner".to_string(),
                 risk: RiskTier::Rebuild,
@@ -1070,14 +1070,14 @@ mod tests {
             "unit",
             std::path::Path::new("/store"),
             &unit("a", 4096),
-            zenith_core::domain::identity::CleanupIdentity::new(
-                zenith_core::domain::identity::FileIdentity::new(0, 0),
+            neati_core::domain::identity::CleanupIdentity::new(
+                neati_core::domain::identity::FileIdentity::new(0, 0),
                 true,
                 0,
-                zenith_core::domain::identity::ModifiedStamp::new(0, 0),
+                neati_core::domain::identity::ModifiedStamp::new(0, 0),
             ),
         ));
-        prepared.deletion_disposition = zenith_core::domain::cleanup::DeletionDisposition::Trash;
+        prepared.deletion_disposition = neati_core::domain::cleanup::DeletionDisposition::Trash;
         let outcome = providers.execute(&prepared, &environment());
         assert_eq!(outcome.units.len(), 1);
         assert_eq!(outcome.units[0].status, ProviderStatus::Blocked);

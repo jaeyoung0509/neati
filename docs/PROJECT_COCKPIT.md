@@ -1,6 +1,6 @@
 # Project Cockpit & AI Agent Activity Center
 
-The Project Cockpit is Zenith's developer-first activity center that unites active
+The Project Cockpit is Neati's developer-first activity center that unites active
 AI agent CLIs, running development services, and developer storage into a unified,
 canonical project view.
 
@@ -77,7 +77,7 @@ returns to the Projects list.
 
 ## Truthful Status & Evidence Model
 
-Zenith strictly distinguishes between vendor-confirmed events and ambient OS process observation:
+Neati strictly distinguishes between vendor-confirmed events and ambient OS process observation:
 - **Vendor confirmed / Vendor event**: Reserved for a validated local lifecycle event
   that identifies exactly one observed process. No bundled adapter currently emits this evidence.
 - **Process observed**: The exact allowlisted CLI is running under the current user's UID.
@@ -97,7 +97,7 @@ Zenith strictly distinguishes between vendor-confirmed events and ambient OS pro
 - **Worktree Independence**: Linked Git worktrees have distinct `worktree_id` and
   `ProjectIdentity` values and are never merged into their main repository.
 - **Unassigned Fallback**: Sessions without an accessible or provable directory remain in
-  `unassigned_sessions`. Zenith never guesses correlation.
+  `unassigned_sessions`. Neati never guesses correlation.
 
 ## Graceful Stop Architecture
 

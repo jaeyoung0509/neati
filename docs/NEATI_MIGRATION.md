@@ -1,60 +1,52 @@
-# Zenith → Neati (0.3.73)
+# Neati identity contract (0.3.74)
 
-Neati is the new public name of Zenith, not a separate cleanup engine.
-The user approved the original handwritten B mark on September 28, 2026.
-Cleanup policies, native glass, saved navigation and provider IDs are unchanged.
+Issue #338 establishes one Neati identity before official distribution. The
+owner requested no old-name aliases, detection, migration or compatibility
+branches. The approved B symbol, handwritten wordmark, native glass and cleanup
+policy are unchanged.
 
-## Identity contract
-
-| Changed | Retained intentionally |
+| Surface | Identity |
 | --- | --- |
-| Product/window/tray/Settings names: Neati | Bundle ID: `com.zenith.desktop` |
-| `Neati.app`, desktop binary `Neati` / `Neati.exe` | Tauri configuration/data identity, settings schema |
-| Original n icon and handwritten header wordmark | `app.zenith.ai.{provider}` and Windows `ZenithAI:{provider}` credentials |
-| Windows install folder / Start Menu: Neati | Existing Zenith log directories and `zenith.log` |
-| Installer and WinGet display name: Neati | Rust packages, library, IPC enum spellings, private npm package name |
-| Canonical icon: `src-tauri/icons/neati-mark.svg` | Repository URL and versioned `Zenith-*` downloadable artifact names |
+| Bundle / Tauri persistence | `com.neati.desktop` |
+| Cargo packages | `neati-core`, `neati-platform`, `neati-desktop` |
+| Rust library / executable | `neati_lib` / `Neati` |
+| npm / internal brand asset | `neati` / `neati.svg` |
+| macOS credential service / account | `app.neati.ai.{provider}` / `neati` |
+| Windows credential target | `NeatiAI:{provider}` |
+| macOS log | `~/Library/Logs/Neati/neati.log` |
+| Windows log namespace | `Neati/Logs` |
+| Repository | `jaeyoung0509/neati` |
+| Release artifacts | `Neati-macos-arm64.dmg`, `Neati-windows-x64-setup.exe`, `Neati-windows-x64-setup-machine.exe` |
+| Generated SBOM / WinGet metadata | `SBOM-neati.spdx.json` / `jaeyoung0509.Neati` |
 
-The retained artifact names and `jaeyoung0509.Zenith` WinGet identifier avoid
-breaking existing references. Their display metadata identifies Neati.
-The internal brand registry key/file `zenith` now resolves to the Neati artwork;
-`neati` is an alias. Historical screenshots/evidence remain historical, not
-rewritten as new QA.
+## Personal installation
 
-## Manual upgrade, not an automatic migration
+Settings and provider authentication may need to be configured again. Existing
+data and credentials in other namespaces are neither imported nor deleted.
+Review Full Disk Access / Files and Folders for Neati and restart the app after
+granting permissions; automatic permission continuity is not promised.
 
-There is no automatic updater. This PR does not install, publish or sign a
-release. Do not run both names at once: they share settings and credentials.
+`just release` builds and installs the app; `just install-release` installs an
+already-built release bundle. The installer validates `com.neati.desktop` and
+uses transactional replacement with rollback. It does not inspect other app
+names. A mismatched bundle already named Neati.app is refused: move that bundle
+to a backup location before installing. The Windows installer uses its ordinary
+Neati installation flow without a rebranding hook. Fixture tests never touch
+real installed applications or credentials.
 
-- macOS: quit Zenith, move the old application bundle out of Applications to a
-  backup location, then install Neati.app. Keep the backup until verified. Do
-  not delete configuration, logs, credentials or caches. The local installation
-  recipe refuses a remaining Zenith.app instead of deleting it or leaving a
-  duplicate. It verifies the new bundle ID and refuses a foreign Neati.app.
-- Windows: uninstall the old Zenith application through Windows Settings before
-  installing Neati. Keep application data and credentials. The Neati NSIS hook
-  refuses an old Zenith uninstall registration owned by this publisher, in
-  either user or machine scope; it does not run a registry UninstallString.
-  New Neati versions use their own normal NSIS upgrade path. This transition is
-  intentionally manual, including when an installer is run silently.
-- Permission continuity is not guaranteed by a stable bundle identifier. If
-  macOS refuses a protected location after the move/signature change, review
-  Neati's Full Disk Access / Files and Folders grants and restart the app. CLI
-  permission design is separate in #335.
-- Launch at login remains Planned; no new login item or background agent is
-  installed by the rename. Existing user-created shortcuts may need updating.
+No automatic updater, data migration or background agent is introduced.
+Avoid running two cleaner builds concurrently. IPC provider IDs unrelated to
+the application identity keep their existing semantics.
 
-Fixture tests exercise local installer replacement, first installation,
-rollback, foreign-bundle refusal, and legacy-conflict preservation. Windows
-installer execution must be validated by Windows CI; macOS tests do not prove
-Windows migration or TCC behavior. Never claim existing credential access was
-tested by reading user secrets.
+## External distribution
 
-## Distribution gates
+Source metadata is not an external registration. Verify SignPath configuration,
+signing identity and Apple notarization requirements before public release.
+No new certificate or notarization is claimed. Homebrew `neati` / `neati-cli`
+and the generated WinGet identity are not claimed to be published. Domain/name
+clearance and publication remain separate tasks; the agent CLI belongs to #335.
+Do not bypass Gatekeeper or clear quarantine.
 
-Homebrew cask `neati` and formula `neati-cli` are proposals, not published
-packages. No domain ownership or trademark clearance is claimed. Follow #334's
-remaining naming and signing/notarization gates before a public Neati release.
-Do not disable Gatekeeper or clear quarantine as an installation workaround.
-CLI implementation belongs to #335; the desktop `Neati --doctor` is not that
-future `neati` agent CLI.
+Historical documentation has product spellings normalized for this rename.
+Its original versions, dates, commit IDs and screenshot pixels remain historical
+evidence, not fresh validation of 0.3.74.

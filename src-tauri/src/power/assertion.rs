@@ -1,4 +1,4 @@
-use crate::models::{AwakeBehavior, ZenithError};
+use crate::models::{AwakeBehavior, NeatiError};
 
 #[cfg(target_os = "macos")]
 mod macos_iokit {
@@ -48,7 +48,7 @@ pub struct PowerAssertion {
 
 impl PowerAssertion {
     /// Creates a macOS power assertion using IOKit, preventing system sleep or keeping display awake.
-    pub fn acquire(behavior: AwakeBehavior, reason: &str) -> Result<Self, ZenithError> {
+    pub fn acquire(behavior: AwakeBehavior, reason: &str) -> Result<Self, NeatiError> {
         #[cfg(target_os = "macos")]
         {
             use macos_iokit::*;
@@ -60,8 +60,8 @@ impl PowerAssertion {
                 AwakeBehavior::KeepDisplayAwake => "PreventUserIdleDisplaySleep",
             };
 
-            let c_type = CString::new(type_str).map_err(|e| ZenithError::Io(e.to_string()))?;
-            let c_reason = CString::new(reason).map_err(|e| ZenithError::Io(e.to_string()))?;
+            let c_type = CString::new(type_str).map_err(|e| NeatiError::Io(e.to_string()))?;
+            let c_reason = CString::new(reason).map_err(|e| NeatiError::Io(e.to_string()))?;
 
             unsafe {
                 let cf_type = CFStringCreateWithCString(
@@ -96,7 +96,7 @@ impl PowerAssertion {
                         behavior,
                     })
                 } else {
-                    Err(ZenithError::Io(format!(
+                    Err(NeatiError::Io(format!(
                         "IOKit power assertion failed with return code: {}",
                         status
                     )))
@@ -116,7 +116,7 @@ impl PowerAssertion {
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         {
             let _ = (behavior, reason);
-            Err(ZenithError::ToolUnavailable(
+            Err(NeatiError::ToolUnavailable(
                 "Keep Awake is unavailable on this platform".to_string(),
             ))
         }
@@ -155,14 +155,14 @@ impl Drop for PowerAssertion {
 #[cfg(all(test, not(any(target_os = "macos", target_os = "windows"))))]
 mod unsupported_tests {
     use super::PowerAssertion;
-    use crate::models::{AwakeBehavior, ZenithError};
+    use crate::models::{AwakeBehavior, NeatiError};
 
     #[test]
     fn native_assertion_fails_closed_when_no_adapter_exists() {
         let result = PowerAssertion::acquire(AwakeBehavior::PreventSystemSleep, "test");
         assert!(matches!(
             result,
-            Err(ZenithError::ToolUnavailable(message)) if message.contains("unavailable")
+            Err(NeatiError::ToolUnavailable(message)) if message.contains("unavailable")
         ));
     }
 }
@@ -205,8 +205,7 @@ mod native_tests {
 }
 
 pub trait PowerAssertionProvider: Send + Sync {
-    fn acquire(&self, behavior: AwakeBehavior, reason: &str)
-        -> Result<PowerAssertion, ZenithError>;
+    fn acquire(&self, behavior: AwakeBehavior, reason: &str) -> Result<PowerAssertion, NeatiError>;
 }
 
 #[derive(Default, Clone, Copy)]
@@ -219,11 +218,7 @@ impl NativeAssertionProvider {
 }
 
 impl PowerAssertionProvider for NativeAssertionProvider {
-    fn acquire(
-        &self,
-        behavior: AwakeBehavior,
-        reason: &str,
-    ) -> Result<PowerAssertion, ZenithError> {
+    fn acquire(&self, behavior: AwakeBehavior, reason: &str) -> Result<PowerAssertion, NeatiError> {
         PowerAssertion::acquire(behavior, reason)
     }
 }

@@ -1,7 +1,7 @@
 use crate::process_owner::ProcessOwner;
+use neati_platform::GracefulStopOutcome;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
-use zenith_platform::GracefulStopOutcome;
 
 pub const LEASE_TTL_SECS: u64 = 30;
 pub const MAX_STOP_LEASES: usize = 128;
@@ -190,13 +190,13 @@ impl TerminationSystem for RealTerminationSystem {
     fn request_graceful_stop(&self, pid: u32) -> Result<GracefulStopOutcome, String> {
         // Never forces. `execute_graceful_stop` re-verifies the lease identity
         // before any force fallback, including when no graceful channel exists.
-        zenith_platform::request_graceful_stop(pid)
+        neati_platform::request_graceful_stop(pid)
     }
 
     fn force_terminate(&self, pid: u32) -> Result<(), String> {
         #[cfg(any(unix, target_os = "windows"))]
         {
-            zenith_platform::terminate_process(pid, zenith_platform::TerminationMode::Force)
+            neati_platform::terminate_process(pid, neati_platform::TerminationMode::Force)
         }
         #[cfg(not(any(unix, target_os = "windows")))]
         {
@@ -209,7 +209,7 @@ impl TerminationSystem for RealTerminationSystem {
 pub fn execute_graceful_stop(
     lease: &StopLease,
     system: &dyn TerminationSystem,
-    environment: &zenith_platform::PlatformEnvironment,
+    environment: &neati_platform::PlatformEnvironment,
 ) -> Result<(), String> {
     // 1. Process must exist
     let info = system
@@ -235,7 +235,7 @@ pub fn execute_graceful_stop(
     let Some(current_exe) = &info.executable else {
         return Err("Cannot determine process executable path.".to_string());
     };
-    if !zenith_platform::path_algebra::equal(
+    if !neati_platform::path_algebra::equal(
         &current_exe.to_string_lossy(),
         &lease.executable.to_string_lossy(),
         environment.flavor(),
@@ -317,7 +317,7 @@ fn same_lease_identity(
         && info.owner == system.current_owner()
         && info.start_time == lease.start_time
         && info.executable.as_deref().is_some_and(|executable| {
-            zenith_platform::NativePlatformPaths::paths_equal(executable, &lease.executable)
+            neati_platform::NativePlatformPaths::paths_equal(executable, &lease.executable)
         })
 }
 
@@ -327,8 +327,8 @@ mod tests {
     use std::sync::Mutex;
 
     /// The host machine these termination fixtures describe.
-    fn test_environment() -> zenith_platform::PlatformEnvironment {
-        zenith_platform::PlatformEnvironment::native()
+    fn test_environment() -> neati_platform::PlatformEnvironment {
+        neati_platform::PlatformEnvironment::native()
     }
 
     struct FakeSystem {

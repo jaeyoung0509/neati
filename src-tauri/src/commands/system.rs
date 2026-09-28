@@ -17,8 +17,8 @@ use crate::models::{
     AwakeBehavior, AwakeRule, AwakeState, BatteryMetrics, CpuMetrics, DashboardRoute,
     DevelopmentListener, DiagnosticsSnapshot, DiskMetrics, DiskVolume, DockerStatus,
     LocalModelInventory, MemoryMetrics, MemoryTerminationMode, MemoryTerminationResult,
-    PlatformCapabilities, PlatformContext, ReleaseDevelopmentListenerResult, ReleaseMode,
-    SelectedApplication, ZenithSettings,
+    NeatiSettings, PlatformCapabilities, PlatformContext, ReleaseDevelopmentListenerResult,
+    ReleaseMode, SelectedApplication,
 };
 
 #[tauri::command]
@@ -78,8 +78,8 @@ pub async fn get_disk_volumes(state: State<'_, DesktopState>) -> Result<Vec<Disk
 pub async fn open_storage_settings() -> Result<(), String> {
     run_blocking(
         || {
-            use zenith_platform::SystemActionProvider;
-            zenith_platform::NativeSystemActions::new().open_storage_settings()
+            use neati_platform::SystemActionProvider;
+            neati_platform::NativeSystemActions::new().open_storage_settings()
         },
         "Storage settings worker panicked",
     )
@@ -94,8 +94,8 @@ pub async fn open_storage_settings() -> Result<(), String> {
 pub async fn open_full_disk_access_settings() -> Result<(), String> {
     run_blocking(
         || {
-            use zenith_platform::SystemActionProvider;
-            zenith_platform::NativeSystemActions::new().open_full_disk_access_settings()
+            use neati_platform::SystemActionProvider;
+            neati_platform::NativeSystemActions::new().open_full_disk_access_settings()
         },
         "Full Disk Access settings worker panicked",
     )
@@ -170,14 +170,14 @@ pub async fn disable_manual_awake(state: State<'_, DesktopState>) -> Result<(), 
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_settings(state: State<'_, DesktopState>) -> Result<ZenithSettings, String> {
+pub fn get_settings(state: State<'_, DesktopState>) -> Result<NeatiSettings, String> {
     state.system.settings()
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn save_settings(
-    settings: ZenithSettings,
+    settings: NeatiSettings,
     app_handle: AppHandle,
     state: State<'_, DesktopState>,
 ) -> Result<(), String> {
@@ -347,7 +347,7 @@ mod tests {
     fn opening_the_dashboard_stores_the_destination_the_window_pulls() {
         let app = tauri::test::mock_builder()
             .manage(crate::composition::desktop_state(
-                std::sync::Arc::new(zenith_platform::PlatformEnvironment::native()),
+                std::sync::Arc::new(neati_platform::PlatformEnvironment::native()),
                 crate::docker::adapter::ContainerHost::unstated(),
             ))
             .build(tauri::test::mock_context(tauri::test::noop_assets()))
@@ -376,7 +376,7 @@ mod tests {
     fn opening_the_dashboard_without_a_route_keeps_the_pending_destination() {
         let app = tauri::test::mock_builder()
             .manage(crate::composition::desktop_state(
-                std::sync::Arc::new(zenith_platform::PlatformEnvironment::native()),
+                std::sync::Arc::new(neati_platform::PlatformEnvironment::native()),
                 crate::docker::adapter::ContainerHost::unstated(),
             ))
             .build(tauri::test::mock_context(tauri::test::noop_assets()))

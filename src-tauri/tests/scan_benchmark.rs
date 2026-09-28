@@ -63,18 +63,18 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::{Instant, SystemTime};
 
-use serde::{Deserialize, Serialize};
-use tempfile::TempDir;
-use zenith_lib::cleaner::{CleanExecutor, LifecycleProviderRegistry, OwnerProviderRegistry};
-use zenith_lib::models::{
+use neati_lib::cleaner::{CleanExecutor, LifecycleProviderRegistry, OwnerProviderRegistry};
+use neati_lib::models::{
     CancellationProbe, Category, CleanStrategy, CleanupUnitKind, NeverCancelled, RiskTier,
     ScanEvent, ScanResult, Signature,
 };
-use zenith_lib::safety::SafetyPlanner;
-use zenith_lib::scanner::{ScanEngine, ScanLimits};
-use zenith_lib::signatures::SignatureRegistry;
-use zenith_platform::path_algebra::PathFlavor;
-use zenith_platform::PlatformEnvironment;
+use neati_lib::safety::SafetyPlanner;
+use neati_lib::scanner::{ScanEngine, ScanLimits};
+use neati_lib::signatures::SignatureRegistry;
+use neati_platform::path_algebra::PathFlavor;
+use neati_platform::PlatformEnvironment;
+use serde::{Deserialize, Serialize};
+use tempfile::TempDir;
 
 /// An end-to-end cleanup measurement on a directory created solely by this
 /// harness. The elapsed time is evidence, not a CI threshold; the byte and
@@ -134,7 +134,7 @@ fn disposable_cleanup_fixture_reports_verified_reclaim() {
         &environment,
         &lifecycle,
         &owners,
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     let elapsed_ms = started.elapsed().as_millis();
@@ -164,8 +164,8 @@ fn disposable_cleanup_fixture_reports_verified_reclaim() {
 #[test]
 #[ignore = "local repeated fixture benchmark; never cleans real caches"]
 fn repeated_cleanup_shapes_report_verified_accounting() {
-    use zenith_core::domain::cleanup::DeletionDisposition;
-    use zenith_platform::PathFlavor;
+    use neati_core::domain::cleanup::DeletionDisposition;
+    use neati_platform::PathFlavor;
     let lifecycle = LifecycleProviderRegistry::new(vec![]);
     let owners = OwnerProviderRegistry::new(vec![]);
     let shapes = [
@@ -245,7 +245,7 @@ fn repeated_cleanup_shapes_report_verified_accounting() {
                 &environment,
                 &lifecycle,
                 &owners,
-                &zenith_platform::MockTrashBackend::new(),
+                &neati_platform::MockTrashBackend::new(),
                 |_| {},
             );
             let execute_us = execute_started.elapsed().as_micros();
@@ -298,9 +298,9 @@ const ANCHOR_BYTES: u64 = 4_096;
 fn environment() -> PlatformEnvironment {
     PlatformEnvironment::simulated(PathFlavor::current())
         .with_home(if cfg!(windows) {
-            r"Z:\ZenithFixtureHome"
+            r"Z:\NeatiFixtureHome"
         } else {
-            "/zenith-fixture-home"
+            "/neati-fixture-home"
         })
         .with_missing_tool("docker")
         .with_missing_tool("npm")
@@ -522,7 +522,7 @@ fn baseline_of(rows: &[(Fixture, ScanResult)]) -> Baseline {
         schema: BASELINE_SCHEMA,
         generator: "src-tauri/tests/scan_benchmark.rs".to_string(),
         note: "Deterministic scan facts per fixture. Regenerate with \
-               `cargo test -p zenith-desktop --test scan_benchmark -- --ignored export_scan_baseline`. \
+               `cargo test -p neati-desktop --test scan_benchmark -- --ignored export_scan_baseline`. \
                Timing measurements are deliberately absent; `duration_ms_ceiling` is a bound."
             .to_string(),
         bounds: BaselineBounds {
@@ -958,7 +958,7 @@ fn assert_common_invariants(row: &MetricsRow, max_concurrent_directory_reads: us
 /// Prints the platform line a CI log reader needs to interpret the table.
 fn print_environment_line() {
     println!(
-        "scan_benchmark environment os={} arch={} zenith-desktop={}",
+        "scan_benchmark environment os={} arch={} neati-desktop={}",
         std::env::consts::OS,
         std::env::consts::ARCH,
         env!("CARGO_PKG_VERSION")

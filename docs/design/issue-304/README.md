@@ -52,7 +52,7 @@ Passed:
 
 ### Native runtime inspection
 
-An isolated `Zenith Glass QA.app` (`com.zenith.desktop.glass-qa`) was built from
+An isolated `Neati Glass QA.app` (`com.neati.desktop.glass-qa`) was built from
 the same source/frontend and launched alongside the installed application.
 The installed app and its active Keep Awake session were left running. The QA
 app was closed after inspection.

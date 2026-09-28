@@ -1,11 +1,11 @@
-import type { AiProviderId, DashboardTab, QuickPanelSection, ZenithSettings } from '../models/types';
+import type { AiProviderId, DashboardTab, QuickPanelSection, NeatiSettings } from '../models/types';
 import { tauriGetSettings, tauriSaveSettings, tauriSetWindowTheme } from '../utils/tauri';
 import { moveOrdered, reorderOrdered, toggleOrdered } from '../utils/quickPanel';
 import { serializeSettingsSnapshot } from '../utils/settings';
 import { DEFAULT_DASHBOARD_TABS, dashboardGroup, normalizeDashboardTab } from '../utils/dashboardNavigation';
 
 export class SettingsStore {
-  settings = $state<ZenithSettings>({
+  settings = $state<NeatiSettings>({
     launch_at_login: false,
     clean_ai_tools: true,
     clean_developer_tools: true,
@@ -91,7 +91,7 @@ export class SettingsStore {
   private hasLoaded = false;
   private loadPromise: Promise<void> | null = null;
   private saveQueue: Promise<void> = Promise.resolve();
-  private persistedSettings: ZenithSettings | null = null;
+  private persistedSettings: NeatiSettings | null = null;
   private saveRevision = 0;
   private mediaQueryList: MediaQueryList | null = null;
   private mediaQueryListener: ((e: MediaQueryListEvent) => void) | null = null;
@@ -121,7 +121,7 @@ export class SettingsStore {
     this.isLoading = true;
     try {
       const fetched = await this.getSettingsFn();
-      const normalized: ZenithSettings = {
+      const normalized: NeatiSettings = {
         ...fetched,
         intensive_cleanup: fetched.intensive_cleanup ?? false,
         quick_panel_sections: fetched.quick_panel_sections ?? [...this.settings.quick_panel_sections],
@@ -152,7 +152,7 @@ export class SettingsStore {
     }
   }
 
-  async save(partial: Partial<ZenithSettings>): Promise<boolean> {
+  async save(partial: Partial<NeatiSettings>): Promise<boolean> {
     // `hasLoaded` is part of the authority check, not a UI flag: after a failed
     // refresh the store still holds the previous snapshot for rollback, and
     // saving from it would write state the backend never confirmed.
@@ -169,7 +169,7 @@ export class SettingsStore {
       this.applyTheme(partial.theme);
     }
 
-    let snapshot: ZenithSettings;
+    let snapshot: NeatiSettings;
     try {
       snapshot = serializeSettingsSnapshot($state.snapshot(this.settings));
     } catch (err: any) {

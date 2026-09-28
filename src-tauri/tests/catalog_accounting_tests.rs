@@ -1,14 +1,14 @@
+use neati_lib::cleaner::{LifecycleProviderRegistry, OwnerProviderRegistry};
+use neati_lib::models::{
+    CacheManagementMode, CacheSizeSemantics, Category, CleanStrategy, CleanerFamily, NeatiSettings,
+    NeverCancelled, RiskTier,
+};
+use neati_lib::scanner::{DirectoryScanner, ScanEngine};
+use neati_lib::signatures::{SignatureLoader, SignatureRegistry};
+use neati_platform::paths::SimulatedPaths;
+use neati_platform::{PathFlavor, PlatformEnvironment};
 use std::fs;
 use std::sync::Arc;
-use zenith_lib::cleaner::{LifecycleProviderRegistry, OwnerProviderRegistry};
-use zenith_lib::models::{
-    CacheManagementMode, CacheSizeSemantics, Category, CleanStrategy, CleanerFamily,
-    NeverCancelled, RiskTier, ZenithSettings,
-};
-use zenith_lib::scanner::{DirectoryScanner, ScanEngine};
-use zenith_lib::signatures::{SignatureLoader, SignatureRegistry};
-use zenith_platform::paths::SimulatedPaths;
-use zenith_platform::{PathFlavor, PlatformEnvironment};
 
 #[test]
 fn temp_aliases_produce_one_cleanup_unit() {
@@ -48,7 +48,7 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
     assert_eq!(signature.paths, ["${DARWIN_USER_CACHE}/clang"]);
     assert_eq!(
         signature.platforms,
-        [zenith_lib::models::PlatformKind::Macos]
+        [neati_lib::models::PlatformKind::Macos]
     );
     assert_eq!(
         SignatureLoader::expand_path(&signature.paths[0], &environment),
@@ -60,7 +60,7 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
     assert_eq!(signature.risk, RiskTier::Rebuild);
     assert_eq!(
         signature.deletion_disposition,
-        Some(zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete)
+        Some(neati_core::domain::cleanup::DeletionDisposition::PermanentDelete)
     );
     for owner in [
         "Xcode",
@@ -96,7 +96,7 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
 
 #[test]
 fn explicit_disposition_is_narrow_and_cannot_override_provider_actions() {
-    use zenith_core::domain::cleanup::DeletionDisposition;
+    use neati_core::domain::cleanup::DeletionDisposition;
     let registry = SignatureRegistry::load_embedded_catalog().unwrap();
     for id in [
         "dev.clang.module_cache",
@@ -230,7 +230,7 @@ fn additional_ecosystem_stores_are_measured_but_never_authorized() {
                 // PathBuf::join preserves mixed separators on Windows while
                 // signature expansion normalizes them. Compare path semantics,
                 // not the two display spellings.
-                zenith_platform::path_algebra::equal(
+                neati_platform::path_algebra::equal(
                     &item.path,
                     &root.to_string_lossy(),
                     environment.flavor(),
@@ -314,17 +314,17 @@ fn strategy_is_the_only_catalog_source_of_management_and_size_semantics() {
     for (strategy, management, size) in [
         (
             CleanStrategy::DeleteContents,
-            CacheManagementMode::Zenith,
+            CacheManagementMode::Neati,
             CacheSizeSemantics::PhysicalReclaimable,
         ),
         (
             CleanStrategy::DeleteDirectory,
-            CacheManagementMode::Zenith,
+            CacheManagementMode::Neati,
             CacheSizeSemantics::PhysicalReclaimable,
         ),
         (
             CleanStrategy::DeleteStaleContents,
-            CacheManagementMode::Zenith,
+            CacheManagementMode::Neati,
             CacheSizeSemantics::PhysicalReclaimable,
         ),
         (
@@ -413,7 +413,7 @@ fn model_weights_are_owned_by_model_inventory_and_old_settings_still_load() {
         .flat_map(|category| &category.items)
         .all(|item| !item.path.contains(".ollama")));
     assert!(weights.is_file());
-    let settings: ZenithSettings = serde_json::from_str(
+    let settings: NeatiSettings = serde_json::from_str(
         r#"{"clean_local_models":true,"theme":"dark","clean_ai_tools":false}"#,
     )
     .unwrap();

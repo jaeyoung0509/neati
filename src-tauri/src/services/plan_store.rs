@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::models::DeletePlan;
 
-use zenith_core::domain::is_within_window;
+use neati_core::domain::is_within_window;
 
 /// Why a plan store refused to hand a plan over.
 ///

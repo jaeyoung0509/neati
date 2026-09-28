@@ -12,14 +12,14 @@ use crate::models::{
     ProviderStatus,
 };
 use crate::safety::{Blacklist, SymlinkGuard, ToctouGuard};
-use std::fs;
-use std::path::PathBuf;
-use std::sync::Arc;
-use zenith_core::domain::cleanup::{
+use neati_core::domain::cleanup::{
     OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitMeasurer, RunningProcessPolicy,
     RunningProcessProbe,
 };
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 pub struct HomebrewDownloadsProvider {
     process: Arc<dyn RunningProcessProbe>,
@@ -184,8 +184,7 @@ impl HomebrewDownloadsProvider {
         }
         let root = observation.root.expect("ready store has root");
         let mut plan = OwnerProviderAuthorization {
-            deletion_disposition:
-                zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: String::new(),
             provider_id: self.id().to_string(),
             risk: crate::models::RiskTier::Rebuild,
@@ -413,7 +412,7 @@ fn single_link(_metadata: &fs::Metadata) -> bool {
 mod tests {
     use super::*;
     use crate::scanner::SizeCalculatorMeasurement;
-    use zenith_core::domain::cleanup::RunningProcessProbe;
+    use neati_core::domain::cleanup::RunningProcessProbe;
 
     struct Idle;
     impl RunningProcessProbe for Idle {

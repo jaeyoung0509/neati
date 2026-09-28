@@ -8,7 +8,7 @@
 //!
 //! Two properties make the report trustworthy as a CI gate:
 //!
-//! * the checks are the flavor-parameterized [`zenith_platform::path_algebra`]
+//! * the checks are the flavor-parameterized [`neati_platform::path_algebra`]
 //!   invariants plus the environment's own resolution facts, so a Windows
 //!   machine and a macOS machine assert the same rules;
 //! * a check is a count, not a yes/no: a sample set that stops exercising the
@@ -16,11 +16,11 @@
 
 use crate::models::PlatformKind;
 use crate::signatures::SignatureRegistry;
-use zenith_platform::path_algebra;
-use zenith_platform::path_algebra::{
+use neati_platform::path_algebra;
+use neati_platform::path_algebra::{
     contains, fold, is_absolute, is_root, key, normalize, protected_root, PathFlavor,
 };
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
 
 /// One self-check result. `name` is the invariant, `detail` is a shape or
 /// boolean summary of what was checked.
@@ -314,7 +314,7 @@ fn fingerprint(environment: &PlatformEnvironment) -> Vec<String> {
         format!(
             "known_folders={}/{}",
             environment.known_folders().len(),
-            zenith_platform::KnownFolder::ALL.len()
+            neati_platform::KnownFolder::ALL.len()
         ),
         format!("path_entries={}", environment.path_entries().len()),
         format!(
@@ -643,15 +643,15 @@ const SHORT_NAME_SAMPLES: &[(&str, bool)] = &[
     (r"C:\DOCUME~1", true),
     (r"C:\Program Files\App", true),
     (r"C:\Users\me\AppData", false),
-    (r"D:\projects\zenith", false),
+    (r"D:\projects\neati", false),
 ];
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
     use std::sync::Arc;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
 
     fn stated_posix_environment() -> PlatformEnvironment {
         PlatformEnvironment::simulated(PathFlavor::Posix).with_roots(Arc::new(
@@ -721,7 +721,7 @@ mod tests {
         let environment = PlatformEnvironment::simulated(PathFlavor::Windows)
             .with_home(r"D:\Users\me")
             .with_known_folder(
-                zenith_platform::KnownFolder::Downloads,
+                neati_platform::KnownFolder::Downloads,
                 r"D:\Users\me\Downloads",
             );
         let report = self_check(&environment);
@@ -753,15 +753,15 @@ mod tests {
         // redirect must pass rather than fail the self-check.
         for environment in [
             stated_posix_environment().with_known_folder(
-                zenith_platform::KnownFolder::Documents,
+                neati_platform::KnownFolder::Documents,
                 "/mnt/other/Documents",
             ),
             stated_windows_environment().with_known_folder(
-                zenith_platform::KnownFolder::Documents,
+                neati_platform::KnownFolder::Documents,
                 r"D:\Redirected\Documents",
             ),
             stated_windows_environment().with_known_folder(
-                zenith_platform::KnownFolder::Downloads,
+                neati_platform::KnownFolder::Downloads,
                 r"\\fileserver\profiles\tester\Downloads",
             ),
         ] {
@@ -786,7 +786,7 @@ mod tests {
             ("device namespace", r"\\.\C:\Windows"),
         ] {
             let environment = stated_posix_environment()
-                .with_known_folder(zenith_platform::KnownFolder::Documents, path);
+                .with_known_folder(neati_platform::KnownFolder::Documents, path);
             let report = self_check(&environment);
             let row = report
                 .checks
@@ -864,7 +864,7 @@ mod tests {
     #[test]
     fn fingerprint_states_shapes_not_locations() {
         let environment = stated_posix_environment().with_known_folder(
-            zenith_platform::KnownFolder::Documents,
+            neati_platform::KnownFolder::Documents,
             "/mnt/redirected/Documents",
         );
         let entries = fingerprint(&environment);

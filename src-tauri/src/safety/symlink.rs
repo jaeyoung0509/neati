@@ -1,7 +1,7 @@
-use crate::models::{CanonicalPath, PathViolation, ZenithError};
+use crate::models::{CanonicalPath, NeatiError, PathViolation};
+use neati_platform::path_algebra;
 use std::fs;
 use std::path::{Path, PathBuf};
-use zenith_platform::path_algebra;
 
 pub struct SymlinkGuard;
 
@@ -42,15 +42,15 @@ fn relative_components(
 /// The drive or UNC root a Windows path descends from, or the path itself when
 /// it has none.
 fn windows_root(text: &str) -> String {
-    let flavor = zenith_platform::path_algebra::PathFlavor::Windows;
-    let canonical = zenith_platform::path_algebra::canonical_separators(
-        &zenith_platform::path_algebra::strip_verbatim(text, flavor),
+    let flavor = neati_platform::path_algebra::PathFlavor::Windows;
+    let canonical = neati_platform::path_algebra::canonical_separators(
+        &neati_platform::path_algebra::strip_verbatim(text, flavor),
         flavor,
     );
-    let trimmed = zenith_platform::path_algebra::trim_trailing_separators(&canonical, flavor);
+    let trimmed = neati_platform::path_algebra::trim_trailing_separators(&canonical, flavor);
     let mut candidate = trimmed.as_str();
     loop {
-        if zenith_platform::path_algebra::is_root(candidate, flavor) {
+        if neati_platform::path_algebra::is_root(candidate, flavor) {
             // `path_algebra::is_root` intentionally treats both `C:` and
             // `C:\` as root spellings, but only the latter is absolute.
             // This anchor is fed back through `is_absolute`, so keep the
@@ -144,7 +144,7 @@ impl SymlinkGuard {
     /// of collapsing to the POSIX `/`.
     pub fn resolve_trusted_anchor(
         target: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
+        environment: &neati_platform::PlatformEnvironment,
     ) -> PathBuf {
         let flavor = environment.flavor();
         let text = target.to_string_lossy();
@@ -183,17 +183,17 @@ impl SymlinkGuard {
     pub fn validate_components_between(
         target: &Path,
         base: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
-    ) -> Result<(), ZenithError> {
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> Result<(), NeatiError> {
         Self::validate_components_between_with(target, base, environment, &NativeSymlinkInspector)
     }
 
     pub fn validate_components_between_with(
         target: &Path,
         base: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
+        environment: &neati_platform::PlatformEnvironment,
         inspector: &impl SymlinkInspector,
-    ) -> Result<(), ZenithError> {
+    ) -> Result<(), NeatiError> {
         let flavor = environment.flavor();
         let target_text = target.to_string_lossy();
         let base_text = base.to_string_lossy();
@@ -203,14 +203,14 @@ impl SymlinkGuard {
             || path_algebra::has_parent_traversal(&target_text, flavor)
             || path_algebra::has_parent_traversal(&base_text, flavor)
         {
-            return Err(ZenithError::SymlinkEscape(
+            return Err(NeatiError::SymlinkEscape(
                 "Expected an absolute path without parent traversal".into(),
             ));
         }
         let normalized_target = path_algebra::normalize(&target_text, flavor);
         let normalized_base = path_algebra::normalize(&base_text, flavor);
         let outside_base = || {
-            ZenithError::SymlinkEscape(format!(
+            NeatiError::SymlinkEscape(format!(
                 "Target {} is not within base {}",
                 target.display(),
                 base.display()
@@ -239,20 +239,20 @@ impl SymlinkGuard {
                                 .canonicalize(target)
                                 .map_err(|err| match err.kind() {
                                     std::io::ErrorKind::PermissionDenied => {
-                                        ZenithError::PermissionDenied(target.display().to_string())
+                                        NeatiError::PermissionDenied(target.display().to_string())
                                     }
                                     std::io::ErrorKind::NotFound => outside_base(),
-                                    _ => ZenithError::Io(err.to_string()),
+                                    _ => NeatiError::Io(err.to_string()),
                                 })?;
                         let canonical_base =
                             inspector
                                 .canonicalize(base)
                                 .map_err(|err| match err.kind() {
                                     std::io::ErrorKind::PermissionDenied => {
-                                        ZenithError::PermissionDenied(base.display().to_string())
+                                        NeatiError::PermissionDenied(base.display().to_string())
                                     }
                                     std::io::ErrorKind::NotFound => outside_base(),
-                                    _ => ZenithError::Io(err.to_string()),
+                                    _ => NeatiError::Io(err.to_string()),
                                 })?;
                         let norm_canonical_base =
                             path_algebra::normalize(&canonical_base.to_string_lossy(), flavor);
@@ -280,7 +280,7 @@ impl SymlinkGuard {
             let current = PathBuf::from(&current_text);
             match inspector.is_symlink(&current) {
                 Ok(true) => {
-                    return Err(ZenithError::SymlinkEscape(format!(
+                    return Err(NeatiError::SymlinkEscape(format!(
                         "Path component is a symlink or reparse escape: {}",
                         current.display()
                     )));
@@ -289,12 +289,12 @@ impl SymlinkGuard {
                 Err(err) => {
                     return Err(match err.kind() {
                         std::io::ErrorKind::PermissionDenied => {
-                            ZenithError::PermissionDenied(current.display().to_string())
+                            NeatiError::PermissionDenied(current.display().to_string())
                         }
                         std::io::ErrorKind::NotFound => {
-                            ZenithError::Missing(current.display().to_string())
+                            NeatiError::Missing(current.display().to_string())
                         }
-                        _ => ZenithError::Io(err.to_string()),
+                        _ => NeatiError::Io(err.to_string()),
                     });
                 }
             }
@@ -308,8 +308,8 @@ impl SymlinkGuard {
     pub fn validate_no_symlink_ancestors(
         target: &Path,
         trusted_root: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
-    ) -> Result<(), ZenithError> {
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> Result<(), NeatiError> {
         Self::validate_no_symlink_ancestors_with(
             target,
             trusted_root,
@@ -321,9 +321,9 @@ impl SymlinkGuard {
     pub fn validate_no_symlink_ancestors_with(
         target: &Path,
         trusted_root: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
+        environment: &neati_platform::PlatformEnvironment,
         inspector: &impl SymlinkInspector,
-    ) -> Result<(), ZenithError> {
+    ) -> Result<(), NeatiError> {
         let anchor = Self::resolve_trusted_anchor(trusted_root, environment);
         if !path_algebra::equal(
             &anchor.to_string_lossy(),
@@ -340,16 +340,16 @@ impl SymlinkGuard {
     /// Validates that target has no symlink ancestors from its system anchor (home/temp/root)
     pub fn validate_anchored_path(
         target: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
-    ) -> Result<(), ZenithError> {
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> Result<(), NeatiError> {
         Self::validate_anchored_path_with(target, environment, &NativeSymlinkInspector)
     }
 
     pub fn validate_anchored_path_with(
         target: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
+        environment: &neati_platform::PlatformEnvironment,
         inspector: &impl SymlinkInspector,
-    ) -> Result<(), ZenithError> {
+    ) -> Result<(), NeatiError> {
         let anchor = Self::resolve_trusted_anchor(target, environment);
         Self::validate_components_between_with(target, &anchor, environment, inspector)
     }
@@ -357,8 +357,8 @@ impl SymlinkGuard {
     /// Verifies that the path itself is safe. If it is a symlink, ensures its target does not point to a blacklisted destination.
     pub fn validate_symlink_target(
         path: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
-    ) -> Result<(), ZenithError> {
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> Result<(), NeatiError> {
         if Self::is_symlink(path) {
             // Read link destination
             if let Ok(target) = fs::read_link(path) {
@@ -383,8 +383,8 @@ impl SymlinkGuard {
     /// called.
     pub fn validate_canonical_blacklist(
         path: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
-    ) -> Result<(), ZenithError> {
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> Result<(), NeatiError> {
         if let Ok(canonical) = CanonicalPath::resolve(path) {
             crate::safety::Blacklist::validate_with(canonical.as_path(), environment)?;
         }
@@ -395,8 +395,8 @@ impl SymlinkGuard {
     /// affected mutation instead of being treated as safe.
     pub fn validate_canonical_blacklist_strict(
         path: &Path,
-        environment: &zenith_platform::PlatformEnvironment,
-    ) -> Result<(), ZenithError> {
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> Result<(), NeatiError> {
         let canonical = CanonicalPath::resolve(path).map_err(|violation| {
             // A path that no longer resolves is already absent; every other
             // resolution failure is a mutation blocker.
@@ -404,9 +404,9 @@ impl SymlinkGuard {
                 PathViolation::Unresolvable { kind, .. }
                     if *kind == std::io::ErrorKind::NotFound =>
                 {
-                    ZenithError::Missing(path.display().to_string())
+                    NeatiError::Missing(path.display().to_string())
                 }
-                _ => ZenithError::ChangedSinceScan(violation.to_string()),
+                _ => NeatiError::ChangedSinceScan(violation.to_string()),
             }
         })?;
         crate::safety::Blacklist::validate_with(canonical.as_path(), environment)?;
@@ -415,12 +415,12 @@ impl SymlinkGuard {
 
     /// Strict symlink/reparse-point check for mutation paths. Metadata failure
     /// fails closed instead of reporting "not a symlink".
-    pub fn is_symlink_strict(path: &Path) -> Result<bool, ZenithError> {
+    pub fn is_symlink_strict(path: &Path) -> Result<bool, NeatiError> {
         let meta = fs::symlink_metadata(path).map_err(|error| {
             if error.kind() == std::io::ErrorKind::NotFound {
-                return ZenithError::Missing(path.display().to_string());
+                return NeatiError::Missing(path.display().to_string());
             }
-            ZenithError::ChangedSinceScan(format!(
+            NeatiError::ChangedSinceScan(format!(
                 "Could not read link metadata for {}: {}",
                 path.display(),
                 error
@@ -436,7 +436,7 @@ impl SymlinkGuard {
                 // A reparse point whose tag cannot be read is unknown, not
                 // safe: mutation paths must fail closed.
                 return classify_name_surrogate_reparse_point(path).map_err(|error| {
-                    ZenithError::ChangedSinceScan(format!(
+                    NeatiError::ChangedSinceScan(format!(
                         "Could not classify reparse point {}: {}",
                         path.display(),
                         error
@@ -468,7 +468,7 @@ fn classify_name_surrogate_reparse_point(path: &Path) -> std::io::Result<bool> {
         FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
     };
 
-    let wide = zenith_platform::NativePlatformPaths::to_verbatim_wide(path);
+    let wide = neati_platform::NativePlatformPaths::to_verbatim_wide(path);
     let handle = unsafe {
         CreateFileW(
             wide.as_ptr(),
@@ -515,7 +515,7 @@ mod tests {
     /// and case folding.
     #[test]
     fn component_validation_judges_windows_shaped_paths_with_the_stated_flavor() {
-        use zenith_platform::path_algebra::PathFlavor;
+        use neati_platform::path_algebra::PathFlavor;
 
         // Containment is component-wise and folds case on Windows.
         assert_eq!(
@@ -558,11 +558,11 @@ mod tests {
 
     #[test]
     fn windows_drive_and_unc_anchors_remain_absolute() {
-        use zenith_platform::path_algebra::PathFlavor;
+        use neati_platform::path_algebra::PathFlavor;
 
         for (target, expected) in [
-            (r"D:\dev\zenith", "D:\\"),
-            (r"\\server\share\projects\zenith", r"\\server\share"),
+            (r"D:\dev\neati", "D:\\"),
+            (r"\\server\share\projects\neati", r"\\server\share"),
         ] {
             let anchor = windows_root(target);
             assert_eq!(anchor, expected);
@@ -580,7 +580,7 @@ mod tests {
         assert!(SymlinkGuard::validate_components_between(
             &path,
             dir.path(),
-            &zenith_platform::PlatformEnvironment::native(),
+            &neati_platform::PlatformEnvironment::native(),
         )
         .is_err());
     }
@@ -605,7 +605,7 @@ mod tests {
 
         // Read-side helpers report "no link to follow" for a missing path.
         assert!(!SymlinkGuard::is_symlink(&missing));
-        let environment = zenith_platform::PlatformEnvironment::native();
+        let environment = neati_platform::PlatformEnvironment::native();
         assert!(SymlinkGuard::validate_symlink_target(&missing, &environment).is_ok());
 
         // Mutation-side helpers never mistake a missing path for a
@@ -614,11 +614,11 @@ mod tests {
         // returns `ChangedSinceScan` and fails closed.
         assert!(matches!(
             SymlinkGuard::is_symlink_strict(&missing),
-            Err(ZenithError::Missing(_))
+            Err(NeatiError::Missing(_))
         ));
         assert!(matches!(
             SymlinkGuard::validate_canonical_blacklist_strict(&missing, &environment),
-            Err(ZenithError::Missing(_))
+            Err(NeatiError::Missing(_))
         ));
     }
 
@@ -704,12 +704,12 @@ mod tests {
         fs::create_dir_all(&workspace).unwrap();
         fs::create_dir_all(&other).unwrap();
         let canonical_profile = profile.canonicalize().unwrap();
-        let plain_workspace = zenith_platform::path_algebra::normalize_lexical(&workspace);
+        let plain_workspace = neati_platform::path_algebra::normalize_lexical(&workspace);
         SymlinkGuard::validate_components_between(
             &plain_workspace,
             &canonical_profile,
-            &zenith_platform::PlatformEnvironment::simulated(
-                zenith_platform::path_algebra::PathFlavor::Windows,
+            &neati_platform::PlatformEnvironment::simulated(
+                neati_platform::path_algebra::PathFlavor::Windows,
             ),
         )
         .unwrap_or_else(|error| {
@@ -718,13 +718,13 @@ mod tests {
         assert!(SymlinkGuard::validate_components_between(
             &other,
             &canonical_profile,
-            &zenith_platform::PlatformEnvironment::simulated(
-                zenith_platform::path_algebra::PathFlavor::Windows,
+            &neati_platform::PlatformEnvironment::simulated(
+                neati_platform::path_algebra::PathFlavor::Windows,
             ),
         )
         .is_err());
-        let environment = zenith_platform::PlatformEnvironment::simulated(
-            zenith_platform::path_algebra::PathFlavor::Windows,
+        let environment = neati_platform::PlatformEnvironment::simulated(
+            neati_platform::path_algebra::PathFlavor::Windows,
         )
         .with_home(profile.clone())
         // The fixture lives in the temporary directory, which is the root the
@@ -755,8 +755,8 @@ mod tests {
             .output()
             .unwrap();
         assert!(output.status.success());
-        let environment = zenith_platform::PlatformEnvironment::simulated(
-            zenith_platform::path_algebra::PathFlavor::Windows,
+        let environment = neati_platform::PlatformEnvironment::simulated(
+            neati_platform::path_algebra::PathFlavor::Windows,
         )
         .with_home(profile.clone());
         assert!(SymlinkGuard::validate_components_between(
@@ -797,8 +797,8 @@ mod tests {
 
     #[test]
     fn symlink_guard_verifies_windows_shaped_links_on_any_runner_via_seam() {
-        let environment = zenith_platform::PlatformEnvironment::simulated(
-            zenith_platform::path_algebra::PathFlavor::Windows,
+        let environment = neati_platform::PlatformEnvironment::simulated(
+            neati_platform::path_algebra::PathFlavor::Windows,
         );
         let base = Path::new(r"C:\Users\Tester\AppData\Local\Temp");
         let target = Path::new(r"C:\Users\Tester\AppData\Local\Temp\npm_cache\payload.bin");
@@ -821,7 +821,7 @@ mod tests {
             SymlinkGuard::validate_components_between_with(target, base, &environment, &inspector)
                 .unwrap_err();
         assert!(
-            matches!(err, ZenithError::SymlinkEscape(_)),
+            matches!(err, NeatiError::SymlinkEscape(_)),
             "must reject component symlink: {err}"
         );
     }
@@ -829,8 +829,8 @@ mod tests {
     #[test]
     fn symlink_guard_fails_closed_when_component_metadata_inspection_fails_with_permission_denied()
     {
-        let environment = zenith_platform::PlatformEnvironment::simulated(
-            zenith_platform::path_algebra::PathFlavor::Windows,
+        let environment = neati_platform::PlatformEnvironment::simulated(
+            neati_platform::path_algebra::PathFlavor::Windows,
         );
         let base = Path::new(r"C:\Users\Tester\AppData\Local\Temp");
         let target = Path::new(r"C:\Users\Tester\AppData\Local\Temp\npm_cache\payload.bin");
@@ -844,15 +844,15 @@ mod tests {
             SymlinkGuard::validate_components_between_with(target, base, &environment, &inspector)
                 .unwrap_err();
         assert!(
-            matches!(err, ZenithError::PermissionDenied(_)),
+            matches!(err, NeatiError::PermissionDenied(_)),
             "must fail closed as PermissionDenied, not SymlinkEscape or success: {err:?}"
         );
     }
 
     #[test]
     fn windows_8_3_alias_fallback_resolves_and_validates_on_any_runner_via_seam() {
-        let environment = zenith_platform::PlatformEnvironment::simulated(
-            zenith_platform::path_algebra::PathFlavor::Windows,
+        let environment = neati_platform::PlatformEnvironment::simulated(
+            neati_platform::path_algebra::PathFlavor::Windows,
         );
         // Base is 8.3 alias RUNNER~1
         let base_alias = Path::new(r"C:\Users\RUNNER~1\AppData\Local\Temp");
@@ -891,15 +891,15 @@ mod tests {
         )
         .unwrap_err();
         assert!(
-            matches!(err, ZenithError::SymlinkEscape(_)),
+            matches!(err, NeatiError::SymlinkEscape(_)),
             "junction in alias ancestor must fail closed: {err}"
         );
     }
 
     #[test]
     fn windows_8_3_alias_canonicalization_failure_preserves_permission_denied() {
-        let environment = zenith_platform::PlatformEnvironment::simulated(
-            zenith_platform::path_algebra::PathFlavor::Windows,
+        let environment = neati_platform::PlatformEnvironment::simulated(
+            neati_platform::path_algebra::PathFlavor::Windows,
         );
         let base_alias = Path::new(r"C:\Users\RUNNER~1\AppData\Local\Temp");
         let target = Path::new(r"C:\Users\runneradmin\AppData\Local\Temp\cache\item.bin");
@@ -917,7 +917,7 @@ mod tests {
         )
         .unwrap_err();
         assert!(
-            matches!(err, ZenithError::PermissionDenied(_)),
+            matches!(err, NeatiError::PermissionDenied(_)),
             "canonicalize PermissionDenied must fail closed as PermissionDenied: {err:?}"
         );
     }

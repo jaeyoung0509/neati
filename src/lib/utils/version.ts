@@ -1,5 +1,5 @@
 /**
- * Zenith Application Version Utility
+ * Neati Application Version Utility
  */
 
 export const APP_VERSION: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.0';

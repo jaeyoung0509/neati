@@ -1,11 +1,11 @@
 //! The desktop crate's model surface.
 //!
-//! Product semantics live in `zenith_core`. This module re-exports them
+//! Product semantics live in `neati_core`. This module re-exports them
 //! alongside the DTOs that only the desktop adapter produces, so a command or
 //! service module keeps one import root (`crate::models::…`) and does not have
 //! to know which side of the boundary a given concept landed on.
 //!
-//! What is here rather than in `zenith_core` is what does not survive the
+//! What is here rather than in `neati_core` is what does not survive the
 //! question "would this still make sense if Neati had a CLI instead of a
 //! Tauri window?" — AI provider snapshots, Docker and metrics readings,
 //! keep-awake rules, developer-port state, agent activity, developer
@@ -38,29 +38,29 @@ pub use diagnostics::*;
 pub use docker::*;
 pub use local_model::*;
 pub use metrics::*;
+pub use neati_platform::PlatformCapabilitiesProvider;
 pub use settings::*;
 pub use signature::*;
-pub use zenith_platform::PlatformCapabilitiesProvider;
 
 // ---------------------------------------------------------------------------
-// Zenith domain semantics, re-exported from `zenith_core`.
+// Neati domain semantics, re-exported from `neati_core`.
 // ---------------------------------------------------------------------------
 
-pub use zenith_core::application::dto::cleanup::{
+pub use neati_core::application::dto::cleanup::{
     CleanEvent, CleanFailureReason, CleanItemResult, CleanResult, CleanStatus, CleanupFailure,
     CleanupFailureScope, CleanupProgressSink, PlanPreview, PlanRefusalPreview, PlanTargetPreview,
 };
-pub use zenith_core::application::dto::scan::{
+pub use neati_core::application::dto::scan::{
     CancellationProbe, NeverCancelled, PublishedScan, ResumeScanRequest, ScanDiscovery, ScanEvent,
     ScanProgressSink, ScanRequest,
 };
-pub use zenith_core::application::dto::storage::{
+pub use neati_core::application::dto::storage::{
     AppRelatedItem, AppUninstallInspection, InstalledApp, InstalledAppInventory, LargeFileItem,
     LargeFileScanEvent, LargeFileScanRequest, LargeFileScanResult, TrashItemResult,
     TrashPlanPreview, TrashResult,
 };
-pub use zenith_core::domain::category::Category;
-pub use zenith_core::domain::cleanup::{
+pub use neati_core::domain::category::Category;
+pub use neati_core::domain::cleanup::{
     classify_structured_state, CleanStrategy, CleanerFamily, CleanupMode, CleanupOperation,
     ContainerCleanup, DeletePlan, DeleteTarget, EntryKind, FilesystemCleanup, FilesystemMutation,
     OwnerProviderAuthorization, OwnerProviderExecution, OwnerProviderRefusal,
@@ -69,19 +69,19 @@ pub use zenith_core::domain::cleanup::{
     PathFacts, PlanItemRefusal, ProviderCleanup, ProviderStatus, RunningProcessPolicy,
     RunningProcessProbe, StructuredStateKind, StructuredStatePolicy,
 };
-pub use zenith_core::domain::error::{ZenithError, ZenithResult};
-pub use zenith_core::domain::identity::{
+pub use neati_core::domain::error::{NeatiError, NeatiResult};
+pub use neati_core::domain::identity::{
     CleanupIdentity, FileIdentity, ModifiedStamp, ReviewedFileIdentity,
 };
-pub use zenith_core::domain::observation::ObservationQuality;
-pub use zenith_core::domain::paths::{AbsolutePath, CanonicalPath, PathViolation};
-pub use zenith_core::domain::platform::{
+pub use neati_core::domain::observation::ObservationQuality;
+pub use neati_core::domain::paths::{AbsolutePath, CanonicalPath, PathViolation};
+pub use neati_core::domain::platform::{
     CapabilityAccess, PlatformAccelerator, PlatformCapabilities, PlatformCapabilityError,
     PlatformContext, PlatformFeature, PlatformFeatureCapability, PlatformFeatureStatus,
     PlatformKind,
 };
-pub use zenith_core::domain::risk::{RiskSummary, RiskTier};
-pub use zenith_core::domain::scan::{
+pub use neati_core::domain::risk::{RiskSummary, RiskTier};
+pub use neati_core::domain::scan::{
     derive_cleanup_disposition, is_safety_blocked_reason, resolve_unit_overlaps,
     resolve_unit_overlaps_with, AgeObservation, CacheArtifactKind, CacheManagementMode,
     CacheMetadata, CacheSizeSemantics, CacheUsageConfidence, CategoryResult, CleanupDisposition,
@@ -90,6 +90,6 @@ pub use zenith_core::domain::scan::{
     FileSize, OverlappedDiscovery, OwnershipConfidence, PathIdentity, ProviderRestriction, ScanGap,
     ScanGapKind, ScanItem, ScanResult, StaleEntryObservation, UnitRelationship,
 };
-pub use zenith_core::domain::storage::{
+pub use neati_core::domain::storage::{
     AppInstallSource, AppRelatedConfidence, AppRelatedKind, LargeFileFilter, LargeFileKind,
 };

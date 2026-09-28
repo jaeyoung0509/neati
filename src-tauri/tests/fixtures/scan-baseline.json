@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "generator": "src-tauri/tests/scan_benchmark.rs",
-  "note": "Deterministic scan facts per fixture. Regenerate with `cargo test -p zenith-desktop --test scan_benchmark -- --ignored export_scan_baseline`. Timing measurements are deliberately absent; `duration_ms_ceiling` is a bound.",
+  "note": "Deterministic scan facts per fixture. Regenerate with `cargo test -p neati-desktop --test scan_benchmark -- --ignored export_scan_baseline`. Timing measurements are deliberately absent; `duration_ms_ceiling` is a bound.",
   "bounds": {
     "max_concurrent_directory_reads": 16,
     "max_depth": 32

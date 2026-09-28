@@ -5,18 +5,18 @@
 //! instead of for the runner. This file exercises the same construction and the
 //! same doctor entry point the command uses, without a Tauri app handle.
 
+use neati_lib::composition::{desktop_state, desktop_state_with_catalog};
+use neati_lib::diagnostics::doctor;
+use neati_lib::docker::adapter::ContainerHost;
+use neati_lib::models::PlatformKind;
+use neati_platform::path_algebra::PathFlavor;
+use neati_platform::paths::SimulatedPaths;
+use neati_platform::{KnownFolder, PlatformEnvironment};
 use std::sync::Arc;
 use tauri::ipc::{CallbackFn, InvokeBody};
 use tauri::test::{get_ipc_response, mock_builder, mock_context, noop_assets};
 use tauri::webview::InvokeRequest;
 use tauri::WebviewWindowBuilder;
-use zenith_lib::composition::{desktop_state, desktop_state_with_catalog};
-use zenith_lib::diagnostics::doctor;
-use zenith_lib::docker::adapter::ContainerHost;
-use zenith_lib::models::PlatformKind;
-use zenith_platform::path_algebra::PathFlavor;
-use zenith_platform::paths::SimulatedPaths;
-use zenith_platform::{KnownFolder, PlatformEnvironment};
 
 /// A stated Windows workstation: the profile, the temporary directory, and the
 /// install roots are all on `D:`, so nothing here can be confused with the
@@ -113,7 +113,7 @@ fn the_self_check_command_answers_from_the_injected_environment() {
 
     let app = mock_builder()
         .invoke_handler(tauri::generate_handler![
-            zenith_lib::commands::run_environment_self_check
+            neati_lib::commands::run_environment_self_check
         ])
         .manage(state)
         .build(mock_context(noop_assets()))
@@ -157,7 +157,7 @@ fn the_self_check_command_answers_from_the_injected_environment() {
 /// empty result that looks exactly like a clean machine.
 #[test]
 fn a_failed_catalog_refuses_the_scan_instead_of_reporting_an_empty_one() {
-    use zenith_lib::signatures::SignatureRegistry;
+    use neati_lib::signatures::SignatureRegistry;
 
     let failure = "Signature catalog could not be loaded: stated catalog defect";
     let state = desktop_state_with_catalog(

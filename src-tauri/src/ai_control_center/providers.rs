@@ -311,7 +311,7 @@ mod tests {
             "API Key",
         );
         provider.connected = false;
-        // Assembled at runtime: the safety scanner inspects Zenith's own
+        // Assembled at runtime: the safety scanner inspects Neati's own
         // repository, so a fixture must not carry a complete credential shape.
         provider.status_message = format!(
             r"request failed: https://api.foo.com?{}={} at C:\Users\alice\secret",

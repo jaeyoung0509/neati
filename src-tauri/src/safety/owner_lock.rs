@@ -1,13 +1,13 @@
 //! No-follow, descriptor-relative acquisition of an owner's advisory lock.
 
 use super::SymlinkGuard;
+use neati_platform::PlatformEnvironment;
 use std::ffi::CString;
 use std::fs::{self, File};
 use std::io;
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Component, Path, PathBuf};
-use zenith_platform::PlatformEnvironment;
 
 pub struct OwnerFileLock {
     directories: Vec<(PathBuf, File)>,
@@ -169,8 +169,8 @@ fn verify_entry(file: &File, path: &Path, directory: bool) -> Result<(), String>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use neati_platform::path_algebra::PathFlavor;
     use std::os::unix::fs::symlink;
-    use zenith_platform::path_algebra::PathFlavor;
 
     fn fixture() -> (tempfile::TempDir, PlatformEnvironment, PathBuf) {
         let temp = tempfile::tempdir().unwrap();

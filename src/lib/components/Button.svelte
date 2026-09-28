@@ -33,7 +33,7 @@
 
   const variantStyles = {
     primary:
-      'zenith-action text-action-foreground',
+      'neati-action text-action-foreground',
     secondary:
       'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     outline:

@@ -232,7 +232,7 @@
         <HardDrive size={16} class="text-primary shrink-0" aria-hidden="true" />
         <span class="text-meta font-medium text-foreground">Cleanable storage</span>
         {#if scannedAgo && !cleanupBusy && cleanupState !== 'stale' && cleanupState !== 'failed'}
-          <span class="text-caption font-mono text-muted-foreground">Scanned {scannedAgo}</span>
+          <span class="text-caption text-muted-foreground">Scanned {scannedAgo}</span>
         {/if}
       </div>
       {#if cleanupBusy}

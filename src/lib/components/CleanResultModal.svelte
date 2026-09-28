@@ -140,10 +140,10 @@
       <div>
         <h3 id={id + '-title'} class="text-title font-semibold tracking-tight text-foreground">
           {outcome === 'success'
-            ? 'Clean Complete'
+            ? 'Cleanup complete'
             : outcome === 'partial'
               ? 'Some items could not be cleaned'
-              : 'Clean Failed'}
+              : 'Cleanup failed'}
         </h3>
         <p id={id + '-description'} class="text-meta text-muted-foreground">
           {outcome === 'success'
@@ -151,12 +151,12 @@
               ? `Items were moved to ${platformContextStore.trashLabel}`
               : movedToTrashBytes > 0
                 ? `Items were cleaned or moved to ${platformContextStore.trashLabel}`
-                : 'Storage has been safely reclaimed'
+                : 'Selected cleanup actions finished'
             : outcome === 'partial'
               ? movedToTrashBytes > 0
                 ? `Some items were cleaned or moved to ${platformContextStore.trashLabel}; review the remaining items`
-                : 'Some storage was reclaimed; review the remaining items'
-              : 'No storage was reclaimed; review the errors below'}
+                : 'Review the items that were kept or could not be cleaned'
+              : 'Review the errors below before trying again'}
         </p>
       </div>
     </div>
@@ -174,7 +174,7 @@
         {movedOnly ? `Moved to ${platformContextStore.trashLabel}` : 'Removed from storage'}
         {#if !movedOnly && outcome !== 'failed' && result.actual_disk_free_delta != null && result.actual_disk_free_delta > 0}
           <span class="ml-1 text-success tabular-nums">
-            (Free space delta: +{formatBytes(result.actual_disk_free_delta)})
+            (Disk free space change: +{formatBytes(result.actual_disk_free_delta)})
           </span>
         {/if}
       </div>
@@ -184,7 +184,7 @@
         </div>
       {/if}
       {#if partialCount > 0 || failedCount > 0 || skippedCount > 0}
-        <div class="mt-1 text-meta font-mono tabular-nums text-muted-foreground">
+        <div class="mt-1 text-meta tabular-nums text-muted-foreground">
           {targetCounts}
         </div>
       {/if}
@@ -206,7 +206,7 @@
       <div class="space-y-1.5">
         <div class="flex items-center gap-1.5 text-meta font-medium text-destructive">
           <AlertCircle size={14} />
-          <span>{failedCount} item(s) failed</span>
+          <span>{failedCount} {failedCount === 1 ? 'item' : 'items'} failed</span>
         </div>
         <div class="divide-y divide-destructive/15 rounded-xl border border-destructive/25 bg-destructive/5">
           {#each failedItems as item}
@@ -226,7 +226,7 @@
       <div class="space-y-1.5">
         <div class="flex items-center gap-1.5 text-meta font-medium text-muted-foreground">
           <CircleMinus size={14} />
-          <span>{skippedCount} item(s) skipped</span>
+          <span>{skippedCount} {skippedCount === 1 ? 'item' : 'items'} skipped</span>
         </div>
         <div class="divide-y divide-border rounded-xl border border-border bg-secondary">
           {#each skippedItems as item}
@@ -267,7 +267,7 @@
     <!-- Fully Cleaned Items -->
     {#if fullSuccessItems.length > 0}
       <div class="space-y-1.5">
-        <span class="text-meta font-medium text-muted-foreground">Cleaned Items ({fullSuccessItems.length})</span>
+        <span class="text-meta font-medium text-muted-foreground">Completed items ({fullSuccessItems.length})</span>
         <div class="divide-y divide-border rounded-xl border border-border">
           {#each fullSuccessItems as item}
             <div class="px-2.5 py-2 text-meta">

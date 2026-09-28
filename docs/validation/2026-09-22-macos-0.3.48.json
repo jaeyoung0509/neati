@@ -6,10 +6,10 @@
     "os": "macOS 27.0",
     "os_build": "26A428",
     "date_utc": "2026-09-22",
-    "zenith": "0.3.48"
+    "neati": "0.3.48"
   },
   "commands": {
-    "synthetic": "cargo test -p zenith-desktop --test scan_benchmark -- --nocapture",
+    "synthetic": "cargo test -p neati-desktop --test scan_benchmark -- --nocapture",
     "live": "target/debug/examples/scan_machine --live-read-only --providers-read-only --containers-read-only",
     "provider_cancellation": "target/debug/examples/scan_machine --live-read-only --providers-read-only --providers-cancel-after-first-root"
   },

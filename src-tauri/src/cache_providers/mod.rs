@@ -13,12 +13,12 @@ use crate::scanner::{
 use crate::signatures::SignatureRegistry;
 use crate::tooling;
 use catalog::{DiscoveryOutput, ProviderKind};
+use neati_platform::path_algebra::{self, PathFlavor};
+use neati_platform::PlatformEnvironment;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
 use sysinfo::{ProcessesToUpdate, System};
-use zenith_platform::path_algebra::{self, PathFlavor};
-use zenith_platform::PlatformEnvironment;
 
 const PROVIDER_TIMEOUT: Duration = Duration::from_secs(15);
 /// uv coordinates cache access through its own lock. Its documented lock wait
@@ -156,7 +156,7 @@ impl ProviderCommandRunner for NativeProviderCommandRunner {
         if let Err(error) = configure_provider_command(provider, environment, &mut command) {
             return ProviderCommandResult::Failed(error);
         }
-        match zenith_platform::subprocess::run_with_timeout_cancellable(
+        match neati_platform::subprocess::run_with_timeout_cancellable(
             command,
             PROVIDER_TIMEOUT,
             &|| cancellation.is_cancelled(),
@@ -166,7 +166,7 @@ impl ProviderCommandRunner for NativeProviderCommandRunner {
                 stdout: output.stdout,
                 stderr: output.stderr,
             },
-            Err(zenith_platform::SubprocessError::Cancelled(_)) => ProviderCommandResult::Cancelled,
+            Err(neati_platform::SubprocessError::Cancelled(_)) => ProviderCommandResult::Cancelled,
             Err(error) => ProviderCommandResult::Failed(error.to_string()),
         }
     }
@@ -624,7 +624,7 @@ fn run_provider_with_timeout(
     let mut command = Command::new(executable);
     command.args(args);
     configure_provider_command(provider, environment, &mut command)?;
-    zenith_platform::subprocess::run_with_timeout(command, timeout)
+    neati_platform::subprocess::run_with_timeout(command, timeout)
         .map_err(|error| error.to_string())
 }
 
@@ -930,7 +930,7 @@ fn relocated_cache_roots(environment: &PlatformEnvironment) -> Vec<PathBuf> {
         .flatten()
         .chain(overrides)
         .filter_map(|root| std::fs::canonicalize(root).ok())
-        .map(|root| zenith_platform::NativePlatformPaths::normalize_verbatim_path(&root))
+        .map(|root| neati_platform::NativePlatformPaths::normalize_verbatim_path(&root))
         .collect()
 }
 
@@ -988,7 +988,7 @@ fn node_manager_roots(home: &Path) -> Vec<PathBuf> {
 fn validate_executable(path: &Path, environment: &PlatformEnvironment) -> Result<(), String> {
     let canonical = std::fs::canonicalize(path)
         .map_err(|_| "Could not validate the provider executable".to_string())?;
-    let canonical = zenith_platform::NativePlatformPaths::normalize_verbatim_path(&canonical);
+    let canonical = neati_platform::NativePlatformPaths::normalize_verbatim_path(&canonical);
     let mut roots = vec![
         PathBuf::from("/usr/bin"),
         PathBuf::from("/usr/local/bin"),
@@ -999,7 +999,7 @@ fn validate_executable(path: &Path, environment: &PlatformEnvironment) -> Result
         PathBuf::from("/usr/local/share/dotnet"),
         PathBuf::from("/opt/homebrew"),
     ];
-    roots.extend(zenith_platform::NativePlatformPaths::trusted_tool_roots(
+    roots.extend(neati_platform::NativePlatformPaths::trusted_tool_roots(
         environment.user_home().as_deref(),
     ));
     if let Some(home) = environment.user_home() {
@@ -1021,7 +1021,7 @@ fn validate_executable(path: &Path, environment: &PlatformEnvironment) -> Result
         .into_iter()
         .map(|root| {
             std::fs::canonicalize(&root)
-                .map(|path| zenith_platform::NativePlatformPaths::normalize_verbatim_path(&path))
+                .map(|path| neati_platform::NativePlatformPaths::normalize_verbatim_path(&path))
                 .unwrap_or(root)
         })
         .collect::<Vec<_>>();
@@ -1039,9 +1039,9 @@ fn validate_executable(path: &Path, environment: &PlatformEnvironment) -> Result
 /// so the fixtures remain meaningful on Unix hosts.
 fn executable_under_roots(canonical: &Path, roots: &[PathBuf]) -> bool {
     roots.iter().any(|root| {
-        let norm_root = zenith_platform::NativePlatformPaths::normalize_verbatim_path(root);
+        let norm_root = neati_platform::NativePlatformPaths::normalize_verbatim_path(root);
         if looks_like_windows_path(canonical) || looks_like_windows_path(&norm_root) {
-            zenith_platform::NativePlatformPaths::windows_path_starts_with(canonical, &norm_root)
+            neati_platform::NativePlatformPaths::windows_path_starts_with(canonical, &norm_root)
         } else {
             canonical.starts_with(&norm_root)
         }
@@ -1188,12 +1188,12 @@ mod tests {
     };
     use crate::scanner::{NoRootProgress, PathMeasurement, ScanLimits, TraversalCounters};
     use crate::signatures::SignatureRegistry;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
+    use neati_platform::PlatformEnvironment;
     use std::path::PathBuf;
     use std::process::Command;
     use std::sync::{Arc, Mutex};
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
-    use zenith_platform::PlatformEnvironment;
 
     #[derive(Default)]
     struct FakeRunner {
@@ -1423,7 +1423,7 @@ mod tests {
         for variable in CACHE_PATH_ENVIRONMENT {
             command.env(variable, "/untrusted/cache");
         }
-        command.env("ZENITH_UNRELATED_FIXTURE", "preserved");
+        command.env("NEATI_UNRELATED_FIXTURE", "preserved");
         strip_cache_environment(&mut command);
         let variables: std::collections::HashMap<_, _> = command
             .get_envs()
@@ -1437,7 +1437,7 @@ mod tests {
             );
         }
         assert_eq!(
-            variables.get("zenith_unrelated_fixture"),
+            variables.get("neati_unrelated_fixture"),
             Some(&Some(std::ffi::OsStr::new("preserved")))
         );
     }
@@ -1885,7 +1885,7 @@ mod tests {
         // `canonicalize` returns a verbatim path on Windows; the relocation
         // decision is made on the normalized spelling, so the expectation is
         // normalized the same way instead of encoding the host's prefix.
-        let expected = zenith_platform::NativePlatformPaths::normalize_verbatim_path(
+        let expected = neati_platform::NativePlatformPaths::normalize_verbatim_path(
             &local_app_data.path().canonicalize().unwrap(),
         );
         assert_eq!(
@@ -2436,7 +2436,7 @@ esac
     #[cfg(target_os = "windows")]
     #[test]
     fn trusted_tool_roots_exclude_bare_user_writable_containers() {
-        use zenith_platform::NativePlatformPaths;
+        use neati_platform::NativePlatformPaths;
 
         let roots = NativePlatformPaths::trusted_tool_roots(
             PlatformEnvironment::native().user_home().as_deref(),
@@ -2462,7 +2462,7 @@ esac
         }
 
         // The documented %APPDATA%\npm install root stays trusted.
-        let app_data = zenith_platform::PlatformEnvironment::native()
+        let app_data = neati_platform::PlatformEnvironment::native()
             .roaming_app_data()
             .expect("a Windows session exposes the roaming application data root");
         let npm = app_data.join("npm");

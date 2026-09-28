@@ -49,7 +49,7 @@ for relative, label, family in (
     ("Library/Caches/goimports", "goimports cache", "go"),
     ("Library/Caches/dotslash", "DotSlash cache", "toolchain"),
     ("Library/Caches/SentryCrash", "Crash SDK cache", "diagnostics"),
-    ("Library/Caches/com.zenith.desktop", "Zenith cache", "application"),
+    ("Library/Caches/com.neati.desktop", "Neati cache", "application"),
     ("Library/Logs/SiriTTSService", "Speech-service logs", "diagnostics"),
     ("Library/Caches/dev.warp.Warp-Stable/async.log", "Terminal log", "application"),
     ("Library/Caches/dev.warp.Warp-Stable/io.sentry", "Terminal telemetry cache", "application"),
@@ -77,8 +77,8 @@ def classify(path, home, preview_bytes):
     }
 
 
-def build_ledger(reference, zenith_rows, home):
-    _, relationships, _, details, overlaps = compare(reference, zenith_rows, home, False)
+def build_ledger(reference, neati_rows, home):
+    _, relationships, _, details, overlaps = compare(reference, neati_rows, home, False)
     rows = []
     for row in details:
         if row["relation"] != "reference_only":
@@ -115,17 +115,17 @@ def build_ledger(reference, zenith_rows, home):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference-preview", type=Path, required=True)
-    parser.add_argument("--zenith-report", type=Path, required=True)
+    parser.add_argument("--neati-report", type=Path, required=True)
     args = parser.parse_args()
     reference, _ = parse_reference_preview(args.reference_preview)
-    zenith = json.loads(args.zenith_report.read_text())
-    if not isinstance(zenith.get("private_ledger"), list):
-        parser.error("Zenith input must contain its private ledger")
-    report = build_ledger(reference, zenith["private_ledger"], str(Path.home()))
+    neati = json.loads(args.neati_report.read_text())
+    if not isinstance(neati.get("private_ledger"), list):
+        parser.error("Neati input must contain its private ledger")
+    report = build_ledger(reference, neati["private_ledger"], str(Path.home()))
     report["inputs"] = {
         "reference_sha256": hashlib.sha256(args.reference_preview.read_bytes()).hexdigest(),
-        "zenith_sha256": hashlib.sha256(args.zenith_report.read_bytes()).hexdigest(),
-        "zenith_version": zenith["version"], "started_at": zenith["started_at"],
+        "neati_sha256": hashlib.sha256(args.neati_report.read_bytes()).hexdigest(),
+        "neati_version": neati["version"], "started_at": neati["started_at"],
     }
     print(json.dumps(report, indent=2, sort_keys=True))
 

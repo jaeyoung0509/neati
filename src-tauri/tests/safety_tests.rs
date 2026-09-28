@@ -1,25 +1,25 @@
+use neati_lib::cleaner::{CleanExecutor, OwnerProviderRegistry};
+use neati_lib::models::{
+    derive_cleanup_disposition, CacheManagementMode, CacheMetadata, CacheSizeSemantics, Category,
+    CategoryResult, CleanFailureReason, CleanStrategy, CleanupEligibility, CleanupMode,
+    CleanupOwnership, CleanupUnit, CleanupUnitKind, DeletePlan, DeleteTarget, DispositionFacts,
+    EligibilityGate, EntryKind, FileSize, NeatiError, ObservationQuality, RiskTier,
+    RunningProcessPolicy, ScanItem, ScanResult, Signature, StructuredStatePolicy,
+};
+use neati_lib::safety::blacklist::{classify_windows, BlacklistEnvironment, BlacklistVerdict};
+use neati_lib::safety::{
+    Blacklist, RevalidationOutcome, SafeTreeDeleter, SafetyPlanner, SafetyValidator, SymlinkGuard,
+    ToctouGuard, ValidatedTarget,
+};
+use neati_lib::scanner::{ScanEngine, SizeCalculator};
+use neati_lib::signatures::SignatureRegistry;
+use neati_platform::path_algebra::PathFlavor;
+use neati_platform::paths::SimulatedPaths;
+use neati_platform::{KnownFolder, NativePlatformPaths, PlatformEnvironment};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
 use tempfile::tempdir;
-use zenith_lib::cleaner::{CleanExecutor, OwnerProviderRegistry};
-use zenith_lib::models::{
-    derive_cleanup_disposition, CacheManagementMode, CacheMetadata, CacheSizeSemantics, Category,
-    CategoryResult, CleanFailureReason, CleanStrategy, CleanupEligibility, CleanupMode,
-    CleanupOwnership, CleanupUnit, CleanupUnitKind, DeletePlan, DeleteTarget, DispositionFacts,
-    EligibilityGate, EntryKind, FileSize, ObservationQuality, RiskTier, RunningProcessPolicy,
-    ScanItem, ScanResult, Signature, StructuredStatePolicy, ZenithError,
-};
-use zenith_lib::safety::blacklist::{classify_windows, BlacklistEnvironment, BlacklistVerdict};
-use zenith_lib::safety::{
-    Blacklist, RevalidationOutcome, SafeTreeDeleter, SafetyPlanner, SafetyValidator, SymlinkGuard,
-    ToctouGuard, ValidatedTarget,
-};
-use zenith_lib::scanner::{ScanEngine, SizeCalculator};
-use zenith_lib::signatures::SignatureRegistry;
-use zenith_platform::path_algebra::PathFlavor;
-use zenith_platform::paths::SimulatedPaths;
-use zenith_platform::{KnownFolder, NativePlatformPaths, PlatformEnvironment};
 
 /// The owner-scoped provider registry a test that does not exercise one uses.
 ///
@@ -152,21 +152,21 @@ fn test_blacklist_root_and_home_rejection() {
     // 2. The user home the rule protects is stated literally, so this body
     // executes identically on every host instead of depending on the profile
     // the test runner happens to have.
-    let stated_home = "/Users/zenith-tester";
-    let environment = windows_classifier(Some(stated_home), "/var/folders/zenith/T");
+    let stated_home = "/Users/neati-tester";
+    let environment = windows_classifier(Some(stated_home), "/var/folders/neati/T");
     assert_eq!(
         classify_windows(stated_home, &environment),
         BlacklistVerdict::Denied("user home")
     );
     assert_eq!(
-        classify_windows("/users/ZENITH-TESTER", &environment),
+        classify_windows("/users/NEATI-TESTER", &environment),
         BlacklistVerdict::Denied("user home"),
         "Windows home comparison folds case"
     );
     for app_data in [
-        "/Users/zenith-tester/AppData",
-        "/Users/zenith-tester/AppData/Local",
-        "/Users/zenith-tester/AppData/Roaming",
+        "/Users/neati-tester/AppData",
+        "/Users/neati-tester/AppData/Local",
+        "/Users/neati-tester/AppData/Roaming",
     ] {
         assert!(
             classify_windows(app_data, &environment).is_denied(),
@@ -175,7 +175,7 @@ fn test_blacklist_root_and_home_rejection() {
     }
     // Without a stated home, cleanup fails closed rather than losing profile protection.
     // System-root rejection still reports its more specific reason.
-    let without_home = windows_classifier(None, "/var/folders/zenith/T");
+    let without_home = windows_classifier(None, "/var/folders/neati/T");
     assert_eq!(
         classify_windows(stated_home, &without_home),
         BlacklistVerdict::Denied("user home is unavailable")
@@ -324,7 +324,7 @@ fn test_blacklist_parent_traversal_attacks() {
     );
     // The spelling is POSIX, so the machine this assertion is about is a POSIX
     // one: the verdict must not depend on the host that runs the test.
-    let posix = PlatformEnvironment::simulated(PathFlavor::Posix).with_home("/Users/zenith-tester");
+    let posix = PlatformEnvironment::simulated(PathFlavor::Posix).with_home("/Users/neati-tester");
     assert!(
         Blacklist::validate_with(Path::new("/Users/../System"), &posix).is_err(),
         "a POSIX traversal into /System must be rejected"
@@ -410,7 +410,7 @@ fn test_toctou_identity_verification_and_abort() {
     let verify_result = ToctouGuard::verify(&test_file, &identity);
     assert!(verify_result.is_err());
     match verify_result {
-        Err(ZenithError::ChangedSinceScan(_)) => {}
+        Err(NeatiError::ChangedSinceScan(_)) => {}
         other => panic!("Expected ChangedSinceScan, got {:?}", other),
     }
 }
@@ -465,7 +465,7 @@ fn test_safety_planner_rejects_unknown_signatures() {
     let plan_res = SafetyPlanner::create_plan(&[fake_item], &registry, &no_owner_providers());
     assert!(plan_res.is_err());
     match plan_res {
-        Err(ZenithError::SignatureMismatch(_)) => {}
+        Err(NeatiError::SignatureMismatch(_)) => {}
         other => panic!("Expected SignatureMismatch, got {:?}", other),
     }
 }
@@ -483,7 +483,7 @@ fn test_safety_planner_rejects_path_outside_signature_scope() {
         id: "test.scope".into(),
         name: "Scope fixture".into(),
         category: Category::System,
-        family: zenith_lib::models::CleanerFamily::System,
+        family: neati_lib::models::CleanerFamily::System,
         risk: RiskTier::Safe,
         strategy: CleanStrategy::DeleteDirectory,
         paths: vec![authorized_path.to_string_lossy().into_owned()],
@@ -518,7 +518,7 @@ fn test_safety_planner_rejects_path_outside_signature_scope() {
     forged_item.unit = CleanupUnit::fixed_path(forged_path.to_string_lossy().into_owned());
 
     let result = SafetyPlanner::create_plan(&[forged_item], &registry, &no_owner_providers());
-    assert!(matches!(result, Err(ZenithError::SignatureMismatch(_))));
+    assert!(matches!(result, Err(NeatiError::SignatureMismatch(_))));
 }
 
 #[test]
@@ -586,9 +586,9 @@ fn test_cleaner_delete_contents_preserves_root_directory() {
     let clean_res = CleanExecutor::execute(
         plan,
         &PlatformEnvironment::native(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     assert_eq!(clean_res.items.len(), 1);
@@ -796,7 +796,7 @@ fn frontend_selection_must_resolve_against_trusted_scan() {
             &PlatformEnvironment::native(),
             &no_owner_providers(),
         ),
-        Err(ZenithError::InvalidPlan(_))
+        Err(NeatiError::InvalidPlan(_))
     ));
     assert!(matches!(
         SafetyPlanner::create_plan_from_scan(
@@ -807,7 +807,7 @@ fn frontend_selection_must_resolve_against_trusted_scan() {
             &PlatformEnvironment::native(),
             &no_owner_providers(),
         ),
-        Err(ZenithError::InvalidPlan(_))
+        Err(NeatiError::InvalidPlan(_))
     ));
 }
 
@@ -858,8 +858,8 @@ fn manual_strategy_never_enters_generic_cleaner() {
     assert!(
         matches!(
             SafetyPlanner::create_plan(&[item], &registry, &no_owner_providers()),
-            Err(ZenithError::RefusedSelection(refusals))
-                if refusals[0].reason == zenith_lib::models::CleanFailureReason::OwnerManaged
+            Err(NeatiError::RefusedSelection(refusals))
+                if refusals[0].reason == neati_lib::models::CleanFailureReason::OwnerManaged
         ),
         "a manual observation is refused by item, and the location is left alone"
     );
@@ -887,7 +887,7 @@ fn npm_cache_selection_plans_provider_cleanup_without_deleting_fixture() {
     // The provider owns the cache: the location is a staleness assertion, not a
     // path generic cleanup may delete.
     item.unit = CleanupUnit::new(
-        zenith_lib::models::CleanupUnitKind::ProviderAction,
+        neati_lib::models::CleanupUnitKind::ProviderAction,
         cache.to_string_lossy().into_owned(),
         cache.to_string_lossy().into_owned(),
     );
@@ -949,7 +949,7 @@ fn external_command_strategy_never_falls_back_to_filesystem_deletion() {
         1,
     );
     item.unit = CleanupUnit::new(
-        zenith_lib::models::CleanupUnitKind::ProviderAction,
+        neati_lib::models::CleanupUnitKind::ProviderAction,
         cache_root.to_string_lossy().into_owned(),
         cache_root.to_string_lossy().into_owned(),
     );
@@ -962,9 +962,9 @@ fn external_command_strategy_never_falls_back_to_filesystem_deletion() {
     let result = CleanExecutor::execute(
         plan,
         &PlatformEnvironment::native(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     assert!(!result.items[0].success);
@@ -1057,7 +1057,7 @@ fn test_ancestor_symlink_escape_rejection() {
             validation_res.is_err(),
             "Ancestor symlink must be rejected!"
         );
-        assert!(matches!(validation_res, Err(ZenithError::SymlinkEscape(_))));
+        assert!(matches!(validation_res, Err(NeatiError::SymlinkEscape(_))));
 
         // Precious file outside must remain intact
         assert!(precious_file.exists());
@@ -1099,7 +1099,7 @@ fn test_symlink_ancestor_above_signature_root_rejection() {
             validation_res.is_err(),
             "Symlink above signature root must be rejected!"
         );
-        assert!(matches!(validation_res, Err(ZenithError::SymlinkEscape(_))));
+        assert!(matches!(validation_res, Err(NeatiError::SymlinkEscape(_))));
 
         assert!(precious.exists());
     }
@@ -1128,7 +1128,7 @@ fn test_signature_root_itself_symlink_rejection() {
             validation_res.is_err(),
             "Signature root as symlink must be rejected!"
         );
-        assert!(matches!(validation_res, Err(ZenithError::SymlinkEscape(_))));
+        assert!(matches!(validation_res, Err(NeatiError::SymlinkEscape(_))));
 
         assert!(precious.exists());
     }
@@ -1150,7 +1150,7 @@ fn test_docker_prune_target_can_create_plan() {
 
     let mut docker_item = docker_item;
     docker_item.unit = CleanupUnit::new(
-        zenith_lib::models::CleanupUnitKind::ContainerResource,
+        neati_lib::models::CleanupUnitKind::ContainerResource,
         "docker://buildkit/cache".to_string(),
         "docker://buildkit/cache".to_string(),
     );
@@ -1221,15 +1221,15 @@ fn test_stale_temp_toctou_recheck_aborts_on_new_file() {
     let clean_res = CleanExecutor::execute(
         plan,
         &PlatformEnvironment::native(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     assert_eq!(clean_res.items.len(), 1);
     assert_eq!(
         clean_res.items[0].status,
-        zenith_lib::models::CleanStatus::Skipped
+        neati_lib::models::CleanStatus::Skipped
     );
     assert!(!clean_res.items[0].success);
     assert_eq!(
@@ -1312,8 +1312,8 @@ fn test_antigravity_cache_exclusions_preserve_onboarding_and_auth() {
 
 #[test]
 fn test_select_quick_clean_safe_candidates_filters_risk_bytes_and_settings() {
-    use zenith_lib::commands::select_quick_clean_safe_candidates;
-    use zenith_lib::models::ZenithSettings;
+    use neati_lib::commands::select_quick_clean_safe_candidates;
+    use neati_lib::models::NeatiSettings;
 
     let mut scan = ScanResult {
         cancelled: false,
@@ -1454,7 +1454,7 @@ fn test_select_quick_clean_safe_candidates_filters_risk_bytes_and_settings() {
     };
 
     // Default settings has clean_developer_tools=true
-    let default_settings = ZenithSettings::default();
+    let default_settings = NeatiSettings::default();
     let candidates = select_quick_clean_safe_candidates(&scan, &default_settings);
     assert_eq!(
         candidates,
@@ -1462,7 +1462,7 @@ fn test_select_quick_clean_safe_candidates_filters_risk_bytes_and_settings() {
     );
 
     // If clean_developer_tools is disabled, dev.safe.nonzero must NOT be included
-    let disabled_dev_settings = ZenithSettings {
+    let disabled_dev_settings = NeatiSettings {
         clean_developer_tools: false,
         ..Default::default()
     };
@@ -1520,8 +1520,8 @@ fn test_permission_denied_or_inaccessible_measurement_is_captured_with_reason() 
 
 #[test]
 fn test_partial_scan_byte_semantics_and_cleanup_gate() {
-    use zenith_lib::commands::select_quick_clean_safe_candidates;
-    use zenith_lib::models::ZenithSettings;
+    use neati_lib::commands::select_quick_clean_safe_candidates;
+    use neati_lib::models::NeatiSettings;
 
     let partial_size = FileSize::new(500, Some(500));
     let partial_metadata = CacheMetadata {
@@ -1624,7 +1624,7 @@ fn test_partial_scan_byte_semantics_and_cleanup_gate() {
         &no_owner_providers(),
     );
     assert!(
-        matches!(unavailable_plan_res, Err(ZenithError::InvalidPlan(_))),
+        matches!(unavailable_plan_res, Err(NeatiError::InvalidPlan(_))),
         "SafetyPlanner must reject unavailable items"
     );
 
@@ -1676,7 +1676,7 @@ fn test_partial_scan_byte_semantics_and_cleanup_gate() {
         metrics: Default::default(),
     };
 
-    let settings = ZenithSettings::default();
+    let settings = NeatiSettings::default();
     let candidates = select_quick_clean_safe_candidates(&scan, &settings);
     assert!(
         candidates.is_empty(),
@@ -1751,7 +1751,7 @@ fn test_cleanup_eligibility_matrix_and_byte_semantics() {
         TestCase {
             risk: RiskTier::Safe,
             quality: ObservationQuality::Fresh,
-            management: CacheManagementMode::Zenith,
+            management: CacheManagementMode::Neati,
             reason: None,
             expected_eligibility: CleanupEligibility::AutoCleanable,
             expected_cleanable: Some(100),
@@ -1759,7 +1759,7 @@ fn test_cleanup_eligibility_matrix_and_byte_semantics() {
         TestCase {
             risk: RiskTier::Safe,
             quality: ObservationQuality::Partial,
-            management: CacheManagementMode::Zenith,
+            management: CacheManagementMode::Neati,
             reason: Some("Permission denied in subtree"),
             expected_eligibility: CleanupEligibility::Reviewable,
             expected_cleanable: Some(100),
@@ -1767,7 +1767,7 @@ fn test_cleanup_eligibility_matrix_and_byte_semantics() {
         TestCase {
             risk: RiskTier::Safe,
             quality: ObservationQuality::Unavailable,
-            management: CacheManagementMode::Zenith,
+            management: CacheManagementMode::Neati,
             reason: Some("Directory inaccessible"),
             expected_eligibility: CleanupEligibility::Blocked,
             expected_cleanable: None,
@@ -1783,7 +1783,7 @@ fn test_cleanup_eligibility_matrix_and_byte_semantics() {
         TestCase {
             risk: RiskTier::Rebuild,
             quality: ObservationQuality::Fresh,
-            management: CacheManagementMode::Zenith,
+            management: CacheManagementMode::Neati,
             reason: None,
             expected_eligibility: CleanupEligibility::AutoCleanable,
             expected_cleanable: Some(100),
@@ -1815,7 +1815,7 @@ fn test_cleanup_eligibility_matrix_and_byte_semantics() {
         TestCase {
             risk: RiskTier::Manual,
             quality: ObservationQuality::Fresh,
-            management: CacheManagementMode::Zenith,
+            management: CacheManagementMode::Neati,
             reason: None,
             expected_eligibility: CleanupEligibility::Blocked,
             expected_cleanable: None,
@@ -1823,7 +1823,7 @@ fn test_cleanup_eligibility_matrix_and_byte_semantics() {
         TestCase {
             risk: RiskTier::Manual,
             quality: ObservationQuality::Unavailable,
-            management: CacheManagementMode::Zenith,
+            management: CacheManagementMode::Neati,
             reason: Some("Disk unreadable"),
             expected_eligibility: CleanupEligibility::Blocked,
             expected_cleanable: None,
@@ -1957,14 +1957,14 @@ fn replaying_a_plan_skips_targets_instead_of_deleting_replacements() {
     let first = CleanExecutor::execute(
         plan.clone(),
         &PlatformEnvironment::native(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     assert_eq!(
         first.items[0].status,
-        zenith_lib::models::CleanStatus::Success
+        neati_lib::models::CleanStatus::Success
     );
     assert!(!payload.exists());
 
@@ -1974,14 +1974,14 @@ fn replaying_a_plan_skips_targets_instead_of_deleting_replacements() {
     let second = CleanExecutor::execute(
         plan,
         &PlatformEnvironment::native(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     assert_eq!(
         second.items[0].status,
-        zenith_lib::models::CleanStatus::Skipped
+        neati_lib::models::CleanStatus::Skipped
     );
     assert!(!second.items[0].success);
     assert_eq!(second.total_reclaimed_bytes, 0);
@@ -2151,7 +2151,7 @@ fn the_planner_refuses_a_structured_target() {
 
     let error = SafetyPlanner::create_plan(&[item], &registry, &no_owner_providers())
         .expect_err("structured state is never plannable");
-    let ZenithError::RefusedSelection(refusals) = error else {
+    let NeatiError::RefusedSelection(refusals) = error else {
         panic!("the structured target must be an item-scoped refusal");
     };
     assert_eq!(refusals.len(), 1);
@@ -2232,10 +2232,10 @@ fn an_unreadable_root_is_reported_with_its_reason() {
     // A directory the process may not read is what macOS withholds without
     // Full Disk Access, and the scan has to say so rather than report nothing.
     fs::set_permissions(&candidate, fs::Permissions::from_mode(0o000)).unwrap();
-    let items = zenith_lib::scanner::DirectoryScanner::scan_signature(
+    let items = neati_lib::scanner::DirectoryScanner::scan_signature(
         registry.get("test.unreadable").expect("registered"),
         &PlatformEnvironment::native(),
-        &zenith_lib::models::NeverCancelled,
+        &neati_lib::models::NeverCancelled,
     );
     // Restore before the fixture is dropped so it can be removed.
     fs::set_permissions(&candidate, fs::Permissions::from_mode(0o755)).unwrap();
@@ -2301,23 +2301,23 @@ fn a_running_owner_keeps_its_cache_out_of_the_default_selection() {
         consequence: String::new(),
     });
 
-    let running = zenith_lib::applications::RunningApplications::from_ids(vec![
+    let running = neati_lib::applications::RunningApplications::from_ids(vec![
         "com.example.running".to_string(),
     ]);
-    let counters = zenith_lib::scanner::TraversalCounters::default();
+    let counters = neati_lib::scanner::TraversalCounters::default();
     let environment = PlatformEnvironment::native();
-    let context = zenith_lib::scanner::WalkContext::new(
+    let context = neati_lib::scanner::WalkContext::new(
         &environment,
-        &zenith_lib::models::NeverCancelled,
-        zenith_lib::scanner::ScanLimits::default(),
+        &neati_lib::models::NeverCancelled,
+        neati_lib::scanner::ScanLimits::default(),
         &counters,
-        &zenith_lib::scanner::NoRootProgress,
+        &neati_lib::scanner::NoRootProgress,
     );
-    let items = zenith_lib::scanner::DirectoryScanner::scan_signature_with_context(
+    let items = neati_lib::scanner::DirectoryScanner::scan_signature_with_context(
         registry.get("test.running-owner").expect("registered"),
         None,
         &context,
-        zenith_lib::models::EligibilityGate::Open,
+        neati_lib::models::EligibilityGate::Open,
         &running,
     )
     .items;
@@ -2342,10 +2342,10 @@ fn a_running_owner_keeps_its_cache_out_of_the_default_selection() {
     // The scan without that application running reaches the same namespace
     // with the ordinary verdict, which is what makes the difference the
     // owner's state rather than the fixture.
-    let idle = zenith_lib::scanner::DirectoryScanner::scan_signature(
+    let idle = neati_lib::scanner::DirectoryScanner::scan_signature(
         registry.get("test.running-owner").expect("registered"),
         &PlatformEnvironment::native(),
-        &zenith_lib::models::NeverCancelled,
+        &neati_lib::models::NeverCancelled,
     );
     let idle_item = idle
         .iter()
@@ -2394,10 +2394,10 @@ fn the_shipped_explorer_cache_entry_scans_and_plans() {
     let mut registry = SignatureRegistry::new();
     registry.register(signature.clone());
 
-    let items = zenith_lib::scanner::DirectoryScanner::scan_signature(
+    let items = neati_lib::scanner::DirectoryScanner::scan_signature(
         &signature,
         &PlatformEnvironment::native(),
-        &zenith_lib::models::NeverCancelled,
+        &neati_lib::models::NeverCancelled,
     );
     let cache_item = items
         .iter()
@@ -2474,13 +2474,13 @@ fn generic_rules_that_disagree_about_one_location_do_not_authorize_each_other() 
         let scan = |intensive: bool| {
             ScanEngine::scan(
                 &registry,
-                &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-                &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+                &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+                &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
                 Some(&order),
                 &[],
                 intensive,
                 &PlatformEnvironment::native(),
-                &zenith_lib::models::NeverCancelled,
+                &neati_lib::models::NeverCancelled,
                 |_| {},
             )
         };
@@ -2609,10 +2609,10 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
         consequence: String::new(),
     });
 
-    let items = zenith_lib::scanner::DirectoryScanner::scan_signature(
+    let items = neati_lib::scanner::DirectoryScanner::scan_signature(
         registry.get("test.stale-namespace").expect("registered"),
         &PlatformEnvironment::native(),
-        &zenith_lib::models::NeverCancelled,
+        &neati_lib::models::NeverCancelled,
     );
     let item = items
         .iter()
@@ -2647,9 +2647,9 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
     let result = CleanExecutor::execute(
         plan.clone(),
         &PlatformEnvironment::native(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
 
@@ -2680,14 +2680,14 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
     let again = CleanExecutor::execute(
         plan,
         &PlatformEnvironment::native(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     assert_eq!(
         again.items[0].status,
-        zenith_lib::models::CleanStatus::Skipped
+        neati_lib::models::CleanStatus::Skipped
     );
     assert_eq!(again.total_reclaimed_bytes, 0);
     assert!(fresh_blob.exists());
@@ -2697,7 +2697,7 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
 fn stale_file_and_directory_units_execute_with_matching_estimates() {
     // Exercise a real move without touching the user's system Trash.
     struct FixtureTrash(std::path::PathBuf);
-    impl zenith_platform::TrashBackend for FixtureTrash {
+    impl neati_platform::TrashBackend for FixtureTrash {
         fn move_to_trash(&self, path: &Path) -> Result<(), String> {
             fs::rename(path, self.0.join(path.file_name().unwrap()))
                 .map_err(|error| error.to_string())
@@ -2736,10 +2736,10 @@ fn stale_file_and_directory_units_execute_with_matching_estimates() {
         let mut registry = SignatureRegistry::new();
         registry.register(signature.clone());
         let environment = PlatformEnvironment::native();
-        let items = zenith_lib::scanner::DirectoryScanner::scan_signature(
+        let items = neati_lib::scanner::DirectoryScanner::scan_signature(
             &signature,
             &environment,
-            &zenith_lib::models::NeverCancelled,
+            &neati_lib::models::NeverCancelled,
         );
         assert_eq!(items.len(), 2);
         assert!(items.iter().all(|item| item.cleanable_bytes() > 0));
@@ -2759,7 +2759,7 @@ fn stale_file_and_directory_units_execute_with_matching_estimates() {
         let result = CleanExecutor::execute(
             plan,
             &environment,
-            &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+            &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
             &no_owner_providers(),
             &backend,
             |_| {},
@@ -2769,7 +2769,7 @@ fn stale_file_and_directory_units_execute_with_matching_estimates() {
         assert!(result
             .items
             .iter()
-            .all(|item| item.status == zenith_lib::models::CleanStatus::Success));
+            .all(|item| item.status == neati_lib::models::CleanStatus::Success));
         assert_eq!(
             result.total_reclaimed_bytes + result.total_moved_to_trash_bytes,
             estimate
@@ -2837,7 +2837,7 @@ fn a_non_mutating_plan_is_refused_by_the_executor() {
             requires_confirmation: false,
         }],
         expected_reclaim_bytes: 4,
-        risk: zenith_lib::models::RiskSummary::default(),
+        risk: neati_lib::models::RiskSummary::default(),
         created_at: 0,
         mode: CleanupMode::Preview,
     };
@@ -2862,9 +2862,9 @@ fn a_non_mutating_plan_is_refused_by_the_executor() {
         let result = CleanExecutor::execute(
             refused_plan,
             &native_environment(),
-            &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-            &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-            &zenith_platform::MockTrashBackend::new(),
+            &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+            &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+            &neati_platform::MockTrashBackend::new(),
             |_| {},
         );
         assert_eq!(result.failed_count, 1, "{mode:?} must be refused");
@@ -2930,7 +2930,7 @@ fn nested_structured_state_skips_the_whole_cleanup_unit_before_mutation() {
         &no_owner_providers(),
     )
     .expect_err("nested structured state must be rejected before confirmation");
-    let ZenithError::RefusedSelection(refusals) = error else {
+    let NeatiError::RefusedSelection(refusals) = error else {
         panic!("structured state must be reported as an item refusal");
     };
     assert_eq!(refusals.len(), 1);
@@ -2948,7 +2948,7 @@ fn nested_structured_state_skips_the_whole_cleanup_unit_before_mutation() {
         id: "test.plain-cache".into(),
         name: "Plain cache".into(),
         category: Category::System,
-        family: zenith_lib::models::CleanerFamily::System,
+        family: neati_lib::models::CleanerFamily::System,
         risk: RiskTier::Safe,
         strategy: CleanStrategy::DeleteContents,
         paths: vec![ordinary.to_string_lossy().into_owned()],
@@ -3016,7 +3016,7 @@ fn nested_structured_state_skips_the_whole_cleanup_unit_before_mutation() {
             requires_confirmation: false,
         }],
         expected_reclaim_bytes: 16,
-        risk: zenith_lib::models::RiskSummary::default(),
+        risk: neati_lib::models::RiskSummary::default(),
         created_at: 0,
         mode: CleanupMode::PermanentDelete,
     };
@@ -3024,9 +3024,9 @@ fn nested_structured_state_skips_the_whole_cleanup_unit_before_mutation() {
     let result = CleanExecutor::execute(
         plan,
         &native_environment(),
-        &zenith_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
-        &zenith_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
-        &zenith_platform::MockTrashBackend::new(),
+        &neati_lib::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+        &neati_lib::cleaner::OwnerProviderRegistry::new(Vec::new()),
+        &neati_platform::MockTrashBackend::new(),
         |_| {},
     );
     assert_eq!(result.skipped_count, 1);
@@ -3640,7 +3640,7 @@ fn cargo_package_stores_are_inventoried_and_never_plannable() {
         )
         .expect_err("an owner-managed store is never a generic filesystem target");
         assert!(
-            matches!(error, ZenithError::RefusedSelection(_)),
+            matches!(error, NeatiError::RefusedSelection(_)),
             "the refusal names the item and the provider this build lacks: {error}"
         );
         for (name, _) in archived {
@@ -3673,13 +3673,13 @@ fn an_item_that_cannot_name_its_unit_is_refused_at_planning() {
 
     let error = SafetyPlanner::create_plan(&[item], &registry, &no_owner_providers())
         .expect_err("an undeclared unit is not plannable");
-    assert!(matches!(error, ZenithError::ChangedSinceScan(_)));
+    assert!(matches!(error, NeatiError::ChangedSinceScan(_)));
 }
 
 #[test]
 fn test_nested_protected_app_bundle_fails_closed() {
-    use zenith_lib::commands::select_quick_clean_safe_candidates;
-    use zenith_lib::models::ZenithSettings;
+    use neati_lib::commands::select_quick_clean_safe_candidates;
+    use neati_lib::models::NeatiSettings;
 
     let size = FileSize::new(5000, Some(5000));
     let reason = Some(
@@ -3787,7 +3787,7 @@ fn test_nested_protected_app_bundle_fails_closed() {
         metrics: Default::default(),
     };
 
-    let settings = ZenithSettings::default();
+    let settings = NeatiSettings::default();
     let candidates = select_quick_clean_safe_candidates(&scan, &settings);
     assert!(
         candidates.is_empty(),
@@ -3799,7 +3799,7 @@ fn test_nested_protected_app_bundle_fails_closed() {
     let registry = SignatureRegistry::load_embedded().unwrap();
     let plan_res = SafetyPlanner::create_plan(&[item], &registry, &no_owner_providers());
     assert!(
-        matches!(plan_res, Err(ZenithError::ChangedSinceScan(_))),
+        matches!(plan_res, Err(NeatiError::ChangedSinceScan(_))),
         "Planning must reject items that do not allow cleanup"
     );
 }
@@ -3807,10 +3807,10 @@ fn test_nested_protected_app_bundle_fails_closed() {
 #[cfg(windows)]
 mod windows_safety {
     use super::*;
+    use neati_core::domain::identity::FileIdentity;
+    use neati_lib::models::CleanupIdentity;
     use std::os::windows::ffi::OsStrExt;
     use std::path::PathBuf;
-    use zenith_core::domain::identity::FileIdentity;
-    use zenith_lib::models::CleanupIdentity;
 
     #[test]
     fn directory_handle_captures_real_volume_file_identity() {

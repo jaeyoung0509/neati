@@ -9,8 +9,8 @@ use crate::git::metadata::{
 };
 use crate::privacy::paths::mask_paths_in_text;
 use crate::safety::symlink::SymlinkGuard;
+use neati_platform::PlatformEnvironment;
 use std::path::{Path, PathBuf};
-use zenith_platform::PlatformEnvironment;
 
 /// The git directory that describes a project root.
 pub enum GitDirectory {

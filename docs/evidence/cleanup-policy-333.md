@@ -60,27 +60,27 @@ Primary owner references checked September 28, 2026:
 
 ## Corrected read-only machine evidence
 
-Prior same-day scan: Zenith **0.3.71**, macOS **27.0 (26A428)**, command-line
+Prior same-day scan: Neati **0.3.71**, macOS **27.0 (26A428)**, command-line
 example process, not the installed app. RC-01 input SHA-256:
 `894d0254fc8d28c182b7fb10bed7b04ecfa9f1d8b5d7d542781c3f9ad3839970`.
 
 - RC-01: 625.2 MB reported potential, 152 rows. Three nested rows contribute
   227,453,000 rounded bytes. Top-level rounded sum: 397,723,000 bytes.
-- Zenith: 2,242,281,472 observed bytes; 334,581,760 cleanable bytes;
+- Neati: 2,242,281,472 observed bytes; 334,581,760 cleanable bytes;
   13,123 ms scanner time, 2,866 directories and 22,869 entries, peak 16 tasks.
-- Relationships: 11 exact, 98 under a Zenith ancestor, four containing Zenith
+- Relationships: 11 exact, 98 under a Neati ancestor, four containing Neati
   descendants, 39 unmatched. An ancestor match does **not** establish equivalent
   deletion permission or bytes.
 
 These are different algorithms, rounded displays and a changing workstation,
 not a controlled throughput comparison. Neither 625.2 MB nor 397.7 MB is a
-verified deletion result. Full Disk Access for Zenith.app does not establish
+verified deletion result. Full Disk Access for Neati.app does not establish
 equivalent access for a CLI launched by another host. Partial CLI coverage
 cannot be used to declare the installed app's permissions broken.
 
 ### Post-change read-only scan
 
-Zenith 0.3.72, September 28, 2026, same CLI host: 2,275,803,136 observed bytes,
+Neati 0.3.72, September 28, 2026, same CLI host: 2,275,803,136 observed bytes,
 367,149,056 cleanable bytes and 4,096 selected bytes. The scan remained partial
 (452 Full Disk Access gaps, 20 permission-denied gaps, six I/O gaps). Scanner
 time was 16,174 ms; wall time 16.75 s; 2,859 directories, 23,492 entries, peak
@@ -105,17 +105,17 @@ survives. One warm-up and five measured runs alternate shape order:
 - 16 files × 8 MiB;
 - 64 directories × 32 files × 8 KiB.
 
-Run explicitly with `cargo test -p zenith-desktop --test scan_benchmark
+Run explicitly with `cargo test -p neati-desktop --test scan_benchmark
 repeated_cleanup_shapes_report_verified_accounting -- --ignored --exact --nocapture`.
 It is ignored in ordinary CI to avoid repeatedly paying for a benchmark.
 The regular regression suite still exercises permanent removal, recoverable
-movement, policy rejection and accounting. This is a **Zenith fixture
+movement, policy rejection and accounting. This is a **Neati fixture
 benchmark**, not an RC-01 end-to-end deletion speed claim or a measured disk
 free-space delta. Windows runtime and native glass QA were not performed.
 
 ### Executed fixture results
 
-September 28, 2026; Zenith 0.3.72 debug build; macOS 27.0 (26A428).
+September 28, 2026; Neati 0.3.72 debug build; macOS 27.0 (26A428).
 All 18 runs passed, including three warm-ups. The 15 measured runs all removed
 exactly the measured allocation, reported zero Trash bytes, left zero fixture
 cache files, and preserved the outside sentinel. Medians of five runs:
@@ -137,7 +137,7 @@ Final local verification: 1,158 Rust tests passed (five ordinary-run ignores),
 419 frontend tests passed, 12 Python tests passed; typecheck, production build,
 all-target Cargo check and Clippy, architecture boundaries, generated IPC,
 formatting and synchronized versions passed. `just build-fast` produced
-`target/debug/bundle/macos/Zenith.app`; both bundle version fields are 0.3.72.
+`target/debug/bundle/macos/Neati.app`; both bundle version fields are 0.3.72.
 The packaged icon matched the source ICNS hash and its extracted image was
 visually inspected. No UI layout or glass change was made; native window
 visual QA and Windows runtime validation were not performed. The built app

@@ -1,11 +1,11 @@
 use crate::models::*;
 use crate::privacy::secrets;
+use neati_platform::description::PlatformEnvironment;
+use neati_platform::path_algebra;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
-use zenith_platform::description::PlatformEnvironment;
-use zenith_platform::path_algebra;
 
 const MAX_ENTRIES_PER_ROOT: usize = 2_000;
 const MAX_FILE_BYTES: u64 = 1_048_576;
@@ -754,7 +754,7 @@ fn device(_path: &Path) -> Option<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zenith_platform::path_algebra::PathFlavor;
+    use neati_platform::path_algebra::PathFlavor;
 
     /// An environment that states no profile, so the host's home never decides
     /// whether a temporary project root is eligible.
@@ -762,14 +762,14 @@ mod tests {
         PlatformEnvironment::simulated(PathFlavor::current())
     }
 
-    /// Joins credential parts at runtime. The scanner runs over Zenith's own
+    /// Joins credential parts at runtime. The scanner runs over Neati's own
     /// repository, so a fixture must not carry the complete signature in source
     /// text, while the scanned file still contains the real shape.
     fn joined(parts: &[&str]) -> String {
         parts.concat()
     }
 
-    /// Scanning Zenith's own sources must not report Zenith's own fixtures as
+    /// Scanning Neati's own sources must not report Neati's own fixtures as
     /// exposed credentials.
     ///
     /// The scanner is pointed at the repository that contains it, using the
@@ -778,7 +778,7 @@ mod tests {
     /// from test data, so fixtures are assembled at runtime and the scanner's
     /// detectors are kept narrow enough not to fire on ordinary source.
     #[test]
-    fn zeniths_own_sources_are_scanner_clean() {
+    fn neatis_own_sources_are_scanner_clean() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .expect("the crate lives inside the repository");

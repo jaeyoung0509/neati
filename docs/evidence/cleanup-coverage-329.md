@@ -8,10 +8,10 @@ user's request. Source inspection establishes what a cleanup stage requests;
 it does not prove its guards allow removal on this machine. No user cache or
 system Trash was mutated in this investigation.
 
-- **Source review:** local RC-01 1.55.0 and Zenith develop `f179ee3`.
+- **Source review:** local RC-01 1.55.0 and Neati develop `f179ee3`.
 - **Historical machine evidence:** September 28, 2026, macOS 27.0 (26A428),
-  Zenith 0.3.69; the private preview/scan inputs from #328 were re-analyzed.
-- **Fixture verification:** Zenith's existing owner-provider, artifact and
+  Neati 0.3.69; the private preview/scan inputs from #328 were re-analyzed.
+- **Fixture verification:** Neati's existing owner-provider, artifact and
 safety tests plus new analysis/presentation tests. Mock provider tests do not
 establish that every language's installed CLI was exercised.
 - **Not executed:** a controlled five-repetition cross-tool deletion benchmark,
@@ -30,14 +30,14 @@ or package-manager behavior on other versions remains unverified.
 
 ## Broad ecosystem comparison
 
-Zenith global cache policy lives in [developer.toml](../../signatures/developer.toml)
+Neati global cache policy lives in [developer.toml](../../signatures/developer.toml)
 and [typed provider definitions](../../src-tauri/src/cache_providers/catalog).
 Project artifacts are a **separate, explicit workspace workflow** in
 [rules.rs](../../src-tauri/src/developer_artifacts/rules.rs) and
 [recognition](../../src-tauri/src/developer_artifacts/mod.rs). A missing global
 signature must not be described as absence of all support for that language.
 
-| Ecosystem | RC-01 source-stage behavior | Zenith behavior / actionable difference |
+| Ecosystem | RC-01 source-stage behavior | Neati behavior / actionable difference |
 | --- | --- | --- |
 | JavaScript / npm | `dev.sh:430`: owner cache reset plus residual cache directories | `javascript.rs`: `cache verify`, not full reset. **Policy difference**, not missing discovery. Never substitute `--force` merely to match bytes. |
 | JavaScript / pnpm | `dev.sh:359`: discover installed binaries/store generations; owner `store prune` | Same owner command; compare generation enumeration, deduplication and busy-owner handling. Observed store size is not a prune estimate. |
@@ -54,7 +54,7 @@ signature must not be described as absence of all support for that language.
 | Go | `dev.sh:1004`: resolved build/module roots; owner `clean -cache` / `-modcache`, differing process gates | `go.rs`: same fixed operations, local-toolchain-only, active Go guard. Recheck gopls/module-lock behavior; do not infer concurrent safety from build-cache behavior. |
 | Java / Kotlin / Gradle | `dev.sh:2855`: only build-cache children plus daemon/worker/notification targets, process guarded | Global `.gradle/caches` advisory; workspace `build`/`.gradle` supported. **230 MB whole-store observation is not 230 MB of missed reclaim.** Measure exact build-cache children first. |
 | Java / Maven, Scala / sbt-Ivy, Clojure | `dev.sh:2855`: dependency stores/compiler/launcher state intentionally preserved | Maven global repository advisory; marker-bound project `target` rules for Maven/sbt/Clojure. Preserve global stores; no blanket language-support gap. |
-| .NET / NuGet | `dev.sh:3880`: global packages explicitly kept | `nuget.rs`: separate HTTP/temp/plugins/global-packages owner operations with process guards. Zenith's explicit global-packages operation is **broader**, not narrower; it is never a generic directory deletion. |
+| .NET / NuGet | `dev.sh:3880`: global packages explicitly kept | `nuget.rs`: separate HTTP/temp/plugins/global-packages owner operations with process guards. Neati's explicit global-packages operation is **broader**, not narrower; it is never a generic directory deletion. |
 | PHP / Composer | `dev.sh:3880`: legacy/macOS cache paths through shared cleanup | `php.rs`: owner discovery/clear with plugins disabled. Workspace vendor recognition separate. Prefer the owner contract over broad path coverage. |
 | Ruby / Bundler / RubyGems | `dev.sh:1217`: rbenv downloads, gem specs/archives and Bundler cache | No dedicated global signature; project `vendor/bundle` recognition exists. Investigate archive/spec units, keeping installed gems and interpreters. |
 | Perl / CPAN | `dev.sh:1224`: build artifacts, preserves source distribution store | No dedicated global adapter. Only proven completed build artifacts merit a follow-up; installed modules and sources remain. |
@@ -66,7 +66,7 @@ signature must not be described as absence of all support for that language.
 | Zig / Bazel | `dev.sh:3880`: named global cache paths | Zig project `.zig-cache` supported; global Zig/Bazel coverage not equivalent. Bazel output/install bases require separate ownership investigation. |
 
 Cross-cutting exclusion: reference stages also mention stateful logs/WAL and
-workspace paths. Their presence in source is **not** a reason to relax Zenith's
+workspace paths. Their presence in source is **not** a reason to relax Neati's
 structured-state, workspace-consent or symlink protections.
 
 ## All 38 unmatched rows accounted for
@@ -107,7 +107,7 @@ observations are not new cleanup opportunities or promises of disk recovery.
 Reproduce classification (inputs stay private):
 
 ```sh
-python3 scripts/cleanup_gap_ledger.py --reference-preview /path/to/private-preview.txt --zenith-report /path/to/private-scan.json
+python3 scripts/cleanup_gap_ledger.py --reference-preview /path/to/private-preview.txt --neati-report /path/to/private-scan.json
 python3 -m unittest discover -s scripts -p 'test_cleanup_gap_ledger.py'
 ```
 
@@ -128,10 +128,10 @@ python3 -m unittest discover -s scripts -p 'test_cleanup_gap_ledger.py'
 Existing executable verification commands (also covered by the full Rust suite):
 
 ```sh
-cargo test -p zenith-desktop cache_providers::tests
-cargo test -p zenith-desktop developer_artifacts::tests
-cargo test -p zenith-desktop --test safety_tests stale_file_and_directory_units_execute_with_matching_estimates -- --exact --nocapture
-cargo test -p zenith-desktop --test scan_benchmark disposable_cleanup_fixture_reports_verified_reclaim -- --exact --nocapture
+cargo test -p neati-desktop cache_providers::tests
+cargo test -p neati-desktop developer_artifacts::tests
+cargo test -p neati-desktop --test safety_tests stale_file_and_directory_units_execute_with_matching_estimates -- --exact --nocapture
+cargo test -p neati-desktop --test scan_benchmark disposable_cleanup_fixture_reports_verified_reclaim -- --exact --nocapture
 ```
 
 The last command exercises an existing 64-file / 4 MiB generated fixture. It is
@@ -161,7 +161,7 @@ fixture_trash_bytes, failed_count, preserved_count, cancelled,
 stage_scope, limitations
 ```
 
-Use separate Safe/permanent and Rebuild/fixture-Trash Zenith cases. The fixture
+Use separate Safe/permanent and Rebuild/fixture-Trash Neati cases. The fixture
 Trash adapter must actually rename into a private temporary destination and
 verify destination bytes. Never use the real Trash, delete real cache roots,
 or report Trash movement as free-space gain. Sparse-file/APFS allocation,

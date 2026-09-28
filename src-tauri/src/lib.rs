@@ -19,10 +19,10 @@ pub mod execution_budget;
 pub mod git;
 pub mod hash;
 // The wire rule for a `u64` that crosses IPC is a property of the contract,
-// not of the desktop adapter, so it is defined in `zenith_core` and re-exported
+// not of the desktop adapter, so it is defined in `neati_core` and re-exported
 // here: `#[serde(with = "crate::ipc_numeric::u64")]` keeps working in both
 // crates against the single definition.
-pub use zenith_core::ipc_numeric;
+pub use neati_core::ipc_numeric;
 pub mod large_files;
 pub mod metrics;
 pub mod models;
@@ -47,6 +47,7 @@ pub mod trash_manager;
 mod window_material;
 
 use commands::DesktopState;
+use neati_platform::path_algebra::PathFlavor;
 use std::sync::{Arc, Mutex};
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -57,7 +58,6 @@ use tauri::{
     AppHandle, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Rect, Runtime, WebviewWindow,
     WebviewWindowBuilder,
 };
-use zenith_platform::path_algebra::PathFlavor;
 
 /// Adapts a window's declarative configuration to the platform that draws it.
 ///
@@ -424,11 +424,11 @@ fn show_quick_panel_tracked(
 }
 
 pub fn run() {
-    zenith_platform::subprocess::set_error_sink(|message| {
+    neati_platform::subprocess::set_error_sink(|message| {
         crate::diagnostics::log_error("subprocess", message)
     });
-    zenith_platform::environment::set_webview_version(tauri::webview_version().ok());
-    let environment = Arc::new(zenith_platform::PlatformEnvironment::native());
+    neati_platform::environment::set_webview_version(tauri::webview_version().ok());
+    let environment = Arc::new(neati_platform::PlatformEnvironment::native());
     // The container host is observed once, at the composition root. The
     // adapter never reads the process environment itself.
     let container_host =
@@ -708,11 +708,11 @@ mod tests {
     use super::tray_toggle_action;
     use super::QuickPanelVisibility;
     use super::TrayToggle;
+    use neati_platform::path_algebra::PathFlavor;
     use tauri::utils::config::Color;
     use tauri::utils::config::WindowConfig;
     use tauri::utils::TitleBarStyle;
     use tauri::{LogicalSize, PhysicalPosition, PhysicalSize};
-    use zenith_platform::path_algebra::PathFlavor;
 
     #[test]
     fn quick_panel_is_right_aligned_below_tray_icon() {
@@ -803,7 +803,7 @@ mod tests {
         let config: WindowConfig = serde_json::from_str(
             r#"{
                 "label": "main",
-                "title": "Zenith",
+                "title": "Neati",
                 "decorations": true,
                 "transparent": false,
                 "titleBarStyle": "Overlay"
@@ -821,7 +821,7 @@ mod tests {
         let config: WindowConfig = serde_json::from_str(
             r#"{
                 "label": "quick",
-                "title": "Zenith Quick",
+                "title": "Neati Quick",
                 "decorations": false,
                 "transparent": true,
                 "alwaysOnTop": true
@@ -845,7 +845,7 @@ mod tests {
         let config: WindowConfig = serde_json::from_str(
             r#"{
                 "label": "main",
-                "title": "Zenith",
+                "title": "Neati",
                 "decorations": true,
                 "transparent": false,
                 "titleBarStyle": "Overlay"
@@ -856,7 +856,7 @@ mod tests {
         assert_eq!(adapted.title_bar_style, TitleBarStyle::Overlay);
 
         let quick: WindowConfig = serde_json::from_str(
-            r#"{"label": "quick", "title": "Zenith Quick", "transparent": true}"#,
+            r#"{"label": "quick", "title": "Neati Quick", "transparent": true}"#,
         )
         .expect("parse window config");
         let adapted_quick = platform_window_config(quick, PathFlavor::Posix);

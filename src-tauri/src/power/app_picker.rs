@@ -71,7 +71,7 @@ impl ApplicationPicker {
         plutil_cmd
             .args(["-extract", "CFBundleExecutable", "raw", "-o", "-"])
             .arg(&info_plist);
-        let executable_pattern = zenith_platform::subprocess::run_with_timeout(
+        let executable_pattern = neati_platform::subprocess::run_with_timeout(
             plutil_cmd,
             std::time::Duration::from_secs(3),
         )

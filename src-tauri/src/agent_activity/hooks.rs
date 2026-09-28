@@ -1,7 +1,7 @@
 use crate::models::{AgentIntegrationInfo, AgentIntegrationResult};
 use std::path::Path;
 
-const ZENITH_HOOK_ID: &str = "zenith-agent-activity";
+const NEATI_HOOK_ID: &str = "neati-agent-activity";
 
 pub fn get_integration_info(tool_id: &str, home_dir: &Path) -> AgentIntegrationInfo {
     let tool = tool_integration(tool_id);
@@ -158,7 +158,7 @@ pub fn uninstall_integration(
         "claude" => {
             if let Some(obj) = json_value.as_object_mut() {
                 if let Some(hooks) = obj.get_mut("hooks").and_then(|v| v.as_object_mut()) {
-                    hooks.remove(ZENITH_HOOK_ID);
+                    hooks.remove(NEATI_HOOK_ID);
                 }
             }
         }
@@ -166,7 +166,7 @@ pub fn uninstall_integration(
             if let Some(obj) = json_value.as_object_mut() {
                 if let Some(hooks) = obj.get_mut("hooks").and_then(|v| v.as_array_mut()) {
                     hooks.retain(|item| {
-                        item.get("id").and_then(|v| v.as_str()) != Some(ZENITH_HOOK_ID)
+                        item.get("id").and_then(|v| v.as_str()) != Some(NEATI_HOOK_ID)
                     });
                 }
             }
@@ -194,11 +194,11 @@ fn is_hook_present(path: &Path) -> bool {
     };
     hooks
         .as_object()
-        .is_some_and(|object| object.contains_key(ZENITH_HOOK_ID))
+        .is_some_and(|object| object.contains_key(NEATI_HOOK_ID))
         || hooks.as_array().is_some_and(|items| {
             items
                 .iter()
-                .any(|item| item.get("id").and_then(|id| id.as_str()) == Some(ZENITH_HOOK_ID))
+                .any(|item| item.get("id").and_then(|id| id.as_str()) == Some(NEATI_HOOK_ID))
         })
 }
 
@@ -222,7 +222,7 @@ fn atomic_write_json(path: &Path, value: &serde_json::Value) -> Result<(), Strin
     }
     // `atomic_replace` uses ReplaceFileW on Windows, which keeps the replaced
     // file's ACL, and a plain rename on Unix where the temp mode is already set.
-    if let Err(error) = zenith_platform::file_ops::atomic_replace(&temp_path, path) {
+    if let Err(error) = neati_platform::file_ops::atomic_replace(&temp_path, path) {
         let _ = std::fs::remove_file(&temp_path);
         return Err(format!("Failed to atomically replace config file: {error}"));
     }
@@ -242,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn removes_a_legacy_zenith_marker_without_touching_user_hooks() {
+    fn removes_a_legacy_neati_marker_without_touching_user_hooks() {
         let temp = tempfile::tempdir().unwrap();
         let home = temp.path();
         let path = home.join(".claude/settings.json");
@@ -253,7 +253,7 @@ mod tests {
                 "custom_setting": "preserve_me",
                 "hooks": {
                     "user-hook": { "type": "command" },
-                    ZENITH_HOOK_ID: { "type": "zenith_local" }
+                    NEATI_HOOK_ID: { "type": "neati_local" }
                 }
             }))
             .unwrap(),

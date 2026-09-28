@@ -385,7 +385,7 @@
     onmousedown={handleWindowDrag}
   >
     <div class="flex items-center gap-2 min-w-0">
-      <BrandIcon identity="zenith" label="Neati" size={20} />
+      <BrandIcon identity="neati" label="Neati" size={20} />
       <NeatiWordmark />
     </div>
     <div class="flex items-center gap-1 no-drag shrink-0">
@@ -458,7 +458,7 @@
       <Button
         variant="secondary"
         size="sm"
-        id="quick-open-zenith-button"
+        id="quick-open-neati-button"
         onclick={handleOpenDashboard}
         class="gap-1.5 text-meta"
       >
@@ -472,7 +472,7 @@
     <CleanResultModal
       result={scanStore.lastCleanResult}
       onClose={() => (showResultModal = false)}
-      returnFocusTargetId="quick-open-zenith-button"
+      returnFocusTargetId="quick-open-neati-button"
     />
   {/if}
   {#if showCleanupDetails && scan}

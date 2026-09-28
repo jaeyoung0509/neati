@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Neati",
-  "version": "0.3.73",
-  "identifier": "com.zenith.desktop",
+  "version": "0.3.74",
+  "identifier": "com.neati.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:5173",
@@ -52,7 +52,7 @@
     "active": true,
     "targets": "all",
     "publisher": "jaeyoung0509",
-    "homepage": "https://github.com/jaeyoung0509/zenith",
+    "homepage": "https://github.com/jaeyoung0509/neati",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -74,7 +74,6 @@
         "languages": ["English", "Korean"],
         "displayLanguageSelector": false,
         "compression": "lzma",
-        "installerHooks": "windows/rebrand-hooks.nsh",
         "startMenuFolder": "Neati"
       }
     }

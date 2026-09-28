@@ -1,17 +1,17 @@
 use crate::cleaner::OwnerProviderRegistry;
 use crate::models::{
-    CleanFailureReason, CleanStrategy, CleanupUnitIdentity, DeletePlan, DeleteTarget,
+    CleanFailureReason, CleanStrategy, CleanupUnitIdentity, DeletePlan, DeleteTarget, NeatiError,
     OwnerProviderSelection, PathIdentity, PlanItemRefusal, RiskSummary, RiskTier, ScanItem,
-    ScanResult, Signature, UnitRelationship, ZenithError,
+    ScanResult, Signature, UnitRelationship,
 };
 use crate::safety::{entry_kind_at, Blacklist, SymlinkGuard, ToctouGuard};
 use crate::scanner::relationship::unit_relationship;
 use crate::signatures::SignatureRegistry;
+use neati_platform::PlatformEnvironment;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::time::SystemTime;
 use uuid::Uuid;
-use zenith_platform::PlatformEnvironment;
 
 /// Whether an item's ownership follows from the signature that discovered it.
 ///
@@ -39,7 +39,7 @@ fn ownership_is_derivable(item: &ScanItem, signature: &Signature) -> bool {
 /// The item-scoped refusal for a location this build only reports.
 ///
 /// A manual entry is not broken and not blocked: it is a location whose owner
-/// — or whose absence of a reviewed operation — means Zenith inventories it and
+/// — or whose absence of a reviewed operation — means Neati inventories it and
 /// removes nothing. Stating that per item is what keeps a correct refusal from
 /// reading as a failed selection.
 fn manual_refusal(item: &ScanItem) -> PlanItemRefusal {
@@ -93,7 +93,7 @@ impl SafetyPlanner {
         registry: &SignatureRegistry,
         environment: &PlatformEnvironment,
         owner_providers: &OwnerProviderRegistry,
-    ) -> Result<DeletePlan, ZenithError> {
+    ) -> Result<DeletePlan, NeatiError> {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default()
@@ -101,7 +101,7 @@ impl SafetyPlanner {
         scan.validate_for_cleanup(scan_id, now)?;
         let requested: HashSet<&str> = selected_item_ids.iter().map(String::as_str).collect();
         if requested.is_empty() || requested.len() != selected_item_ids.len() {
-            return Err(ZenithError::InvalidPlan(
+            return Err(NeatiError::InvalidPlan(
                 "Selection is empty or contains duplicate item IDs".into(),
             ));
         }
@@ -114,7 +114,7 @@ impl SafetyPlanner {
             .cloned()
             .collect::<Vec<_>>();
         if trusted_items.len() != requested.len() {
-            return Err(ZenithError::InvalidPlan(
+            return Err(NeatiError::InvalidPlan(
                 "Selected item was not present in the trusted scan".into(),
             ));
         }
@@ -136,7 +136,7 @@ impl SafetyPlanner {
         items: &[ScanItem],
         registry: &SignatureRegistry,
         owner_providers: &OwnerProviderRegistry,
-    ) -> Result<DeletePlan, ZenithError> {
+    ) -> Result<DeletePlan, NeatiError> {
         Self::create_plan_for(
             items,
             registry,
@@ -157,7 +157,7 @@ impl SafetyPlanner {
         registry: &SignatureRegistry,
         environment: &PlatformEnvironment,
         owner_providers: &OwnerProviderRegistry,
-    ) -> Result<DeletePlan, ZenithError> {
+    ) -> Result<DeletePlan, NeatiError> {
         Self::create_plan_for(items, registry, environment, owner_providers)
     }
 
@@ -166,7 +166,7 @@ impl SafetyPlanner {
         registry: &SignatureRegistry,
         environment: &PlatformEnvironment,
         owner_providers: &OwnerProviderRegistry,
-    ) -> Result<DeletePlan, ZenithError> {
+    ) -> Result<DeletePlan, NeatiError> {
         Self::create_plan_with_process_probe(
             items,
             registry,
@@ -181,8 +181,8 @@ impl SafetyPlanner {
         registry: &SignatureRegistry,
         environment: &PlatformEnvironment,
         owner_providers: &OwnerProviderRegistry,
-        processes: &dyn zenith_core::domain::cleanup::RunningProcessProbe,
-    ) -> Result<DeletePlan, ZenithError> {
+        processes: &dyn neati_core::domain::cleanup::RunningProcessProbe,
+    ) -> Result<DeletePlan, NeatiError> {
         let mut targets = Vec::new();
         let mut refusals: Vec<PlanItemRefusal> = Vec::new();
         let mut owner_authorizations = Vec::new();
@@ -257,14 +257,14 @@ impl SafetyPlanner {
             }
 
             if !item.has_current_disposition() {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Item '{}' cleanup eligibility changed since the scan; scan again",
                     item.name
                 )));
             }
 
             if !item.allows_cleanup() {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Item '{}' was not completely inspected or is inaccessible and cannot be cleaned",
                     item.name
                 )));
@@ -274,13 +274,13 @@ impl SafetyPlanner {
             // name the unit that produced it, or names a different path than
             // the one it deletes, is not plannable.
             if !item.unit.is_declared() {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Item '{}' does not name the cleanup unit that authorized it; scan again",
                     item.name
                 )));
             }
             if item.unit.path != item.path {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Item '{}' names a cleanup unit that does not match its path; scan again",
                     item.name
                 )));
@@ -289,7 +289,7 @@ impl SafetyPlanner {
             // 1. Verify signature exists in registry
             let signature = registry
                 .get(&item.signature_id)
-                .ok_or_else(|| ZenithError::SignatureMismatch(item.signature_id.clone()))?;
+                .ok_or_else(|| NeatiError::SignatureMismatch(item.signature_id.clone()))?;
 
             if signature.strategy == CleanStrategy::Manual {
                 refusals.push(manual_refusal(item));
@@ -305,7 +305,7 @@ impl SafetyPlanner {
                 CleanStrategy::LifecycleProvider | CleanStrategy::OwnerProvider
             );
             if item.lifecycle_provider_action != provider_owned {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Item '{}' disagrees with the catalog about whether a reviewed provider owns its cleanup; scan again",
                     item.name
                 )));
@@ -326,7 +326,7 @@ impl SafetyPlanner {
                 {
                     Some(provider_id) => Some(provider_id.to_string()),
                     None => {
-                        return Err(ZenithError::InvalidPlan(format!(
+                        return Err(NeatiError::InvalidPlan(format!(
                             "Item '{}' is a lifecycle provider action whose signature names no provider; scan again",
                             item.name
                         )))
@@ -340,7 +340,7 @@ impl SafetyPlanner {
             // signature declares, so a discovery rule cannot widen what a
             // signature authorizes.
             if item.unit.kind != signature.unit_kind() {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Item '{}' claims a cleanup unit the signature does not declare; scan again",
                     item.name
                 )));
@@ -352,7 +352,7 @@ impl SafetyPlanner {
             // own name. A message built from the plan then never describes a
             // location by a claim the catalog cannot support.
             if !ownership_is_derivable(item, signature) {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Item '{}' reports ownership the catalog does not state; scan again",
                     item.name
                 )));
@@ -376,7 +376,7 @@ impl SafetyPlanner {
                     .as_deref()
                     .filter(|provider_id| !provider_id.trim().is_empty())
                 else {
-                    return Err(ZenithError::InvalidPlan(format!(
+                    return Err(NeatiError::InvalidPlan(format!(
                         "Item '{}' belongs to an owner-scoped store whose signature names no provider; scan again",
                         item.name
                     )));
@@ -428,7 +428,7 @@ impl SafetyPlanner {
                     // of one for a signature that enumerates children.
                     let resolved_roots = registry.authorizing_roots(signature, &path, environment);
                     if resolved_roots.is_empty() {
-                        return Err(ZenithError::SignatureMismatch(item.signature_id.clone()));
+                        return Err(NeatiError::SignatureMismatch(item.signature_id.clone()));
                     }
                     // 2b. Ancestor symlink escape protection: ensure no directory between anchor/root and path is a symlink
                     for root in &resolved_roots {
@@ -531,7 +531,7 @@ impl SafetyPlanner {
                 //    plan states the kind of object it intends to delete.
                 if let Some(current_kind) = entry_kind_at(&path) {
                     if current_kind != item.entry_kind {
-                        return Err(ZenithError::ChangedSinceScan(format!(
+                        return Err(NeatiError::ChangedSinceScan(format!(
                             "`{}` changed kind since the scan; scan again before cleaning",
                             item.name
                         )));
@@ -606,9 +606,9 @@ impl SafetyPlanner {
                 // The refusals are the answer, not a failure of the scan: they
                 // name the items a current policy would not authorize. The
                 // caller states them per item and keeps the inventory.
-                return Err(ZenithError::RefusedSelection(refusals));
+                return Err(NeatiError::RefusedSelection(refusals));
             }
-            return Err(ZenithError::InvalidPlan(
+            return Err(NeatiError::InvalidPlan(
                 "No valid cleanable targets were selected".to_string(),
             ));
         }
@@ -638,7 +638,7 @@ impl SafetyPlanner {
 mod tests {
     use super::SafetyPlanner;
     use crate::cleaner::OwnerProviderRegistry;
-    use crate::models::{Category, FileSize, ObservationQuality, RiskTier, ScanItem, ZenithError};
+    use crate::models::{Category, FileSize, NeatiError, ObservationQuality, RiskTier, ScanItem};
     use crate::signatures::SignatureRegistry;
 
     /// A registry with no owner-scoped provider, which is what a generic
@@ -652,8 +652,8 @@ mod tests {
         use crate::models::{CleanupEligibility, StructuredStatePolicy};
         use crate::safety::{RevalidationOutcome, SafeTreeDeleter, SafetyValidator};
         use crate::scanner::DirectoryScanner;
-        use zenith_platform::path_algebra::PathFlavor;
-        use zenith_platform::PlatformEnvironment;
+        use neati_platform::path_algebra::PathFlavor;
+        use neati_platform::PlatformEnvironment;
 
         let fixture = tempfile::tempdir().expect("disposable fixture");
         let home = fixture.path().join("home");
@@ -726,8 +726,8 @@ mod tests {
         use crate::models::{CleanupEligibility, StructuredStatePolicy};
         use crate::safety::{RevalidationOutcome, SafeTreeDeleter, SafetyValidator};
         use crate::scanner::DirectoryScanner;
-        use zenith_platform::path_algebra::PathFlavor;
-        use zenith_platform::PlatformEnvironment;
+        use neati_platform::path_algebra::PathFlavor;
+        use neati_platform::PlatformEnvironment;
 
         let fixture = tempfile::tempdir().expect("disposable fixture");
         let home = fixture.path().join("home");
@@ -805,8 +805,8 @@ mod tests {
     #[test]
     fn brave_code_cache_with_credentials_refuses_the_whole_unit() {
         use crate::scanner::DirectoryScanner;
-        use zenith_platform::path_algebra::PathFlavor;
-        use zenith_platform::PlatformEnvironment;
+        use neati_platform::path_algebra::PathFlavor;
+        use neati_platform::PlatformEnvironment;
 
         let fixture = tempfile::tempdir().expect("disposable fixture");
         let home = fixture.path().join("home");
@@ -835,7 +835,7 @@ mod tests {
             &environment,
             &no_owner_providers(),
         );
-        assert!(matches!(plan, Err(ZenithError::RefusedSelection(_))));
+        assert!(matches!(plan, Err(NeatiError::RefusedSelection(_))));
         assert_eq!(std::fs::read(&generated).unwrap(), b"generated cache index");
         assert_eq!(std::fs::read(&protected).unwrap(), b"protected state");
     }
@@ -844,8 +844,8 @@ mod tests {
     fn settings_and_credentials_invalidate_a_cursor_cache_unit_before_mutation() {
         use crate::models::{CleanFailureReason, StructuredStatePolicy};
         use crate::scanner::DirectoryScanner;
-        use zenith_platform::path_algebra::PathFlavor;
-        use zenith_platform::PlatformEnvironment;
+        use neati_platform::path_algebra::PathFlavor;
+        use neati_platform::PlatformEnvironment;
 
         for protected_name in ["settings.json", "auth.json"] {
             let fixture = tempfile::tempdir().expect("disposable fixture");
@@ -879,7 +879,7 @@ mod tests {
                 &no_owner_providers(),
             );
             match result {
-                Err(ZenithError::RefusedSelection(refusals)) => assert_eq!(
+                Err(NeatiError::RefusedSelection(refusals)) => assert_eq!(
                     refusals[0].reason,
                     CleanFailureReason::StructuredStore,
                     "the verified-cache exception still excludes {protected_name}"
@@ -947,7 +947,7 @@ mod tests {
         let result =
             SafetyPlanner::create_plan(&[item], &SignatureRegistry::new(), &no_owner_providers());
         match result {
-            Err(ZenithError::RefusedSelection(refusals)) => {
+            Err(NeatiError::RefusedSelection(refusals)) => {
                 assert_eq!(refusals.len(), 1);
                 assert_eq!(refusals[0].item_name, "OrbStack VM Storage");
                 assert_eq!(
@@ -968,8 +968,8 @@ mod tests {
     fn a_provider_backed_unit_plans_through_the_provider_the_catalog_named() {
         use crate::cleaner::LifecycleProviderRegistry;
         use crate::models::{CleanStrategy, Signature};
-        use zenith_platform::path_algebra::PathFlavor;
-        use zenith_platform::PlatformEnvironment;
+        use neati_platform::path_algebra::PathFlavor;
+        use neati_platform::PlatformEnvironment;
 
         fn provider_signature(provider_id: Option<&str>) -> Signature {
             Signature {
@@ -1042,7 +1042,7 @@ mod tests {
             &no_owner_providers(),
         );
         assert!(
-            matches!(&refused, Err(ZenithError::ChangedSinceScan(message)) if message.contains("disagrees with the catalog")),
+            matches!(&refused, Err(NeatiError::ChangedSinceScan(message)) if message.contains("disagrees with the catalog")),
             "a manual unit cannot claim provider authority the catalog does not declare: {refused:?}"
         );
 
@@ -1053,7 +1053,7 @@ mod tests {
         unnamed_registry.register(provider_signature(None));
         let refused = SafetyPlanner::create_plan(&[item], &unnamed_registry, &no_owner_providers());
         assert!(
-            matches!(&refused, Err(ZenithError::InvalidPlan(message)) if message.contains("names no provider")),
+            matches!(&refused, Err(NeatiError::InvalidPlan(message)) if message.contains("names no provider")),
             "a lifecycle signature without a provider id cannot be planned: {refused:?}"
         );
     }
@@ -1438,7 +1438,7 @@ mod tests {
             SafetyPlanner::create_plan(&[item], &SignatureRegistry::new(), &no_owner_providers());
         assert!(matches!(
             result,
-            Err(ZenithError::ChangedSinceScan(message))
+            Err(NeatiError::ChangedSinceScan(message))
                 if message.contains("eligibility changed since the scan")
         ));
     }

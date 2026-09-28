@@ -569,7 +569,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(rendered.body).toContain('aria-modal="true"');
     expect(rendered.body).toContain('aria-labelledby=');
     expect(rendered.body).toContain('aria-describedby=');
-    expect(rendered.body).toContain('Clean Complete');
+    expect(rendered.body).toContain('Cleanup complete');
     expect(rendered.body).toContain('50 MB');
     expect(rendered.body).toContain('-done-button');
   });

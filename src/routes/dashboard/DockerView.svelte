@@ -276,7 +276,7 @@
     <!-- Active Containers & Images Table -->
     {#if status?.containers && status.containers.length > 0}
       <div class="space-y-3 pt-2">
-        <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
           Detected Containers ({status.containers.length})
         </h3>
         <div class="space-y-2 max-h-60 overflow-y-auto scroll-stable">

@@ -236,7 +236,7 @@
     <div class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <h3 class="text-meta font-semibold uppercase tracking-wider text-muted-foreground">
+          <h3 class="text-meta font-semibold tracking-normal text-muted-foreground">
             {compact ? 'Apps using memory' : 'Top Resource Consuming Processes'}
           </h3>
           <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-caption text-muted-foreground">
@@ -298,7 +298,7 @@
                       parent: {proc.parent_process_names.join(', ')}
                     </span>
                   {/if}
-                  {#if proc.ownership === 'zenith_child'}
+                  {#if proc.ownership === 'neati_child'}
                     <Badge variant="secondary" class="ml-1.5">Started by Neati</Badge>
                   {/if}
                 </div>

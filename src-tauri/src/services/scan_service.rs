@@ -5,7 +5,7 @@ use crate::cleaner::{LifecycleProviderRegistry, OwnerProviderRegistry};
 use crate::models::{CancellationProbe, ScanProgressSink, ScanRequest, ScanResult};
 use crate::scanner::ScanEngine;
 use crate::signatures::SignatureRegistry;
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
 
 /// Application service responsible for running framework-independent system cleanup scans.
 ///

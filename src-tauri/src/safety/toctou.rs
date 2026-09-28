@@ -1,4 +1,4 @@
-use crate::models::{CleanupIdentity, FileIdentity, ModifiedStamp, ZenithError};
+use crate::models::{CleanupIdentity, FileIdentity, ModifiedStamp, NeatiError};
 use std::fs;
 use std::path::Path;
 
@@ -64,14 +64,14 @@ impl ToctouGuard {
         }
     }
 
-    fn capture_or_err(path: &Path) -> Result<CleanupIdentity, ZenithError> {
+    fn capture_or_err(path: &Path) -> Result<CleanupIdentity, NeatiError> {
         match Self::capture(path) {
             Some(id) => Ok(id),
             None => match fs::symlink_metadata(path) {
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                    Err(ZenithError::Missing(path.display().to_string()))
+                    Err(NeatiError::Missing(path.display().to_string()))
                 }
-                Err(error) => Err(ZenithError::ChangedSinceScan(format!(
+                Err(error) => Err(NeatiError::ChangedSinceScan(format!(
                     "Could not read metadata for {}: {}",
                     path.display(),
                     error
@@ -80,7 +80,7 @@ impl ToctouGuard {
                     // The path still exists, but `capture` could not derive a
                     // complete identity (for example, Windows could not open
                     // the handle). That is never equivalent to absence.
-                    Err(ZenithError::ChangedSinceScan(format!(
+                    Err(NeatiError::ChangedSinceScan(format!(
                         "Could not verify filesystem identity for {}",
                         path.display()
                     )))
@@ -93,7 +93,7 @@ impl ToctouGuard {
         current: &CleanupIdentity,
         expected: &CleanupIdentity,
         path: &Path,
-    ) -> Result<(), ZenithError> {
+    ) -> Result<(), NeatiError> {
         // A missing or zero identity is never accepted as verified when
         // identity comparison is required. Previous Windows captures that
         // could not open a directory recorded (0, 0) and skipped the check;
@@ -101,19 +101,19 @@ impl ToctouGuard {
         #[cfg(any(unix, windows))]
         {
             if expected.entity().is_unknown() {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Filesystem identity unavailable for {}; refusing to mutate",
                     path.display()
                 )));
             }
             if current.entity().is_unknown() {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Could not verify filesystem identity for {}; refusing to mutate",
                     path.display()
                 )));
             }
             if current.entity() != expected.entity() {
-                return Err(ZenithError::ChangedSinceScan(format!(
+                return Err(NeatiError::ChangedSinceScan(format!(
                     "Identity mismatch for {}: expected ({}), found ({})",
                     path.display(),
                     expected.entity(),
@@ -124,7 +124,7 @@ impl ToctouGuard {
 
         // File type (directory vs file) must strictly match
         if current.is_dir() != expected.is_dir() {
-            return Err(ZenithError::ChangedSinceScan(format!(
+            return Err(NeatiError::ChangedSinceScan(format!(
                 "File type changed from is_dir={} to is_dir={} for {}",
                 expected.is_dir(),
                 current.is_dir(),
@@ -141,13 +141,13 @@ impl ToctouGuard {
     /// Used by stale-content cleanup where child files change and modify the
     /// directory's mtime, but the target must remain the same filesystem object
     /// approved by the scan.
-    pub fn verify_entity(path: &Path, expected: &CleanupIdentity) -> Result<(), ZenithError> {
+    pub fn verify_entity(path: &Path, expected: &CleanupIdentity) -> Result<(), NeatiError> {
         let current = Self::capture_or_err(path)?;
         Self::verify_entity_identity(&current, expected, path)
     }
 
     /// Verifies that the filesystem identity matches what was recorded during scanning.
-    pub fn verify(path: &Path, expected: &CleanupIdentity) -> Result<(), ZenithError> {
+    pub fn verify(path: &Path, expected: &CleanupIdentity) -> Result<(), NeatiError> {
         let current = Self::capture_or_err(path)?;
         Self::verify_entity_identity(&current, expected, path)?;
 
@@ -155,13 +155,13 @@ impl ToctouGuard {
         // are also freshness-checked by default so a target directory changed
         // after scanning fails closed.
         if current.modified() != expected.modified() {
-            return Err(ZenithError::ChangedSinceScan(format!(
+            return Err(NeatiError::ChangedSinceScan(format!(
                 "{} was modified after scanning (mtime mismatch)",
                 path.display()
             )));
         }
         if !current.is_dir() && current.size() != expected.size() {
-            return Err(ZenithError::ChangedSinceScan(format!(
+            return Err(NeatiError::ChangedSinceScan(format!(
                 "File {} size changed from {} to {} bytes after scanning",
                 path.display(),
                 expected.size(),
@@ -238,7 +238,7 @@ pub fn windows_file_identity(path: &Path) -> Option<(u64, u64)> {
         FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
     };
 
-    let wide = zenith_platform::NativePlatformPaths::to_verbatim_wide(path);
+    let wide = neati_platform::NativePlatformPaths::to_verbatim_wide(path);
 
     unsafe {
         // Request minimum access (0) so locked/open files (node.exe logs, docker vhdx) can still be measured
@@ -263,7 +263,7 @@ pub fn windows_file_identity(path: &Path) -> Option<(u64, u64)> {
 #[cfg(test)]
 mod tests {
     use super::ToctouGuard;
-    use crate::models::ZenithError;
+    use crate::models::NeatiError;
 
     /// An identity check that races with a deletion reports absence rather than
     /// a generic I/O error, so the caller can classify it as already-absent.
@@ -276,8 +276,8 @@ mod tests {
         std::fs::remove_file(&target).unwrap();
 
         match ToctouGuard::verify(&target, &identity) {
-            Err(ZenithError::Missing(_)) => {}
-            other => panic!("expected ZenithError::Missing, got {other:?}"),
+            Err(NeatiError::Missing(_)) => {}
+            other => panic!("expected NeatiError::Missing, got {other:?}"),
         }
     }
 
@@ -293,7 +293,7 @@ mod tests {
 
         assert!(matches!(
             ToctouGuard::verify(&target, &identity),
-            Err(ZenithError::ChangedSinceScan(_))
+            Err(NeatiError::ChangedSinceScan(_))
         ));
     }
 
@@ -330,7 +330,7 @@ mod tests {
         #[cfg(any(unix, windows))]
         assert!(matches!(
             ToctouGuard::verify_entity(&target, &identity),
-            Err(ZenithError::ChangedSinceScan(_))
+            Err(NeatiError::ChangedSinceScan(_))
         ));
     }
 }

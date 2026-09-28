@@ -42,10 +42,10 @@ class GapLedgerTests(unittest.TestCase):
 
     def test_only_reference_only_rows_are_exported(self):
         reference = [{"path": p, "displayed_bytes": 4096, "section": "test"} for p in ("/fixture/cache", "/fixture/cache/child", "/fixture/other")]
-        zenith = [{"path": "/fixture/cache", "eligibility": "reviewable"}]
-        result = build_ledger(reference, zenith, "/fixture")
+        neati = [{"path": "/fixture/cache", "eligibility": "reviewable"}]
+        result = build_ledger(reference, neati, "/fixture")
         self.assertEqual(len(result["rows"]), 1)
-        self.assertEqual(result["relationships"], {"exact": 1, "zenith_ancestor": 1, "reference_only": 1})
+        self.assertEqual(result["relationships"], {"exact": 1, "neati_ancestor": 1, "reference_only": 1})
 
     def test_nested_preview_is_flagged_and_order_is_stable(self):
         reference = [{"path": p, "displayed_bytes": 4096, "section": "test"} for p in ("/fixture/other", "/fixture/other/child")]

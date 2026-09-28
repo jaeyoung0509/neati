@@ -20,18 +20,18 @@ impl MemoryPressure {
     }
 }
 
-/// How Zenith relates to a process group it is displaying.
+/// How Neati relates to a process group it is displaying.
 ///
-/// The grouping is an observation of the system process table. `ZenithChild`
-/// is only ever reported when the same fresh snapshot shows this Zenith process
-/// in every member's parent chain, so the view never implies Zenith started a
+/// The grouping is an observation of the system process table. `NeatiChild`
+/// is only ever reported when the same fresh snapshot shows this Neati process
+/// in every member's parent chain, so the view never implies Neati started a
 /// process it merely observed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
 pub enum ProcessOwnership {
     #[default]
     Observed,
-    ZenithChild,
+    NeatiChild,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]

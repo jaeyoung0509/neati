@@ -1,5 +1,5 @@
 //! Process-scoped Windows power requests with RAII cleanup on every exit path.
-use crate::models::{AwakeBehavior, ZenithError};
+use crate::models::{AwakeBehavior, NeatiError};
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 use windows_sys::Win32::System::Power::{
@@ -24,9 +24,9 @@ pub(super) enum WindowsPowerRequest {
 }
 
 impl WindowsPowerRequest {
-    pub(super) fn acquire(behavior: AwakeBehavior, reason: &str) -> Result<Self, ZenithError> {
+    pub(super) fn acquire(behavior: AwakeBehavior, reason: &str) -> Result<Self, NeatiError> {
         if reason.contains('\0') {
-            return Err(ZenithError::Io(
+            return Err(NeatiError::Io(
                 "Power request reason contains a NUL character".into(),
             ));
         }
@@ -109,8 +109,8 @@ impl Drop for WindowsPowerRequest {
     }
 }
 
-fn last_error(operation: &str) -> ZenithError {
-    ZenithError::Io(format!(
+fn last_error(operation: &str) -> NeatiError {
+    NeatiError::Io(format!(
         "{operation} failed: {}",
         std::io::Error::last_os_error()
     ))

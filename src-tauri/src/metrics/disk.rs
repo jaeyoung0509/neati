@@ -1,6 +1,6 @@
-use crate::models::{DiskMetrics, DiskVolume, ZenithError};
+use crate::models::{DiskMetrics, DiskVolume, NeatiError};
+use neati_platform::description::PlatformEnvironment;
 use sysinfo::Disks;
-use zenith_platform::description::PlatformEnvironment;
 
 #[cfg(target_os = "macos")]
 use std::io::Cursor;
@@ -135,13 +135,13 @@ impl DiskMetricsCollector {
     }
 
     /// Queries the primary root disk usage.
-    pub fn get_primary_disk(environment: &PlatformEnvironment) -> Result<DiskMetrics, ZenithError> {
+    pub fn get_primary_disk(environment: &PlatformEnvironment) -> Result<DiskMetrics, NeatiError> {
         let volume = Self::get_volume_reports(environment)
             .into_iter()
             .map(|report| report.volume)
             .find(|volume| volume.is_primary)
             .ok_or_else(|| {
-                ZenithError::Io("Could not resolve the system disk volume".to_string())
+                NeatiError::Io("Could not resolve the system disk volume".to_string())
             })?;
         Ok(DiskMetrics {
             mount_point: volume.mount_point,
@@ -231,7 +231,7 @@ fn apfs_volume_group_id(mount_point: &str) -> Option<String> {
     let mut command = std::process::Command::new("diskutil");
     command.args(["info", "-plist", mount_point]);
     let output =
-        zenith_platform::subprocess::run_with_timeout(command, std::time::Duration::from_secs(2))
+        neati_platform::subprocess::run_with_timeout(command, std::time::Duration::from_secs(2))
             .ok()?;
     if !output.status.success() {
         return None;
@@ -267,11 +267,11 @@ fn percent(total: u64, used: u64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use neati_platform::description::VolumeIdentity;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::paths::SimulatedPaths;
     use std::path::PathBuf;
     use std::sync::Arc;
-    use zenith_platform::description::VolumeIdentity;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::paths::SimulatedPaths;
 
     #[test]
     fn only_the_verified_startup_system_data_pair_is_coalesced() {

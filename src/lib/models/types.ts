@@ -158,8 +158,8 @@ export type {
   UsageSummary,
   UsageSupport,
   UsageWindow,
-  ZenithSettings_Deserialize,
-  ZenithSettings_Serialize,
+  NeatiSettings_Deserialize,
+  NeatiSettings_Serialize,
 } from '../bindings/tauri';
 
 import type {
@@ -174,11 +174,11 @@ import type {
   ProviderId_Serialize,
   Recommendation_Serialize,
   RecommendationPreview_Serialize,
-  ZenithSettings_Serialize,
+  NeatiSettings_Serialize,
 } from '../bindings/tauri';
 
 // In the frontend runtime, settings, snapshots, and provider structures are always fully resolved/serialized shapes
-export type ZenithSettings = ZenithSettings_Serialize;
+export type NeatiSettings = NeatiSettings_Serialize;
 export type AiControlPreferences = AiControlPreferences_Serialize;
 export type DashboardTab = DashboardTab_Serialize;
 export type DashboardRoute = DashboardRoute_Serialize;

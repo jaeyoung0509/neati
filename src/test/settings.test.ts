@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import type { DashboardTab, ZenithSettings } from '../lib/models/types';
+import type { DashboardTab, NeatiSettings } from '../lib/models/types';
 import { moveOrdered, reorderOrdered, toggleOrdered } from '../lib/utils/quickPanel';
 import { serializeSettingsSnapshot } from '../lib/utils/settings';
 import { SettingsStore } from '../lib/stores/settings.svelte';
@@ -25,7 +25,7 @@ describe('sidebar task groups', () => {
 });
 
 describe('serializeSettingsSnapshot', () => {
-  const sampleSettings: ZenithSettings = {
+  const sampleSettings: NeatiSettings = {
     launch_at_login: false,
     clean_ai_tools: true,
     clean_developer_tools: true,
@@ -87,7 +87,7 @@ describe('serializeSettingsSnapshot', () => {
   });
 
   it('deeply clones all properties without mutating the input source', () => {
-    const input: ZenithSettings = { ...sampleSettings };
+    const input: NeatiSettings = { ...sampleSettings };
     const snapshot = serializeSettingsSnapshot(input);
     expect(snapshot).toEqual(sampleSettings);
     expect(snapshot).not.toBe(input);

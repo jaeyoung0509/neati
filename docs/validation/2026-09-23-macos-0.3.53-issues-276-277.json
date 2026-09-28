@@ -7,13 +7,13 @@
     "os": "macOS 27.0",
     "os_build": "26A428",
     "date_local": "2026-09-23 KST",
-    "zenith": "0.3.53",
+    "neati": "0.3.53",
     "tauri_cli": "2.11.4"
   },
   "release_workflow": {
     "before_dmg_build": "One writable intermediate DMG from a prior 0.3.52 build was already mounted. It was not detached or attributed as the alert's cause.",
     "app_only_recipe": "just --dry-run release showed one --bundles app build followed by install-release; no DMG command",
-    "distribution_check": "./scripts/tauri_release_build.sh --bundles dmg succeeded for 0.3.53. A separate read-only mount showed Zenith.app and the Applications link; only that check mount was detached.",
+    "distribution_check": "./scripts/tauri_release_build.sh --bundles dmg succeeded for 0.3.53. A separate read-only mount showed Neati.app and the Applications link; only that check mount was detached.",
     "fixture_result": "just test-release-installer passed recipe, retained-failure-log, fresh-install, replacement, and rollback checks",
     "alert_reproduction": "unresolved: the reported first-attempt native alert did not appear in this DMG-only run",
     "not_run": "No live just release, real /Applications replacement, or manual Finder drag was performed."
@@ -73,7 +73,7 @@
     "pnpm_test": "passed: 37 files, 350 tests",
     "pnpm_build": "passed",
     "just_check_architecture": "passed",
-    "just_build_fast": "passed: target/debug/bundle/macos/Zenith.app",
+    "just_build_fast": "passed: target/debug/bundle/macos/Neati.app",
     "just_test_release_installer": "passed"
   }
 }

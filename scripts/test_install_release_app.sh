@@ -4,7 +4,7 @@ set -euo pipefail
 
 readonly script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly installer="$script_dir/install_release_app.sh"
-fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/zenith-install-test.XXXXXX")"
+fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/neati-install-test.XXXXXX")"
 trap 'rm -rf -- "$fixture_root"' EXIT HUP INT TERM
 
 fail() {
@@ -45,7 +45,7 @@ run_installer() {
   local source_app="$1"
   local applications_dir="$2"
   shift 2
-  ZENITH_INSTALL_TEST_MODE=1 "$@" "$installer" --source "$source_app" --applications-dir "$applications_dir"
+  NEATI_INSTALL_TEST_MODE=1 "$@" "$installer" --source "$source_app" --applications-dir "$applications_dir"
 }
 
 test_replaces_an_older_bundle() {
@@ -53,8 +53,8 @@ test_replaces_an_older_bundle() {
   local source_app="$test_root/build/Neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.1.18 com.zenith.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.zenith.desktop old-install
+  make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
+  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
 
   local output
   output="$(run_installer "$source_app" "$applications_dir" env)"
@@ -62,7 +62,7 @@ test_replaces_an_older_bundle() {
   assert_installed "$applications_dir" 0.1.18 new-build
   [[ "$output" == *"Built version:     0.1.18"* ]] || fail "Installer did not report the built version."
   [[ "$output" == *"Installed version: 0.1.18"* ]] || fail "Installer did not report the installed version."
-  [[ -z "$(find "$applications_dir" -mindepth 1 -maxdepth 1 -name '.zenith-install.*' -print -quit)" ]] || fail "Installer left a transaction directory behind."
+  [[ -z "$(find "$applications_dir" -mindepth 1 -maxdepth 1 -name '.neati-install.*' -print -quit)" ]] || fail "Installer left a transaction directory behind."
   [[ "$(find "$applications_dir" -mindepth 1 -maxdepth 1 -type d -name '*Neati*.app' | wc -l | tr -d ' ')" == "1" ]] || fail "Installer created a stale Neati bundle."
 }
 
@@ -71,28 +71,26 @@ test_installs_when_no_previous_bundle_exists() {
   local source_app="$test_root/build/Neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.1.18 com.zenith.desktop first-install
+  make_bundle "$source_app" 0.1.18 com.neati.desktop first-install
 
   run_installer "$source_app" "$applications_dir" env >/dev/null
 
   assert_installed "$applications_dir" 0.1.18 first-install
 }
 
-test_legacy_bundle_is_preserved_and_duplicate_install_is_refused() {
+test_unrelated_bundle_is_preserved_during_fresh_install() {
   local test_root="$fixture_root/legacy"
   local source_app="$test_root/build/Neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.3.73 com.zenith.desktop new-build
-  make_bundle "$applications_dir/Zenith.app" 0.3.72 com.zenith.desktop legacy-build
-  if run_installer "$source_app" "$applications_dir" env >/dev/null 2>&1; then
-    fail "Installer left duplicate old and renamed apps."
-  fi
-  [[ ! -e "$applications_dir/Neati.app" ]] || fail "New app installed despite legacy conflict."
-  [[ "$(tr -d '\n' < "$applications_dir/Zenith.app/Contents/MacOS/Neati")" == "legacy-build" ]] || fail "Legacy app was modified."
+  make_bundle "$source_app" 0.3.73 com.neati.desktop new-build
+  make_bundle "$applications_dir/Other.app" 0.3.72 example.other.desktop other-build
+  run_installer "$source_app" "$applications_dir" env >/dev/null
+  assert_installed "$applications_dir" 0.3.73 new-build
+  [[ "$(tr -d '\n' < "$applications_dir/Other.app/Contents/MacOS/Neati")" == "other-build" ]] || fail "Unrelated app was modified."
 }
 
-test_legacy_bundle_is_preserved_and_duplicate_install_is_refused
+test_unrelated_bundle_is_preserved_during_fresh_install
 
 test_rejects_wrong_source_identifier() {
   local test_root="$fixture_root/wrong-source"
@@ -100,7 +98,7 @@ test_rejects_wrong_source_identifier() {
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 example.untrusted.app untrusted
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.zenith.desktop old-install
+  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
 
   if run_installer "$source_app" "$applications_dir" env >/dev/null 2>&1; then
     fail "Installer accepted a source with the wrong bundle identifier."
@@ -113,7 +111,7 @@ test_rejects_unverified_destination() {
   local source_app="$test_root/build/Neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.1.18 com.zenith.desktop new-build
+  make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
   make_bundle "$applications_dir/Neati.app" 9.9.9 example.other.app other-app
 
   if run_installer "$source_app" "$applications_dir" env >/dev/null 2>&1; then
@@ -127,10 +125,10 @@ test_copy_failure_preserves_previous_bundle() {
   local source_app="$test_root/build/Neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.1.18 com.zenith.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.zenith.desktop old-install
+  make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
+  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
 
-  if run_installer "$source_app" "$applications_dir" env ZENITH_INSTALL_TEST_FAILPOINT=before-copy >/dev/null 2>&1; then
+  if run_installer "$source_app" "$applications_dir" env NEATI_INSTALL_TEST_FAILPOINT=before-copy >/dev/null 2>&1; then
     fail "Injected staging failure unexpectedly succeeded."
   fi
   assert_installed "$applications_dir" 0.1.17 old-install
@@ -142,8 +140,8 @@ test_permission_failure_preserves_previous_bundle() {
   local applications_dir="$test_root/Applications"
   local error_log="$test_root/error.log"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.1.18 com.zenith.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.zenith.desktop old-install
+  make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
+  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
   chmod 500 "$applications_dir"
 
   if run_installer "$source_app" "$applications_dir" env > /dev/null 2> "$error_log"; then
@@ -161,10 +159,10 @@ test_activation_failure_rolls_back() {
   local source_app="$test_root/build/Neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.1.18 com.zenith.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.zenith.desktop old-install
+  make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
+  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
 
-  if run_installer "$source_app" "$applications_dir" env ZENITH_INSTALL_TEST_FAILPOINT=after-activation >/dev/null 2>&1; then
+  if run_installer "$source_app" "$applications_dir" env NEATI_INSTALL_TEST_FAILPOINT=after-activation >/dev/null 2>&1; then
     fail "Injected activation failure unexpectedly succeeded."
   fi
   assert_installed "$applications_dir" 0.1.17 old-install
@@ -175,7 +173,7 @@ test_custom_paths_require_test_mode() {
   local source_app="$test_root/build/Neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
-  make_bundle "$source_app" 0.1.18 com.zenith.desktop new-build
+  make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
 
   if "$installer" --source "$source_app" --applications-dir "$applications_dir" >/dev/null 2>&1; then
     fail "Installer accepted custom paths outside test mode."

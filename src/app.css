@@ -1,11 +1,11 @@
-/* Zenith · blue-to-cyan accents · frosted chrome · solid working surfaces */
+/* Neati · blue-to-cyan accents · frosted chrome · solid working surfaces */
 /* Scan only the root app entrypoint and source tree. The onboarding site has a
    separate Tailwind build and must not inflate the desktop bundle. */
 @import "tailwindcss" source(none);
 @source "../index.html";
 @source "./**/*.{svelte,js,ts}";
 
-/* Tailwind v4 uses media queries for `dark` by default. Zenith persists a
+/* Tailwind v4 uses media queries for `dark` by default. Neati persists a
    class-based theme so both the main window and Quick Panel can apply the same
    setting without depending on the OS preference. */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -39,7 +39,7 @@
   --color-border-strong: hsl(var(--border-strong));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Segoe UI Mono", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", monospace;
   /* Dense metadata steps. Never below 10 px, and never for a critical warning. */
   --text-micro: 0.625rem;      /* 10 px · micro badges and status dots */
@@ -47,9 +47,9 @@
   --text-caption: 0.6875rem;   /* 11 px · captions and timestamps */
   --text-caption--line-height: 1rem;
   --text-meta: 0.75rem;        /* 12 px · supporting information */
-  --text-meta--line-height: 1.0625rem;
+  --text-meta--line-height: 1.125rem;
   --text-body: 0.8125rem;      /* 13 px · body copy in dense surfaces */
-  --text-body--line-height: 1.125rem;
+  --text-body--line-height: 1.25rem;
   --text-title: 1.375rem;      /* 22 px · page headings */
   --text-title--line-height: 1.75rem;
   --text-metric: 1.75rem;      /* 28 px · key metrics */
@@ -167,13 +167,13 @@
   background-image: linear-gradient(180deg, hsl(var(--meter-start)), hsl(var(--meter-end)));
 }
 
-.zenith-action {
+.neati-action {
   background-color: hsl(var(--action));
   background-image: linear-gradient(115deg, hsl(var(--action)), hsl(var(--action-end)));
   box-shadow: inset 0 1px 0 hsl(var(--glass-edge) / 0.48), 0 1px 3px hsl(var(--primary) / 0.08);
 }
 
-.zenith-action:hover:not(:disabled) {
+.neati-action:hover:not(:disabled) {
   box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.2), 0 2px 5px hsl(var(--primary) / 0.12);
 }
 
@@ -224,12 +224,20 @@
 }
 
 /* Tailwind's preflight no longer supplies the v3 default border color. Keep
-   unqualified borders consistent with Zenith's semantic token. */
+   unqualified borders consistent with Neati's semantic token. */
 @layer base {
   *,
   ::before,
   ::after {
     border-color: hsl(var(--border));
+  }
+
+  h1, h2, h3, h4, p, label, summary {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
   }
 }
 
@@ -439,7 +447,7 @@ html.native-material-window #app {
   border-color: hsl(var(--foreground) / 0.12);
 }
 
-/* Zenith · quick readings align, while cleanup owns the panel's focal point. */
+/* Neati · quick readings align, while cleanup owns the panel's focal point. */
 .quick-list-section,
 .quick-data-row {
   border-bottom: 1px solid hsl(var(--foreground) / 0.1);

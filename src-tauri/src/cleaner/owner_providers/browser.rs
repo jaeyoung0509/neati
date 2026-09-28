@@ -16,14 +16,14 @@ use crate::models::{
     ProviderStatus,
 };
 use crate::safety::{Blacklist, SymlinkGuard, ToctouGuard};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use zenith_core::domain::cleanup::{
+use neati_core::domain::cleanup::{
     OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitMeasurer, RunningProcessPolicy,
     RunningProcessProbe,
 };
-use zenith_platform::{PlatformEnvironment, TrashBackend};
+use neati_platform::{PlatformEnvironment, TrashBackend};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 const MAX_STORE_ENTRIES: usize = 200_000;
 const MAX_STORE_DEPTH: usize = 64;
@@ -414,8 +414,7 @@ impl ChromiumCacheProvider {
             ));
         }
         let mut plan = OwnerProviderAuthorization {
-            deletion_disposition:
-                zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: String::new(),
             provider_id: self.id().into(),
             risk: crate::models::RiskTier::Rebuild,
@@ -856,10 +855,10 @@ mod tests {
     #[test]
     fn windows_layouts_resolve_from_the_stated_local_app_data() {
         let local = PathBuf::from(r"D:\Users\tester\AppData\Local");
-        let roots = zenith_platform::paths::SimulatedPaths::new()
-            .with_flavor(zenith_platform::PathFlavor::Windows)
+        let roots = neati_platform::paths::SimulatedPaths::new()
+            .with_flavor(neati_platform::PathFlavor::Windows)
             .with_local_app_data(local.clone());
-        let environment = PlatformEnvironment::simulated(zenith_platform::PathFlavor::Windows)
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::Windows)
             .with_platform(PlatformKind::Windows)
             .with_roots(Arc::new(roots));
         assert_eq!(

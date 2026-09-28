@@ -71,7 +71,7 @@ jobs:
           # multi-gigabyte build tree.
           path: sbom-input
           format: spdx-json
-          output-file: artifacts/SBOM-zenith.spdx.json
+          output-file: artifacts/SBOM-neati.spdx.json
           upload-artifact: false
           upload-release-assets: false
           dependency-snapshot: false
@@ -102,7 +102,7 @@ jobs:
       - name: Upload release SBOM
         uses: actions/upload-artifact@v7
         with:
-          name: zenith-release-sbom
+          name: neati-release-sbom
           path: artifacts/SBOM-*.spdx.json
           if-no-files-found: error
 
@@ -174,7 +174,7 @@ jobs:
           fi
           DMG_PATH="$DMG_PATHS"
 
-          cp "$DMG_PATH" artifacts/Zenith-macos-arm64.dmg
+          cp "$DMG_PATH" artifacts/Neati-macos-arm64.dmg
           cat > artifacts/BUILD_INFO-macos-arm64.txt <<EOF
           Neati macOS Public Beta
           Target: aarch64-apple-darwin (Apple Silicon)
@@ -186,15 +186,15 @@ jobs:
           Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           EOF
           node scripts/release_checksums.cjs write \
-            --file artifacts/Zenith-macos-arm64.dmg \
+            --file artifacts/Neati-macos-arm64.dmg \
             --output artifacts/SHA256SUMS-macos-arm64.txt
 
       - name: Upload macOS release artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: zenith-release-macos-arm64
+          name: neati-release-macos-arm64
           path: |
-            artifacts/Zenith-macos-arm64.dmg
+            artifacts/Neati-macos-arm64.dmg
             artifacts/SHA256SUMS-macos-arm64.txt
             artifacts/BUILD_INFO-macos-arm64.txt
           if-no-files-found: error
@@ -267,7 +267,7 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one per-user NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination artifacts/Zenith-windows-x64-setup.exe
+          Copy-Item -Path $installers[0].FullName -Destination artifacts/Neati-windows-x64-setup.exe
 
       - name: Clear NSIS output before the machine-wide build
         shell: pwsh
@@ -285,7 +285,7 @@ jobs:
           if ($installers.Count -ne 1) {
             throw "Expected exactly one machine-wide NSIS installer, found $($installers.Count)"
           }
-          Copy-Item -Path $installers[0].FullName -Destination artifacts/Zenith-windows-x64-setup-machine.exe
+          Copy-Item -Path $installers[0].FullName -Destination artifacts/Neati-windows-x64-setup-machine.exe
 
       - name: Write build metadata, checksums, and WinGet manifests
         shell: pwsh
@@ -306,20 +306,20 @@ jobs:
 
           node scripts/release_checksums.cjs write-many `
             --output artifacts/SHA256SUMS-windows-x64.txt `
-            artifacts/Zenith-windows-x64-setup.exe `
-            artifacts/Zenith-windows-x64-setup-machine.exe
+            artifacts/Neati-windows-x64-setup.exe `
+            artifacts/Neati-windows-x64-setup-machine.exe
           node scripts/generate_winget_manifest.cjs `
             --version $version `
-            --installer artifacts/Zenith-windows-x64-setup.exe `
+            --installer artifacts/Neati-windows-x64-setup.exe `
             --output artifacts/winget
 
       - name: Upload Windows release artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: zenith-release-windows-x64
+          name: neati-release-windows-x64
           path: |
-            artifacts/Zenith-windows-x64-setup.exe
-            artifacts/Zenith-windows-x64-setup-machine.exe
+            artifacts/Neati-windows-x64-setup.exe
+            artifacts/Neati-windows-x64-setup-machine.exe
             artifacts/SHA256SUMS-windows-x64.txt
             artifacts/BUILD_INFO-windows-x64.txt
             artifacts/winget/**
@@ -338,7 +338,7 @@ jobs:
       - name: Download platform artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: zenith-release-*
+          pattern: neati-release-*
           path: artifacts
           merge-multiple: true
 
@@ -346,10 +346,10 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
-            artifacts/Zenith-macos-arm64.dmg
-            artifacts/Zenith-windows-x64-setup.exe
-            artifacts/Zenith-windows-x64-setup-machine.exe
-            artifacts/SBOM-zenith.spdx.json
+            artifacts/Neati-macos-arm64.dmg
+            artifacts/Neati-windows-x64-setup.exe
+            artifacts/Neati-windows-x64-setup-machine.exe
+            artifacts/SBOM-neati.spdx.json
 
   publish-release:
     name: Publish Combined GitHub Release
@@ -372,7 +372,7 @@ jobs:
       - name: Download platform artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: zenith-release-*
+          pattern: neati-release-*
           path: artifacts
           merge-multiple: true
 
@@ -391,14 +391,14 @@ jobs:
             --reference "${ENDPOINT_REVIEW_REFERENCE}" \
             --reviewer "${ENDPOINT_REVIEW_REVIEWER}" \
             --reviewed-at "${ENDPOINT_REVIEW_DATE}" \
-            artifacts/Zenith-macos-arm64.dmg \
-            artifacts/Zenith-windows-x64-setup.exe \
-            artifacts/Zenith-windows-x64-setup-machine.exe
+            artifacts/Neati-macos-arm64.dmg \
+            artifacts/Neati-windows-x64-setup.exe \
+            artifacts/Neati-windows-x64-setup-machine.exe
 
       - name: Combine platform checksums
         run: |
           node scripts/release_checksums.cjs write \
-            --file artifacts/SBOM-zenith.spdx.json \
+            --file artifacts/SBOM-neati.spdx.json \
             --output artifacts/SHA256SUMS-sbom.txt
           node scripts/release_checksums.cjs combine \
             --output artifacts/SHA256SUMS.txt \
@@ -413,23 +413,23 @@ jobs:
             --review artifacts/endpoint-review.json \
             --version "$(node -p "require('./package.json').version")" \
             --commit "${GITHUB_SHA}" \
-            artifacts/Zenith-macos-arm64.dmg \
-            artifacts/Zenith-windows-x64-setup.exe \
-            artifacts/Zenith-windows-x64-setup-machine.exe
+            artifacts/Neati-macos-arm64.dmg \
+            artifacts/Neati-windows-x64-setup.exe \
+            artifacts/Neati-windows-x64-setup-machine.exe
 
       - name: Create one prerelease with macOS and Windows assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Zenith-macos-arm64.dmg
-            artifacts/Zenith-windows-x64-setup.exe
-            artifacts/Zenith-windows-x64-setup-machine.exe
+            artifacts/Neati-macos-arm64.dmg
+            artifacts/Neati-windows-x64-setup.exe
+            artifacts/Neati-windows-x64-setup-machine.exe
             artifacts/SHA256SUMS.txt
             artifacts/SHA256SUMS-macos-arm64.txt
             artifacts/SHA256SUMS-windows-x64.txt
             artifacts/BUILD_INFO-macos-arm64.txt
             artifacts/BUILD_INFO-windows-x64.txt
-            artifacts/SBOM-zenith.spdx.json
+            artifacts/SBOM-neati.spdx.json
             artifacts/endpoint-review.json
             artifacts/winget/**/*.yaml
           prerelease: true
@@ -443,8 +443,8 @@ jobs:
 
             Each installer was submitted to Microsoft's endpoint-protection analysis before publication. `endpoint-review.json` records the reviewed outcome for these exact bytes, and a detection blocks publication.
 
-            Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/zenith`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
+            Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/neati`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
 
-            Neati has no updater and performs no background network activity. Open https://github.com/jaeyoung0509/zenith/releases to check whether a corrected release exists.
+            Neati has no updater and performs no background network activity. Open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
 
-            The per-user installer (`Zenith-windows-x64-setup.exe`) installs under `%LOCALAPPDATA%` without elevation. The machine-wide installer (`Zenith-windows-x64-setup-machine.exe`) installs under Program Files, requires elevation, and exists for managed machines whose application-control policy refuses to execute binaries from user-writable locations; it does not make the binary trusted. Both installers embed the WebView2 offline installer, so installation needs no network access.
+            The per-user installer (`Neati-windows-x64-setup.exe`) installs under `%LOCALAPPDATA%` without elevation. The machine-wide installer (`Neati-windows-x64-setup-machine.exe`) installs under Program Files, requires elevation, and exists for managed machines whose application-control policy refuses to execute binaries from user-writable locations; it does not make the binary trusted. Both installers embed the WebView2 offline installer, so installation needs no network access.

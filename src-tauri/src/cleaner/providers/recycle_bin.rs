@@ -16,11 +16,11 @@
 //! them, and nothing here is a fallback for one of them.
 
 use super::LifecycleProvider;
-use std::sync::Arc;
-use zenith_core::domain::cleanup::{ProviderOutcome, ProviderProbe, ProviderStatus};
-use zenith_platform::{
+use neati_core::domain::cleanup::{ProviderOutcome, ProviderProbe, ProviderStatus};
+use neati_platform::{
     NativeRecycleBinBackend, PlatformEnvironment, RecycleBinBackend, RecycleBinError,
 };
+use std::sync::Arc;
 
 /// The stable id the catalog names for this action.
 pub const PROVIDER_ID: &str = "windows.recycle_bin";
@@ -59,8 +59,8 @@ impl LifecycleProvider for WindowsRecycleBinProvider {
         PROVIDER_ID
     }
 
-    fn platforms(&self) -> &'static [zenith_core::domain::platform::PlatformKind] {
-        &[zenith_core::domain::platform::PlatformKind::Windows]
+    fn platforms(&self) -> &'static [neati_core::domain::platform::PlatformKind] {
+        &[neati_core::domain::platform::PlatformKind::Windows]
     }
 
     fn consequence(&self) -> &'static str {
@@ -190,12 +190,12 @@ impl LifecycleProvider for WindowsRecycleBinProvider {
 mod tests {
     use super::{WindowsRecycleBinProvider, CONSEQUENCE};
     use crate::cleaner::providers::LifecycleProvider;
-    use std::sync::Arc;
-    use zenith_core::domain::cleanup::ProviderStatus;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::{
+    use neati_core::domain::cleanup::ProviderStatus;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::{
         MockRecycleBinBackend, PlatformEnvironment, RecycleBinBackend, RecycleBinError,
     };
+    use std::sync::Arc;
 
     fn environment() -> PlatformEnvironment {
         PlatformEnvironment::simulated(PathFlavor::current())
@@ -247,7 +247,7 @@ mod tests {
         assert_eq!(provider.id(), "windows.recycle_bin");
         assert_eq!(
             provider.platforms(),
-            &[zenith_core::domain::platform::PlatformKind::Windows]
+            &[neati_core::domain::platform::PlatformKind::Windows]
         );
         assert!(provider.requires_confirmation());
         assert_eq!(provider.consequence(), CONSEQUENCE);

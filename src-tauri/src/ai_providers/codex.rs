@@ -60,7 +60,7 @@ impl ProviderAdapter for CodexAdapter {
 
         if let Some(stdin) = child.stdin.as_mut() {
             let requests = [
-                json!({"method":"initialize","id":0,"params":{"clientInfo":{"name":"zenith","title":"Neati","version":"0.1.0"}}}),
+                json!({"method":"initialize","id":0,"params":{"clientInfo":{"name":"neati","title":"Neati","version":"0.1.0"}}}),
                 json!({"method":"initialized","params":{}}),
                 json!({"method":"account/read","id":1,"params":{"refreshToken":false}}),
                 json!({"method":"account/rateLimits/read","id":2}),

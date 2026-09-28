@@ -1,12 +1,12 @@
 #[cfg(windows)]
 use crate::safety::ToctouGuard;
 use crate::safety::{Blacklist, SymlinkGuard};
+use neati_platform::PlatformEnvironment;
 #[cfg(unix)]
 use std::ffi::{CStr, CString, OsStr, OsString};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use zenith_platform::PlatformEnvironment;
 
 #[cfg(unix)]
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
@@ -246,7 +246,7 @@ impl WindowsDeleteHandle {
             FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES, OPEN_EXISTING,
         };
 
-        let wide = zenith_platform::NativePlatformPaths::to_verbatim_wide(path);
+        let wide = neati_platform::NativePlatformPaths::to_verbatim_wide(path);
 
         let handle = retry_on_sharing_violation(|| {
             let h = unsafe {
@@ -665,7 +665,7 @@ impl SafeTreeDeleter {
     pub fn move_to_trash_validated(
         target: &super::ValidatedTarget,
         environment: &PlatformEnvironment,
-        backend: &dyn zenith_platform::TrashBackend,
+        backend: &dyn neati_platform::TrashBackend,
     ) -> TreeDeleteReport {
         let mut report = TreeDeleteReport {
             structured_state_policy: Some(target.structured_state_policy()),
@@ -923,7 +923,7 @@ impl SafeTreeDeleter {
         environment: &PlatformEnvironment,
         stale_policy: Option<super::StaleEntryPolicy>,
         structured_state_policy: crate::models::StructuredStatePolicy,
-        backend: &dyn zenith_platform::TrashBackend,
+        backend: &dyn neati_platform::TrashBackend,
         report: &mut TreeDeleteReport,
     ) {
         let entries = match fs::read_dir(directory) {
@@ -2108,7 +2108,7 @@ impl SafeTreeDeleter {
             }
 
             // fchmod is intentionally limited to a no-follow descriptor for a
-            // directory owned by the effective user. Zenith never escalates
+            // directory owned by the effective user. Neati never escalates
             // privileges or chmods a replacement symlink.
             let effective_uid = unsafe { libc::geteuid() } as u32;
             if metadata.uid() != effective_uid {
@@ -2356,7 +2356,7 @@ impl SafeTreeDeleter {
     }
 
     fn capture_verified_scope(root: &Path) -> Result<VerifiedCleanupScope, String> {
-        let lexical_root = zenith_platform::path_algebra::normalize_lexical(root);
+        let lexical_root = neati_platform::path_algebra::normalize_lexical(root);
         let is_link = SymlinkGuard::is_symlink_strict(root).map_err(|error| error.to_string())?;
         let canonical_root = if is_link {
             // A final link is removed as a link and never traversed. Following
@@ -2424,7 +2424,7 @@ impl SafeTreeDeleter {
         path: &Path,
         verified_scope: &VerifiedCleanupScope,
     ) -> Result<(), String> {
-        let normalized_path = zenith_platform::path_algebra::normalize_lexical(path);
+        let normalized_path = neati_platform::path_algebra::normalize_lexical(path);
         if normalized_path != verified_scope.lexical_root
             && !normalized_path.starts_with(&verified_scope.lexical_root)
         {
@@ -2455,18 +2455,18 @@ fn allocated_bytes(metadata: &fs::Metadata) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::ZenithError;
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::PlatformEnvironment;
+    use crate::models::NeatiError;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::PlatformEnvironment;
 
     /// Deletion tests exercise argument threading, not path resolution: no
     /// exclusion in these tests needs the environment to expand.
     fn environment() -> PlatformEnvironment {
         PlatformEnvironment::simulated(PathFlavor::current()).with_home(
             if PathFlavor::current().is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         )
     }
@@ -2475,9 +2475,9 @@ mod tests {
     fn exclusion_matching_uses_the_stated_path_flavor() {
         let environment = PlatformEnvironment::simulated(PathFlavor::Windows).with_home(
             if PathFlavor::Windows.is_windows() {
-                r"Z:\ZenithFixtureHome"
+                r"Z:\NeatiFixtureHome"
             } else {
-                "/zenith-fixture-home"
+                "/neati-fixture-home"
             },
         );
         let exclusions = vec![r"C:\Users\Alice\Cache".to_string()];
@@ -2722,12 +2722,12 @@ mod tests {
         let missing = dir.path().join("does-not-exist-link");
         assert!(matches!(
             SymlinkGuard::is_symlink_strict(&missing),
-            Err(ZenithError::Missing(_))
+            Err(NeatiError::Missing(_))
         ));
-        let environment = zenith_platform::PlatformEnvironment::native();
+        let environment = neati_platform::PlatformEnvironment::native();
         assert!(matches!(
             SymlinkGuard::validate_canonical_blacklist_strict(&missing, &environment),
-            Err(ZenithError::Missing(_))
+            Err(NeatiError::Missing(_))
         ));
     }
 

@@ -1,8 +1,8 @@
 use crate::models::{
     CacheArtifactKind, CacheManagementMode, CacheMetadata, CacheSizeSemantics,
     CacheUsageConfidence, Category, CleanStrategy, CleanerFamily, CleanupOwnership,
-    CleanupUnitKind, EligibilityGate, PlatformKind, RiskTier, RunningProcessPolicy,
-    StructuredStatePolicy, ZenithError,
+    CleanupUnitKind, EligibilityGate, NeatiError, PlatformKind, RiskTier, RunningProcessPolicy,
+    StructuredStatePolicy,
 };
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +29,7 @@ pub enum DiscoveryScope {
 pub struct Signature {
     /// Explicit filesystem mutation channel; omitted catalogs keep legacy behavior.
     #[serde(default)]
-    pub deletion_disposition: Option<zenith_core::domain::cleanup::DeletionDisposition>,
+    pub deletion_disposition: Option<neati_core::domain::cleanup::DeletionDisposition>,
     pub id: String,
     pub name: String,
     pub category: Category,
@@ -113,7 +113,7 @@ impl Signature {
                 | CleanStrategy::DockerPrune => CacheManagementMode::ToolManaged,
                 CleanStrategy::DeleteContents
                 | CleanStrategy::DeleteDirectory
-                | CleanStrategy::DeleteStaleContents => CacheManagementMode::Zenith,
+                | CleanStrategy::DeleteStaleContents => CacheManagementMode::Neati,
             },
             artifact_kind: self.artifact_kind,
             consequence: self.consequence.clone(),
@@ -198,9 +198,9 @@ impl Signature {
     /// one that claims a non-filesystem unit while declaring filesystem paths
     /// describes an operation the executor cannot carry out. Both are load-time
     /// errors so a bad manifest cannot reach a scan.
-    pub fn validate(&self) -> Result<(), ZenithError> {
+    pub fn validate(&self) -> Result<(), NeatiError> {
         let invalid = |message: String| {
-            Err(ZenithError::InvalidPlan(format!(
+            Err(NeatiError::InvalidPlan(format!(
                 "Signature `{}` is invalid: {message}",
                 self.id
             )))
@@ -428,7 +428,7 @@ impl Signature {
         // concrete name, where `*` would match nothing and silently fail to
         // protect what it names.
         for exclusion in &self.exclusions {
-            if zenith_platform::selector::contains_selector_syntax(exclusion) {
+            if neati_platform::selector::contains_selector_syntax(exclusion) {
                 return invalid(format!(
                     "exclusion `{exclusion}` contains selector syntax; name the path or the entry instead"
                 ));
@@ -439,7 +439,7 @@ impl Signature {
             .iter()
             .chain(self.exclude_prefixes.iter())
         {
-            if zenith_platform::selector::contains_selector_syntax(prefix) {
+            if neati_platform::selector::contains_selector_syntax(prefix) {
                 return invalid(format!(
                     "prefix `{prefix}` contains selector syntax; a prefix is a literal name fragment"
                 ));
@@ -455,7 +455,7 @@ impl Signature {
                      `${{TEMP}}`, `${{SYSTEM_ROOT}}`, `${{DARWIN_USER_CACHE}}`) or as an absolute path"
                 ));
             }
-            if let Err(reason) = zenith_platform::selector::validate_pattern_syntax(pattern) {
+            if let Err(reason) = neati_platform::selector::validate_pattern_syntax(pattern) {
                 return invalid(reason);
             }
         }

@@ -1,8 +1,8 @@
 [package]
-name = "zenith-desktop"
+name = "neati-desktop"
 description = "Neati - cross-platform AI & Developer System Manager"
 # The desktop adapter is an application, not a library anyone installs, and it
-# depends on `zenith-core` by path. `cargo deny` refuses a version-less
+# depends on `neati-core` by path. `cargo deny` refuses a version-less
 # dependency on a publishable crate for the right reason — a wildcard
 # requirement reaching crates.io would resolve to anything — so the crate
 # states that it is not published rather than restating a version that the
@@ -16,7 +16,7 @@ rust-version.workspace = true
 version.workspace = true
 
 [lib]
-name = "zenith_lib"
+name = "neati_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
@@ -27,8 +27,8 @@ path = "src/main.rs"
 tauri-build = { version = "2.0", features = [] }
 
 [dependencies]
-zenith-core = { path = "../crates/zenith-core" }
-zenith-platform = { path = "../crates/zenith-platform" }
+neati-core = { path = "../crates/neati-core" }
+neati-platform = { path = "../crates/neati-platform" }
 tauri = { version = "2.0", features = ["macos-private-api", "tray-icon", "image-png"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

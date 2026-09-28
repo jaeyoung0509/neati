@@ -1,16 +1,16 @@
-use std::fs;
-use std::path::Path;
-use zenith_lib::models::{
+use neati_lib::models::{
     CleanStrategy, CleanupOwnership, CleanupUnit, DeleteTarget, EntryKind, NeverCancelled,
     RiskTier, RunningProcessPolicy, StructuredStatePolicy,
 };
-use zenith_lib::safety::{
+use neati_lib::safety::{
     RevalidationOutcome, SafeTreeDeleter, SafetyValidator, ToctouGuard, ValidatedTarget,
 };
-use zenith_lib::scanner::{
+use neati_lib::scanner::{
     DirectoryScanner, NoRootProgress, ScanLimits, SizeCalculator, TraversalCounters, WalkContext,
 };
-use zenith_platform::{PathFlavor, PlatformEnvironment};
+use neati_platform::{PathFlavor, PlatformEnvironment};
+use std::fs;
+use std::path::Path;
 
 fn validate(
     root: &Path,

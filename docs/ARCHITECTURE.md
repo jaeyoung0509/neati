@@ -1,6 +1,6 @@
 # Architecture
 
-Neati (previously Zenith) is a cross-platform desktop application built with Tauri 2, Rust, Svelte 5,
+Neati (previously Neati) is a cross-platform desktop application built with Tauri 2, Rust, Svelte 5,
 and TypeScript, supporting macOS and Windows x64.
 Rust owns system access, security boundaries, and destructive decisions. Svelte
 renders typed state and submits user intent; it never constructs or coordinates
@@ -72,15 +72,15 @@ Ask three questions of new code:
 Does it depend on Tauri, a WebView, the tray, or window lifecycle?
     yes -> src-tauri (adapter); commands stay thin, transport lives in events/
 Does it implement a native OS capability?
-    yes -> crates/zenith-platform, behind a port
-Does it express Zenith product semantics or a use case?
-    yes -> crates/zenith-core, or an application service in src-tauri/src/services
+    yes -> crates/neati-platform, behind a port
+Does it express Neati product semantics or a use case?
+    yes -> crates/neati-core, or an application service in src-tauri/src/services
 ```
 
 ## Platform capability contract
 
 Platform-specific behavior is selected behind Rust service boundaries instead
-of being spread through route components. `crates/zenith-platform` owns the
+of being spread through route components. `crates/neati-platform` owns the
 runtime platform contract — native probing, path resolution, process control,
 system actions, atomic file replacement, and the Trash adapter — and its
 `PlatformCapabilitiesProvider` exposes a typed, read-only snapshot through
@@ -89,7 +89,7 @@ each WebView and uses it to hide or disable actions that are unavailable on the
 current platform. A `read_only` capability may continue to expose inspection
 metrics, but mutating controls require an `available` capability.
 
-The crate depends on `zenith-core` and never on `zenith-desktop` or Tauri, so
+The crate depends on `neati-core` and never on `neati-desktop` or Tauri, so
 the same native probing serves a scan, an application service, or a future CLI.
 An answer that comes from another layer arrives as a probe instead of a call:
 the container-CLI question is asked where tool resolution lives and injected
@@ -116,30 +116,30 @@ maps picker cancellation to `None` just like the macOS adapter.
 
 ## Crate boundary
 
-Zenith is a Cargo workspace with three members:
+Neati is a Cargo workspace with three members:
 
 ```text
 Cargo.toml             workspace manifest: version, edition, MSRV, release profile
-crates/zenith-core     product semantics, with no desktop framework in the graph
-crates/zenith-platform native macOS/Windows integration behind narrow ports
-src-tauri              zenith-desktop: the Tauri adapter and the `Neati` binary
+crates/neati-core     product semantics, with no desktop framework in the graph
+crates/neati-platform native macOS/Windows integration behind narrow ports
+src-tauri              neati-desktop: the Tauri adapter and the `Neati` binary
 ```
 
-Every file in `zenith-core` answers one question the same way: *would this
-still make sense if Zenith had a CLI instead of a Tauri window?* Scanning,
+Every file in `neati-core` answers one question the same way: *would this
+still make sense if Neati had a CLI instead of a Tauri window?* Scanning,
 cleanup safety, storage policy, platform capability description, and the DTOs
 the interface is allowed to see all say yes. Webview IPC, tray and window
 lifecycle, capability grants, and desktop composition all say no, so they stay
-in `zenith-desktop`.
+in `neati-desktop`.
 
-`zenith-platform` answers the same question for the other kind of coupling.
+`neati-platform` answers the same question for the other kind of coupling.
 Reading a Windows registry value, resolving a known folder, terminating a
 process tree, revealing a path in Finder, replacing a file atomically, or moving
 a reviewed file to the Trash is native work that a CLI would still need, so it
 lives there behind ports — `PlatformCapabilitiesProvider`,
 `PlatformPathsProvider`, `SystemActionProvider`, the process-control functions,
-and `TrashBackend`. The crate depends on `zenith-core` and never on
-`zenith-desktop`, so a native call cannot start depending on a window. Its
+and `TrashBackend`. The crate depends on `neati-core` and never on
+`neati-desktop`, so a native call cannot start depending on a window. Its
 dependency direction is enforced by `scripts/check_core_boundaries.cjs` together
 with the rest of the boundary rules below.
 
@@ -176,11 +176,11 @@ cannot satisfy a cleanup TOCTOU check.
 
 The boundary is enforced rather than documented.
 `scripts/check_core_boundaries.cjs` reads the resolved dependency graph from
-`cargo metadata` and fails when `zenith-core` declares `tauri`, `tauri-build`,
+`cargo metadata` and fails when `neati-core` declares `tauri`, `tauri-build`,
 `tauri-plugin-*`, `windows-sys`, `security-framework`, or `rfd` as any kind of
 dependency, or reaches a `tauri*`, `windows*`, `security-framework*`, or `rfd`
-crate over normal and build edges at any depth. Both `zenith-core` and
-`zenith-platform` additionally refuse `zenith-desktop`: dependencies point into
+crate over normal and build edges at any depth. Both `neati-core` and
+`neati-platform` additionally refuse `neati-desktop`: dependencies point into
 the domain, never back out of it, so an edge up to the crate that owns the
 window inverts the layering and is deleted rather than moved.
 `just check-architecture` runs that check together with `cargo check` of both
@@ -188,16 +188,16 @@ crates; CI runs it on macOS and Windows.
 
 The execution authority that used to be missing now lives where it is used:
 `src-tauri/src/safety` owns the validated authority values, and the ports the
-platform layer implements are declared in `crates/zenith-platform` itself,
+platform layer implements are declared in `crates/neati-platform` itself,
 because no other crate has to name them.
 
 ## Repository map
 
-- `crates/zenith-core/src/domain`: product semantics that must not depend on the
+- `crates/neati-core/src/domain`: product semantics that must not depend on the
   desktop framework — risk, scan vocabulary and cleanup eligibility, cleanup
   authorization, storage policy, platform capabilities, filesystem identity,
   path invariants, and observation quality.
-- `crates/zenith-core/src/application/dto`: the serializable projections the
+- `crates/neati-core/src/application/dto`: the serializable projections the
   interface sees — plan previews, clean results and events, scan events, and the
   storage-management inventories.
 - `src-tauri/src/models`: the desktop model surface. It re-exports the domain
@@ -215,7 +215,7 @@ because no other crate has to name them.
   reviewed-storage, and provider progress become `Channel` sinks here, and the
   desktop-notification port is implemented here, so a service can be exercised
   without a Tauri runtime.
-- `crates/zenith-platform`: the native platform layer. `description.rs` holds
+- `crates/neati-platform`: the native platform layer. `description.rs` holds
   the injectable `PlatformEnvironment` description, `environment.rs` probes the
   running machine, `paths.rs` resolves user roots and known folders,
   `path_algebra.rs` owns the flavor-parameterized path rules, `process.rs` and
@@ -226,7 +226,7 @@ because no other crate has to name them.
 - `src-tauri/src/scanner`: signature-driven discovery and size measurement. The
   traversal owns symlink policy, depth bounds, error classification,
   measurement completeness, and cancellation; progress and cancellation arrive
-  as `zenith-core` contracts, never as framework types.
+  as `neati-core` contracts, never as framework types.
 - `src-tauri/src/safety`: planning, blacklist checks, validated authority
   (`ValidatedTarget`, `ValidatedModelTarget`, `FilesystemDeleteAuthority`), and
   guarded tree deletion. The authority types have no public constructor outside
@@ -269,10 +269,10 @@ because no other crate has to name them.
   for resources that must not be treated as arbitrary files.
 - `src-tauri/src/metrics` and `src-tauri/src/power`: platform system integration.
   The Memory view reports what one process-table snapshot observed. A process
-  group is labelled as started by Zenith only when that same snapshot traces
+  group is labelled as started by Neati only when that same snapshot traces
   every member's ancestry to this process; everything else is reported as
   observed, with the parent names the snapshot resolved. Termination eligibility
-  is a separate, allowlist-gated question and never implies Zenith launched the
+  is a separate, allowlist-gated question and never implies Neati launched the
   process.
 - `src-tauri/src/dev_ports`: bounded TCP-listener discovery, conservative
   development/testing-tool classification, opaque lease storage, TOCTOU validation,
@@ -414,7 +414,7 @@ same location are visited in a deterministic order.
 | `reviewable` | requires separate selection or a dedicated operation (incomplete observation, running owner, unknown prune amount, stateful action) |
 | `recent` | discovered, but the age policy is not satisfied yet |
 | `policy_gated` | discovered, but the current settings do not clean a unit this signature found |
-| `advisory` | not Zenith's operation: an external manager owns the invalidation |
+| `advisory` | not Neati's operation: an external manager owns the invalidation |
 | `blocked` | blocked or inaccessible |
 
 Only `auto_cleanable` and `reviewable` carry cleanable bytes, so
@@ -544,7 +544,7 @@ See [SAFETY.md](SAFETY.md) for the full deletion contract.
 ## User-reviewed storage management
 
 Large Files and App Uninstaller intentionally do not reuse `SignatureRegistry`,
-`ScanEngine`, or generic `DeletePlan`. Those abstractions mean “Zenith has
+`ScanEngine`, or generic `DeletePlan`. Those abstractions mean “Neati has
 classified this resource as disposable or rebuildable.” User files and inferred
 app leftovers have a different trust model.
 
@@ -607,7 +607,7 @@ Moving to Trash does not mean disk space has already been reclaimed; the UI
 reports the amount moved and describes it as potentially reclaimable after the
 Trash is emptied.
 
-The Trash adapter is a port. `zenith_platform::TrashBackend` is the only place
+The Trash adapter is a port. `neati_platform::TrashBackend` is the only place
 the `trash` crate is named, the composition root hands the adapter to
 `StorageService` so the production path and a test use the same code, and the port accepts a `ReviewedTrashEntry` —
 a type only the reviewed-storage layer mints, immediately after scope, identity,
@@ -690,7 +690,7 @@ taken, whether the execution then succeeds or fails, so a plan ID authorizes at
 most one mutation.
 
 A scan reports progress through a `ScanProgressSink` and answers cancellation
-through a `CancellationProbe`, both of which live in `zenith-core`; the Tauri
+through a `CancellationProbe`, both of which live in `neati-core`; the Tauri
 `Channel` is only the outermost adapter. Cancellation is checked at category
 boundaries, before each signature, and inside the traversal — at each directory
 boundary and entry of a measured tree. A cancelled walk stops at the next
@@ -828,7 +828,7 @@ capability entry.
 
 ### IPC numeric safety contract
 
-Zenith binds Rust structs to TypeScript via Tauri Specta using
+Neati binds Rust structs to TypeScript via Tauri Specta using
 `dangerously_cast_bigints_to_number()`. Every serialized `u64` and `Option<u64>`
 field uses the shared `ipc_numeric` serde boundary. Values up to JavaScript
 `Number.MAX_SAFE_INTEGER` ($2^{53} - 1$) round-trip as numbers; larger values are

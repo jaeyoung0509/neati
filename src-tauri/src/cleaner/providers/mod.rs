@@ -20,7 +20,7 @@
 //!
 //! What a provider never does is fall back. A failed action reports its own
 //! status; it does not become a filesystem delete, and it cannot: the operation
-//! it was classified into ([`zenith_core::domain::cleanup::CleanupOperation::LifecycleProvider`])
+//! it was classified into ([`neati_core::domain::cleanup::CleanupOperation::LifecycleProvider`])
 //! carries no path to delete through.
 //!
 //! Cancellation is the reviewed plan's lifecycle rather than a channel inside
@@ -36,12 +36,12 @@ use crate::models::{
     ScanItem, Signature,
 };
 use crate::signatures::SignatureRegistry;
-use std::collections::BTreeMap;
-use std::sync::Arc;
-use zenith_core::domain::cleanup::{
+use neati_core::domain::cleanup::{
     LifecycleProviderCleanup, ProviderOutcome, ProviderProbe, ProviderStatus,
 };
-use zenith_platform::PlatformEnvironment;
+use neati_platform::PlatformEnvironment;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 /// One reviewed provider of a lifecycle-aware cleanup action.
 ///
@@ -205,7 +205,7 @@ impl LifecycleProviderRegistry {
         let provider_id = action.provider_id();
         let Some(provider) = self.providers.get(provider_id) else {
             return ProviderOutcome::refused(
-                zenith_core::domain::cleanup::ProviderStatus::Unsupported,
+                neati_core::domain::cleanup::ProviderStatus::Unsupported,
                 format!(
                     "No provider in this build implements `{provider_id}`; the reviewed action cannot be carried out"
                 ),
@@ -308,9 +308,9 @@ pub(crate) mod test_support {
 
     use super::LifecycleProvider;
     use crate::models::PlatformKind;
+    use neati_core::domain::cleanup::{ProviderOutcome, ProviderProbe, ProviderStatus};
+    use neati_platform::PlatformEnvironment;
     use std::sync::Arc;
-    use zenith_core::domain::cleanup::{ProviderOutcome, ProviderProbe, ProviderStatus};
-    use zenith_platform::PlatformEnvironment;
 
     /// Every platform, so a stated provider is offered wherever the test runs.
     pub(crate) fn all_platforms() -> &'static [PlatformKind] {
@@ -415,11 +415,11 @@ mod tests {
     use super::LifecycleProviderRegistry;
     use crate::models::{Category, CleanStrategy, DeleteTarget, PlatformKind, RiskTier, Signature};
     use crate::signatures::SignatureRegistry;
-    use zenith_core::domain::cleanup::{
+    use neati_core::domain::cleanup::{
         CleanupOperation, ProviderOutcome, ProviderProbe, ProviderStatus,
     };
-    use zenith_platform::path_algebra::PathFlavor;
-    use zenith_platform::PlatformEnvironment;
+    use neati_platform::path_algebra::PathFlavor;
+    use neati_platform::PlatformEnvironment;
 
     fn catalog_signature() -> Signature {
         Signature {

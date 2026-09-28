@@ -36,7 +36,7 @@ ${mark('translate(96 85) scale(13)')}`);
 const compact = svg(64, `  <rect x="1" y="1" width="62" height="62" rx="15" fill="${palette.paper}"/>
 ${mark()}`);
 const tray = svg(44, templateMark, '4 4 56 56');
-const temp = mkdtempSync(join(tmpdir(), 'zenith-icons-'));
+const temp = mkdtempSync(join(tmpdir(), 'neati-icons-'));
 const generated = new Map();
 const add = (relative, content) => generated.set(relative, Buffer.from(content));
 
@@ -80,7 +80,7 @@ try {
   add('src-tauri/icons/tray-icon.svg', tray);
   add('public/app-icon.svg', app);
   add('public/favicon.svg', compact);
-  add('src/lib/assets/brands/zenith.svg', compact);
+  add('src/lib/assets/brands/neati.svg', compact);
   generated.set('src-tauri/icons/tray-icon.png', readFileSync(join(temp, 'tray/44x44.png')));
   // Explicitly regenerate the historical 64 px desktop asset as well.
   runIcon(appSource, join(temp, 'desktop'), [64]);
@@ -90,7 +90,7 @@ try {
   const registryPath = 'src/lib/utils/brandIcons.ts';
   const registry = readFileSync(join(root, registryPath), 'utf8');
   const hash = createHash('sha256').update(compact).digest('hex');
-  const updated = registry.replace(/(file: 'zenith\.svg',[\s\S]*?sha256: ')[a-f0-9]{64}(')/, `$1${hash}$2`);
+  const updated = registry.replace(/(file: 'neati\.svg',[\s\S]*?sha256: ')[a-f0-9]{64}(')/, `$1${hash}$2`);
   if (updated === registry && !registry.includes(hash)) throw new Error('Neati registry entry not found');
   add(registryPath, updated);
   const drift = [];

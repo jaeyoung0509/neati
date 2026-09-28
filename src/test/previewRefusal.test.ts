@@ -81,7 +81,7 @@ describe('destructive dispatches in preview mode', () => {
       protocol: 'http',
       process_name: 'vite',
       pid: 4242,
-      project: 'zenith',
+      project: 'neati',
       command: 'vite',
       started_at: 1,
       memory_bytes: 0,
@@ -98,7 +98,7 @@ describe('destructive dispatches in preview mode', () => {
   });
 
   it('refuses deleting a local model without reporting success', async () => {
-    const model = { id: 'mlx.zenith-probe', name: 'probe', source: 'mlx', path: '/tmp/probe' } as never;
+    const model = { id: 'mlx.neati-probe', name: 'probe', source: 'mlx', path: '/tmp/probe' } as never;
 
     await expect(localModelsStore.deleteModel(model)).resolves.toBe(false);
     expect(localModelsStore.error).toBe(refusalForPreview('Deleting a local model'));
@@ -140,13 +140,13 @@ describe('native mode', () => {
     expect(refusalForPreview('Deleting a local model')).toBeNull();
     await expect(
       localModelsStore.deleteModel({
-        id: 'mlx.zenith-probe',
+        id: 'mlx.neati-probe',
         name: 'probe',
         source: 'mlx',
         path: '/tmp/probe',
       } as never)
     ).resolves.toBe(true);
-    expect(tauriUtils.tauriDeleteLocalModel).toHaveBeenCalledWith('mlx.zenith-probe');
+    expect(tauriUtils.tauriDeleteLocalModel).toHaveBeenCalledWith('mlx.neati-probe');
     expect(localModelsStore.error).toBeNull();
   });
 

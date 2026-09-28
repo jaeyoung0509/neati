@@ -3,10 +3,10 @@
 **Status: implemented by PR #247.**
 
 This is the remaining scan-lifecycle work from
-[#238](https://github.com/jaeyoung0509/zenith/issues/238), building on the
+[#238](https://github.com/jaeyoung0509/neati/issues/238), building on the
 owner-scoped Cargo providers, complete selector traversal, and typed
 eligibility/refusal handling delivered by
-[#239](https://github.com/jaeyoung0509/zenith/pull/239).
+[#239](https://github.com/jaeyoung0509/neati/pull/239).
 
 ## Scope
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare private reference-cleaner and Zenith scan ledgers without publishing paths.
+"""Compare private reference-cleaner and Neati scan ledgers without publishing paths.
 
 The reference cleaner's list is a rounded *potential* list, not a deletion plan or a
 verified free-space delta. This tool never invokes either cleaner or deletes
@@ -94,24 +94,24 @@ def allocated_bytes(path):
         return None
 
 
-def compare(reference_rows, zenith_rows, home, measure):
+def compare(reference_rows, neati_rows, home, measure):
     by_bucket = defaultdict(lambda: Counter())
     relation = Counter()
     eligibility = Counter()
     details = []
     for reference in reference_rows:
         path = reference["path"]
-        exact = [row for row in zenith_rows if row["path"] == path]
-        ancestors = [row for row in zenith_rows if path_contains(row["path"], path)]
-        descendants = [row for row in zenith_rows if path_contains(path, row["path"])]
+        exact = [row for row in neati_rows if row["path"] == path]
+        ancestors = [row for row in neati_rows if path_contains(row["path"], path)]
+        descendants = [row for row in neati_rows if path_contains(path, row["path"])]
         if exact:
             relationship, related = "exact", exact
         elif ancestors:
             # The closest ancestor is the one whose policy describes this path.
             closest = max(ancestors, key=lambda row: len(row["path"]))
-            relationship, related = "zenith_ancestor", [closest]
+            relationship, related = "neati_ancestor", [closest]
         elif descendants:
-            relationship, related = "zenith_descendants", descendants
+            relationship, related = "neati_descendants", descendants
         else:
             relationship, related = "reference_only", []
         bucket = owner_bucket(path, home)
@@ -137,7 +137,7 @@ def compare(reference_rows, zenith_rows, home, measure):
                 "bucket": bucket,
                 "relation": relationship,
                 "allocated_bytes_at_audit": allocated,
-                "zenith": related,
+                "neati": related,
             }
         )
     nested_rows = [
@@ -159,18 +159,18 @@ def compare(reference_rows, zenith_rows, home, measure):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference-preview", type=Path, required=True)
-    parser.add_argument("--zenith-report", type=Path, required=True)
+    parser.add_argument("--neati-report", type=Path, required=True)
     parser.add_argument("--measure-allocated", action="store_true")
     parser.add_argument("--private-details", action="store_true", help="Include private paths in stdout")
     args = parser.parse_args()
     reference_rows, reported_total = parse_reference_preview(args.reference_preview)
-    zenith = json.loads(args.zenith_report.read_text())
-    zenith_rows = zenith.get("private_ledger")
-    if not isinstance(zenith_rows, list):
-        parser.error("Zenith report requires --full-catalog-read-only --private-ledger")
+    neati = json.loads(args.neati_report.read_text())
+    neati_rows = neati.get("private_ledger")
+    if not isinstance(neati_rows, list):
+        parser.error("Neati report requires --full-catalog-read-only --private-ledger")
     home = str(Path.home())
     buckets, relations, eligibility, details, overlap_summary = compare(
-        reference_rows, zenith_rows, home, args.measure_allocated
+        reference_rows, neati_rows, home, args.measure_allocated
     )
     summary = {
         "reference_preview": {
@@ -181,20 +181,20 @@ def main():
             "rounded_display_sum_bytes": sum(row["displayed_bytes"] or 0 for row in reference_rows),
             "structural_overlaps": overlap_summary,
         },
-        "zenith_scan": {
-            "sha256": hashlib.sha256(args.zenith_report.read_bytes()).hexdigest(),
-            "version": zenith["version"],
-            "started_at": zenith["started_at"],
-            "scope": zenith["scope"],
-            "quality": zenith["quality"],
-            "observed_bytes": zenith["observed_bytes"],
-            "cleanable_bytes": zenith["cleanable_bytes"],
-            "selected_bytes": zenith["selected_bytes"],
-            "gaps": zenith["gaps"],
-            "metrics": zenith["metrics"],
+        "neati_scan": {
+            "sha256": hashlib.sha256(args.neati_report.read_bytes()).hexdigest(),
+            "version": neati["version"],
+            "started_at": neati["started_at"],
+            "scope": neati["scope"],
+            "quality": neati["quality"],
+            "observed_bytes": neati["observed_bytes"],
+            "cleanable_bytes": neati["cleanable_bytes"],
+            "selected_bytes": neati["selected_bytes"],
+            "gaps": neati["gaps"],
+            "metrics": neati["metrics"],
         },
         "path_relationships": dict(sorted(relations.items())),
-        "related_zenith_eligibility": dict(sorted(eligibility.items())),
+        "related_neati_eligibility": dict(sorted(eligibility.items())),
         "buckets": {key: dict(value) for key, value in sorted(buckets.items())},
         "limitations": [
             "The reference cleaner's displayed sizes are rounded potential bytes, not verified reclaim.",

@@ -8,6 +8,24 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use uuid::Uuid;
 
+/// A mutation channel, independent of the cost of rebuilding a cache.
+/// Unlike an aggregate CleanupMode it cannot represent preview or mixed work.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub enum DeletionDisposition {
+    PermanentDelete,
+    Trash,
+}
+
+impl DeletionDisposition {
+    pub fn mode(self) -> CleanupMode {
+        match self {
+            Self::PermanentDelete => CleanupMode::PermanentDelete,
+            Self::Trash => CleanupMode::Trash,
+        }
+    }
+}
+
 /// What a plan authorizes doing to its targets.
 ///
 /// Preview and mutation are separate values rather than a flag on a mutation,
@@ -25,8 +43,7 @@ pub enum CleanupMode {
     PermanentDelete,
     /// Targets are moved to the platform's recoverable location.
     Trash,
-    /// Safe targets are permanently removed while reviewed rebuildable
-    /// filesystem targets move to the platform's recoverable location.
+    /// Some targets are permanently removed and others are recoverable.
     Mixed,
 }
 
@@ -41,7 +58,7 @@ impl CleanupMode {
             Self::Preview => "Preview only",
             Self::PermanentDelete => "Permanently deletes",
             Self::Trash => "Moves to Trash",
-            Self::Mixed => "Deletes Safe targets and moves Rebuild targets to Trash",
+            Self::Mixed => "Permanently deletes some items and moves others to Trash",
         }
     }
 }
@@ -110,6 +127,8 @@ impl RunningProcessPolicy {
 /// the process table rather than trusting the plan.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteTarget {
+    /// Explicit catalog policy; absent entries retain the legacy risk default.
+    pub deletion_disposition: Option<DeletionDisposition>,
     pub item_id: String,
     pub signature_id: String,
     pub name: String,
@@ -147,6 +166,8 @@ impl DeleteTarget {
     /// Only generic filesystem strategies can be made recoverable by moving
     /// their entries to Trash. Tool- and owner-managed actions retain their
     /// reviewed adapter semantics even when their risk tier is Rebuild.
+    /// An explicit filesystem disposition takes precedence; absent policies
+    /// preserve the catalog's legacy Safe/permanent, Rebuild/Trash default.
     pub fn execution_mode(&self) -> CleanupMode {
         let filesystem_strategy = matches!(
             self.strategy,
@@ -154,6 +175,11 @@ impl DeleteTarget {
                 | CleanStrategy::DeleteDirectory
                 | CleanStrategy::DeleteStaleContents
         );
+        if filesystem_strategy {
+            if let Some(disposition) = self.deletion_disposition {
+                return disposition.mode();
+            }
+        }
         if filesystem_strategy && self.risk != RiskTier::Safe {
             CleanupMode::Trash
         } else {
@@ -206,13 +232,17 @@ impl DeletePlan {
         targets: &[DeleteTarget],
         owner_authorizations: &[OwnerProviderAuthorization],
     ) -> CleanupMode {
-        let has_trash_targets = targets
+        let has_trash_targets = owner_authorizations
             .iter()
-            .any(|target| target.execution_mode() == CleanupMode::Trash);
-        let has_permanent_targets = !owner_authorizations.is_empty()
+            .any(|authorization| authorization.deletion_disposition == DeletionDisposition::Trash)
             || targets
                 .iter()
-                .any(|target| target.execution_mode() == CleanupMode::PermanentDelete);
+                .any(|target| target.execution_mode() == CleanupMode::Trash);
+        let has_permanent_targets = owner_authorizations.iter().any(|authorization| {
+            authorization.deletion_disposition == DeletionDisposition::PermanentDelete
+        }) || targets
+            .iter()
+            .any(|target| target.execution_mode() == CleanupMode::PermanentDelete);
 
         match (has_permanent_targets, has_trash_targets) {
             (true, true) => CleanupMode::Mixed,

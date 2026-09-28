@@ -1828,6 +1828,7 @@ mod tests {
 
     fn child_signature(root: &std::path::Path, min_age_days: u32) -> Signature {
         Signature {
+            deletion_disposition: None,
             id: "system.test.aged".into(),
             name: "Test aged caches".into(),
             category: Category::System,
@@ -2351,6 +2352,7 @@ mod tests {
         }
 
         let signature = Signature {
+            deletion_disposition: None,
             id: "system.test.intensive".into(),
             name: "Test intensive caches".into(),
             category: Category::System,
@@ -2476,6 +2478,7 @@ mod tests {
         std::fs::write(standalone.join("tool"), vec![1u8; 4096]).unwrap();
 
         let signature = Signature {
+            deletion_disposition: None,
             id: "system.test.bundles".into(),
             name: "Test bundle guard".into(),
             category: Category::System,
@@ -2696,6 +2699,7 @@ mod tests {
         }
 
         let signature = Signature {
+            deletion_disposition: None,
             id: "system.test.namespaces".into(),
             name: "Test cache namespaces".into(),
             category: Category::System,
@@ -2754,6 +2758,7 @@ mod tests {
         age_entry(&app, 30);
 
         let signature = Signature {
+            deletion_disposition: None,
             id: "system.test.stale_desc".into(),
             name: "Test stale desc".into(),
             category: Category::System,
@@ -2805,6 +2810,7 @@ mod tests {
         std::fs::set_permissions(&containers, std::fs::Permissions::from_mode(0o000)).unwrap();
 
         let signature = Signature {
+            deletion_disposition: None,
             id: "system.test.containers".into(),
             name: "Sandboxed Application Cache".into(),
             category: Category::System,

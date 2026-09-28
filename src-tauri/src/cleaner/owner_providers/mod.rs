@@ -76,6 +76,10 @@ pub trait OwnerScopedProvider: Send + Sync {
     /// Whether removing one of its units needs explicit confirmation.
     fn requires_confirmation(&self) -> bool;
 
+    fn deletion_disposition(&self) -> zenith_core::domain::cleanup::DeletionDisposition {
+        zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete
+    }
+
     /// A short label for one unit; its opaque key remains the authorization identity.
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
         unit.path
@@ -347,6 +351,7 @@ impl OwnerProviderRegistry {
         owner_plan.risk = signature.risk;
         owner_plan.process_guard = guard;
         owner_plan.requires_confirmation = provider.requires_confirmation();
+        owner_plan.deletion_disposition = provider.deletion_disposition();
         Ok(owner_plan)
     }
 
@@ -379,6 +384,22 @@ impl OwnerProviderRegistry {
                     .collect(),
             };
         };
+        if authorization.deletion_disposition != provider.deletion_disposition() {
+            return OwnerProviderExecution {
+                units: authorization
+                    .units
+                    .iter()
+                    .map(|unit| {
+                        zenith_core::domain::cleanup::OwnerUnitOutcome::refused(
+                            unit.item_id.clone(),
+                            unit.unit_key.clone(),
+                            crate::models::ProviderStatus::Blocked,
+                            "The provider mutation channel changed since preparation",
+                        )
+                    })
+                    .collect(),
+            };
+        }
         provider.execute(environment, authorization)
     }
 
@@ -731,6 +752,8 @@ mod tests {
                 (Some(authorization), _) => Ok(authorization.clone()),
                 (None, Some(refusal)) => Err(refusal.clone()),
                 (None, None) => Ok(OwnerProviderAuthorization {
+                    deletion_disposition:
+                        zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
                     signature_id: String::new(),
                     provider_id: self.id.to_string(),
                     risk: RiskTier::Rebuild,
@@ -753,6 +776,7 @@ mod tests {
 
     fn catalog_signature() -> Signature {
         Signature {
+            deletion_disposition: None,
             id: "test.owner.store".to_string(),
             name: "Owner Store".to_string(),
             category: Category::Developer,
@@ -924,6 +948,8 @@ mod tests {
 
         let outcome = providers.execute(
             &OwnerProviderAuthorization {
+                deletion_disposition:
+                    zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
                 signature_id: "test.owner.store".to_string(),
                 provider_id: "test.owner".to_string(),
                 risk: RiskTier::Rebuild,
@@ -1013,6 +1039,8 @@ mod tests {
 
         let outcome = providers.execute(
             &OwnerProviderAuthorization {
+                deletion_disposition:
+                    zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
                 signature_id: "test.owner.store".to_string(),
                 provider_id: "test.owner".to_string(),
                 risk: RiskTier::Rebuild,
@@ -1025,5 +1053,35 @@ mod tests {
         );
 
         assert_eq!(outcome.reclaimed_bytes(), 4_096);
+    }
+
+    #[test]
+    fn changed_owner_mutation_channel_is_refused_before_execution() {
+        let mut provider = StatedProvider::enumerating("test.owner", vec![]);
+        provider.executed = OwnerProviderExecution {
+            units: vec![OwnerUnitOutcome::cleaned("item", "a", 4096)],
+        };
+        let (registry, providers) = catalog(provider.shared());
+        let mut prepared = providers
+            .prepare(&registry, "test.owner.store", &[], &environment())
+            .unwrap();
+        prepared.units.push(plan_unit(
+            "item",
+            "unit",
+            std::path::Path::new("/store"),
+            &unit("a", 4096),
+            zenith_core::domain::identity::CleanupIdentity::new(
+                zenith_core::domain::identity::FileIdentity::new(0, 0),
+                true,
+                0,
+                zenith_core::domain::identity::ModifiedStamp::new(0, 0),
+            ),
+        ));
+        prepared.deletion_disposition = zenith_core::domain::cleanup::DeletionDisposition::Trash;
+        let outcome = providers.execute(&prepared, &environment());
+        assert_eq!(outcome.units.len(), 1);
+        assert_eq!(outcome.units[0].status, ProviderStatus::Blocked);
+        assert_eq!(outcome.reclaimed_bytes(), 0);
+        assert_eq!(outcome.units[0].moved_to_trash_bytes, 0);
     }
 }

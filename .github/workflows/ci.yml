@@ -71,7 +71,7 @@ jobs:
         run: pnpm test -- --run
 
       - name: Cleanup analysis privacy tests
-        run: python3 -m unittest discover -s scripts -p 'test_cleanup_gap_ledger.py'
+        run: python3 -m unittest discover -s scripts -p 'test_cleanup_*.py'
 
       - name: Vite Production Build
         run: pnpm build

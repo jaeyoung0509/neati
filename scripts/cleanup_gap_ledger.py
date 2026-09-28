@@ -98,7 +98,8 @@ def build_ledger(reference, zenith_rows, home):
         })
     rows.sort(key=lambda row: row["candidate_id"])
     return {
-        "schema": 1, "relationships": dict(relationships), "preview_overlaps": overlaps,
+        "schema": 1, "preview_byte_basis": "SI decimal, rounded display labels",
+        "relationships": dict(relationships), "preview_overlaps": overlaps,
         "classification_counts": dict(Counter(row["classification"] for row in rows)),
         "zero_preview_rows": sum(row["preview_zero"] for row in rows),
         "rows": rows,

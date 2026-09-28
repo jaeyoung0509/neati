@@ -187,6 +187,7 @@ mod tests {
 
     fn target(strategy: CleanStrategy) -> DeleteTarget {
         DeleteTarget {
+            deletion_disposition: None,
             item_id: "item".to_string(),
             signature_id: "dev.example.cache".to_string(),
             name: "Example cache".to_string(),

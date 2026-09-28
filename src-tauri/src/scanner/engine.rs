@@ -1209,6 +1209,7 @@ mod tests {
         min_age_days: Option<u32>,
     ) -> Signature {
         Signature {
+            deletion_disposition: None,
             id: id.to_string(),
             name: name.to_string(),
             category,

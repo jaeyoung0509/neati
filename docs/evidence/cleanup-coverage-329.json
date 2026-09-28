@@ -16,10 +16,11 @@
     "Unknown paths and source-reviewed candidates carry no deletion authority.",
     "Zero preview does not establish current absence or emptiness."
   ],
+  "preview_byte_basis": "SI decimal, rounded display labels",
   "preview_overlaps": {
     "nested_item_count": 3,
-    "nested_rounded_preview_bytes": 26688102,
-    "top_level_rounded_preview_bytes": 332221025
+    "nested_rounded_preview_bytes": 25453000,
+    "top_level_rounded_preview_bytes": 316901000
   },
   "relationships": {
     "exact": 13,
@@ -39,7 +40,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 117760,
+      "rounded_preview_bytes": 115000,
       "verified_reclaim_bytes": null
     },
     {
@@ -53,7 +54,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 1024,
+      "rounded_preview_bytes": 1000,
       "verified_reclaim_bytes": null
     },
     {
@@ -67,7 +68,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 1677721,
+      "rounded_preview_bytes": 1600000,
       "verified_reclaim_bytes": null
     },
     {
@@ -81,7 +82,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 3565158,
+      "rounded_preview_bytes": 3400000,
       "verified_reclaim_bytes": null
     },
     {
@@ -95,7 +96,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 1024,
+      "rounded_preview_bytes": 1000,
       "verified_reclaim_bytes": null
     },
     {
@@ -109,7 +110,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 59392,
+      "rounded_preview_bytes": 58000,
       "verified_reclaim_bytes": null
     },
     {
@@ -151,7 +152,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 33792,
+      "rounded_preview_bytes": 33000,
       "verified_reclaim_bytes": null
     },
     {
@@ -165,7 +166,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 1024,
+      "rounded_preview_bytes": 1000,
       "verified_reclaim_bytes": null
     },
     {
@@ -179,7 +180,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 415744,
+      "rounded_preview_bytes": 406000,
       "verified_reclaim_bytes": null
     },
     {
@@ -207,7 +208,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 2048,
+      "rounded_preview_bytes": 2000,
       "verified_reclaim_bytes": null
     },
     {
@@ -221,7 +222,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 56320,
+      "rounded_preview_bytes": 55000,
       "verified_reclaim_bytes": null
     },
     {
@@ -235,7 +236,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 4508876,
+      "rounded_preview_bytes": 4300000,
       "verified_reclaim_bytes": null
     },
     {
@@ -263,7 +264,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 28672,
+      "rounded_preview_bytes": 28000,
       "verified_reclaim_bytes": null
     },
     {
@@ -277,7 +278,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 2936012,
+      "rounded_preview_bytes": 2800000,
       "verified_reclaim_bytes": null
     },
     {
@@ -291,7 +292,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 1024,
+      "rounded_preview_bytes": 1000,
       "verified_reclaim_bytes": null
     },
     {
@@ -305,7 +306,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 331776,
+      "rounded_preview_bytes": 324000,
       "verified_reclaim_bytes": null
     },
     {
@@ -319,7 +320,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 120832,
+      "rounded_preview_bytes": 118000,
       "verified_reclaim_bytes": null
     },
     {
@@ -333,7 +334,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 4194304,
+      "rounded_preview_bytes": 4000000,
       "verified_reclaim_bytes": null
     },
     {
@@ -347,7 +348,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 1048576,
+      "rounded_preview_bytes": 1000000,
       "verified_reclaim_bytes": null
     },
     {
@@ -375,7 +376,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 1024,
+      "rounded_preview_bytes": 1000,
       "verified_reclaim_bytes": null
     },
     {
@@ -445,7 +446,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 173056,
+      "rounded_preview_bytes": 169000,
       "verified_reclaim_bytes": null
     },
     {
@@ -459,7 +460,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 4089446,
+      "rounded_preview_bytes": 3900000,
       "verified_reclaim_bytes": null
     },
     {
@@ -473,7 +474,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 53248,
+      "rounded_preview_bytes": 52000,
       "verified_reclaim_bytes": null
     },
     {
@@ -487,7 +488,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 32768,
+      "rounded_preview_bytes": 32000,
       "verified_reclaim_bytes": null
     },
     {
@@ -515,7 +516,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 16384,
+      "rounded_preview_bytes": 16000,
       "verified_reclaim_bytes": null
     },
     {
@@ -543,7 +544,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 51200,
+      "rounded_preview_bytes": 50000,
       "verified_reclaim_bytes": null
     },
     {
@@ -557,7 +558,7 @@
       "overlaps_another_preview": false,
       "preview_zero": false,
       "relationship": "reference_only",
-      "rounded_preview_bytes": 679936,
+      "rounded_preview_bytes": 664000,
       "verified_reclaim_bytes": null
     }
   ],

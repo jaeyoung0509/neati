@@ -26,8 +26,8 @@ pub use owner::{
     RunningProcessProbe,
 };
 pub use plan::{
-    CleanFailureReason, CleanupMode, DeletePlan, DeleteTarget, PlanItemRefusal,
-    RunningProcessPolicy,
+    CleanFailureReason, CleanupMode, DeletePlan, DeleteTarget, DeletionDisposition,
+    PlanItemRefusal, RunningProcessPolicy,
 };
 pub use provider::{ProviderOutcome, ProviderProbe, ProviderStatus};
 pub use strategy::CleanStrategy;

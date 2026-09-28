@@ -210,7 +210,7 @@ impl DeletePlan {
                 item_id: unit.item_id.clone(),
                 name: unit.name.clone(),
                 path: unit.path.to_string_lossy().into_owned(),
-                mode: CleanupMode::PermanentDelete,
+                mode: authorization.deletion_disposition.mode(),
                 requires_confirmation: authorization.requires_confirmation,
                 expected_bytes: unit.expected_bytes,
                 risk: authorization.risk,

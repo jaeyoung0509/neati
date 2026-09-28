@@ -19,6 +19,7 @@ fn validate(
     environment: &PlatformEnvironment,
 ) -> ValidatedTarget {
     let target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "exclusion-fixture".into(),
         signature_id: "test.exclusion".into(),
         name: "Exclusion fixture".into(),

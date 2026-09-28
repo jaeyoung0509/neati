@@ -830,6 +830,19 @@ mod tests {
     }
 
     #[test]
+    fn windows_cache_fixture_matches_normalized_scan_path_on_every_host() {
+        let fixture =
+            r"C:\Users\runner\AppData\Local\Temp\.tmp123\Library/Caches/pypoetry/artifacts";
+        let scanned =
+            r"C:\Users\runner\AppData\Local\Temp\.tmp123\Library\Caches\pypoetry\artifacts";
+        assert_ne!(fixture, scanned, "raw display strings intentionally differ");
+        assert!(equal(fixture, scanned, W));
+        assert!(!equal(fixture, scanned, P));
+        assert!(!equal(fixture, &format!("{scanned}-other"), W));
+        assert!(!equal(fixture, &format!("{scanned}\\child"), W));
+    }
+
+    #[test]
     fn parent_traversal_is_recognized_on_both_flavors() {
         assert!(has_parent_traversal("../cache", PathFlavor::Posix));
         assert!(has_parent_traversal(

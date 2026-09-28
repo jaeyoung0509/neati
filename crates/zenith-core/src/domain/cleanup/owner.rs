@@ -30,7 +30,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::plan::{CleanFailureReason, RunningProcessPolicy};
+use super::plan::{CleanFailureReason, DeletionDisposition, RunningProcessPolicy};
 use super::provider::ProviderStatus;
 use crate::domain::identity::CleanupIdentity;
 use crate::domain::risk::RiskTier;
@@ -304,6 +304,7 @@ pub struct OwnerUnitRefusal {
 /// to classify and no generic primitive that could carry it out.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OwnerProviderAuthorization {
+    pub deletion_disposition: DeletionDisposition,
     /// The catalog entry that authorized this provider, so a plan states which
     /// signature its units came from.
     pub signature_id: String,
@@ -379,6 +380,8 @@ pub struct OwnerUnitOutcome {
     pub status: ProviderStatus,
     /// What the provider measured as removed.
     pub reclaimed_bytes: u64,
+    /// Recoverable movement is not reclaimed disk space.
+    pub moved_to_trash_bytes: u64,
     /// What the provider observed remaining. `None` means its verification
     /// could not read the unit afterwards, which is reported as partial.
     pub remaining_bytes: Option<u64>,
@@ -397,8 +400,20 @@ impl OwnerUnitOutcome {
             unit_key: unit_key.into(),
             status: ProviderStatus::Cleaned,
             reclaimed_bytes,
+            moved_to_trash_bytes: 0,
             remaining_bytes: Some(0),
             detail: None,
+        }
+    }
+
+    pub fn trashed(
+        item_id: impl Into<String>,
+        unit_key: impl Into<String>,
+        moved_to_trash_bytes: u64,
+    ) -> Self {
+        Self {
+            moved_to_trash_bytes,
+            ..Self::cleaned(item_id, unit_key, 0)
         }
     }
 
@@ -415,6 +430,7 @@ impl OwnerUnitOutcome {
             unit_key: unit_key.into(),
             status: ProviderStatus::PartiallyCleaned,
             reclaimed_bytes,
+            moved_to_trash_bytes: 0,
             remaining_bytes,
             detail: Some(detail.into()),
         }
@@ -436,6 +452,7 @@ impl OwnerUnitOutcome {
             unit_key: unit_key.into(),
             status,
             reclaimed_bytes: 0,
+            moved_to_trash_bytes: 0,
             remaining_bytes: None,
             detail: Some(detail.into()),
         }
@@ -554,6 +571,7 @@ mod tests {
 
     fn authorization(units: Vec<OwnerProviderUnit>) -> OwnerProviderAuthorization {
         OwnerProviderAuthorization {
+            deletion_disposition: crate::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: "test.store".to_string(),
             provider_id: "test.store".to_string(),
             risk: RiskTier::Rebuild,
@@ -580,6 +598,32 @@ mod tests {
             expected_bytes: bytes,
             entry_count: 1,
         }
+    }
+
+    #[test]
+    fn recoverable_owner_authority_projects_as_trash_not_permanent_delete() {
+        use crate::domain::cleanup::{CleanupMode, DeletePlan};
+        let mut owner = authorization(vec![unit("artifact", 8192)]);
+        owner.deletion_disposition = DeletionDisposition::Trash;
+        let mut plan = DeletePlan {
+            id: uuid::Uuid::new_v4(),
+            scan_id: "fixture".into(),
+            targets: vec![],
+            refusals: vec![],
+            owner_authorizations: vec![owner],
+            expected_reclaim_bytes: 8192,
+            risk: Default::default(),
+            created_at: 0,
+            mode: CleanupMode::Trash,
+        };
+        assert_eq!(plan.expected_mode(), CleanupMode::Trash);
+        assert_eq!(plan.preview(60).targets[0].mode, CleanupMode::Trash);
+        plan.owner_authorizations
+            .push(authorization(vec![unit("archive", 4096)]));
+        assert_eq!(plan.expected_mode(), CleanupMode::Mixed);
+        let outcome = OwnerUnitOutcome::trashed("artifact", "artifact", 8192);
+        assert_eq!(outcome.reclaimed_bytes, 0);
+        assert_eq!(outcome.moved_to_trash_bytes, 8192);
     }
 
     /// A store that could not be read reports no units and no bytes, while an

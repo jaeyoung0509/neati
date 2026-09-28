@@ -1198,10 +1198,7 @@ export type CleanupMode =
 "permanent_delete" |
 /**  Targets are moved to the platform's recoverable location. */
 "trash" |
-/**
- *  Safe targets are permanently removed while reviewed rebuildable
- *  filesystem targets move to the platform's recoverable location.
- */
+/**  Some targets are permanently removed and others are recoverable. */
 "mixed";
 
 /**

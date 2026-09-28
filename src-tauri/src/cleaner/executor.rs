@@ -132,7 +132,7 @@ fn owner_unit_result(outcome: &OwnerUnitOutcome, name: &str, path: &str) -> Clea
         success: matches!(status, CleanStatus::Success | CleanStatus::Partial),
         estimated_bytes: 0,
         bytes_reclaimed: outcome.reclaimed_bytes,
-        moved_to_trash_bytes: 0,
+        moved_to_trash_bytes: outcome.moved_to_trash_bytes,
         failure_reason: reason,
         error_message: (status != CleanStatus::Success).then(|| outcome.message()),
     }
@@ -801,6 +801,50 @@ mod tests {
 
     use crate::safety::ToctouGuard;
 
+    #[test]
+    fn owner_trash_result_never_claims_reclaimed_bytes() {
+        let outcome = OwnerUnitOutcome::trashed("artifact", "key", 8192);
+        let result = owner_unit_result(&outcome, "Artifact", "/fixture/artifact");
+        assert_eq!(result.status, CleanStatus::Success);
+        assert_eq!(result.bytes_reclaimed, 0);
+        assert_eq!(result.moved_to_trash_bytes, 8192);
+    }
+
+    #[test]
+    fn explicit_rebuild_disposition_removes_fixture_without_using_trash() {
+        use zenith_core::domain::cleanup::DeletionDisposition;
+        let fixture = tempfile::tempdir().unwrap();
+        let cache = fixture.path().join("cache");
+        std::fs::create_dir(&cache).unwrap();
+        std::fs::write(cache.join("module.pcm"), vec![7; 8192]).unwrap();
+        let sentinel = fixture.path().join("keep.txt");
+        std::fs::write(&sentinel, "outside scope").unwrap();
+        let mut plan = trash_directory_plan(&cache, 8192, vec![]);
+        assert_eq!(plan.expected_mode(), CleanupMode::Trash);
+        plan.targets[0].deletion_disposition = Some(DeletionDisposition::PermanentDelete);
+        plan.mode = plan.expected_mode();
+        assert_eq!(plan.mode, CleanupMode::PermanentDelete);
+        assert_eq!(
+            plan.preview(60).targets[0].risk,
+            crate::models::RiskTier::Rebuild
+        );
+        let result = CleanExecutor::execute(
+            plan,
+            &PlatformEnvironment::simulated(zenith_platform::path_algebra::PathFlavor::current())
+                .with_home(fixture.path())
+                .with_temp_dir(fixture.path()),
+            &crate::cleaner::LifecycleProviderRegistry::new(vec![]),
+            &crate::cleaner::OwnerProviderRegistry::new(vec![]),
+            &zenith_platform::MockTrashBackend::new(),
+            |_| {},
+        );
+        assert!(!cache.exists(), "{:?}", result.items);
+        assert_eq!(std::fs::read_to_string(sentinel).unwrap(), "outside scope");
+        assert!(result.total_reclaimed_bytes >= 8192);
+        assert_eq!(result.items[0].moved_to_trash_bytes, 0);
+        assert_eq!(result.items[0].status, CleanStatus::Success);
+    }
+
     fn item_with_status(status: CleanStatus) -> CleanItemResult {
         CleanItemResult {
             item_id: "item".to_string(),
@@ -831,6 +875,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
+                deletion_disposition: None,
                 item_id: "trash-directory-target".to_string(),
                 signature_id: "test.trash-directory".to_string(),
                 name: "Trash directory".to_string(),
@@ -904,6 +949,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
+                deletion_disposition: None,
                 item_id: "estimated-target".to_string(),
                 signature_id: "test.estimate".to_string(),
                 name: "Stale estimate".to_string(),
@@ -967,6 +1013,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
+                deletion_disposition: None,
                 item_id: "rebuild-target".to_string(),
                 signature_id: "test.rebuild".to_string(),
                 name: "Rebuild cache".to_string(),
@@ -1172,6 +1219,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
+                deletion_disposition: None,
                 item_id: "partial-target".to_string(),
                 signature_id: "test.partial".to_string(),
                 name: "Partial cache".to_string(),
@@ -1333,6 +1381,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
+                deletion_disposition: None,
                 item_id: "volatile-target".to_string(),
                 signature_id: "test.volatile".to_string(),
                 name: "Volatile temp".to_string(),
@@ -1366,6 +1415,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
+                deletion_disposition: None,
                 item_id: "provider-target".to_string(),
                 signature_id: signature_id.to_string(),
                 name: "Provider cache".to_string(),
@@ -1533,6 +1583,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
+                deletion_disposition: None,
                 item_id: "lifecycle-target".to_string(),
                 signature_id: "test.stated.store".to_string(),
                 name: "Stated store".to_string(),

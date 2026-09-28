@@ -128,6 +128,7 @@ description = "A named Chrome profile HTTP cache. Profile settings, cookies, Ser
 
 [[signatures]]
 id = "system.chrome.code_cache"
+deletion_disposition = "permanent_delete"
 name = "Chrome Code Cache"
 category = "system"
 family = "applications"
@@ -191,6 +192,7 @@ description = "Only Help Viewer's cached page data is reviewed. Help preferences
 
 [[signatures]]
 id = "system.brave.code_cache"
+deletion_disposition = "permanent_delete"
 name = "Brave Code Cache"
 category = "system"
 family = "applications"

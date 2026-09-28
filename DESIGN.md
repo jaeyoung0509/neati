@@ -493,6 +493,10 @@ must not suggest that the account has exhausted its quota.
   movement releases no disk space until emptied; only a measured free-space
   delta describes a disk reading. Policy-preserved entries are reported as
   kept. Long diagnostic paths wrap within one scrolling result dialog.
+- Rebuild cost does not determine recoverability. Preview groups use the
+  backend's explicit mutation channel, including owner-managed Trash moves;
+  a Rebuild cache may be permanently removed when its catalog policy permits.
+  Observed advisory stores never increase the cleanup estimate.
 - Required cleanup review leads with backend-defined permanent-delete and
   recoverable-movement totals, unknown-estimate counts, owner summaries and
   consequences. Exact names and paths live in closed, keyboard-accessible

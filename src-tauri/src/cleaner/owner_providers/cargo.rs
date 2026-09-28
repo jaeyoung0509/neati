@@ -458,6 +458,8 @@ impl CargoStoreProvider {
         selections: &[OwnerProviderSelection],
     ) -> Result<OwnerProviderAuthorization, OwnerProviderRefusal> {
         let mut private_plan = OwnerProviderAuthorization {
+            deletion_disposition:
+                zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: String::new(),
             provider_id: self.id.to_string(),
             risk: crate::models::RiskTier::Rebuild,

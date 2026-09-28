@@ -772,6 +772,7 @@ mod tests {
 
     fn test_signature(id: &str, paths: Vec<&str>, platforms: Vec<PlatformKind>) -> Signature {
         Signature {
+            deletion_disposition: None,
             id: id.to_string(),
             name: id.to_string(),
             category: Category::System,
@@ -1200,6 +1201,7 @@ mod tests {
     #[test]
     fn a_contradictory_signature_is_refused() {
         let base = |id: &str| Signature {
+            deletion_disposition: None,
             id: id.to_string(),
             name: id.to_string(),
             category: Category::System,

@@ -1,9 +1,8 @@
-export type AiActivitySubTab = 'usage' | 'projects' | 'adapters';
+export type AiActivitySubTab = 'usage' | 'projects';
 
 export const AI_ACTIVITY_TAB_ORDER: readonly AiActivitySubTab[] = [
   'usage',
   'projects',
-  'adapters',
 ];
 
 export function nextAiActivityTab(

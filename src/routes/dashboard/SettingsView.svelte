@@ -29,6 +29,7 @@
   import ReorderControls from '../../lib/components/ReorderControls.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
+  import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import {
     Settings,
@@ -814,6 +815,7 @@
     <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
       Diagnostics & Privacy Logs
     </h3>
+    <ToolDetectionDisclosure />
     <Card class="p-4 bg-card/70 space-y-4">
       <div class="space-y-1">
         <div class="text-xs font-medium text-foreground">Local System & Error Logs</div>

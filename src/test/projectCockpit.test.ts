@@ -6,7 +6,8 @@ import { AgentActivityStore, agentActivityStore } from '../lib/stores/agentActiv
 import { usageStore } from '../lib/stores/usage.svelte';
 import { nextAiActivityTab } from '../lib/utils/aiActivityTabs';
 import ProjectsPanel from '../lib/components/ai-activity/ProjectsPanel.svelte';
-import ToolAdaptersPanel from '../lib/components/ai-activity/ToolAdaptersPanel.svelte';
+import ToolDetectionPanel from '../lib/components/ai-activity/ToolDetectionPanel.svelte';
+import ToolDetectionDisclosure from '../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
 import ProjectCockpitView from '../routes/dashboard/ProjectCockpitView.svelte';
 import { platformContextStore } from '../lib/stores/platformContext.svelte';
 import { mockApi } from '../lib/api/mock';
@@ -117,40 +118,93 @@ describe('Project Cockpit', () => {
     expect(rendered.body).toContain('Stop');
   });
 
-  it('defaults to Usage and exposes exactly three accessible sub-tabs', () => {
+  it('defaults to Usage and exposes exactly two task-focused accessible sub-tabs', () => {
     agentActivityStore.snapshot = snapshot;
     const rendered = render(ProjectCockpitView);
 
-    expect(rendered.body.match(/role="tab"/g)).toHaveLength(3);
+    expect(rendered.body.match(/role="tab"/g)).toHaveLength(2);
     expect(rendered.body).toContain('role="tablist"');
     expect(rendered.body).toContain('aria-orientation="horizontal"');
     expect(rendered.body).toContain('id="ai-activity-tab-usage" role="tab" aria-selected="true"');
     expect(rendered.body).toContain('Usage');
     expect(rendered.body).toContain('Projects');
-    expect(rendered.body).toContain('Tool Adapters');
+    expect(rendered.body).not.toContain('Tool Adapters');
+    expect(rendered.body).not.toContain('Local only');
     expect(rendered.body).not.toContain('Canonical projects');
     expect(rendered.body).not.toContain('Verified projects');
   });
 
   it('supports automatic Arrow, Home, and End tab activation', () => {
     expect(nextAiActivityTab('usage', 'ArrowRight')).toBe('projects');
-    expect(nextAiActivityTab('projects', 'ArrowRight')).toBe('adapters');
-    expect(nextAiActivityTab('adapters', 'ArrowRight')).toBe('usage');
-    expect(nextAiActivityTab('usage', 'ArrowLeft')).toBe('adapters');
+    expect(nextAiActivityTab('projects', 'ArrowRight')).toBe('usage');
+    expect(nextAiActivityTab('usage', 'ArrowLeft')).toBe('projects');
     expect(nextAiActivityTab('projects', 'Home')).toBe('usage');
-    expect(nextAiActivityTab('usage', 'End')).toBe('adapters');
+    expect(nextAiActivityTab('usage', 'End')).toBe('projects');
     expect(nextAiActivityTab('usage', 'Enter')).toBeNull();
   });
 
-  it('keeps the adapter matrix isolated from projects and usage content', () => {
+  it('presents detection as diagnostics, not plugins or proof of work', () => {
     agentActivityStore.snapshot = snapshot;
-    const rendered = render(ToolAdaptersPanel);
+    const rendered = render(ToolDetectionPanel);
 
-    expect(rendered.body).toContain('Tool Adapters');
+    expect(rendered.body).toContain('Supported tools and detection status');
     expect(rendered.body).toContain('Codex CLI');
     expect(rendered.body).toContain('Process observed');
+    expect(rendered.body).toContain('Its current task and progress are unknown.');
+    expect(rendered.body).toContain('not installable plugins');
+    expect(rendered.body).not.toContain('Process Only');
+    expect(rendered.body).not.toContain('role="tabpanel"');
     expect(rendered.body).not.toContain('AI Accounts &amp; Quota');
     expect(rendered.body).not.toContain('Canonical projects');
+  });
+
+  it('does not mount diagnostic content while the disclosure is closed', () => {
+    agentActivityStore.snapshot = snapshot;
+    const { body } = render(ToolDetectionDisclosure);
+    expect(body).toContain('Supported tools and detection status');
+    expect(body).not.toContain('Codex CLI');
+    expect(body).not.toContain('Refresh detection');
+    expect(body).not.toMatch(/<details[^>]*\sopen[\s=>]/);
+    const source = readFileSync(new URL('../routes/dashboard/ProjectCockpitView.svelte', import.meta.url), 'utf8');
+    expect(source).not.toContain('fetchIntegrations');
+  });
+
+  it('keeps diagnostic errors, partial results and stale observations explicit', () => {
+    agentActivityStore.snapshot = snapshot;
+    agentActivityStore.error = 'permission denied';
+    agentActivityStore.integrationsError = 'lookup failed';
+    const { body } = render(ToolDetectionPanel);
+    expect(body).toContain('it may be out of date');
+    expect(body).toContain('Some detection checks were incomplete');
+    expect(body).toContain('Legacy integration status could not be refreshed');
+    expect(body).toContain('Codex CLI');
+  });
+
+  it('distinguishes loading, unavailable and empty detection results', () => {
+    expect(render(ToolDetectionPanel).body).toContain('No observation yet');
+    agentActivityStore.isLoading = true;
+    expect(render(ToolDetectionPanel).body).toContain('Checking supported tools');
+    expect(render(ToolDetectionPanel).body).not.toContain('No observation yet');
+    agentActivityStore.isLoading = false;
+    agentActivityStore.error = 'denied';
+    expect(render(ToolDetectionPanel).body).toContain('No observation is available');
+    agentActivityStore.error = null;
+    agentActivityStore.snapshot = { ...snapshot, adapters: [] };
+    expect(render(ToolDetectionPanel).body).toContain('No supported tool detection results were returned');
+  });
+
+  it('keeps raw evidence optional and does not call missing detection an absent installation', () => {
+    agentActivityStore.snapshot = { ...snapshot, adapters: [
+      { ...snapshot.adapters[0], state: 'not_installed', evidence: null },
+      { ...snapshot.adapters[0], tool_id: 'other', state: 'process_only', evidence: null },
+    ] };
+    const { body } = render(ToolDetectionPanel);
+    expect(body).toContain('Not detected');
+    expect(body).toContain('Detection only');
+    expect(body).toContain('not what it is doing');
+    expect(body).not.toContain('Not Installed');
+    expect(body.match(/<details/g)).toHaveLength(2);
+    expect(body).not.toMatch(/<details[^>]*\sopen[\s=>]/);
   });
 
   it('keeps the last successful snapshot when refresh fails', async () => {

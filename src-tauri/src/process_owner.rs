@@ -14,7 +14,7 @@ pub enum ProcessOwner {
 }
 
 impl ProcessOwner {
-    /// Returns the owner of the current Neati process.
+    /// Returns the owner of the current neati process.
     ///
     /// On Windows this performs a best-effort sysinfo lookup of the current
     /// process SID. When the SID is unavailable an empty sentinel is returned

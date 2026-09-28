@@ -1,7 +1,7 @@
-# Neati Engineering Guide
+# neati Engineering Guide
 
 These instructions apply to the entire repository. Preserve the product and
-safety conventions below when changing Neati.
+safety conventions below when changing neati.
 
 ## Stack and commands
 
@@ -61,11 +61,11 @@ safety conventions below when changing Neati.
 
 ## Crate boundary
 
-- Neati is a Cargo workspace. `crates/neati-core` owns product semantics,
+- neati is a Cargo workspace. `crates/neati-core` owns product semantics,
   `crates/neati-platform` owns the platform layer behind narrow ports
   (environment probing, path resolution, process control, bounded child
   execution, system actions, atomic file replacement, Trash), and the
-  `src-tauri` package (`neati-desktop`, library `neati_lib`, binary `Neati`)
+  `src-tauri` package (`neati-desktop`, library `neati_lib`, private binary `Neati`)
   owns the Tauri adapter. The version, edition, and MSRV are stated once in the
   root `Cargo.toml` `[workspace.package]` table and all members inherit them;
   `just check-version` and `just bump-patch` maintain that one copy.
@@ -82,7 +82,7 @@ safety conventions below when changing Neati.
   `scripts/check_core_boundaries.cjs` enforces these boundaries from
   `cargo metadata`; run `just check-architecture` after adding or moving a
   dependency.
-- Ask of every Rust file: would this still make sense if Neati had a CLI
+- Ask of every Rust file: would this still make sense if neati had a CLI
   instead of a Tauri window? Domain semantics say yes and belong in
   `neati-core`; native OS probing and OS API calls say yes and belong in
   `neati-platform`. A file that owns WebView IPC, tray or window lifecycle,
@@ -130,8 +130,8 @@ safety conventions below when changing Neati.
 - The Cargo default feature must include `custom-protocol`; otherwise a binary
   built outside `tauri dev` opens a blank webview because the frontend is not
   embedded.
-- Create the tray icon once in Rust. The tray menu must include Open Neati,
-  Toggle Quick Panel, and Quit Neati.
+- Create the tray icon once in Rust. The tray menu must include Open neati,
+  Toggle Quick Panel, and Quit neati.
 - Position the quick panel from the tray click coordinates, clamp it to the
   active display, and align its right edge beneath the menu-bar icon.
 - Window labels are `main` and `quick`. Closing the quick panel hides it; it
@@ -146,7 +146,7 @@ safety conventions below when changing Neati.
   provider snapshots use a bounded backend cache with manual refresh support.
 - Never expose arbitrary PID kill commands. Memory actions must resolve a fresh
   process snapshot from an allowlisted user-app group (including executables in
-  installed `.app` bundles), protect system/terminal/Neati processes, and
+  installed `.app` bundles), protect system/terminal/neati processes, and
   offer graceful termination before force termination.
 - Native app selection for Keep Awake starts in `/Applications`, reads
   `CFBundleExecutable`, and returns only the display name, executable name, and
@@ -247,6 +247,11 @@ safety conventions below when changing Neati.
   date, or be removed; an unexecuted matrix is a plan, not evidence.
 
 ## Cleanup safety invariants
+
+- Extended (formerly intensive) cache scanning is standard on supported platforms,
+  not a user toggle. Legacy settings are normalized to enabled. The broader
+  scope remains subject to age, process, structured-state, signature-scope and explicit
+  cleanup authorization checks remain mandatory; provider review is preserved.
 
 - Cleanup targets originate from registered TOML signatures. The planner must
   reject paths outside a signature's resolved scope.

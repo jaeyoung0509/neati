@@ -1,6 +1,6 @@
 # Issue 288 interface audit
 
-This is the review record for Neati 0.3.57. The originating 0.3.56 report is
+This is the review record for neati 0.3.57. The originating 0.3.56 report is
 recorded in [issue 288](https://github.com/jaeyoung0509/neati/issues/288).
 The images below are **browser previews with mock data**. They demonstrate
 layout and state copy, not macOS vibrancy or native resize behavior.

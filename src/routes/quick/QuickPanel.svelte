@@ -74,9 +74,10 @@
   let awakeState = $derived(awakeStore.state);
   let selectedProviders = $derived(
     projectAiProviders(
-      settings.quick_panel_ai_providers,
+      settingsStore.hasLoaded && !settingsStore.isLoading ? settings.quick_panel_ai_providers : [],
       usageStore.snapshot?.providers,
-      usageStore.isLoading
+      usageStore.isLoading,
+      settings.ai_accounts_quota_providers
     )
   );
   let cleanupCapability = $derived(platformCapabilitiesStore.feature('cleanup'));
@@ -180,6 +181,7 @@
   /** Runs (or re-runs, after a capability failure) the panel's data loads. */
   async function refreshPanelData() {
     await settingsStore.load(true);
+    if (!settingsStore.hasLoaded || !panelActive) return;
     await platformCapabilitiesStore.load(true);
     await platformContextStore.load(true);
     if (!panelActive) return;
@@ -385,7 +387,7 @@
     onmousedown={handleWindowDrag}
   >
     <div class="flex items-center gap-2 min-w-0">
-      <BrandIcon identity="neati" label="Neati" size={20} />
+      <BrandIcon identity="neati" label="neati" size={20} />
       <NeatiWordmark />
     </div>
     <div class="flex items-center gap-1 no-drag shrink-0">
@@ -421,7 +423,7 @@
         <InlineNotice
           variant="error"
           title="Platform capabilities unavailable"
-          message={platformCapabilitiesStore.error ?? 'Neati could not read this platform\'s capability matrix from the backend.'}
+          message={platformCapabilitiesStore.error ?? 'neati could not read this platform\'s capability matrix from the backend.'}
           actionLabel="Retry"
           onAction={() => void retryCapabilities()}
         />
@@ -462,7 +464,7 @@
         onclick={handleOpenDashboard}
         class="gap-1.5 text-meta"
       >
-        <span>Open Neati</span>
+        <span>Open neati</span>
         <ArrowRight size={13} aria-hidden="true" />
       </Button>
     </div>
@@ -619,6 +621,10 @@
 
       {#if !aiAvailable}
         <p class="px-1 text-caption text-muted-foreground">{aiCapability?.reason ?? 'AI integrations are unavailable on this platform.'}</p>
+      {:else if settingsStore.isLoading}
+        <p class="px-1 text-caption text-muted-foreground" role="status">Loading your provider preferences…</p>
+      {:else if !settingsStore.hasLoaded}
+        <p class="px-1 text-caption text-muted-foreground" role="status">Provider preferences could not be loaded. Reopen the panel to retry.</p>
       {:else if aiRows.length === 0}
         <p class="px-1 text-caption text-muted-foreground">No connected providers or observed sessions.</p>
       {:else}
@@ -640,7 +646,7 @@
                     <span class="inline-flex items-center gap-1.5">
                       {#if loading}<DeletingDots size="xs" class="text-primary" />{/if}
                       <span>{formatQuickProviderUsage(row.provider, loading, stale)}</span>
-                      {#if stale && !loading}
+                      {#if (stale || (row.provider.collection_status && row.provider.collection_status !== 'fresh')) && !loading}
                         <button
                           type="button"
                           disabled={usageStore.isLoading}

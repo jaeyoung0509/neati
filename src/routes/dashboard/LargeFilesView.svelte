@@ -458,7 +458,7 @@
         </div>
       {:else}
         <p class="text-meta text-muted-foreground">
-          One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). Neati revalidates file identity and scope before each move.
+          One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). neati revalidates file identity and scope before each move.
         </p>
       {/if}
     </Card>

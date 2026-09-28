@@ -24,7 +24,7 @@ impl ProviderAdapter for GrokBuildAdapter {
         provider.connected = false;
         provider.support = UsageSupport::Manual;
         provider.status_message = if installed {
-            "Grok Build does not expose account quota to Neati; check usage in the provider client."
+            "Grok Build does not expose account quota to neati; check usage in the provider client."
                 .into()
         } else {
             "Grok Build was not detected in PATH or known tool locations.".into()

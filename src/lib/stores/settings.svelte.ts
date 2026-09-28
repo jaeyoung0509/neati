@@ -11,7 +11,7 @@ export class SettingsStore {
     clean_developer_tools: true,
     clean_docker: true,
     include_rebuild_caches: false,
-    intensive_cleanup: false,
+    intensive_cleanup: true,
     theme: 'light',
     excluded_signatures: [],
     quick_panel_sections: ['cleanup', 'cpu', 'memory', 'battery', 'storage', 'agent_activity', 'awake'],
@@ -88,7 +88,8 @@ export class SettingsStore {
 
   isLoading = $state(false);
   error = $state<string | null>(null);
-  private hasLoaded = false;
+  hasLoaded = $state(false);
+  revision = $state(0);
   private loadPromise: Promise<void> | null = null;
   private saveQueue: Promise<void> = Promise.resolve();
   private persistedSettings: NeatiSettings | null = null;
@@ -123,7 +124,7 @@ export class SettingsStore {
       const fetched = await this.getSettingsFn();
       const normalized: NeatiSettings = {
         ...fetched,
-        intensive_cleanup: fetched.intensive_cleanup ?? false,
+        intensive_cleanup: true,
         quick_panel_sections: fetched.quick_panel_sections ?? [...this.settings.quick_panel_sections],
         quick_panel_ai_providers: fetched.quick_panel_ai_providers ?? ['codex', 'claude', 'opencode', 'openrouter', 'antigravity'],
         ai_accounts_quota_providers: fetched.ai_accounts_quota_providers ?? ['codex', 'claude', 'opencode', 'openrouter', 'antigravity'],
@@ -135,6 +136,7 @@ export class SettingsStore {
         ai_control: fetched.ai_control ?? this.settings.ai_control,
       };
       this.settings = normalized;
+      this.revision++;
       this.persistedSettings = serializeSettingsSnapshot(normalized);
       this.hasLoaded = true;
       this.error = null;
@@ -163,7 +165,8 @@ export class SettingsStore {
 
     const revision = ++this.saveRevision;
     const previousSettings = this.settings;
-    this.settings = { ...this.settings, ...partial };
+    this.settings = { ...this.settings, ...partial, intensive_cleanup: true };
+    this.revision++;
 
     if (partial.theme !== undefined) {
       this.applyTheme(partial.theme);

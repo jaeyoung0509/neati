@@ -72,7 +72,7 @@ export function isProviderBacked(item: ScanItem): boolean {
  * Whether the submission path may hand this item to cleanup.
  *
  * The manual tier is refused generic cleanup because those items name a
- * management action Neati does not own. A provider-backed manual item is the
+ * management action neati does not own. A provider-backed manual item is the
  * one exception: its signature names the operation that will run, so the
  * reviewed provider performs it like any other cleanable row.
  */

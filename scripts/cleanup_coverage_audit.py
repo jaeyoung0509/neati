@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare private reference-cleaner and Neati scan ledgers without publishing paths.
+"""Compare private reference-cleaner and neati scan ledgers without publishing paths.
 
 The reference cleaner's list is a rounded *potential* list, not a deletion plan or a
 verified free-space delta. This tool never invokes either cleaner or deletes
@@ -167,7 +167,7 @@ def main():
     neati = json.loads(args.neati_report.read_text())
     neati_rows = neati.get("private_ledger")
     if not isinstance(neati_rows, list):
-        parser.error("Neati report requires --full-catalog-read-only --private-ledger")
+        parser.error("neati report requires --full-catalog-read-only --private-ledger")
     home = str(Path.home())
     buckets, relations, eligibility, details, overlap_summary = compare(
         reference_rows, neati_rows, home, args.measure_allocated

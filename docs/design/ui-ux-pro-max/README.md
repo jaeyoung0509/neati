@@ -8,7 +8,7 @@ decisions. `DESIGN.md` and the shared CSS tokens remain authoritative.
 
 ## Browser previews
 
-These captures show deterministic preview data for Neati 0.3.56. They are not
+These captures show deterministic preview data for neati 0.3.56. They are not
 evidence of native desktop vibrancy or live storage measurements.
 
 - [Storage before](storage-before.png)

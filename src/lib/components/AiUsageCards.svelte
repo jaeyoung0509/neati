@@ -48,7 +48,9 @@
           <span class="h-5 w-16 shrink-0 animate-pulse rounded-full bg-secondary" aria-hidden="true"></span>
         {:else}
           <span class="shrink-0 text-caption px-2 py-0.5 rounded-md border {provider.connected ? 'border-success/25 bg-success/10 text-success' : provider.support === 'local' ? 'border-ai/25 bg-ai/10 text-ai' : 'border-border text-muted-foreground'}">
-            {provider.connected ? 'Connected' : provider.support === 'manual' ? 'Manual' : 'Available'}
+            {provider.collection_status && provider.collection_status !== 'fresh'
+              ? provider.collection_status === 'signed_out' ? 'Sign-in required' : 'Usage unavailable'
+              : provider.connected ? 'Connected' : provider.support === 'manual' ? 'Manual' : 'Available'}
           </span>
         {/if}
       </div>
@@ -142,7 +144,7 @@
       {:else if !loading && provider.id === 'openrouter' && provider.connected && onDisconnectOpenRouter}
         <div class="mt-auto space-y-1.5">
           <p class="text-caption text-muted-foreground">
-            Disconnecting removes the key from Neati. Revoke it in the OpenRouter dashboard to invalidate it everywhere.
+            Disconnecting removes the key from neati. Revoke it in the OpenRouter dashboard to invalidate it everywhere.
           </p>
           <Button
             variant="outline"

@@ -445,6 +445,7 @@ export type AiProviderUsage_Deserialize = {
 	connected: boolean,
 	auth_label: string,
 	status_message: string,
+	collection_status?: UsageCollectionStatus | null,
 	support: UsageSupport,
 	windows: UsageWindow_Deserialize[],
 	summary: UsageSummary_Deserialize,
@@ -460,6 +461,7 @@ export type AiProviderUsage_Serialize = {
 	connected: boolean,
 	auth_label: string,
 	status_message: string,
+	collection_status?: UsageCollectionStatus | null,
 	support: UsageSupport,
 	windows: UsageWindow_Serialize[],
 	summary: UsageSummary_Serialize,
@@ -1131,7 +1133,7 @@ export type CleanupEligibility =
  */
 "policy_gated" |
 /**
- *  Not Neati's operation: an external manager or provider owns the
+ *  Not neati's operation: an external manager or provider owns the
  *  invalidation.
  */
 "advisory" | "blocked";
@@ -2635,11 +2637,11 @@ export type ProcessMemory_Serialize = {
 };
 
 /**
- *  How Neati relates to a process group it is displaying.
+ *  How neati relates to a process group it is displaying.
  *
  *  The grouping is an observation of the system process table. `NeatiChild`
- *  is only ever reported when the same fresh snapshot shows this Neati process
- *  in every member's parent chain, so the view never implies Neati started a
+ *  is only ever reported when the same fresh snapshot shows this neati process
+ *  in every member's parent chain, so the view never implies neati started a
  *  process it merely observed.
  */
 export type ProcessOwnership = "observed" | "neati_child";
@@ -3598,6 +3600,8 @@ export type TrashResult_Serialize = {
 	items: TrashItemResult[],
 	size_is_lower_bound: boolean,
 };
+
+export type UsageCollectionStatus = "fresh" | "signed_out" | "unavailable" | "timeout" | "protocol_error" | "not_installed" | "unsupported_account";
 
 export type UsageSummary = UsageSummary_Serialize | UsageSummary_Deserialize;
 

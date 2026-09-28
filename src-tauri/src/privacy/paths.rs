@@ -163,11 +163,11 @@ mod tests {
     #[test]
     fn log_lines_lose_the_home_directory_and_user_name() {
         let masked = mask_paths_with_home(
-            "failed to read /Users/alice/Library/Application Support/Neati/settings.json",
+            "failed to read /Users/alice/Library/Application Support/neati/settings.json",
             Some(Path::new("/Users/alice")),
         );
         assert!(!masked.contains("/Users/alice"));
-        assert!(masked.contains("~/Library/Application Support/Neati/settings.json"));
+        assert!(masked.contains("~/Library/Application Support/neati/settings.json"));
     }
 
     #[test]

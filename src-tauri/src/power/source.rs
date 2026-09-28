@@ -93,7 +93,7 @@ fn fallback_pmset_power_source() -> PowerSourceType {
 
 /// One battery observation exactly as the platform reported it.
 ///
-/// The fields are the platform's own facts, before Neati decides anything:
+/// The fields are the platform's own facts, before neati decides anything:
 /// `None` means the platform did not return that fact, and it is never derived
 /// from a neighbouring field.
 #[derive(Debug, Clone, PartialEq)]
@@ -271,7 +271,7 @@ pub fn derive_charge_state(
 
 /// The IOKit power API, called by hand.
 ///
-/// Neati deliberately does not link a CoreFoundation or IOKit wrapper crate:
+/// neati deliberately does not link a CoreFoundation or IOKit wrapper crate:
 /// the handful of symbols below are the whole surface it needs, and the
 /// reference-counting rules are stated at each call site instead of hidden
 /// behind a binding.
@@ -782,7 +782,7 @@ fn native_battery_reading() -> BatteryReading {
     {
         BatteryReading::unavailable(
             PowerSourceType::Unknown,
-            "Neati has no battery adapter for this platform.",
+            "neati has no battery adapter for this platform.",
         )
     }
 }
@@ -1011,7 +1011,7 @@ mod tests {
         let metrics = battery_metrics_from_reading(
             BatteryReading::unavailable(
                 PowerSourceType::Unknown,
-                "Neati has no battery adapter for this platform.",
+                "neati has no battery adapter for this platform.",
             ),
             None,
         );
@@ -1020,7 +1020,7 @@ mod tests {
         assert_eq!(metrics.percent, None);
         assert_eq!(
             metrics.reason.as_deref(),
-            Some("Neati has no battery adapter for this platform.")
+            Some("neati has no battery adapter for this platform.")
         );
     }
 

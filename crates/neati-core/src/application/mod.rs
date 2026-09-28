@@ -1,4 +1,4 @@
-//! The contract between the Neati domain and whoever is presenting it.
+//! The contract between the neati domain and whoever is presenting it.
 //!
 //! Types here exist to cross a boundary. They are serializable by design, and
 //! they are assembled from domain values rather than being the domain values:

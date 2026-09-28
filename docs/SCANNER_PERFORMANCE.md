@@ -139,7 +139,7 @@ Counts are properties of the fixtures and are identical on every machine; the
 numbers below are what the machines measured, recorded so a future run can be
 compared against a known point rather than against a feeling.
 
-| Machine | OS build | Date | Neati | Baseline |
+| Machine | OS build | Date | neati | Baseline |
 |---|---|---|---|---|
 | MacBook Air (Apple M1, 8 cores) | macOS 27.0 (26A428), Darwin 27.0.0 | 2026-09-19 | 0.3.36 | the table below |
 | MacBook Air (Apple M1, 8 cores, 16 GiB) | macOS 27.0 (26A428) | 2026-09-21 UTC | 0.3.45 | [synthetic and live evidence](validation/2026-09-21-macos-0.3.45.json) |

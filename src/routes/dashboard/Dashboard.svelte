@@ -1,6 +1,7 @@
 <script lang="ts">
   import NeatiWordmark from '../../lib/components/NeatiWordmark.svelte';
   import { onMount } from 'svelte';
+  import { navigationInbox } from '../../lib/utils/navigationInbox';
   import { fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { prefersReducedMotion } from 'svelte/motion';
@@ -25,7 +26,7 @@
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import { formatBytes } from '../../lib/utils/format';
   import { DEFAULT_DASHBOARD_TABS, dashboardGroup, groupedDashboardTabs, dashboardNavigationOwner, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
-  import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation } from '../../lib/utils/tauri';
+  import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation, observeDashboardNavigation } from '../../lib/utils/tauri';
   import Button from '../../lib/components/Button.svelte';
   import BrandIcon from '../../lib/components/BrandIcon.svelte';
   import Card from '../../lib/components/Card.svelte';
@@ -184,18 +185,25 @@
   }
 
   onMount(() => {
+    let stopNavigation: (() => void) | undefined;
+    const navigation = navigationInbox(tauriTakePendingNavigation, selectTab);
     void platformContextStore.load();
-    void refreshCapabilities(false).then(async () => {
-      if (disposed || !isTauri()) return;
-      // The Quick Panel can ask for an exact destination; it is consumed once,
-      // after the capability matrix is known, so a cold window load cannot lose
-      // the request it was opened for.
-      const route = await tauriTakePendingNavigation().catch(() => null);
-      if (!disposed && route) selectTab(route);
-    });
+    void (async () => {
+      if (isTauri()) {
+        const stop = await observeDashboardNavigation(() => { void navigation.wake(); });
+        if (disposed) { stop(); return; }
+        stopNavigation = stop;
+      }
+      await refreshCapabilities(false);
+      // Subscribe before the initial drain: no mount/listen race, and warm
+      // windows consume later requests even when already focused.
+      if (isTauri()) await navigation.activate();
+    })();
 
     return () => {
       disposed = true;
+      navigation.dispose();
+      stopNavigation?.();
       stopFreshness?.();
     };
   });
@@ -266,7 +274,7 @@
           role="presentation"
           onmousedown={overlayTitleBar ? handleWindowDrag : undefined}
         >
-          <BrandIcon identity="neati" label="Neati" size={24} />
+          <BrandIcon identity="neati" label="neati" size={24} />
           {#if !sidebarCollapsed}
             <NeatiWordmark />
           {/if}
@@ -417,7 +425,7 @@
       <PreviewModeIndicator compact={sidebarCollapsed} />
       {#if !sidebarCollapsed}
         <div class="px-2.5 flex items-center justify-between text-caption text-muted-foreground font-mono select-none">
-          <span>Neati</span>
+          <span>neati</span>
           <span>{formatVersion(APP_VERSION)}</span>
         </div>
       {/if}
@@ -437,7 +445,7 @@
           <div class="space-y-1">
             <h2 class="text-sm font-semibold text-foreground">Platform capabilities unavailable</h2>
             <p class="text-body text-muted-foreground break-words">
-              {platformCapabilitiesStore.error ?? 'Neati could not read this platform\'s capability matrix from the backend.'}
+              {platformCapabilitiesStore.error ?? 'neati could not read this platform\'s capability matrix from the backend.'}
             </p>
             <p class="text-meta text-muted-foreground">
               Tabs stay closed until the backend answers so no native action runs on an unverified platform.

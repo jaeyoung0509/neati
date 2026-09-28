@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Generate Neati's own icon family. Third-party brand assets are not inputs. */
+/** Generate neati's own icon family. Third-party brand assets are not inputs. */
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, existsSync } from 'node:fs';
@@ -12,7 +12,7 @@ const check = process.argv.includes('--check');
 const source = readFileSync(join(root, 'src-tauri/icons/neati-mark.svg'), 'utf8');
 const artwork = source.match(/<svg\b[^>]*>([\s\S]*)<\/svg>/)?.[1]?.trim();
 const paths = [...source.matchAll(/<path d="([^"]+)"/g)].map(match => match[1]);
-if (!artwork || paths.length !== 1 || !artwork.includes('stroke="#fff"')) throw new Error('The approved Neati B master must contain one white stroked path.');
+if (!artwork || paths.length !== 1 || !artwork.includes('stroke="#fff"')) throw new Error('The approved neati B master must contain one white stroked path.');
 
 // The approved B master owns its stroke; the generator owns the blue tile.
 const palette = { paper: '#376CDA', edge: '#3968D4', highlight: '#5277ED', shade: '#2865C8', shadow: '#212636' };
@@ -91,7 +91,7 @@ try {
   const registry = readFileSync(join(root, registryPath), 'utf8');
   const hash = createHash('sha256').update(compact).digest('hex');
   const updated = registry.replace(/(file: 'neati\.svg',[\s\S]*?sha256: ')[a-f0-9]{64}(')/, `$1${hash}$2`);
-  if (updated === registry && !registry.includes(hash)) throw new Error('Neati registry entry not found');
+  if (updated === registry && !registry.includes(hash)) throw new Error('neati registry entry not found');
   add(registryPath, updated);
   const drift = [];
   for (const [relative, bytes] of generated) {
@@ -104,7 +104,7 @@ try {
     }
   }
   if (drift.length) throw new Error(`Generated icon drift:\n${drift.join('\n')}\nRun pnpm icons:generate.`);
-  console.log(`${check ? 'Verified' : 'Generated'} ${generated.size} Neati icon assets and registry entries.`);
+  console.log(`${check ? 'Verified' : 'Generated'} ${generated.size} neati icon assets and registry entries.`);
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

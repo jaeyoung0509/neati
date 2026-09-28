@@ -1,6 +1,6 @@
-# Neati identity contract (0.3.74)
+# neati identity contract (0.3.74)
 
-Issue #338 establishes one Neati identity before official distribution. The
+Issue #338 establishes one neati identity before official distribution. The
 owner requested no old-name aliases, detection, migration or compatibility
 branches. The approved B symbol, handwritten wordmark, native glass and cleanup
 policy are unchanged.
@@ -9,29 +9,29 @@ policy are unchanged.
 | --- | --- |
 | Bundle / Tauri persistence | `com.neati.desktop` |
 | Cargo packages | `neati-core`, `neati-platform`, `neati-desktop` |
-| Rust library / executable | `neati_lib` / `Neati` |
+| Rust library / private desktop executable | `neati_lib` / `Neati` (not installed on PATH; `neati` is reserved for the CLI) |
 | npm / internal brand asset | `neati` / `neati.svg` |
 | macOS credential service / account | `app.neati.ai.{provider}` / `neati` |
 | Windows credential target | `NeatiAI:{provider}` |
 | macOS log | `~/Library/Logs/Neati/neati.log` |
 | Windows log namespace | `Neati/Logs` |
 | Repository | `jaeyoung0509/neati` |
-| Release artifacts | `Neati-macos-arm64.dmg`, `Neati-windows-x64-setup.exe`, `Neati-windows-x64-setup-machine.exe` |
+| Release artifacts | `neati-macos-arm64.dmg`, `neati-windows-x64-setup.exe`, `neati-windows-x64-setup-machine.exe` |
 | Generated SBOM / WinGet metadata | `SBOM-neati.spdx.json` / `jaeyoung0509.Neati` |
 
 ## Personal installation
 
 Settings and provider authentication may need to be configured again. Existing
 data and credentials in other namespaces are neither imported nor deleted.
-Review Full Disk Access / Files and Folders for Neati and restart the app after
+Review Full Disk Access / Files and Folders for neati and restart the app after
 granting permissions; automatic permission continuity is not promised.
 
 `just release` builds and installs the app; `just install-release` installs an
 already-built release bundle. The installer validates `com.neati.desktop` and
 uses transactional replacement with rollback. It does not inspect other app
-names. A mismatched bundle already named Neati.app is refused: move that bundle
+names. A mismatched bundle already named neati.app is refused: move that bundle
 to a backup location before installing. The Windows installer uses its ordinary
-Neati installation flow without a rebranding hook. Fixture tests never touch
+neati installation flow without a rebranding hook. Fixture tests never touch
 real installed applications or credentials.
 
 No automatic updater, data migration or background agent is introduced.

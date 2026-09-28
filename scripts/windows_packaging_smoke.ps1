@@ -22,7 +22,7 @@ param(
   [ValidateSet('perUser', 'perMachine')]
   [string]$Scope = 'perUser',
 
-  [string]$ProductName = 'Neati',
+  [string]$ProductName = 'neati',
 
   [string]$ExecutableName = 'Neati.exe',
 

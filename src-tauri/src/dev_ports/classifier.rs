@@ -49,18 +49,18 @@ pub fn classify_listener(
         };
     }
 
-    // 2. PID checks (0, 1, or Neati's own PID)
+    // 2. PID checks (0, 1, or neati's own PID)
     if input.pid == 0 || input.pid == 1 || input.pid == input.neati_pid {
         return ClassificationResult {
             server_name: if input.pid == input.neati_pid {
-                "Neati".to_string()
+                "neati".to_string()
             } else {
                 "System Core".to_string()
             },
             project_name,
             working_directory,
             can_release: false,
-            blocked_reason: Some("Neati or operating-system core process".to_string()),
+            blocked_reason: Some("neati or operating-system core process".to_string()),
         };
     }
 
@@ -1066,23 +1066,23 @@ mod tests {
         };
         assert!(!classify_listener(&input_ssh, PathFlavor::current()).can_release);
 
-        // Neati itself
+        // neati itself
         let input_neati = ProcessClassificationInput {
             pid: 1000,
             owner: Some(ProcessOwner::Unix(501)),
             current_owner: ProcessOwner::Unix(501),
             neati_pid: 1000,
             port: 9000,
-            raw_command: "Neati",
-            process_name: "Neati",
-            exe_path: Some(Path::new("/Applications/Neati.app/Contents/MacOS/Neati")),
+            raw_command: "neati",
+            process_name: "neati",
+            exe_path: Some(Path::new("/Applications/neati.app/Contents/MacOS/Neati")),
             cwd: None,
             argv: &[],
             started_at: Some(1700000000),
         };
         let res_neati = classify_listener(&input_neati, PathFlavor::current());
         assert!(!res_neati.can_release);
-        assert_eq!(res_neati.server_name, "Neati");
+        assert_eq!(res_neati.server_name, "neati");
     }
 
     #[test]

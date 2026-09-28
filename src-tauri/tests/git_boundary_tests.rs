@@ -1,7 +1,7 @@
-//! Neati invokes `git` in directories the user did not nominate.
+//! neati invokes `git` in directories the user did not nominate.
 //!
 //! The project root comes from an observed agent process working directory, so
-//! a repository Neati did not create can supply `.git/config` and
+//! a repository neati did not create can supply `.git/config` and
 //! `.gitattributes` for the invocation. Several documented Git keys name a
 //! program Git then runs: `core.fsmonitor` is consulted by `git status`
 //! specifically, and `core.pager`, `core.hooksPath`, `diff.external`,
@@ -787,7 +787,7 @@ impl Checkout {
 
         // A tool that rewrites a file without changing it (an editor save, a
         // formatter, a checkout script) makes Git compare content again. That is
-        // the state in which a checkout whose normalization Neati cannot see
+        // the state in which a checkout whose normalization neati cannot see
         // reads as modified, so the fixture touches the file the same way.
         let touched = std::fs::read(root.join("a.txt")).expect("the checked-out file");
         std::fs::write(root.join("a.txt"), &touched).expect("the file is rewritable");
@@ -840,7 +840,7 @@ impl Checkout {
 }
 
 /// A clean checkout has to read as clean, for the user's own `git status` and
-/// for Neati's.
+/// for neati's.
 ///
 /// The attribute-driven cases are the ones a neutralized attribute source broke:
 /// with `attr.tree` pinned to the empty tree, Git compared the raw bytes of a
@@ -883,7 +883,7 @@ fn a_clean_checkout_reads_clean_for_the_user_and_for_neati() {
             let neati = checkout.neati_status();
             assert!(
                 neati.is_empty(),
-                "Neati must report the clean {label} {kind} as clean, but read {neati:?}"
+                "neati must report the clean {label} {kind} as clean, but read {neati:?}"
             );
         }
     }

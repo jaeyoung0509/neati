@@ -2108,7 +2108,7 @@ impl SafeTreeDeleter {
             }
 
             // fchmod is intentionally limited to a no-follow descriptor for a
-            // directory owned by the effective user. Neati never escalates
+            // directory owned by the effective user. neati never escalates
             // privileges or chmods a replacement symlink.
             let effective_uid = unsafe { libc::geteuid() } as u32;
             if metadata.uid() != effective_uid {

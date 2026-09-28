@@ -7,7 +7,7 @@ skipped, one unavailable, and two failed. None reported reclaimable bytes.
 
 ## Decision rule
 
-An action can enter Neati only after a platform adapter can name the exact
+An action can enter neati only after a platform adapter can name the exact
 object and proposed change before execution, state whether elevation or a
 restart is needed, obtain explicit consent, bound and cancel its work, and
 verify the same object afterwards. A mutation of personal or structured state
@@ -38,7 +38,7 @@ authority. These actions never enter generic Cleanup or its byte totals.
 | `periodic_maintenance` | Defer: opaque scripts have no exact preview. | Name each script and target before considering execution. |
 | `disk_verify` | Keep as a separate read-only diagnostic candidate. | Show selected volume, duration and result; never count bytes reclaimed. |
 
-No action currently passes that gate. Neati therefore adds no maintenance
+No action currently passes that gate. neati therefore adds no maintenance
 mutation or privilege request in this change. A future issue should be scoped
 to one named action only after its preview, cancellation, and post-action
 contract have been demonstrated on a supported macOS version. The upstream

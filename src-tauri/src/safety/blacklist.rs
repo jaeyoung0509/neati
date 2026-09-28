@@ -44,7 +44,7 @@ impl BlacklistEnvironment {
             // Only the administrator-writable install roots are protected as
             // trees. The application-data roots are protected as exact
             // locations instead: a redirected `LOCALAPPDATA` on a corporate
-            // machine holds the very caches Neati is meant to clean, and
+            // machine holds the very caches neati is meant to clean, and
             // treating the whole tree as a system root refused every one of
             // them.
             system_roots: [environment.program_files(), environment.program_data()]

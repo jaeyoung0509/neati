@@ -737,7 +737,7 @@ pub fn classify_cleanup_failure(error_str: &str) -> CleanFailureReason {
 
 /// Classifies a cleanup failure. Raw OS error codes take precedence over
 /// message text so localized Windows errors are still classified correctly;
-/// the message fallback covers guard errors that Neati produces itself.
+/// the message fallback covers guard errors that neati produces itself.
 pub fn classify_cleanup_failure_with_codes(
     os_error_codes: &[i32],
     error_str: &str,
@@ -1448,7 +1448,7 @@ mod tests {
         std::fs::create_dir_all(&cache).unwrap();
         std::fs::write(cache.join("payload.bin"), vec![3u8; 128]).unwrap();
 
-        // The signature names no provider Neati knows, so the prune cannot be
+        // The signature names no provider neati knows, so the prune cannot be
         // performed. The target still carries a real path, which is exactly the
         // shape that must never become filesystem authority.
         let plan = provider_plan(&cache, "test.unknown.provider");

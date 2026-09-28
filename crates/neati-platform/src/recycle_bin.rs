@@ -315,7 +315,7 @@ mod platform {
 
     pub fn empty() -> Result<(), RecycleBinError> {
         on_shell_thread(|| {
-            // Neati asks the user before this runs, so the shell's own
+            // neati asks the user before this runs, so the shell's own
             // confirmation and progress UI are suppressed: on a thread with no
             // window they would block the call, and the confirmation that
             // authorizes the action is the reviewed plan, not a dialog the

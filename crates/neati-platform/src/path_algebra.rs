@@ -791,7 +791,7 @@ mod tests {
             ("   ", W),
             (r"C:\Windows\System32\..\..\Users\me\Downloads", W),
             (r"C:/Windows/System32", W),
-            (r"\\?\C:\Users\me\AppData\Local\Temp\..\Temp\Neati", W),
+            (r"\\?\C:\Users\me\AppData\Local\Temp\..\Temp\neati", W),
             (r"\\?\UNC\server\share\folder\..\folder", W),
             (r"\\server\share\folder\", W),
             (r"C:\\Windows\\\\System32", W),
@@ -872,10 +872,10 @@ mod tests {
 
     #[test]
     fn containment_respects_component_boundaries() {
-        assert!(contains(r"C:\Program Files", r"C:\Program Files\Neati", W));
+        assert!(contains(r"C:\Program Files", r"C:\Program Files\neati", W));
         assert!(!contains(
             r"C:\Program Files",
-            r"C:\Program Files (x86)\Neati",
+            r"C:\Program Files (x86)\neati",
             W
         ));
         assert!(!contains(r"C:\Program", r"C:\Program Files", W));
@@ -913,7 +913,7 @@ mod tests {
                 Some(ProtectedRoot::WindowsDirectory),
                 "{drive} must be protected"
             );
-            let program_files = format!(r"{drive}\Program Files (x86)\Neati");
+            let program_files = format!(r"{drive}\Program Files (x86)\neati");
             assert_eq!(
                 protected_root(&program_files, W),
                 Some(ProtectedRoot::ProgramFilesX86)
@@ -980,7 +980,7 @@ mod tests {
         assert!(!looks_like_short_name("notes~2024"));
         assert!(!looks_like_short_name("~"));
         assert_eq!(
-            protected_root(r"C:\PROGRA~1\Neati", W),
+            protected_root(r"C:\PROGRA~1\neati", W),
             Some(ProtectedRoot::ShortNameAlias)
         );
         assert_eq!(
@@ -988,8 +988,8 @@ mod tests {
             None,
             "a tilde component below the drive root must not block unrelated cleanup"
         );
-        assert!(contains_short_name(r"C:\PROGRA~1\Neati", W));
-        assert!(!contains_short_name(r"C:\Program Files\Neati", W));
+        assert!(contains_short_name(r"C:\PROGRA~1\neati", W));
+        assert!(!contains_short_name(r"C:\Program Files\neati", W));
         // A short name is never silently equal to the directory it may alias.
         assert_ne!(key(r"C:\PROGRA~1", W), key(r"C:\Program Files", W));
     }

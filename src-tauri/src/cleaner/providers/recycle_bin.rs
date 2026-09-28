@@ -33,7 +33,7 @@ pub const PROVIDER_ID: &str = "windows.recycle_bin";
 pub const PROVIDER_LOCATION: &str = "recycle-bin://all-volumes";
 
 /// What running this action does, in the words the user is shown.
-pub const CONSEQUENCE: &str = "Everything the Recycle Bin holds is permanently deleted. Windows does not keep another copy, and Neati cannot undo this.";
+pub const CONSEQUENCE: &str = "Everything the Recycle Bin holds is permanently deleted. Windows does not keep another copy, and neati cannot undo this.";
 
 pub struct WindowsRecycleBinProvider {
     backend: Arc<dyn RecycleBinBackend>,

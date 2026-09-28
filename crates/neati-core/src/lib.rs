@@ -1,7 +1,7 @@
-//! Neati's product semantics, independent of the desktop framework.
+//! neati's product semantics, independent of the desktop framework.
 //!
 //! This crate answers one question: *would this code still make sense if
-//! Neati had a CLI instead of a Tauri window?* Scanning, cleanup safety,
+//! neati had a CLI instead of a Tauri window?* Scanning, cleanup safety,
 //! storage policy, capability description, and the DTOs the interface is
 //! allowed to see all say yes, so they live here. Webview IPC, tray and window
 //! lifecycle, capability grants, and desktop composition all say no, so they

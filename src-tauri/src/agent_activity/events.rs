@@ -151,7 +151,7 @@ mod tests {
     fn parses_valid_allowlist_event_and_discards_sensitive_fields() {
         let now = 1_000_000;
         // The credential is assembled at runtime: the safety scanner inspects
-        // Neati's own repository, so the fixture source must not carry a
+        // neati's own repository, so the fixture source must not carry a
         // complete signature.
         let api_key_fixture = ["sk-", "1234567890"].concat();
         let api_key_pair = format!("\"{}\": \"{api_key_fixture}\"", "api_key");

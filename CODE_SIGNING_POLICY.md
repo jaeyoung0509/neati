@@ -1,6 +1,6 @@
 # Code signing policy
 
-Neati is an MIT-licensed open-source project. Official release artifacts are
+neati is an MIT-licensed open-source project. Official release artifacts are
 built from this repository by the GitHub Actions release workflow. The project
 does not accept binaries or build scripts from private source repositories.
 
@@ -45,12 +45,12 @@ Consequences that release notes, README, and download instructions must state:
 - Until reputation accumulates, users verify releases by SHA256 checksum and
   GitHub build provenance rather than by publisher reputation alone.
 
-## Neati naming transition (2026-09-28)
+## neati naming transition (2026-09-28)
 
-Neati is the public name from 0.3.73 onward. From 0.3.74, issue #338 also changes
+neati is the public name from 0.3.73 onward. From 0.3.74, issue #338 also changes
 the bundle ID to `com.neati.desktop`, repository to `jaeyoung0509/neati`, owned
-package/credential namespaces and generated release filenames to Neati.
-Historical Neati decisions below are not evidence of a published Neati build.
+package/credential namespaces and generated release filenames to neati.
+Historical neati decisions below are not evidence of a published neati build.
 No certificate, external SignPath registration or notarization is changed by
 source edits. Revalidate those configurations before public distribution; the
 remaining signing/notarization gates in #334 still apply. Do not recommend
@@ -59,7 +59,7 @@ clearing quarantine; this supersedes the older alternative below. See
 
 ## macOS notarization
 
-**Decision (2026-09-12): macOS public beta artifacts are not notarized.** Neati
+**Decision (2026-09-12): macOS public beta artifacts are not notarized.** neati
 does not hold a paid Apple Developer ID certificate, and nothing in the release
 workflow submits the DMG to Apple's notary service or staples a ticket to it.
 This is a deliberate, dated decision, not an omission; the plan below records
@@ -68,8 +68,8 @@ what has to change if notarization is adopted.
 What an unnotarized build means for a user:
 
 - Gatekeeper refuses the first launch. A downloaded, quarantined build shows
-  "*Neati* cannot be opened because the developer cannot be verified" or, for
-  some download paths, "*Neati* is damaged and can't be opened".
+  "*neati* cannot be opened because the developer cannot be verified" or, for
+  some download paths, "*neati* is damaged and can't be opened".
 - The application bundle is not stapled, so Gatekeeper cannot validate it
   offline even after a network check.
 - No operating-system attestation of the binary is available on macOS; the
@@ -81,11 +81,11 @@ What the user-facing instructions must say (currently
 
 - The build is unsigned and not notarized, and the warning is expected.
 - The exact way past it for one application: Finder → **Applications** →
-  right-click **Neati.app** → **Open** → **Open** again, or System Settings →
+  right-click **neati.app** → **Open** → **Open** again, or System Settings →
   Privacy & Security → **Open Anyway** after the first blocked attempt.
 - Never instruct the user to disable Gatekeeper globally, to remove quarantine
   from every downloaded file, or to run `sudo spctl --master-disable`. Clearing
-  the quarantine attribute on this one bundle (`xattr -cr /Applications/Neati.app`)
+  the quarantine attribute on this one bundle (`xattr -cr /Applications/neati.app`)
   may be documented as an alternative, together with the fact that it disables
   Gatekeeper's malware check for that bundle.
 - Verify the SHA256 checksum from the GitHub Release before overriding any
@@ -138,7 +138,7 @@ gate is explicit about who does what:
 1. The `release-approval` GitHub environment is attached to the publishing job
    and must require reviewer approval. A maintainer downloads the installers
    from the workflow run artifacts, submits
-   `Neati-windows-x64-setup.exe` and `Neati-windows-x64-setup-machine.exe` to
+   `neati-windows-x64-setup.exe` and `neati-windows-x64-setup-machine.exe` to
    Microsoft's submission portal, and waits for the result.
 2. The maintainer records the outcome in the environment's variables:
    `ENDPOINT_REVIEW_STATUS` (`clear` or `detected`),
@@ -170,11 +170,11 @@ named here before receiving a release role.
 
 ## Privacy and end-user changes
 
-Neati will not transfer information to other networked systems unless
+neati will not transfer information to other networked systems unless
 specifically requested by the user or the person installing or operating it.
 Provider APIs and official provider CLIs may access their own network services
 only when the user enables or invokes those integrations; their respective
-privacy policies then apply. Neati itself has no telemetry, analytics, or
+privacy policies then apply. neati itself has no telemetry, analytics, or
 background tracking service and performs no background network activity,
 including update checks.
 
@@ -185,7 +185,7 @@ Windows Apps & Features uninstaller.
 
 ## Signed release requirements
 
-Once SignPath Foundation approves Neati, Windows release signing must follow
+Once SignPath Foundation approves neati, Windows release signing must follow
 all of these rules:
 
 - Signing requests originate only from the reviewed release workflow in this
@@ -228,7 +228,7 @@ for this repository. General release problems can be reported through
 
 ## Dependency and supply-chain incidents
 
-Neati ships no updater and performs no background network activity, so a
+neati ships no updater and performs no background network activity, so a
 dependency-originated fix can only reach users through a new release that they
 can find on the Releases page. The triage path is therefore explicit:
 
@@ -260,7 +260,7 @@ can find on the Releases page. The triage path is therefore explicit:
 
 ## Antivirus guidance
 
-Neati never asks users to add an antivirus exclusion, and no repository
+neati never asks users to add an antivirus exclusion, and no repository
 document may instruct one. The only Windows security setting a feature may
 require is Controlled Folder Access: the Large Files inspector and Trash plans
 operate on folders that Controlled Folder Access protects, and the application

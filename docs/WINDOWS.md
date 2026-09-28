@@ -1,6 +1,6 @@
 # Windows development
 
-Neati's Windows build targets x86_64 MSVC and packages as an NSIS installer.
+neati's Windows build targets x86_64 MSVC and packages as an NSIS installer.
 The Windows port is incremental: the shell and capability contract land first,
 then each native adapter enables its feature explicitly. Unsupported features
 must remain disabled rather than reporting a successful no-op.
@@ -79,8 +79,8 @@ name, machine name, drive letter, or profile path.
 
 ```powershell
 just doctor                          # builds and runs the source tree
-& "$env:LOCALAPPDATA\Neati\Neati.exe" --doctor
-& "C:\Program Files\Neati\Neati.exe" --doctor --json
+& "$env:LOCALAPPDATA\neati\Neati.exe" --doctor
+& "C:\Program Files\neati\Neati.exe" --doctor --json
 ```
 
 `Neati --doctor` also appends a runtime row, `log_writable`, which opens an
@@ -121,8 +121,8 @@ variant from `.github/tauri.nsis-permachine.json`.
 
 | Artifact | Install mode | Location | Elevation |
 | --- | --- | --- | --- |
-| `Neati-windows-x64-setup.exe` | `currentUser` (default) | `%LOCALAPPDATA%\Neati` | none |
-| `Neati-windows-x64-setup-machine.exe` | `perMachine` | `Program Files\Neati` | required |
+| `neati-windows-x64-setup.exe` | `currentUser` (default) | `%LOCALAPPDATA%\neati` | none |
+| `neati-windows-x64-setup-machine.exe` | `perMachine` | `Program Files\neati` | required |
 
 Why both exist:
 
@@ -147,8 +147,8 @@ Further contract points:
   first launch that never opens a window.
 - Downgrades are blocked; installing a newer version upgrades the same
   installation scope.
-- The public asset names are always `Neati-windows-x64-setup.exe` and
-  `Neati-windows-x64-setup-machine.exe`. The WinGet manifest references only
+- The public asset names are always `neati-windows-x64-setup.exe` and
+  `neati-windows-x64-setup-machine.exe`. The WinGet manifest references only
   the per-user installer.
 - WebView2 is expected to be present on supported Windows 10 and Windows 11
   installations, but it is not assumed: the embedded offline installer covers a
@@ -175,7 +175,7 @@ Release trust artifacts:
 - `SBOM-neati.spdx.json`, an SPDX software bill of materials generated from the
   locked dependency manifests of the tagged commit.
 - GitHub build provenance attestation for both installers and the SBOM:
-  `gh attestation verify Neati-windows-x64-setup.exe --repo jaeyoung0509/neati`.
+  `gh attestation verify neati-windows-x64-setup.exe --repo jaeyoung0509/neati`.
 - `endpoint-review.json`, the recorded Microsoft endpoint-protection submission
   result for the exact published bytes. The publishing job runs in the
   `release-approval` environment, where a maintainer submits the installers to
@@ -190,7 +190,7 @@ normalizes imported CRLF manifests, and validates their entry shape. The final
 publisher must run `shasum -c SHA256SUMS.txt` against every release binary
 before uploading any public asset.
 
-After the first installer exists, Neati can satisfy SignPath Foundation's
+After the first installer exists, neati can satisfy SignPath Foundation's
 "already released" eligibility condition and apply for free open-source code
 signing. The approval-dependent identifiers must not be guessed or committed.
 Once approved, the release workflow will submit the application and both
@@ -200,11 +200,11 @@ See [`CODE_SIGNING_POLICY.md`](../CODE_SIGNING_POLICY.md).
 
 ## No updater and no background network activity
 
-Neati has no updater and performs no background network activity, so it never
+neati has no updater and performs no background network activity, so it never
 learns on its own that a corrected version exists. The application exposes the
 release URL as `PlatformContext.releases_url` and links to it from the
 interface; users compare that page's newest tag with the version shown in
-Neati. Fixes ship as new immutable versioned releases, never as replaced
+neati. Fixes ship as new immutable versioned releases, never as replaced
 assets.
 
 ## GitHub Release and WinGet
@@ -217,7 +217,7 @@ emits both installers, platform checksums, build metadata, and a WinGet
 multi-file manifest rooted at:
 
 ```text
-manifests/j/jaeyoung0509/Neati/<version>/
+manifests/j/jaeyoung0509/neati/<version>/
 ```
 
 The manifest identifies the per-user NSIS installer as `nullsoft`, uses
@@ -227,7 +227,7 @@ immutable versioned GitHub asset URL. Generate the same files locally with:
 ```powershell
 node scripts/generate_winget_manifest.cjs `
   --version 0.3.19 `
-  --installer .\Neati-windows-x64-setup.exe `
+  --installer .\neati-windows-x64-setup.exe `
   --output .\winget-output
 ```
 
@@ -242,11 +242,11 @@ opening the community-repository PR.
 ## Antivirus and application-control settings
 
 Do not add an antivirus exclusion, and do not document one. The only Windows
-security setting a Neati feature may ask the user to change is **Controlled
+security setting a neati feature may ask the user to change is **Controlled
 Folder Access**: the Large Files inspector and Trash plans operate inside
 folders that Controlled Folder Access protects. When Windows denies access to a
 location inside your profile while the policy is enabled, the failure text names
-that setting and how to allow Neati there, instead of reporting a bare
+that setting and how to allow neati there, instead of reporting a bare
 permission error. Locations outside the profile, and application-data
 directories (which the policy leaves alone by default), keep the plain OS
 error. Excluding the install
@@ -254,7 +254,7 @@ directory, the executable, or the user profile from antivirus scanning is not
 an acceptable workaround.
 
 Application-control policy is a separate boundary. AppLocker, WDAC, and Smart
-App Control are managed by the organization that owns the machine; Neati can
+App Control are managed by the organization that owns the machine; neati can
 offer the machine-wide installer, but it cannot and does not claim that a
 managed machine will allow the binary to run.
 

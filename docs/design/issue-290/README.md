@@ -30,7 +30,7 @@ shorter working-state labels.
 
 ### Native inspection
 
-An isolated `Neati QA.app` (identifier `com.neati.desktop.qa`) was built and
+An isolated `neati QA.app` (identifier `com.neati.desktop.qa`) was built and
 opened, leaving the installed application intact. Main-window and Quick Panel
 rendering were inspected. Light/Dark switching updated the native appearance.
 Web Inspector reported `native-liquid-glass = true`, reduced transparency off,
@@ -77,7 +77,7 @@ apps always goes through the existing protected, lease-backed confirmation flow.
   fixture, 400×620, dark and reduced motion).
 - Quick Panel battery icons distinguish external power from active charging.
   During investigation, macOS `pmset -g batt` itself reported 91%, AC attached,
-  not charging. Neati agreed; no backend state was overridden or charging-stop
+  not charging. neati agreed; no backend state was overridden or charging-stop
   cause inferred.
 - `just bump-patch` advanced all manifests to 0.3.59. README now describes the
   current Overview, adaptive panel, native material, provider network behavior,

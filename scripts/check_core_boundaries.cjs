@@ -3,8 +3,8 @@
 /**
  * Enforces the workspace dependency boundaries.
  *
- * `neati-core` exists so Neati's product semantics can outlive the desktop
- * framework: the crate must still compile and make sense if Neati grew a CLI
+ * `neati-core` exists so neati's product semantics can outlive the desktop
+ * framework: the crate must still compile and make sense if neati grew a CLI
  * or a second front end. That property dies quietly the first time a domain
  * module imports a webview, a window, or a Win32 binding, and a review comment
  * is not a mechanism.

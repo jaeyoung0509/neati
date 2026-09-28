@@ -26,7 +26,7 @@ impl ProviderAdapter for CursorAdapter {
         provider.connected = false;
         provider.support = UsageSupport::Manual;
         provider.status_message = if installed {
-            "Cursor does not expose account quota to Neati; check usage in Cursor settings.".into()
+            "Cursor does not expose account quota to neati; check usage in Cursor settings.".into()
         } else {
             "Cursor was not detected in PATH or known tool locations.".into()
         };

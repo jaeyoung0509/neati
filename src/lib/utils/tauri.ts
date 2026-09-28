@@ -322,6 +322,12 @@ export function tauriTakePendingNavigation(): Promise<DashboardRoute | null> {
   return api.takePendingNavigation();
 }
 
+export async function observeDashboardNavigation(onPending: () => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import('@tauri-apps/api/event');
+  return listen('dashboard-navigation-pending', onPending);
+}
+
 export function tauriToggleQuick(): Promise<void> {
   return api.toggleQuick();
 }

@@ -1,6 +1,6 @@
 //! Observation quality: how much a reading may be trusted.
 //!
-//! Every measurement Neati presents carries one of these, because a number
+//! Every measurement neati presents carries one of these, because a number
 //! that came from a partial scan and a number that came from a complete one
 //! are not the same claim. The value is a domain fact rather than a
 //! presentation detail: the safety planner refuses to clean an `Unavailable`
@@ -33,7 +33,7 @@ impl ObservationQuality {
 
 /// Whether something taken at `created_at` is still inside its window at `now`.
 ///
-/// One rule, used by every time-bounded reading and authority in Neati: a
+/// One rule, used by every time-bounded reading and authority in neati: a
 /// scan result, a reviewed inventory, a cleanup plan, and a Trash plan all ask
 /// this question, and they must answer it the same way.
 ///

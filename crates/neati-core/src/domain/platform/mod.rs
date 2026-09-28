@@ -235,10 +235,10 @@ impl PlatformCapabilities {
             large_files: PlatformFeatureCapability::available(),
             developer_artifacts: PlatformFeatureCapability::available(),
             installed_apps: PlatformFeatureCapability::unavailable(
-                "Neati does not implement Windows application inventory yet; registry uninstall keys exist but are not read.",
+                "neati does not implement Windows application inventory yet; registry uninstall keys exist but are not read.",
             ),
             app_uninstall: PlatformFeatureCapability::unavailable(
-                "Neati does not implement Windows application uninstallation yet; the registry UninstallString exists but is not executed.",
+                "neati does not implement Windows application uninstallation yet; the registry UninstallString exists but is not executed.",
             ),
             memory_metrics: PlatformFeatureCapability::available(),
             process_termination: PlatformFeatureCapability::available(),
@@ -354,7 +354,7 @@ mod tests {
                 .as_deref()
                 .unwrap_or_else(|| panic!("{feature:?} must explain why it is unavailable"));
             assert!(
-                reason.contains("Neati") || reason.contains("Windows"),
+                reason.contains("neati") || reason.contains("Windows"),
                 "{feature:?} reason must name what is missing: {reason}"
             );
 

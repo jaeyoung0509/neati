@@ -47,8 +47,8 @@ impl SecurityPolicyState {
 ///
 /// Controlled Folder Access is on by default on consumer Windows 11 and is not
 /// affected by code signing, so a refusal there is not something the user can
-/// solve from inside Neati: the text names the one setting that allows it.
-pub const CONTROLLED_FOLDER_ACCESS_REMEDY: &str = "Allow Neati in Windows Security > Virus & threat protection > Ransomware protection > Controlled folder access, or move the item out of the protected folder.";
+/// solve from inside neati: the text names the one setting that allows it.
+pub const CONTROLLED_FOLDER_ACCESS_REMEDY: &str = "Allow neati in Windows Security > Virus & threat protection > Ransomware protection > Controlled folder access, or move the item out of the protected folder.";
 
 /// Whether an access refusal on `path` should be attributed to Controlled
 /// Folder Access.
@@ -102,7 +102,7 @@ pub fn describe_access_refusal(
     error.to_string()
 }
 
-pub const FULL_DISK_ACCESS_REMEDY: &str = "macOS protects this location from other applications. Grant Neati Full Disk Access in System Settings > Privacy & Security > Full Disk Access, then scan again. Until then the location is reported as unreadable rather than as empty.";
+pub const FULL_DISK_ACCESS_REMEDY: &str = "macOS protects this location from other applications. Grant neati Full Disk Access in System Settings > Privacy & Security > Full Disk Access, then scan again. Until then the location is reported as unreadable rather than as empty.";
 
 /// Whether an access refusal on `path` should be attributed to Full Disk
 /// Access on macOS.

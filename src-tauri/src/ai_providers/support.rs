@@ -32,6 +32,7 @@ pub fn base_provider(id: ProviderId, name: &str, auth_label: &str) -> AiProvider
         connected: false,
         auth_label: auth_label.into(),
         status_message: "Not connected".into(),
+        collection_status: None,
         support: UsageSupport::Live,
         windows: vec![],
         summary: UsageSummary::default(),
@@ -45,6 +46,7 @@ pub fn failed_provider(id: ProviderId, name: &str, message: &str) -> AiProviderU
     let mut provider = base_provider(id, name, "Unknown");
     provider.support = UsageSupport::Manual;
     provider.status_message = message.into();
+    provider.collection_status = Some(crate::models::UsageCollectionStatus::Unavailable);
     provider
 }
 
@@ -56,6 +58,15 @@ pub fn append_rate_windows(target: &mut Vec<UsageWindow>, limits: &Value) {
         .unwrap_or("Usage");
     for (key, fallback) in [("primary", "Primary"), ("secondary", "Secondary")] {
         let Some(window) = limits.get(key).filter(|value| !value.is_null()) else {
+            continue;
+        };
+        // Unknown is not zero. Omit an unmeasured window instead of inventing
+        // a percentage (other independently measured windows may remain).
+        let Some(used_percent) = window
+            .get("usedPercent")
+            .and_then(Value::as_f64)
+            .filter(|value| value.is_finite() && (0.0..=100.0).contains(value))
+        else {
             continue;
         };
         let duration = u64_field(window, "windowDurationMins").unwrap_or(0);
@@ -70,10 +81,7 @@ pub fn append_rate_windows(target: &mut Vec<UsageWindow>, limits: &Value) {
         };
         target.push(UsageWindow {
             label,
-            used_percent: window
-                .get("usedPercent")
-                .and_then(Value::as_f64)
-                .unwrap_or(0.0),
+            used_percent,
             resets_at: u64_field(window, "resetsAt"),
         });
     }

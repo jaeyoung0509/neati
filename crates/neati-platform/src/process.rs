@@ -141,13 +141,13 @@ fn send_console_break(pid: u32) -> bool {
     };
 
     unsafe {
-        // Neati is a GUI process without an owned console, but detach first in
+        // neati is a GUI process without an owned console, but detach first in
         // case a debugger attached one; failures are harmless.
         FreeConsole();
         if AttachConsole(pid) == 0 {
             return false;
         }
-        // Ignore the break inside Neati while the event is delivered.
+        // Ignore the break inside neati while the event is delivered.
         SetConsoleCtrlHandler(None, 1);
         let delivered = GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid) != 0;
         SetConsoleCtrlHandler(None, 0);

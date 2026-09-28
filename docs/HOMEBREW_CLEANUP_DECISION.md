@@ -1,6 +1,6 @@
 # Homebrew cleanup operation boundary
 
-Neati exposes two deliberately separate Homebrew actions on macOS:
+neati exposes two deliberately separate Homebrew actions on macOS:
 
 1. **Homebrew Downloads** is the deep download purge. Its owner-scoped
    filesystem adapter reviews direct, single-linked files in
@@ -46,4 +46,4 @@ Homebrew's preview is human-readable rather than a transaction token. Parsing
 therefore fails closed when its stdout contract changes. Fixture tests cover
 exact parsing, unexpected roots, candidate drift, command failure, partial
 post-verification, and process/identity refusals without running Homebrew on a
-real user store. Windows and Linux have no Homebrew adapter in Neati.
+real user store. Windows and Linux have no Homebrew adapter in neati.

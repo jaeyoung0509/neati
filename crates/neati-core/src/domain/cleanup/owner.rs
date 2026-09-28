@@ -45,7 +45,7 @@ pub enum OwnerUnitState {
     Ready,
     /// Fully measured, but the provider's age threshold has not passed.
     Recent,
-    /// The owner, not Neati, decides when this unit goes. The unit stays
+    /// The owner, not neati, decides when this unit goes. The unit stays
     /// inventoried with its observed bytes and is never selectable.
     Advisory,
     /// Fully measured but outside the provider's supported mutation contract.

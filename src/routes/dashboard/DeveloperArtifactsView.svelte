@@ -552,7 +552,7 @@
             </div>
             {#if uninspected.some((entry) => entry.retryable && entry.reason === 'permission_denied')}
               <p class="text-meta text-muted-foreground">
-                On macOS, allow Neati under System Settings → Privacy &amp; Security → Files and Folders, then scan again.
+                On macOS, allow neati under System Settings → Privacy &amp; Security → Files and Folders, then scan again.
               </p>
             {/if}
             <Button
@@ -617,7 +617,7 @@
           <Button id="developer-artifact-expiry-action" variant="ghost" size="sm" onclick={() => { plan = null; void scanArtifacts(); }}>Scan again</Button>
         </div>
       {:else}
-        <p class="text-meta text-muted-foreground">One-shot plan. Neati rechecks workspace identity, markers, exact artifact type, symlinks, and filesystem identity before each move.</p>
+        <p class="text-meta text-muted-foreground">One-shot plan. neati rechecks workspace identity, markers, exact artifact type, symlinks, and filesystem identity before each move.</p>
         {#if hasMeasurementIncompleteSelected}
           <div class="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
             <p class="font-medium">Some selected measurements are partial.</p>

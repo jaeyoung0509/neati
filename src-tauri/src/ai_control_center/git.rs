@@ -36,7 +36,7 @@ pub(crate) enum GitUnavailable {
     /// The root is not inside a repository: no `.git`, or one that resolves to
     /// nothing.
     NoRepository,
-    /// Neati refuses to run `git` there, and the reason says why.
+    /// neati refuses to run `git` there, and the reason says why.
     Refused(GitRefusal),
     /// `git` ran but did not answer: a failure, not an empty state.
     CommandFailed(String),
@@ -95,7 +95,7 @@ pub(crate) struct ReadState {
     head: Option<String>,
     statuses: HashMap<String, String>,
     fingerprints: HashMap<String, String>,
-    /// Whether the working-tree listing reached Neati's capture cap, so the
+    /// Whether the working-tree listing reached neati's capture cap, so the
     /// untracked paths are missing from this state.
     untracked_dropped: bool,
 }
@@ -646,7 +646,7 @@ fn run_diff_command(inspection: &GitInspection, args: &[&str]) -> Result<String,
 
 /// The explicit diff between the baseline and the working tree.
 ///
-/// A repository Neati refuses is not an unchanged one: reporting an empty diff
+/// A repository neati refuses is not an unchanged one: reporting an empty diff
 /// would present unread state as a measurement.
 pub fn explicit_diff(
     root: &Path,
@@ -720,7 +720,7 @@ pub fn explicit_diff(
 
     if combined_diff.len() > MAX {
         Ok(format!(
-            "{}\n\n[Diff truncated by Neati at 256 KiB]",
+            "{}\n\n[Diff truncated by neati at 256 KiB]",
             &combined_diff[..combined_diff.floor_char_boundary(MAX)]
         ))
     } else {
@@ -984,7 +984,7 @@ mod tests {
         let summary = store.summaries(&roots, &environment(), 10).remove(0);
         assert!(
             !summary.available,
-            "a repository Neati refuses must not be reported as available: {summary:?}"
+            "a repository neati refuses must not be reported as available: {summary:?}"
         );
         assert!(
             summary.status_message.contains("filter.probe.clean"),
@@ -1092,7 +1092,7 @@ mod tests {
                 .changed_paths
                 .is_empty());
             // A rewrite that keeps the bytes identical is what an editor save
-            // does; the checkout is still clean, for the user and for Neati.
+            // does; the checkout is still clean, for the user and for neati.
             let user = std::process::Command::new("git")
                 .arg("-C")
                 .arg(root)

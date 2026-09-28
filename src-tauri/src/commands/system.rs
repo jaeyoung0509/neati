@@ -226,6 +226,7 @@ fn open_dashboard_window_for_runtime<R: tauri::Runtime>(
         state.set_pending_navigation(route);
     }
     crate::show_main_window(&app_handle).map_err(|error| error.to_string())?;
+    crate::events::navigation::notify(&app_handle);
     Ok(())
 }
 

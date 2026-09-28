@@ -1,6 +1,12 @@
-# Neati Design System
+# neati Design System
 
-Neati is a compact, native-feeling macOS and desktop utility for developers.
+Extended cache scanning is always included on supported platforms. Settings
+explain its scope without an on/off control; scanning never triggers deletion.
+Verified provider quotas render as soon as available, independently of other
+providers and optional token-history enrichment. Failure states retain an
+explicit retry action, without inventing authentication or zero-usage data.
+
+neati is a compact, native-feeling macOS and desktop utility for developers.
 Its visual direction pairs cool near-white surfaces and ink-blue type with
 soft blue-to-cyan actions and blue navigation. Frosted translucency gives navigation and
 the Quick Panel a native sense of depth. Technical data and cleanup decisions
@@ -27,7 +33,7 @@ The material reference is the macOS Bluetooth popover supplied during the
 September 25, 2026 design review: one rounded translucent surface, fine internal
 dividers, and crisp text. Use this material for transient chrome and navigation;
 keep operational lists on solid working surfaces. The UI UX Pro Max glassmorphism
-and accessibility guidance informs this treatment; existing Neati tokens and
+and accessibility guidance informs this treatment; existing neati tokens and
 desktop sizing remain the source of truth.
 
 On macOS 26 and later, an `NSGlassEffectView` using the public `Regular`
@@ -89,13 +95,13 @@ for the supported native hosting relationship.
   periwinkle identifies primary actions, with cobalt for selected navigation.
   One obvious primary action per task. Generic resource readings use cobalt;
   green is reserved for a completed success or cleanup eligibility.
-- The user-approved Neati B identity (September 28, 2026, #334) is a flowing,
+- The user-approved neati B identity (September 28, 2026, #334) is a flowing,
   rounded lowercase `n`, white on a restrained blue tile. Its lifted tail adds
   warmth without a face, mascot, cleaning prop, or status badge. Use the same
   stroke geometry and round terminals in the monochrome macOS template.
   The original handwritten `neati` wordmark is reserved for brand headers;
   controls and operational text retain the system font. Its color follows the
-  foreground token in both themes and it exposes the accessible name Neati.
+  foreground token in both themes and it exposes the accessible name neati.
   The mark has no status dot or badge.
 - A logo is identity, not a trust certificate. No screen claims a machine is
   healthy, safe, or protected in general terms.
@@ -224,7 +230,7 @@ offset rings, rather than assuming every control sits on the page background.
 
 ### Native window corners
 
-The rounded main-window silhouette is owned by macOS. Neati keeps the real
+The rounded main-window silhouette is owned by macOS. neati keeps the real
 overlay title-bar controls, drag region, resizing, full-screen behaviour, and
 the OS shadow. On macOS its WebView backing is transparent so native vibrancy
 shows through the sidebar; the main content paints an opaque surface. CSS
@@ -358,7 +364,14 @@ inventory is still valid.
 
 ### Brand identity
 
-- Neati's own mark is authored once in `src-tauri/icons/neati-mark.svg`.
+- The public product spelling is always lowercase `neati`, including sentence
+  starts, native titles, accessibility labels and installer display names.
+  The bundle is `neati.app`; the private desktop executable remains `Neati`
+  (`Neati.exe` on Windows), never installed onto PATH. CLI issue #335 owns the
+  future `neati` command. Existing credential, bundle and log identifiers stay
+  unchanged; they are technical identities, not display copy.
+
+- neati's own mark is authored once in `src-tauri/icons/neati-mark.svg`.
   `pnpm icons:generate` derives every packaged size, native `.icns` / `.ico`,
   the menu-bar PNG, public assets, compact frontend SVG, and its registry hash.
   `pnpm icons:check` detects drift. Do not hand-edit generated copies or recreate
@@ -388,7 +401,7 @@ inventory is still valid.
 - Tool rows use 18–20 px action glyphs and a 32 px identity slot (24 px
   artwork) so logos sit next to useful names rather than in a wall of
   promotional cards.
-- The Quick Panel and main sidebar share the same Neati asset and restrained
+- The Quick Panel and main sidebar share the same neati asset and restrained
   functional navigation icons. Provider rows never borrow sparkle or rocket
   symbols as substitute logos.
 
@@ -586,7 +599,7 @@ typed deletion where the backend supports it.
 ### Development servers
 
 Port, project/tool identity, observed address and exposure come first, then the
-resource and action menu. A listening process is not a server Neati started,
+resource and action menu. A listening process is not a server neati started,
 and release/termination keeps its verified flow.
 
 ### Keep Awake

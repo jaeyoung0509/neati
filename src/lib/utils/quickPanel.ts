@@ -113,8 +113,10 @@ const KNOWN_PROVIDER_NAMES: Record<string, string> = {
 export function projectAiProviders(
   configuredIds: readonly (ProviderId | string)[],
   providers: readonly AiProviderUsage[] | undefined,
-  isLoading = false
+  isLoading = false,
+  collectedIds: readonly (ProviderId | string)[] = configuredIds
 ): AiProviderUsage[] {
+  configuredIds = configuredIds.filter(id => collectedIds.includes(id));
   if (!configuredIds.length) return [];
   if (!providers && !isLoading) return [];
 
@@ -126,7 +128,7 @@ export function projectAiProviders(
       return {
         id: canonicalId,
         name: KNOWN_PROVIDER_NAMES[id] || id,
-        installed: true,
+        installed: false,
         connected: false,
         auth_label: '',
         status_message: 'Loading live usage...',
@@ -177,6 +179,9 @@ export function quickProviderUsageWindow(provider: AiProviderUsage, loading: boo
 
 export function formatQuickProviderUsage(provider: AiProviderUsage, loading: boolean, stale = false): string {
   if (loading) return 'Updating usage…';
+  if (provider.collection_status && provider.collection_status !== 'fresh') {
+    return provider.status_message;
+  }
   if (stale) return 'Usage needs refresh';
   if (!provider.installed) return 'Not installed';
   if (!provider.connected) return 'Not connected';

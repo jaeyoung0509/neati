@@ -9,6 +9,7 @@
 
 pub mod ai;
 pub mod cleanup;
+pub mod navigation;
 pub mod notifications;
 pub mod scan;
 pub mod storage;

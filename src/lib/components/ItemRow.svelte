@@ -17,7 +17,7 @@
   let { item }: Props = $props();
 
   let cacheMetadata = $derived(item.cache_metadata ?? {
-    provider: 'Neati',
+    provider: 'neati',
     management_mode: 'neati' as const,
     artifact_kind: 'temporary' as const,
     consequence: '',

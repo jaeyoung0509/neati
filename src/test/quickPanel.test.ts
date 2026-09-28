@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { render } from 'svelte/server';
 import type { AgentQuickSessionRow, AiProviderId, AiProviderUsage, AiUsageSnapshot, UsageSummary } from '../lib/models/types';
@@ -26,7 +26,29 @@ import {
   toggleOrdered,
 } from '../lib/utils/quickPanel';
 
+beforeEach(() => {
+  settingsStore.hasLoaded = true;
+  settingsStore.isLoading = false;
+});
+
 describe('quick panel customization', () => {
+  it('does not synthesize disabled quota providers while another provider loads', () => {
+    const configured = ['codex', 'claude', 'opencode', 'openrouter', 'antigravity'];
+    const selected = ['codex', 'antigravity'];
+    const loading = projectAiProviders(configured, [], true, selected);
+    expect(loading.map(p => p.id)).toEqual(selected);
+    expect(loading.every(p => !p.installed && !p.connected)).toBe(true);
+    expect(projectAiProviders(configured, loading, false, selected).map(p => p.id)).toEqual(selected);
+    expect(projectAiProviders([], loading, true, selected)).toEqual([]);
+  });
+
+  it('shows transient collection failure instead of a false signed-out status', () => {
+    const provider = projectAiProviders(['codex'], [], true)[0];
+    provider.collection_status = 'timeout';
+    provider.status_message = 'Collection timed out.';
+    expect(formatQuickProviderUsage(provider, false)).toBe('Collection timed out.');
+    expect(quickProviderUsageWindow(provider, false)).toBeNull();
+  });
   it('sizes the panel to measured content within its native bounds', () => {
     expect(quickPanelHeight(100, 120)).toBe(300);
     expect(quickPanelHeight(180, 120)).toBe(300);
@@ -121,7 +143,7 @@ describe('compact AI summary', () => {
       action_url: null,
     };
     const session: AgentQuickSessionRow = {
-      session_id: 'session-1', tool_name: 'Codex', project_name: 'Neati',
+      session_id: 'session-1', tool_name: 'Codex', project_name: 'neati',
       status: 'working', evidence: 'process_observed', elapsed_seconds: 120,
     };
     const rows = projectQuickAiRows([provider], [session]);

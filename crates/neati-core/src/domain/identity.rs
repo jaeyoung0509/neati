@@ -1,7 +1,7 @@
 //! Filesystem identity: which entity on which volume, and what each domain is
 //! allowed to conclude from it.
 //!
-//! Neati mutates files on two independent paths — generic cleanup, which is
+//! neati mutates files on two independent paths — generic cleanup, which is
 //! authorized by a backend-owned [`crate::domain::cleanup::DeletePlan`], and
 //! the reviewed storage workflows (Large Files, Applications, Developer
 //! Artifacts, Trash), which are authorized by an explicit user selection.

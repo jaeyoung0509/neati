@@ -29,7 +29,7 @@
     "pnpm_build": "passed",
     "just_check_architecture": "passed",
     "just_check_version": "passed: all manifests at 0.3.53",
-    "just_build_fast": "passed: target/debug/bundle/macos/Neati.app"
+    "just_build_fast": "passed: target/debug/bundle/macos/neati.app"
   },
   "limitations": [
     "No installed Cursor profile, real user cache, or live cleanup was touched.",

@@ -129,7 +129,7 @@ const MOCK_PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
     supports_quick_panel: true,
     model_vendor: null,
     model_identity: null,
-    description: 'Live key usage through Neati OAuth.',
+    description: 'Live key usage through neati OAuth.',
     default_quota_provider: true,
   },
   {
@@ -306,7 +306,7 @@ function mockControlSnapshot(): AiControlCenterSnapshot {
     resources: [{ session_id: 'session-codex-preview', project_id: 'project-neati-preview', tool_name: 'Codex CLI', cpu_percent: 6.4, memory_bytes: 490733568, process_count: 1, duration_seconds: 1320, open_dev_ports: 1, power_eligible: true, confidence: 'verified', reason: 'Canonical session and project identity matched.', mutable_actions_allowed: true }],
     recommendations: [{ id: 'recommendation-port-preview', kind: 'development_port', title: 'Review open development port', message: 'A verified project session has an open development listener.', created_at: now, cooldown_until: now + 900, session_id: 'session-codex-preview', project_id: 'project-neati-preview', action_label: 'Preview', destination: 'development_servers' }],
     safety: { observed_at: now, quality: 'unavailable', findings: [], scanned_files: 0, skipped_files: 0, inspected_roots: [], unreached_roots: [], status_message: 'Run an explicit bounded inspection.' },
-    git_summaries: [{ project_id: 'project-neati-preview', baseline_head: 'abc1234', current_head: 'abc1234', baseline_at: now - 1200, added: 0, modified: 2, deleted: 0, renamed: 0, untracked: 1, changed_paths: ['src/routes/dashboard/AiControlCenterView.svelte', 'src-tauri/src/ai_control_center/mod.rs'], available: true, status_message: '3 paths changed after the Neati baseline.' }],
+    git_summaries: [{ project_id: 'project-neati-preview', baseline_head: 'abc1234', current_head: 'abc1234', baseline_at: now - 1200, added: 0, modified: 2, deleted: 0, renamed: 0, untracked: 1, changed_paths: ['src/routes/dashboard/AiControlCenterView.svelte', 'src-tauri/src/ai_control_center/mod.rs'], available: true, status_message: '3 paths changed after the neati baseline.' }],
     audit: [],
     quick_summary: { observed_at: now, active_sessions: 1, budget_alerts: 0, safety_findings: 0, quality: 'fresh' },
     keep_awake_active: false,
@@ -472,7 +472,7 @@ export const mockApi = {
 
   async getAgentIntegrations(): Promise<AgentIntegrationInfo[]> {
     return [
-      { tool_id: 'antigravity', display_name: 'Antigravity', supported: true, installed: true, integration_active: true, config_path: '~/.gemini/antigravity/hooks.json', description: 'Legacy Neati marker detected; removal only.' },
+      { tool_id: 'antigravity', display_name: 'Antigravity', supported: true, installed: true, integration_active: true, config_path: '~/.gemini/antigravity/hooks.json', description: 'Legacy neati marker detected; removal only.' },
       { tool_id: 'claude', display_name: 'Claude Code', supported: true, installed: true, integration_active: false, config_path: '~/.claude/settings.json', description: 'Process-only observation; no verified bridge.' },
       { tool_id: 'cursor', display_name: 'Cursor Agent CLI', supported: true, installed: false, integration_active: false, config_path: '~/.cursor/hooks.json', description: 'Process-only observation; no verified bridge.' },
       { tool_id: 'grok', display_name: 'Grok Build', supported: true, installed: false, integration_active: false, config_path: '~/.grok/hooks.json', description: 'Process-only observation; no verified bridge.' },
@@ -601,7 +601,7 @@ export const mockApi = {
           installed: true,
           connected: false,
           auth_label: 'OAuth PKCE',
-          status_message: 'No Neati OAuth session is connected yet.',
+          status_message: 'No neati OAuth session is connected yet.',
           support: 'live',
           windows: [],
           summary: {
@@ -664,7 +664,7 @@ export const mockApi = {
           installed: true,
           connected: false,
           auth_label: 'Cursor account',
-          status_message: 'Cursor does not expose account quota to Neati; check usage in Cursor settings.',
+          status_message: 'Cursor does not expose account quota to neati; check usage in Cursor settings.',
           support: 'manual',
           windows: [],
           summary: {
@@ -685,7 +685,7 @@ export const mockApi = {
           installed: true,
           connected: false,
           auth_label: 'xAI account',
-          status_message: 'Grok Build does not expose account quota to Neati; check usage in the provider client.',
+          status_message: 'Grok Build does not expose account quota to neati; check usage in the provider client.',
           support: 'manual',
           windows: [],
           summary: {
@@ -939,7 +939,7 @@ export const mockApi = {
           size: { logical: intensiveBytes, allocated: intensiveBytes },
           file_count: 2400,
           description: 'Regenerable third-party application cache',
-          cache_metadata: { provider: 'Neati', management_mode: 'neati', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'approximate' },
+          cache_metadata: { provider: 'neati', management_mode: 'neati', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'approximate' },
           disposition: {
             eligibility: 'auto_cleanable',
             cleanable_bytes: intensiveBytes,
@@ -969,7 +969,7 @@ export const mockApi = {
           file_count: 0,
           description: 'Third-party cache inactive for at least 7 days',
           cache_metadata: {
-            provider: 'Neati',
+            provider: 'neati',
             management_mode: 'neati',
             artifact_kind: 'temporary',
             consequence: '',
@@ -1012,7 +1012,7 @@ export const mockApi = {
           size: { logical: recentBytes, allocated: recentBytes },
           file_count: 410,
           description: 'Developer-tool temporary workspace requiring review',
-          cache_metadata: { provider: 'Neati', management_mode: 'advisory', artifact_kind: 'temporary', consequence: '', size_semantics: 'informational', last_used_confidence: 'approximate' },
+          cache_metadata: { provider: 'neati', management_mode: 'advisory', artifact_kind: 'temporary', consequence: '', size_semantics: 'informational', last_used_confidence: 'approximate' },
           disposition: {
             eligibility: 'advisory',
             cleanable_bytes: null,
@@ -1778,7 +1778,7 @@ export const mockApi = {
       clean_developer_tools: true,
       clean_docker: true,
       include_rebuild_caches: false,
-      intensive_cleanup: false,
+      intensive_cleanup: true,
       theme: 'light',
       excluded_signatures: [],
       quick_panel_sections: ['cleanup', 'cpu', 'memory', 'battery', 'storage', 'agent_activity', 'awake'],

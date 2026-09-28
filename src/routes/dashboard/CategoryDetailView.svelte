@@ -198,7 +198,7 @@
     <div class="flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary text-foreground text-xs">
       <div class="flex items-center gap-2.5">
         <Container size={16} class="text-primary shrink-0" />
-        <span>Docker and OrbStack data are stateful resources. Neati reports their storage without deleting it; use the owning container manager for changes.</span>
+        <span>Docker and OrbStack data are stateful resources. neati reports their storage without deleting it; use the owning container manager for changes.</span>
       </div>
       {#if onNavigateTab}
         <Button

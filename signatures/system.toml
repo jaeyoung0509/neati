@@ -1,4 +1,4 @@
-# Neati Signatures - System & per-user temporary files
+# neati Signatures - System & per-user temporary files
 
 [[signatures]]
 id = "system.chromium.component_downloads"
@@ -156,7 +156,7 @@ paths = ["~/Library/Caches/CloudKit"]
 owner = "Apple CloudKit"
 provider = "Apple CloudKit"
 artifact_kind = "temporary"
-description = "Apple CloudKit service state is inventoried for reference; Neati does not remove this service-owned store."
+description = "Apple CloudKit service state is inventoried for reference; neati does not remove this service-owned store."
 
 [[signatures]]
 id = "system.helpd.generated_cache"
@@ -404,7 +404,7 @@ risk = "manual"
 strategy = "manual"
 platforms = ["macos"]
 paths = ["~/Library/Application Support/MobileSync/Backup"]
-description = "Local backups of iOS and iPadOS devices. Restoring a device is the only way back from deleting one, so Neati reports the space and never offers it for cleanup."
+description = "Local backups of iOS and iPadOS devices. Restoring a device is the only way back from deleting one, so neati reports the space and never offers it for cleanup."
 
 [[signatures]]
 id = "system.advisory.simulator_devices"
@@ -415,7 +415,7 @@ risk = "manual"
 strategy = "manual"
 platforms = ["macos"]
 paths = ["~/Library/Developer/CoreSimulator/Devices"]
-description = "Simulator device data. Simulators are created and removed through `xcrun simctl`, which also updates the runtime's own registry, so Neati reports the space instead of deleting a device out from under it."
+description = "Simulator device data. Simulators are created and removed through `xcrun simctl`, which also updates the runtime's own registry, so neati reports the space instead of deleting a device out from under it."
 
 # ---------------------------------------------------------------------------
 # Windows: the same rules, applied to the roots a Windows profile actually
@@ -584,7 +584,7 @@ provider_id = "windows.recycle_bin"
 provider = "Windows Shell"
 owner = "Windows Shell"
 platforms = ["windows"]
-description = "What has been moved to the Recycle Bin and still occupies disk space until it is permanently deleted. Neati reads the size and empties the bin through the shell's own interface only: `$Recycle.Bin` is the shell's own bookkeeping, so it is never walked or deleted directly. Emptying cannot be undone, so the action is never pre-selected, and the consequence is stated before it runs."
+description = "What has been moved to the Recycle Bin and still occupies disk space until it is permanently deleted. neati reads the size and empties the bin through the shell's own interface only: `$Recycle.Bin` is the shell's own bookkeeping, so it is never walked or deleted directly. Emptying cannot be undone, so the action is never pre-selected, and the consequence is stated before it runs."
 
 [[signatures]]
 id = "system.advisory.windows_store_state"
@@ -595,7 +595,7 @@ risk = "manual"
 strategy = "manual"
 platforms = ["windows"]
 paths = ["${LOCAL_APP_DATA}/Packages/*/LocalState"]
-description = "Application-owned state of packaged applications. It shares a directory tree with the disposable temp state, so Neati reports it and never offers it for cleanup."
+description = "Application-owned state of packaged applications. It shares a directory tree with the disposable temp state, so neati reports it and never offers it for cleanup."
 
 [[signatures]]
 id = "system.advisory.windows_web_cache"
@@ -622,7 +622,7 @@ paths = [
     "${SYSTEM_ROOT}/Minidump",
     "${LOCAL_APP_DATA}/Docker/wsl",
 ]
-description = "Stores that hold significant space and are owned by Windows or by a tool that maintains its own lifecycle: update payloads, the system temporary directory, kernel dumps, and WSL virtual disks. Reclaiming these needs the owning tool's own operation (Windows Update servicing, `cleanmgr`, `Optimize-VHD`), so Neati reports the bytes and leaves the operation to it."
+description = "Stores that hold significant space and are owned by Windows or by a tool that maintains its own lifecycle: update payloads, the system temporary directory, kernel dumps, and WSL virtual disks. Reclaiming these needs the owning tool's own operation (Windows Update servicing, `cleanmgr`, `Optimize-VHD`), so neati reports the bytes and leaves the operation to it."
 
 [[signatures]]
 id = "system.advisory.trash"
@@ -636,7 +636,7 @@ paths = [
     "~/.Trash",
     "/Volumes/*/.Trashes/*",
 ]
-description = "Items that have been moved to the Trash and their per-volume counterparts, which occupy space until the Trash is emptied. Emptying it is a Finder operation with its own semantics (restore, put back, per-volume behaviour), so Neati reports the space and leaves the operation to the system that owns it."
+description = "Items that have been moved to the Trash and their per-volume counterparts, which occupy space until the Trash is emptied. Emptying it is a Finder operation with its own semantics (restore, put back, per-volume behaviour), so neati reports the space and leaves the operation to the system that owns it."
 
 # Exact exclusions keep known owners under the corresponding ai.toml rules;
 # unknown owners remain observation-only even when cache names are recognized.
@@ -661,7 +661,7 @@ exclusions = [
     "~/Library/Application Support/Cursor/GrShaderCache",
 ]
 artifact_kind = "compiled_kernel"
-description = "GPU cache-shaped subtrees reported for visibility. Without an owner-scoped cleanup signature, Neati does not remove them."
+description = "GPU cache-shaped subtrees reported for visibility. Without an owner-scoped cleanup signature, neati does not remove them."
 
 [[signatures]]
 id = "system.advisory.application_gpu_caches.windows"
@@ -684,4 +684,4 @@ exclusions = [
     "${ROAMING_APP_DATA}/Cursor/GrShaderCache",
 ]
 artifact_kind = "compiled_kernel"
-description = "GPU cache-shaped subtrees reported for visibility. Without an owner-scoped cleanup signature, Neati does not remove them."
+description = "GPU cache-shaped subtrees reported for visibility. Without an owner-scoped cleanup signature, neati does not remove them."

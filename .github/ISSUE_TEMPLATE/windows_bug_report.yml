@@ -21,7 +21,7 @@ body:
     id: app_version
     attributes:
       label: Application version
-      description: The version shown in Neati (or the installer file name, e.g. 0.3.19).
+      description: The version shown in neati (or the installer file name, e.g. 0.3.19).
       placeholder: "0.3.19"
     validations:
       required: true
@@ -36,10 +36,10 @@ body:
   - type: dropdown
     id: install_kind
     attributes:
-      label: How was Neati installed?
+      label: How was neati installed?
       options:
-        - Per-user installer (Neati-windows-x64-setup.exe, installs under %LOCALAPPDATA%)
-        - Machine-wide installer (Neati-windows-x64-setup-machine.exe, installs under Program Files)
+        - Per-user installer (neati-windows-x64-setup.exe, installs under %LOCALAPPDATA%)
+        - Machine-wide installer (neati-windows-x64-setup-machine.exe, installs under Program Files)
         - Portable or unpacked build
         - Not installed / installer itself fails
     validations:
@@ -48,8 +48,8 @@ body:
     id: install_location
     attributes:
       label: Install location
-      description: The folder that contains Neati.exe (for example `%LOCALAPPDATA%\Neati` or `C:\Program Files\Neati`).
-      placeholder: "%LOCALAPPDATA%\\Neati"
+      description: The folder that contains Neati.exe (for example `%LOCALAPPDATA%\neati` or `C:\Program Files\neati`).
+      placeholder: "%LOCALAPPDATA%\\neati"
     validations:
       required: true
   - type: textarea
@@ -60,7 +60,7 @@ body:
         From PowerShell, run the doctor against the installed binary and paste everything it prints:
 
         ```powershell
-        & "$env:LOCALAPPDATA\Neati\Neati.exe" --doctor
+        & "$env:LOCALAPPDATA\neati\Neati.exe" --doctor
         ```
 
         Use the Program Files path if you installed the machine-wide build. The
@@ -93,7 +93,7 @@ body:
     attributes:
       label: Before submitting
       options:
-        - label: I downloaded Neati from this repository's GitHub Releases and verified the SHA256 checksum against SHA256SUMS.txt.
+        - label: I downloaded neati from this repository's GitHub Releases and verified the SHA256 checksum against SHA256SUMS.txt.
           required: true
-        - label: I understand Neati has no updater and performs no background network activity, so a fix is learned about only from the GitHub Releases page.
+        - label: I understand neati has no updater and performs no background network activity, so a fix is learned about only from the GitHub Releases page.
           required: true

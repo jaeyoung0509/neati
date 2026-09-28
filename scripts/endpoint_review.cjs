@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Endpoint-protection review gate for Neati releases.
+ * Endpoint-protection review gate for neati releases.
  *
  * A release must be submitted to Microsoft's endpoint-protection analysis
  * (Defender / SmartScreen submission portal) before publication, and a
@@ -26,12 +26,12 @@
  *     --version 0.3.18 --commit <sha> \
  *     --status clear --reference <portal-submission-id> \
  *     --reviewer <github-login> --reviewed-at 2026-09-12 \
- *     artifacts/Neati-macos-arm64.dmg artifacts/Neati-windows-x64-setup.exe
+ *     artifacts/neati-macos-arm64.dmg artifacts/neati-windows-x64-setup.exe
  *
  *   node scripts/endpoint_review.cjs verify \
  *     --review artifacts/endpoint-review.json \
  *     --version 0.3.18 --commit <sha> \
- *     artifacts/Neati-macos-arm64.dmg artifacts/Neati-windows-x64-setup.exe
+ *     artifacts/neati-macos-arm64.dmg artifacts/neati-windows-x64-setup.exe
  */
 
 const crypto = require('crypto');

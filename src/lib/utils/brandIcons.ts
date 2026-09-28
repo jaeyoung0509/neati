@@ -1,7 +1,7 @@
 /**
  * Brand identity registry for the White & Mint redesign (issue #280, section 7).
  *
- * Every product Neati can display resolves either to a reviewed local asset
+ * Every product neati can display resolves either to a reviewed local asset
  * under `src/lib/assets/brands/` or to a neutral Lucide fallback glyph. The
  * review record for each bundled file — official source URL, upstream revision,
  * quoted license, required notices — is `docs/design/brand-assets.md`; `sha256`
@@ -17,12 +17,12 @@
  *   and "request permission" pages are not redistribution permission; those
  *   identities carry a fallback glyph and an `unresolvedReason` instead.
  * - Assets are never restyled: no CSS filter, recolor, distortion or clipping.
- *   Where a holder publishes several variants, the untouched file for Neati's
+ *   Where a holder publishes several variants, the untouched file for neati's
  *   light-first surfaces is bundled.
  *
  * Identities, not aliases, are the keys: an alias only has to reach the row the
  * app already names. `copilot` and `gemini` also appear as integration
- * `tool_id`s, and `grok-build` is the `ProviderId` spelling of Neati's Grok
+ * `tool_id`s, and `grok-build` is the `ProviderId` spelling of neati's Grok
  * integration, so both spellings resolve to one review row.
  */
 import {
@@ -62,7 +62,7 @@ import vscodeAsset from '../assets/brands/vscode.png?url&no-inline';
 import neatiAsset from '../assets/brands/neati.svg?url&no-inline';
 
 /**
- * Canonical identity ids: the AI provider ids Neati already uses
+ * Canonical identity ids: the AI provider ids neati already uses
  * (`src/lib/bindings/tauri.ts`) plus the tool identities this app can inspect.
  * Provider ids outside this list (`muse-code`, `meta-model-api`, `mistral-api`,
  * `fireworks-api`) are intentionally not identities here; they resolve to
@@ -127,7 +127,7 @@ export interface BrandIdentityRecord {
   readonly label: string;
   /** Alternative spellings and integration ids that resolve to this row. */
   readonly aliases: readonly string[];
-  /** Smallest size at which Neati's reviewed artwork stays legible. */
+  /** Smallest size at which neati's reviewed artwork stays legible. */
   readonly minSizePx: BrandIconSize;
   /** Neutral Lucide glyph rendered when no asset is bundled. */
   readonly clearSpacePx?: number;
@@ -340,7 +340,7 @@ export const BRAND_IDENTITIES: Record<BrandIdentity, BrandIdentityRecord> = {
     unresolvedReason: null,
   },
   neati: {
-    label: 'Neati',
+    label: 'neati',
     aliases: ['neati-app'],
     minSizePx: 20,
     fallbackGlyph: 'mountain',

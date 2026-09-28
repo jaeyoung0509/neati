@@ -215,31 +215,31 @@ describe('Performance memory panel process provenance', () => {
     memoryStore.memory = metricsFixture([processFixture()]);
     const { body } = render(MemoryPanel);
 
-    expect(body).toContain('Neati observes these processes');
-    expect(body).not.toContain('Started by Neati');
+    expect(body).toContain('neati observes these processes');
+    expect(body).not.toContain('Started by neati');
   });
 
-  it('shows the snapshot parent of an observed process without claiming Neati started it', () => {
+  it('shows the snapshot parent of an observed process without claiming neati started it', () => {
     memoryStore.memory = metricsFixture([
       processFixture({ parent_process_names: ['Warp'], ownership: 'observed' }),
     ]);
     const { body } = render(MemoryPanel);
 
     expect(body).toContain('parent: Warp');
-    expect(body).not.toContain('Started by Neati');
+    expect(body).not.toContain('Started by neati');
   });
 
-  it('shows the provenance chip for a process traced to Neati', () => {
+  it('shows the provenance chip for a process traced to neati', () => {
     memoryStore.memory = metricsFixture([
       processFixture({
         name: 'Node.js',
-        parent_process_names: ['Neati'],
+        parent_process_names: ['neati'],
         ownership: 'neati_child',
       }),
     ]);
     const { body } = render(MemoryPanel);
 
-    expect(body).toContain('Started by Neati');
+    expect(body).toContain('Started by neati');
   });
 
   it('renders no parent attribution and no placeholder when the snapshot resolved none', () => {
@@ -248,15 +248,15 @@ describe('Performance memory panel process provenance', () => {
 
     expect(body).not.toContain('parent:');
     expect(body.toLowerCase()).not.toContain('unknown');
-    expect(body).not.toContain('Started by Neati');
+    expect(body).not.toContain('Started by neati');
   });
 
   it('joins multiple snapshot parents in the order the backend reported them', () => {
     memoryStore.memory = metricsFixture([
-      processFixture({ parent_process_names: ['Warp', 'Neati'], ownership: 'observed' }),
+      processFixture({ parent_process_names: ['Warp', 'neati'], ownership: 'observed' }),
     ]);
     const { body } = render(MemoryPanel);
 
-    expect(body).toContain('parent: Warp, Neati');
+    expect(body).toContain('parent: Warp, neati');
   });
 });

@@ -1,15 +1,15 @@
-//! Reading Git state from a directory Neati did not create.
+//! Reading Git state from a directory neati did not create.
 //!
 //! A project root comes from an observed agent process working directory, so
-//! the repositories Neati reads are the directories the user happens to work
-//! in. Neati reads state there; it does not execute or rewrite the
+//! the repositories neati reads are the directories the user happens to work
+//! in. neati reads state there; it does not execute or rewrite the
 //! configuration it finds. This module owns both halves of that boundary:
 //!
 //! - [`GitInspection`] and the single invocation constructor ([`git_command`])
 //!   decide whether `git` may run in a root, and build every command that does;
 //! - [`git_directory`] decides which git directory describes a root, and
 //!   refuses a `.git` pointer that is not tied to this checkout;
-//! - `read_capped` bounds every metadata file a pointer makes Neati read.
+//! - `read_capped` bounds every metadata file a pointer makes neati read.
 //!
 //! The boundary distinguishes two kinds of program-naming configuration. The
 //! fixed keys Git reads for every operation (`core.fsmonitor`, `core.hooksPath`,
@@ -22,7 +22,7 @@
 //! Everything else, including the machine's Git
 //! configuration and the repository's attribute files, is honored: a clean
 //! checkout has to read as clean to the user, and neutralizing those made
-//! Neati's answer differ from the user's own `git status`.
+//! neati's answer differ from the user's own `git status`.
 
 mod command;
 pub(crate) mod metadata;

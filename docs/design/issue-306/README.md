@@ -1,8 +1,8 @@
-# Neati split Z
+# neati split Z
 
 The user selected a minimal Z that stays clear at small sizes. The new mark
 keeps two substantial diagonal segments and a visible central cut, using
-Neati's existing cobalt rather than a separate status-colored dot.
+neati's existing cobalt rather than a separate status-colored dot.
 
 ![Logo review](logo-preview.png)
 

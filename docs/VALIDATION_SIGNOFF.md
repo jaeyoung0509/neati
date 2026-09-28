@@ -38,7 +38,7 @@ measurement. Paths, item names, command output, free-form errors, and
   unavailable or produced no items in 0.3.48.
 - #221 remains open while either native-validation issue remains open.
 
-Future records must identify the Neati version, exact OS build, UTC date,
+Future records must identify the neati version, exact OS build, UTC date,
 hardware, privilege/profile facts where relevant, and whether the operation was
 simulated, read-only, or a disposable-fixture mutation. Partial and unavailable
 results stay partial and unavailable.

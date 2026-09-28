@@ -31,7 +31,7 @@ assert_installed() {
   local applications_dir="$1"
   local expected_version="$2"
   local expected_marker="$3"
-  local installed="$applications_dir/Neati.app"
+  local installed="$applications_dir/neati.app"
   local actual_version
   local actual_marker
 
@@ -50,11 +50,11 @@ run_installer() {
 
 test_replaces_an_older_bundle() {
   local test_root="$fixture_root/replacement"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
+  make_bundle "$applications_dir/neati.app" 0.1.17 com.neati.desktop old-install
 
   local output
   output="$(run_installer "$source_app" "$applications_dir" env)"
@@ -63,12 +63,12 @@ test_replaces_an_older_bundle() {
   [[ "$output" == *"Built version:     0.1.18"* ]] || fail "Installer did not report the built version."
   [[ "$output" == *"Installed version: 0.1.18"* ]] || fail "Installer did not report the installed version."
   [[ -z "$(find "$applications_dir" -mindepth 1 -maxdepth 1 -name '.neati-install.*' -print -quit)" ]] || fail "Installer left a transaction directory behind."
-  [[ "$(find "$applications_dir" -mindepth 1 -maxdepth 1 -type d -name '*Neati*.app' | wc -l | tr -d ' ')" == "1" ]] || fail "Installer created a stale Neati bundle."
+  [[ "$(find "$applications_dir" -mindepth 1 -maxdepth 1 -type d -name '*neati*.app' | wc -l | tr -d ' ')" == "1" ]] || fail "Installer created a stale neati bundle."
 }
 
 test_installs_when_no_previous_bundle_exists() {
   local test_root="$fixture_root/first-install"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 com.neati.desktop first-install
@@ -80,7 +80,7 @@ test_installs_when_no_previous_bundle_exists() {
 
 test_unrelated_bundle_is_preserved_during_fresh_install() {
   local test_root="$fixture_root/legacy"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.3.73 com.neati.desktop new-build
@@ -94,11 +94,11 @@ test_unrelated_bundle_is_preserved_during_fresh_install
 
 test_rejects_wrong_source_identifier() {
   local test_root="$fixture_root/wrong-source"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 example.untrusted.app untrusted
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
+  make_bundle "$applications_dir/neati.app" 0.1.17 com.neati.desktop old-install
 
   if run_installer "$source_app" "$applications_dir" env >/dev/null 2>&1; then
     fail "Installer accepted a source with the wrong bundle identifier."
@@ -108,11 +108,11 @@ test_rejects_wrong_source_identifier() {
 
 test_rejects_unverified_destination() {
   local test_root="$fixture_root/wrong-destination"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 9.9.9 example.other.app other-app
+  make_bundle "$applications_dir/neati.app" 9.9.9 example.other.app other-app
 
   if run_installer "$source_app" "$applications_dir" env >/dev/null 2>&1; then
     fail "Installer replaced an unverified destination bundle."
@@ -122,11 +122,11 @@ test_rejects_unverified_destination() {
 
 test_copy_failure_preserves_previous_bundle() {
   local test_root="$fixture_root/copy-failure"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
+  make_bundle "$applications_dir/neati.app" 0.1.17 com.neati.desktop old-install
 
   if run_installer "$source_app" "$applications_dir" env NEATI_INSTALL_TEST_FAILPOINT=before-copy >/dev/null 2>&1; then
     fail "Injected staging failure unexpectedly succeeded."
@@ -136,12 +136,12 @@ test_copy_failure_preserves_previous_bundle() {
 
 test_permission_failure_preserves_previous_bundle() {
   local test_root="$fixture_root/permission-failure"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   local error_log="$test_root/error.log"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
+  make_bundle "$applications_dir/neati.app" 0.1.17 com.neati.desktop old-install
   chmod 500 "$applications_dir"
 
   if run_installer "$source_app" "$applications_dir" env > /dev/null 2> "$error_log"; then
@@ -156,11 +156,11 @@ test_permission_failure_preserves_previous_bundle() {
 
 test_activation_failure_rolls_back() {
   local test_root="$fixture_root/rollback"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
-  make_bundle "$applications_dir/Neati.app" 0.1.17 com.neati.desktop old-install
+  make_bundle "$applications_dir/neati.app" 0.1.17 com.neati.desktop old-install
 
   if run_installer "$source_app" "$applications_dir" env NEATI_INSTALL_TEST_FAILPOINT=after-activation >/dev/null 2>&1; then
     fail "Injected activation failure unexpectedly succeeded."
@@ -170,7 +170,7 @@ test_activation_failure_rolls_back() {
 
 test_custom_paths_require_test_mode() {
   local test_root="$fixture_root/path-gate"
-  local source_app="$test_root/build/Neati.app"
+  local source_app="$test_root/build/neati.app"
   local applications_dir="$test_root/Applications"
   mkdir -p "$applications_dir"
   make_bundle "$source_app" 0.1.18 com.neati.desktop new-build
@@ -178,7 +178,7 @@ test_custom_paths_require_test_mode() {
   if "$installer" --source "$source_app" --applications-dir "$applications_dir" >/dev/null 2>&1; then
     fail "Installer accepted custom paths outside test mode."
   fi
-  [[ ! -e "$applications_dir/Neati.app" ]] || fail "Path-gate test unexpectedly installed an app."
+  [[ ! -e "$applications_dir/neati.app" ]] || fail "Path-gate test unexpectedly installed an app."
 }
 
 test_replaces_an_older_bundle

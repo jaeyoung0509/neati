@@ -1,4 +1,4 @@
-//! The one constructor every `git` invocation in Neati goes through.
+//! The one constructor every `git` invocation in neati goes through.
 
 use crate::git::metadata::{read_capped, recorded_path, CappedRead, MAX_GIT_METADATA_BYTES};
 use crate::git::repository::{git_directory, GitDirectory};
@@ -17,7 +17,7 @@ const INERT_PATH: &str = "NUL";
 const INERT_PATH: &str = "/dev/null";
 
 /// A program name that cannot resolve to anything. `core.sshCommand` is only
-/// consulted for transport, which Neati never uses; if that ever changes, the
+/// consulted for transport, which neati never uses; if that ever changes, the
 /// invocation fails closed instead of running a repository-supplied program.
 const DISABLED_SSH_COMMAND: &str = "neati-disabled-ssh";
 
@@ -27,7 +27,7 @@ const DISABLED_SSH_COMMAND: &str = "neati-disabled-ssh";
 /// convert working-tree content, `.process` does both directions through one
 /// long-running process, `diff.<driver>.command` and `.textconv` render
 /// patches, and `merge.<driver>.driver` would run during a merge — which
-/// Neati never starts, so that one is refused for the same reason the rest
+/// neati never starts, so that one is refused for the same reason the rest
 /// are: a command line cannot name the key in advance, because the driver name
 /// is whatever the repository writes. Git is asked which of them the
 /// repository's own configuration defines, and a repository that defines one is
@@ -54,7 +54,7 @@ const MAX_KEY_BYTES: usize = 128;
 /// is normally kilobytes, so an answer that takes longer is refused.
 const CONFIG_PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
-/// Why Neati does not run `git` in a root it identified.
+/// Why neati does not run `git` in a root it identified.
 ///
 /// Each variant is a decision an interface can report: the repository's shape
 /// was refused, its attribute file could not be read, or its own configuration
@@ -179,7 +179,7 @@ impl GitInspection {
     }
 }
 
-/// Every `git` invocation in Neati goes through this constructor.
+/// Every `git` invocation in neati goes through this constructor.
 ///
 /// Git reads a repository's own `.git/config` whenever it operates on a
 /// repository, and several documented keys name a program Git then runs:
@@ -195,7 +195,7 @@ impl GitInspection {
 /// Nothing else is neutralized: the machine's configuration, the user's own
 /// configuration, and the repository's attribute files decide what a checkout
 /// looks like, exactly as they do for the user's own `git status`. Skipping
-/// them made Neati report a clean checkout as modified — `core.autocrlf` from
+/// them made neati report a clean checkout as modified — `core.autocrlf` from
 /// the system configuration and the `text`/`eol` attributes of a repository
 /// both change what Git compares — so a clean tree has to read as clean here
 /// too.
@@ -326,7 +326,7 @@ fn info_attributes_refusal(git_dir: &Path, common: &Path) -> Option<GitRefusal> 
                 // path in it is masked the same way a log line is: no absolute
                 // location leaves this module.
                 return Some(GitRefusal::InfoAttributes(mask_paths_in_text(&format!(
-                    "{} exists and can select a program for git to run, which Neati does not run",
+                    "{} exists and can select a program for git to run, which neati does not run",
                     path.display()
                 ))));
             }

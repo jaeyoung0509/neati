@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
 	<key>NSDownloadsFolderUsageDescription</key>
-	<string>Neati reads your Downloads folder during a whole-home scan to find developer project artifacts, such as build output and dependency folders, that you can review and clean up.</string>
+	<string>neati reads your Downloads folder during a whole-home scan to find developer project artifacts, such as build output and dependency folders, that you can review and clean up.</string>
 </dict>
 </plist>

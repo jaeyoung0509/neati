@@ -65,6 +65,14 @@ pub trait ProviderAdapter: Send + Sync {
     fn id(&self) -> ProviderId;
     fn descriptor(&self) -> ProviderDescriptor;
     fn collect(&self, ctx: &CollectionContext<'_>) -> Result<AiProviderUsage, ProviderError>;
+    /// Publish a verified quota before optional enrichment finishes.
+    fn collect_with_progress(
+        &self,
+        ctx: &CollectionContext<'_>,
+        _on_progress: &dyn Fn(AiProviderUsage),
+    ) -> Result<AiProviderUsage, ProviderError> {
+        self.collect(ctx)
+    }
 }
 
 #[cfg(test)]

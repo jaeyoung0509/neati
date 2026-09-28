@@ -154,6 +154,18 @@ impl std::fmt::Display for UnknownProviderError {
 impl std::error::Error for UnknownProviderError {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageCollectionStatus {
+    Fresh,
+    SignedOut,
+    Unavailable,
+    Timeout,
+    ProtocolError,
+    NotInstalled,
+    UnsupportedAccount,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 pub struct AiProviderUsage {
     pub id: ProviderId,
     pub name: String,
@@ -161,6 +173,8 @@ pub struct AiProviderUsage {
     pub connected: bool,
     pub auth_label: String,
     pub status_message: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collection_status: Option<UsageCollectionStatus>,
     pub support: UsageSupport,
     pub windows: Vec<UsageWindow>,
     pub summary: UsageSummary,

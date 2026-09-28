@@ -290,6 +290,7 @@ impl DotSlashArtifactsProvider {
         }
         let root = observed.root.expect("ready DotSlash observation has root");
         let mut plan = OwnerProviderAuthorization {
+            deletion_disposition: zenith_core::domain::cleanup::DeletionDisposition::Trash,
             signature_id: String::new(),
             provider_id: self.id().into(),
             risk: crate::models::RiskTier::Rebuild,
@@ -441,7 +442,7 @@ impl DotSlashArtifactsProvider {
         }
         match fs::symlink_metadata(&unit.path) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                OwnerUnitOutcome::cleaned(
+                OwnerUnitOutcome::trashed(
                     unit.item_id.clone(),
                     unit.unit_key.clone(),
                     measurement.allocated_bytes,
@@ -470,6 +471,9 @@ impl OwnerScopedProvider for DotSlashArtifactsProvider {
     }
     fn requires_confirmation(&self) -> bool {
         false
+    }
+    fn deletion_disposition(&self) -> zenith_core::domain::cleanup::DeletionDisposition {
+        zenith_core::domain::cleanup::DeletionDisposition::Trash
     }
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
         let key = unit.unit_key.as_str();
@@ -830,6 +834,10 @@ mod tests {
             .unwrap();
         let result = provider.execute(&environment, &plan);
         assert_eq!(result.units[0].status, ProviderStatus::Cleaned);
+        assert_eq!(plan.deletion_disposition, provider.deletion_disposition());
+        assert_eq!(result.units[0].reclaimed_bytes, 0);
+        assert_eq!(result.units[0].moved_to_trash_bytes, ready.allocated_bytes);
+        assert_eq!(result.reclaimed_bytes(), 0);
         assert!(!old.exists());
         assert!(trashed.join("c".repeat(38)).exists());
         assert!(recent.exists());

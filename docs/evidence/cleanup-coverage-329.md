@@ -71,6 +71,12 @@ structured-state, workspace-consent or symlink protections.
 
 ## All 38 unmatched rows accounted for
 
+Correction in #333: the ledger has been regenerated from the same hashed input
+files using decimal SI for RC-01's KB/MB/GB labels. The earlier parser used
+binary multipliers. Row identities, classifications and measured allocated
+values are unchanged; rounded preview-byte values are corrected. These values
+remain potential observations, not verified deletion or disk-space recovery.
+
 [Machine-readable ledger](cleanup-coverage-329.json) contains a row for every
 reference-only entry in the final historical snapshot. Input SHA-256 values
 bind it to that snapshot. It contains no raw user paths or hostnames.

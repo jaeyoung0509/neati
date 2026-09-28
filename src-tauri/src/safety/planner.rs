@@ -552,6 +552,7 @@ impl SafetyPlanner {
             risk_summary.add(item.risk, bytes);
 
             targets.push(DeleteTarget {
+                deletion_disposition: signature.deletion_disposition,
                 item_id: item.id.clone(),
                 signature_id: item.signature_id.clone(),
                 name: item.name.clone(),
@@ -972,6 +973,7 @@ mod tests {
 
         fn provider_signature(provider_id: Option<&str>) -> Signature {
             Signature {
+                deletion_disposition: None,
                 id: "test.stated.store".to_string(),
                 name: "Stated Store".to_string(),
                 category: Category::System,
@@ -1085,6 +1087,7 @@ mod tests {
             ),
         ] {
             registry.register(Signature {
+                deletion_disposition: None,
                 id: id.into(),
                 name: name.into(),
                 category: Category::System,
@@ -1177,6 +1180,7 @@ mod tests {
             ("test.child", "Nested cache", child.clone()),
         ] {
             registry.register(Signature {
+                deletion_disposition: None,
                 id: id.into(),
                 name: name.into(),
                 category: Category::System,
@@ -1288,6 +1292,7 @@ mod tests {
             ("test.second", "Second cache", second.clone()),
         ] {
             registry.register(Signature {
+                deletion_disposition: None,
                 id: id.into(),
                 name: name.into(),
                 category: Category::System,
@@ -1358,6 +1363,7 @@ mod tests {
 
         let mut registry = SignatureRegistry::new();
         registry.register(Signature {
+            deletion_disposition: None,
             id: "test.broad-root".into(),
             name: "Broad root".into(),
             category: Category::System,

@@ -17,13 +17,18 @@ import re
 import subprocess
 
 
-SIZE_RE = re.compile(r"^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$", re.I)
+SIZE_RE = re.compile(r"^(\d+(?:\.\d+)?)\s*(B|[KMGT]i?B)$", re.I)
+# RC-01's bytes_to_human emits SI units. du -k below is independently KiB.
 SIZE_MULTIPLIER = {
     "B": 1,
-    "KB": 1024,
-    "MB": 1024**2,
-    "GB": 1024**3,
-    "TB": 1024**4,
+    "KB": 1000,
+    "MB": 1000**2,
+    "GB": 1000**3,
+    "TB": 1000**4,
+    "KIB": 1024,
+    "MIB": 1024**2,
+    "GIB": 1024**3,
+    "TIB": 1024**4,
 }
 
 
@@ -169,6 +174,7 @@ def main():
     )
     summary = {
         "reference_preview": {
+            "byte_basis": "SI decimal, rounded display labels",
             "sha256": hashlib.sha256(args.reference_preview.read_bytes()).hexdigest(),
             "reported_potential": reported_total,
             "item_count": len(reference_rows),

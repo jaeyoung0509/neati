@@ -79,6 +79,7 @@ fn test_temp_scanner_only_includes_known_direct_children() {
         .unwrap();
 
     let signature = Signature {
+        deletion_disposition: None,
         id: "system.test-temp".into(),
         name: "Developer Temp".into(),
         category: Category::System,
@@ -129,6 +130,7 @@ fn test_scan_hides_empty_paths_and_orders_largest_first() {
         .unwrap();
 
     let signature = |id: &str, path: String| Signature {
+        deletion_disposition: None,
         id: id.into(),
         name: id.into(),
         category: Category::System,

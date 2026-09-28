@@ -58,6 +58,10 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
     assert_eq!(signature.min_age_days, Some(0));
     assert_eq!(signature.strategy, CleanStrategy::DeleteContents);
     assert_eq!(signature.risk, RiskTier::Rebuild);
+    assert_eq!(
+        signature.deletion_disposition,
+        Some(zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete)
+    );
     for owner in [
         "Xcode",
         "xcodebuild",
@@ -88,6 +92,53 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
         .iter()
         .any(|prefix| prefix == "clang"));
     assert!(DirectoryScanner::scan_signature(broad, &environment, &NeverCancelled).is_empty());
+}
+
+#[test]
+fn explicit_disposition_is_narrow_and_cannot_override_provider_actions() {
+    use zenith_core::domain::cleanup::DeletionDisposition;
+    let registry = SignatureRegistry::load_embedded_catalog().unwrap();
+    for id in [
+        "dev.clang.module_cache",
+        "system.chrome.code_cache",
+        "system.brave.code_cache",
+    ] {
+        let signature = registry.get(id).unwrap();
+        assert_eq!(
+            signature.deletion_disposition,
+            Some(DeletionDisposition::PermanentDelete)
+        );
+        assert_eq!(signature.risk, RiskTier::Rebuild);
+        assert!(!signature.fail_if_running.is_empty());
+        signature.validate().unwrap();
+        for strategy in [
+            CleanStrategy::Manual,
+            CleanStrategy::OwnerProvider,
+            CleanStrategy::ExternalCommand,
+        ] {
+            let mut invalid = signature.clone();
+            invalid.strategy = strategy;
+            assert!(invalid
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("deletion_disposition"));
+        }
+    }
+    assert_eq!(
+        registry
+            .get("dev.xcode.derived_data")
+            .unwrap()
+            .deletion_disposition,
+        None
+    );
+    assert_eq!(
+        registry
+            .get("system.chrome.http_cache")
+            .unwrap()
+            .deletion_disposition,
+        None
+    );
 }
 
 #[test]
@@ -143,6 +194,64 @@ fn new_user_space_providers_never_claim_system_ownership() {
     assert_eq!(playwright.strategy, CleanStrategy::Manual);
     assert_eq!(playwright.risk, RiskTier::Manual);
     assert_eq!(playwright.family, CleanerFamily::PackageManagers);
+}
+
+#[test]
+fn additional_ecosystem_stores_are_measured_but_never_authorized() {
+    let fixture = tempfile::tempdir().unwrap();
+    let environment =
+        PlatformEnvironment::simulated(PathFlavor::current()).with_home(fixture.path());
+    let registry = SignatureRegistry::load_embedded_catalog().unwrap();
+    for (id, relative) in [
+        ("dev.poetry.cache", "Library/Caches/pypoetry/artifacts"),
+        ("dev.ruby.downloads", ".gem/ruby/3.4.0/cache"),
+        ("dev.hex.cache", ".hex/cache"),
+        ("dev.opam.downloads", ".opam/download-cache"),
+        ("dev.zig.global_cache", ".cache/zig"),
+        ("dev.ruff.global_cache", ".cache/ruff"),
+        ("dev.mypy.global_cache", ".cache/mypy"),
+    ] {
+        let signature = registry.get(id).unwrap();
+        signature.validate().unwrap();
+        let root = fixture.path().join(relative);
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("payload.bin"), vec![3; 8192]).unwrap();
+        let items = DirectoryScanner::scan_signature(signature, &environment, &NeverCancelled);
+        // The directory scanner also returns absent-root observations; the
+        // engine filters those before publishing its inventory.
+        assert_eq!(
+            items.iter().map(|item| item.size.logical).sum::<u64>(),
+            8192,
+            "{id}"
+        );
+        let measured = items
+            .iter()
+            .find(|item| item.path == root.to_string_lossy())
+            .expect("the populated store is observed");
+        assert_eq!(measured.size.logical, 8192, "{id}");
+        assert!(
+            items
+                .iter()
+                .all(|item| item.cleanable_bytes() == 0 && !item.is_selected),
+            "{id}"
+        );
+        assert_eq!(signature.strategy, CleanStrategy::Manual);
+    }
+    let poetry = registry.get("dev.poetry.cache").unwrap();
+    assert!(poetry
+        .paths
+        .iter()
+        .all(|path| path.ends_with("/artifacts") || path.ends_with("/cache")));
+    let mix = fixture.path().join(".mix/archives/tool.ez");
+    fs::create_dir_all(mix.parent().unwrap()).unwrap();
+    fs::write(&mix, "installed tool").unwrap();
+    assert!(registry
+        .get("dev.hex.cache")
+        .unwrap()
+        .paths
+        .iter()
+        .all(|path| !path.contains(".mix")));
+    assert_eq!(fs::read_to_string(mix).unwrap(), "installed tool");
 }
 
 #[test]

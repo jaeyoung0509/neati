@@ -246,6 +246,8 @@ impl HomebrewCleanupProvider {
         }
         let root = observation.root.expect("ready Homebrew preview has a root");
         let mut plan = OwnerProviderAuthorization {
+            deletion_disposition:
+                zenith_core::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: String::new(),
             provider_id: self.id().into(),
             risk: crate::models::RiskTier::Rebuild,

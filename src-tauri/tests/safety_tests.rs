@@ -70,6 +70,7 @@ fn validated_filesystem_target(
     environment: &PlatformEnvironment,
 ) -> ValidatedTarget {
     let target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "test-target".into(),
         signature_id: "test.signature".into(),
         name: "Test target".into(),
@@ -103,6 +104,7 @@ fn present_filesystem_target_without_identity_fails_closed() {
     let target_path = fixture.path().join("cache");
     fs::create_dir(&target_path).expect("create target");
     let target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "missing-identity".into(),
         signature_id: "test.signature".into(),
         name: "Missing identity".into(),
@@ -477,6 +479,7 @@ fn test_safety_planner_rejects_path_outside_signature_scope() {
     fs::create_dir(&forged_path).unwrap();
     fs::create_dir(&authorized_path).unwrap();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.scope".into(),
         name: "Scope fixture".into(),
         category: Category::System,
@@ -539,6 +542,7 @@ fn test_cleaner_delete_contents_preserves_root_directory() {
 
     let mut registry = SignatureRegistry::load_embedded().unwrap();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.delete-contents".into(),
         name: "Test cache".into(),
         category: Category::Developer,
@@ -814,6 +818,7 @@ fn manual_strategy_never_enters_generic_cleaner() {
     fs::create_dir(&model_root).unwrap();
     let mut registry = SignatureRegistry::load_embedded().unwrap();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.manual-model".into(),
         name: "Manual model".into(),
         category: Category::Model,
@@ -909,6 +914,7 @@ fn external_command_strategy_never_falls_back_to_filesystem_deletion() {
     let mut registry = SignatureRegistry::new();
     registry.register(Signature {
         discovery: Default::default(),
+        deletion_disposition: None,
         unit: None,
         owner: String::new(),
         priority: 0,
@@ -985,6 +991,7 @@ fn recursive_delete_refuses_a_unit_with_nested_protected_state() {
     let exclusions = vec![excluded.to_string_lossy().into_owned()];
     let environment = PlatformEnvironment::native();
     let target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "protected-cache".into(),
         signature_id: "test.protected-cache".into(),
         name: "Protected cache".into(),
@@ -1166,6 +1173,7 @@ fn test_stale_temp_toctou_recheck_aborts_on_new_file() {
 
     let mut registry = SignatureRegistry::load_embedded().unwrap();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.stale_temp".into(),
         name: "Test stale temp".into(),
         category: Category::Developer,
@@ -1900,6 +1908,7 @@ fn replaying_a_plan_skips_targets_instead_of_deleting_replacements() {
 
     let mut registry = SignatureRegistry::new();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.replay".into(),
         name: "Replay cache".into(),
         category: Category::Developer,
@@ -1994,6 +2003,7 @@ fn a_target_outside_its_authorizing_unit_is_refused() {
     fs::create_dir(&outside).unwrap();
 
     let mut target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "test.outside".into(),
         signature_id: "test.signature".into(),
         name: "Outside target".into(),
@@ -2045,6 +2055,7 @@ fn structured_state_is_refused_by_the_execution_guard() {
         fs::write(&path, b"state").unwrap();
 
         let target = DeleteTarget {
+            deletion_disposition: None,
             item_id: format!("test.structured.{name}"),
             signature_id: "test.signature".into(),
             name: name.to_string(),
@@ -2095,6 +2106,7 @@ fn the_planner_refuses_a_structured_target() {
 
     let mut registry = SignatureRegistry::new();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.aged-structured".into(),
         name: "Aged namespace".into(),
         category: Category::System,
@@ -2191,6 +2203,7 @@ fn an_unreadable_root_is_reported_with_its_reason() {
 
     let mut registry = SignatureRegistry::new();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.unreadable".into(),
         name: "Unreadable root".into(),
         category: Category::System,
@@ -2262,6 +2275,7 @@ fn a_running_owner_keeps_its_cache_out_of_the_default_selection() {
 
     let mut registry = SignatureRegistry::new();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.running-owner".into(),
         name: "Third-party caches".into(),
         category: Category::System,
@@ -2569,6 +2583,7 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
 
     let mut registry = SignatureRegistry::new();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.stale-namespace".into(),
         name: "App cache".into(),
         category: Category::System,
@@ -2802,6 +2817,7 @@ fn a_non_mutating_plan_is_refused_by_the_executor() {
         refusals: Vec::new(),
         owner_authorizations: Vec::new(),
         targets: vec![DeleteTarget {
+            deletion_disposition: None,
             item_id: "preview-target".into(),
             signature_id: "test.preview".into(),
             name: "Preview cache".into(),
@@ -2872,6 +2888,7 @@ fn nested_structured_state_skips_the_whole_cleanup_unit_before_mutation() {
 
     let mut registry = SignatureRegistry::new();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.nested-structured".into(),
         name: "Ordinary cache".into(),
         category: Category::System,
@@ -2927,6 +2944,7 @@ fn nested_structured_state_skips_the_whole_cleanup_unit_before_mutation() {
     fs::create_dir(&ordinary).unwrap();
     fs::write(ordinary.join("payload.bin"), b"cleanable").unwrap();
     registry.register(Signature {
+        deletion_disposition: None,
         id: "test.plain-cache".into(),
         name: "Plain cache".into(),
         category: Category::System,
@@ -2978,6 +2996,7 @@ fn nested_structured_state_skips_the_whole_cleanup_unit_before_mutation() {
         refusals: Vec::new(),
         owner_authorizations: Vec::new(),
         targets: vec![DeleteTarget {
+            deletion_disposition: None,
             item_id: "ordinary-cache".into(),
             signature_id: "test.nested-structured".into(),
             name: "Ordinary cache".into(),
@@ -3056,6 +3075,7 @@ fn a_file_replaced_by_a_symlink_between_scan_and_clean_is_skipped() {
     symlink(&outside, &target).unwrap();
 
     let plan_target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "race-file".into(),
         signature_id: "test.signature".into(),
         name: "Cached blob".into(),
@@ -3105,6 +3125,7 @@ fn a_directory_replaced_by_a_symlink_between_scan_and_clean_is_skipped() {
     symlink(&outside, &target).unwrap();
 
     let plan_target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "race-directory".into(),
         signature_id: "test.signature".into(),
         name: "Cache namespace".into(),
@@ -3152,6 +3173,7 @@ fn a_target_that_changed_kind_between_scan_and_clean_is_skipped() {
     fs::write(&target, b"now a file").unwrap();
 
     let plan_target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "kind-change".into(),
         signature_id: "test.signature".into(),
         name: "Cache entry".into(),
@@ -3191,6 +3213,7 @@ fn stale_cleanup_requires_identity_at_revalidation() {
     fs::write(target.join("old.bin"), b"data").unwrap();
 
     let plan_target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "stale-no-identity".into(),
         signature_id: "test.stale".into(),
         name: "Stale cache".into(),
@@ -3248,6 +3271,7 @@ fn stale_cleanup_allows_mtime_change_with_same_entity() {
     fs::write(target.join("fresh.bin"), b"fresh").unwrap();
 
     let plan_target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "stale-mtime".into(),
         signature_id: "test.stale".into(),
         name: "Stale cache".into(),
@@ -3292,6 +3316,7 @@ fn stale_cleanup_refuses_replaced_directory_at_revalidation() {
     age_entry(&old, 30);
 
     let plan_target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "stale-replaced".into(),
         signature_id: "test.stale".into(),
         name: "Stale cache".into(),
@@ -3343,6 +3368,7 @@ fn stale_cleanup_refuses_incomplete_directory_tree_at_revalidation() {
     fs::set_permissions(&sub, fs::Permissions::from_mode(0o000)).unwrap();
 
     let plan_target = DeleteTarget {
+        deletion_disposition: None,
         item_id: "stale-incomplete".into(),
         signature_id: "test.stale".into(),
         name: "Stale cache".into(),

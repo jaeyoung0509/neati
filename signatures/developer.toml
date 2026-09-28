@@ -344,6 +344,7 @@ consequence = "Removing a required revision breaks that Playwright installation 
 
 [[signatures]]
 id = "dev.clang.module_cache"
+deletion_disposition = "permanent_delete"
 name = "Clang Module Cache"
 category = "developer"
 family = "developer"
@@ -440,3 +441,103 @@ description = "Maven's mixed local repository requires project-aware purge seman
 provider = "Maven"
 artifact_kind = "package_store"
 consequence = "Dependencies and plugins may need to be downloaded again."
+
+# Reference coverage does not confer deletion authority. These named stores
+# remain visible until a dedicated owner contract has been implemented.
+[[signatures]]
+id = "dev.poetry.cache"
+name = "Poetry Download Caches"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Caches/pypoetry/artifacts", "~/Library/Caches/pypoetry/cache", "~/.cache/pypoetry/artifacts", "~/.cache/pypoetry/cache"]
+provider = "Poetry"
+artifact_kind = "download_cache"
+description = "Download stores only; virtualenvs and installed environments are outside these roots. No reviewed owner cleanup adapter is available."
+consequence = "Inspection only. Poetry must manage downloads and cache locks."
+
+[[signatures]]
+id = "dev.ruby.downloads"
+name = "Ruby Download Caches"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.rbenv/cache", "~/.gem/specs", "~/.gem/ruby/*/cache", "~/.bundle/cache"]
+provider = "Ruby tooling"
+artifact_kind = "download_cache"
+description = "Named archive and metadata stores, not installed gems or Ruby versions. Offline installation requirements and owner locking need a dedicated adapter."
+consequence = "Inspection only. Downloaded packages may be needed for offline installs."
+
+[[signatures]]
+id = "dev.hex.cache"
+name = "Hex Cache"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.hex/cache"]
+provider = "Hex"
+artifact_kind = "package_store"
+description = "Observed Hex cache. Installed Mix archives and project dependencies are not included."
+consequence = "Inspection only until owner-managed cleanup is supported."
+
+[[signatures]]
+id = "dev.opam.downloads"
+name = "Opam Download Cache"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.opam/download-cache"]
+provider = "Opam"
+artifact_kind = "download_cache"
+description = "Default-root downloads only. Switches, installed packages and custom OPAMROOT locations are not scanned by this signature."
+consequence = "Inspection only until owner-managed cleanup is supported."
+
+[[signatures]]
+id = "dev.zig.global_cache"
+name = "Zig Global Cache"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.cache/zig"]
+provider = "Zig"
+artifact_kind = "build_artifact"
+description = "Default global cache may mix compiler output and downloaded dependencies. Custom ZIG_GLOBAL_CACHE_DIR locations are not inferred."
+consequence = "Inspection only. Shared dependency and compiler stores require owner-aware cleanup."
+
+[[signatures]]
+id = "dev.ruff.global_cache"
+name = "Ruff User Cache"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.cache/ruff"]
+provider = "Ruff"
+artifact_kind = "build_artifact"
+description = "Optional user cache location only. Ruff normally uses a project-local cache; this is not a whole-home project search."
+consequence = "Inspection only. Project caches belong to the workspace workflow."
+
+[[signatures]]
+id = "dev.mypy.global_cache"
+name = "MyPy User Cache"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.cache/mypy"]
+provider = "MyPy"
+artifact_kind = "build_artifact"
+description = "Optional user cache location only. MyPy can use SQLite caches and custom or project-local locations; no database deletion is authorized."
+consequence = "Inspection only. Database-backed caches need an owner-aware cleanup contract."

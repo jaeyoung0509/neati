@@ -975,6 +975,7 @@ mod tests {
             ("test.cancel.second", "Second cache", second_root),
         ] {
             registry.register(Signature {
+                deletion_disposition: None,
                 id: id.to_string(),
                 name: name.to_string(),
                 category: Category::Developer,
@@ -1211,6 +1212,7 @@ mod tests {
         );
         let mut registry = SignatureRegistry::new();
         registry.register(Signature {
+            deletion_disposition: None,
             id: "test.stated.store".to_string(),
             name: "Stated Store".to_string(),
             category: Category::System,
@@ -1326,6 +1328,7 @@ mod tests {
         );
         let mut registry = SignatureRegistry::new();
         registry.register(Signature {
+            deletion_disposition: None,
             id: "test_sig".to_string(),
             name: "Fixture cache".to_string(),
             category: Category::System,
@@ -1446,6 +1449,7 @@ mod tests {
         );
         let mut registry = SignatureRegistry::new();
         registry.register(Signature {
+            deletion_disposition: None,
             id: "test_sig".to_string(),
             name: "Fixture cache".to_string(),
             category: Category::System,

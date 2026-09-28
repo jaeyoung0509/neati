@@ -27,6 +27,9 @@ pub enum DiscoveryScope {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(deny_unknown_fields)]
 pub struct Signature {
+    /// Explicit filesystem mutation channel; omitted catalogs keep legacy behavior.
+    #[serde(default)]
+    pub deletion_disposition: Option<zenith_core::domain::cleanup::DeletionDisposition>,
     pub id: String,
     pub name: String,
     pub category: Category,
@@ -202,6 +205,17 @@ impl Signature {
                 self.id
             )))
         };
+
+        if self.deletion_disposition.is_some()
+            && !matches!(
+                self.strategy,
+                CleanStrategy::DeleteContents
+                    | CleanStrategy::DeleteDirectory
+                    | CleanStrategy::DeleteStaleContents
+            )
+        {
+            return invalid("deletion_disposition applies only to generic filesystem strategies; providers own their mutation channel".into());
+        }
 
         if self.id.trim().is_empty() {
             return invalid("the id is empty".to_string());

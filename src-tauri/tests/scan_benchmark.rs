@@ -158,6 +158,120 @@ fn disposable_cleanup_fixture_reports_verified_reclaim() {
     );
 }
 
+/// Opt-in repeated benchmark, not extra full-workstation work on every CI run.
+/// Every mutation is bounded by the temporary fixture registry. Iteration zero
+/// warms up; the five measured runs alternate shape order to reduce order bias.
+#[test]
+#[ignore = "local repeated fixture benchmark; never cleans real caches"]
+fn repeated_cleanup_shapes_report_verified_accounting() {
+    use zenith_core::domain::cleanup::DeletionDisposition;
+    use zenith_platform::PathFlavor;
+    let lifecycle = LifecycleProviderRegistry::new(vec![]);
+    let owners = OwnerProviderRegistry::new(vec![]);
+    let shapes = [
+        ("small", 1, 4096, 4096),
+        ("large", 1, 16, 8 * 1024 * 1024),
+        ("nested", 64, 32, 8192),
+    ];
+    for iteration in 0..6 {
+        let mut order = shapes.to_vec();
+        if iteration % 2 == 1 {
+            order.reverse();
+        }
+        for (name, directories, files_per_dir, file_bytes) in order {
+            let fixture = TempDir::new().unwrap();
+            let cache = fixture.path().join("cache");
+            let sentinel = fixture.path().join("outside.txt");
+            std::fs::write(&sentinel, "outside authorization").unwrap();
+            let payload = vec![0x5a; file_bytes];
+            for directory in 0..directories {
+                let child = cache.join(format!("d{directory}"));
+                std::fs::create_dir_all(&child).unwrap();
+                for file in 0..files_per_dir {
+                    std::fs::write(child.join(format!("entry-{file}.bin")), &payload).unwrap();
+                }
+            }
+            let mut registry = SignatureRegistry::new();
+            let mut entry = signature(
+                "fixture.rebuild",
+                "Rebuild fixture",
+                Category::System,
+                std::slice::from_ref(&cache),
+                None,
+                None,
+                CleanStrategy::DeleteContents,
+            );
+            entry.risk = RiskTier::Rebuild;
+            entry.deletion_disposition = Some(DeletionDisposition::PermanentDelete);
+            registry.register(entry);
+            let environment = PlatformEnvironment::simulated(PathFlavor::current())
+                .with_home(fixture.path())
+                .with_temp_dir(fixture.path());
+            let scan_started = Instant::now();
+            let scan = ScanEngine::scan(
+                &registry,
+                &lifecycle,
+                &owners,
+                Some(&[Category::System]),
+                &[],
+                false,
+                &environment,
+                &NeverCancelled,
+                |_| {},
+            );
+            let scan_us = scan_started.elapsed().as_micros();
+            let items: Vec<_> = scan
+                .categories
+                .into_iter()
+                .flat_map(|category| category.items)
+                .collect();
+            assert_eq!(items.len(), 1);
+            assert!(items[0].is_selected);
+            let logical_bytes = directories * files_per_dir * file_bytes;
+            assert_eq!(items[0].size.logical, logical_bytes as u64);
+            let allocated_bytes = items[0].size.observed_bytes();
+            let plan_started = Instant::now();
+            let plan = SafetyPlanner::create_plan_with_environment(
+                &items,
+                &registry,
+                &environment,
+                &owners,
+            )
+            .unwrap();
+            let plan_us = plan_started.elapsed().as_micros();
+            let execute_started = Instant::now();
+            let result = CleanExecutor::execute(
+                plan,
+                &environment,
+                &lifecycle,
+                &owners,
+                &zenith_platform::MockTrashBackend::new(),
+                |_| {},
+            );
+            let execute_us = execute_started.elapsed().as_micros();
+            assert_eq!(result.total_reclaimed_bytes, allocated_bytes);
+            assert_eq!(result.items.len(), 1);
+            assert!(result.items[0].success);
+            assert_eq!(result.items[0].moved_to_trash_bytes, 0);
+            assert_eq!(std::fs::read_dir(&cache).unwrap().count(), 0);
+            assert_eq!(
+                std::fs::read_to_string(&sentinel).unwrap(),
+                "outside authorization"
+            );
+            eprintln!(
+                "cleanup_repeat {}",
+                serde_json::json!({
+                    "iteration": iteration, "warmup": iteration == 0, "shape": name,
+                    "logical_bytes": logical_bytes, "allocated_bytes": allocated_bytes,
+                    "removed_bytes": result.total_reclaimed_bytes, "trash_bytes": 0,
+                    "scan_us": scan_us, "plan_us": plan_us, "execute_us": execute_us,
+                    "remaining_files": 0, "outside_sentinel_preserved": true,
+                })
+            );
+        }
+    }
+}
+
 /// The committed baseline. Regenerated by [`export_scan_baseline`], diffed by
 /// CI, and read by [`scan_metrics_match_the_committed_baseline`].
 const BASELINE_PATH: &str = "tests/fixtures/scan-baseline.json";
@@ -474,6 +588,7 @@ fn signature(
     strategy: CleanStrategy,
 ) -> Signature {
     Signature {
+        deletion_disposition: None,
         id: id.to_string(),
         name: name.to_string(),
         category,

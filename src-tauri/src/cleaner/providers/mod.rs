@@ -423,6 +423,7 @@ mod tests {
 
     fn catalog_signature() -> Signature {
         Signature {
+            deletion_disposition: None,
             id: "test.stated.store".to_string(),
             name: "Stated Store".to_string(),
             category: Category::System,
@@ -453,6 +454,7 @@ mod tests {
     /// registry is exercised through the same classification production uses.
     fn provider_target(provider_id: Option<&str>) -> DeleteTarget {
         DeleteTarget {
+            deletion_disposition: None,
             item_id: "test.stated.store".to_string(),
             signature_id: "test.stated.store".to_string(),
             name: "Stated Store".to_string(),

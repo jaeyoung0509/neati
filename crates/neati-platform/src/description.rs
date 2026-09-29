@@ -1065,6 +1065,18 @@ mod tests {
 mod cache_root_tests {
     use super::*;
     #[test]
+    fn windows_cache_overrides_reject_short_aliases_on_every_host() {
+        for (variable, pattern) in [
+            ("GRADLE_USER_HOME", "${GRADLE_USER_HOME}/caches"),
+            ("XDG_CACHE_HOME", "${XDG_CACHE_HOME}/typescript"),
+        ] {
+            let environment = PlatformEnvironment::simulated(PathFlavor::Windows)
+                .with_home(r"C:\Users\runneradmin")
+                .with_cache_path_override(variable, r"C:\Users\RUNNER~1\AppData\Local\Temp\cache");
+            assert_eq!(environment.expand_placeholder(pattern), None);
+        }
+    }
+    #[test]
     fn invalid_custom_cache_roots_never_fall_back_to_home() {
         let env = PlatformEnvironment::simulated(PathFlavor::Posix)
             .with_home("/profile")

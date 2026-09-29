@@ -388,9 +388,14 @@ fn zed_download_cache_scope_preserves_installed_runtimes_and_editor_content() {
 #[test]
 fn custom_gradle_home_partitions_payloads_from_dependencies_and_locks() {
     let fixture = tempfile::tempdir().unwrap();
-    let gradle = fixture.path().join("tools/gradle");
+    // Windows CI may expose TEMP through an 8.3 alias (RUNNER~1). Cache
+    // overrides deliberately reject aliases; use the fixture's resolved path.
+    let home = neati_platform::NativePlatformPaths::normalize_verbatim_path(
+        &fixture.path().canonicalize().unwrap(),
+    );
+    let gradle = home.join("tools/gradle");
     let environment = PlatformEnvironment::simulated(PathFlavor::current())
-        .with_home(fixture.path())
+        .with_home(&home)
         .with_cache_path_override("GRADLE_USER_HOME", &gradle);
     for relative in [
         "caches/build-cache-1/output",
@@ -422,12 +427,15 @@ fn custom_gradle_home_partitions_payloads_from_dependencies_and_locks() {
 #[test]
 fn xdg_cache_override_is_used_by_discovery_and_authorization() {
     let fixture = tempfile::tempdir().unwrap();
-    let custom = fixture.path().join("custom-cache");
+    let home = neati_platform::NativePlatformPaths::normalize_verbatim_path(
+        &fixture.path().canonicalize().unwrap(),
+    );
+    let custom = home.join("custom-cache");
     let environment = PlatformEnvironment::simulated(PathFlavor::current())
-        .with_home(fixture.path())
+        .with_home(&home)
         .with_cache_path_override("XDG_CACHE_HOME", &custom);
     write(&custom.join("typescript/payload"));
-    write(&fixture.path().join(".cache/typescript/leave"));
+    write(&home.join(".cache/typescript/leave"));
     let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
     let signature = registry
         .all()
@@ -443,7 +451,7 @@ fn xdg_cache_override_is_used_by_discovery_and_authorization() {
     assert!(Path::new(&items[0].path).starts_with(&custom));
     assert!(!registry.path_is_in_scope(
         signature,
-        &fixture.path().join(".cache/typescript/leave"),
+        &home.join(".cache/typescript/leave"),
         &environment
     ));
 }

@@ -3552,6 +3552,8 @@ export type StructuredStateKind =
 "configuration" |
 /**  An application, framework, or library bundle: an installable object. */
 "application_bundle" |
+/**  Compiled models retained by a live inference runtime. */
+"compiled_model_cache" |
 /**  An executable image. */
 "executable";
 

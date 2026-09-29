@@ -5,6 +5,26 @@ use neati_platform::selector::PathSelector;
 use neati_platform::PlatformEnvironment;
 use std::path::Path;
 
+/// Whether a cache namespace name is excluded by the signature's prefix list.
+///
+/// Exclusion is case-insensitive: a cache namespace's on-disk casing is not
+/// stable (APFS is case-insensitive by default, so `familycircled` and
+/// `FamilyCircle` resolve to the same directory), and an exclusion that matches
+/// more is the fail-safe direction. `include_prefixes` stays case-sensitive,
+/// because widening an inclusion widens the cleanup surface.
+pub fn is_excluded_namespace(name: &str, exclude_prefixes: &[String]) -> bool {
+    let lowered = name.to_lowercase();
+    exclude_prefixes
+        .iter()
+        .any(|prefix| lowered.starts_with(&prefix.to_lowercase()))
+}
+
+/// Inclusion prefixes keep their declared casing because widening inclusion
+/// would widen deletion authority.
+pub fn is_included_namespace(name: &str, prefixes: &[String]) -> bool {
+    prefixes.is_empty() || prefixes.iter().any(|prefix| name.starts_with(prefix))
+}
+
 pub fn is_excluded(path: &Path, exclusions: &[String], environment: &PlatformEnvironment) -> bool {
     exclusions.iter().any(|exclusion| {
         if let Some(expanded) = SignatureLoader::expand_exclusion(exclusion, environment) {

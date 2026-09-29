@@ -363,6 +363,7 @@ impl SafetyPlanner {
             let strategy = signature.strategy;
             let mut identity = None;
             let structured_state_policy = signature.structured_state_policy();
+            let process_guard = signature.process_guard_for(&path, environment);
 
             // An owner-scoped store is not a filesystem target at all. The
             // provider enumerates and removes its own units, so the checks
@@ -502,8 +503,8 @@ impl SafetyPlanner {
                     }
                 }
 
-                if !signature.process_guard().is_empty() {
-                    match processes.running(&signature.process_guard()) {
+                if !process_guard.is_empty() {
+                    match processes.running(&process_guard) {
                         Some(running) if running.is_empty() => {}
                         Some(running) => {
                             refusals.push(safety_refusal(
@@ -566,7 +567,7 @@ impl SafetyPlanner {
                 unit: item.unit.clone(),
                 target_kind: item.entry_kind,
                 owner: item.ownership.clone(),
-                process_guard: signature.process_guard(),
+                process_guard,
                 structured_state_policy,
                 provider_id: provider_id.clone(),
                 requires_confirmation: item.requires_confirmation,
@@ -673,6 +674,7 @@ mod tests {
             signature,
             &environment,
             &crate::models::NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
         );
         assert_eq!(
             items.len(),
@@ -752,6 +754,7 @@ mod tests {
                 .expect("HTTP cache inventory"),
             &environment,
             &crate::models::NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
         );
         assert_eq!(observed.len(), 1);
         assert_eq!(observed[0].risk, RiskTier::Rebuild);
@@ -761,6 +764,7 @@ mod tests {
             signature,
             &environment,
             &crate::models::NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
         );
         assert_eq!(items.len(), 1);
         assert_eq!(
@@ -826,6 +830,7 @@ mod tests {
             signature,
             &environment,
             &crate::models::NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
         );
         assert_eq!(items.len(), 1);
         items[0].is_selected = true;
@@ -868,6 +873,9 @@ mod tests {
                 signature,
                 &environment,
                 &crate::models::NeverCancelled,
+                &crate::applications::RunningApplications::from_process_names([
+                    "fixture-idle".into()
+                ]),
             );
             assert_eq!(items.len(), 1);
             items[0].is_selected = true;

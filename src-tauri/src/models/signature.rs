@@ -573,6 +573,39 @@ impl Signature {
         RunningProcessPolicy::guarding(self.fail_if_running.clone())
     }
 
+    /// Resolve an inferred macOS cache owner from the trusted target location.
+    /// The same policy is used by discovery, planning and execution.
+    pub fn process_guard_for(
+        &self,
+        path: &std::path::Path,
+        environment: &neati_platform::PlatformEnvironment,
+    ) -> RunningProcessPolicy {
+        let guard = self.process_guard();
+        if !guard.is_empty() || environment.platform() != PlatformKind::Macos {
+            return guard;
+        }
+        let Some(home) = environment.user_home() else {
+            return guard;
+        };
+        for root in [
+            "Library/Caches",
+            "Library/Application Support",
+            "Library/Containers",
+            "Library/Group Containers",
+        ] {
+            if let Ok(relative) = path.strip_prefix(home.join(root)) {
+                if let Some(owner) = relative
+                    .components()
+                    .next()
+                    .and_then(|part| part.as_os_str().to_str())
+                {
+                    return guard.with_cache_owner(owner.to_string());
+                }
+            }
+        }
+        guard
+    }
+
     /// The structured-state rule this signature is allowed to use.
     ///
     /// `RendererCache` is validated as a registered macOS named subtree with

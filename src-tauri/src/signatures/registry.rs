@@ -248,8 +248,22 @@ impl SignatureRegistry {
         path: &Path,
         environment: &PlatformEnvironment,
     ) -> Vec<PathBuf> {
+        if super::exclusions::is_excluded(path, &signature.exclusions, environment) {
+            return Vec::new();
+        }
         let flavor = environment.flavor();
         let enumerates_children = signature.unit_kind().is_enumerated_child();
+        if enumerates_children {
+            let name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or_default();
+            if !super::exclusions::is_included_namespace(name, &signature.include_prefixes)
+                || super::exclusions::is_excluded_namespace(name, &signature.exclude_prefixes)
+            {
+                return Vec::new();
+            }
+        }
         let path_text = path.to_string_lossy();
         let parent_text = path
             .parent()
@@ -282,7 +296,7 @@ impl SignatureRegistry {
                 continue;
             }
 
-            if path == expanded.as_path() {
+            if !enumerates_children && path == expanded.as_path() {
                 roots.push(expanded);
                 continue;
             }
@@ -1474,38 +1488,30 @@ mod tests {
         );
     }
 
-    /// The shipped signature claims Apple/system/tool-managed namespaces are
-    /// excluded; this pins every namespace it names, so the policy cannot drift
-    /// away from the description the user reads.
     #[test]
-    fn user_app_caches_exclude_tool_managed_and_apple_namespaces() {
+    fn user_app_caches_partition_specific_owners_without_an_apple_blanket() {
         let registry = SignatureRegistry::load_embedded().unwrap();
         let signature = registry.get("system.intensive.user_app_caches").unwrap();
-
-        for prefix in [
-            "com.apple.",
-            "com.apple.CloudKit",
-            "com.apple.FamilyCircle",
-            "com.apple.GeoServices",
-            "com.apple.HomeKit",
-            "com.apple.Safari",
-            "Google",
-            "Homebrew",
-            "ms-playwright",
-        ] {
-            assert!(
-                signature
-                    .exclude_prefixes
-                    .iter()
-                    .any(|entry| prefix.starts_with(entry)),
-                "missing excluded namespace: {prefix}"
-            );
+        for prefix in ["CloudKit", "Google", "Homebrew", "ms-playwright"] {
+            assert!(signature
+                .exclude_prefixes
+                .iter()
+                .any(|entry| entry == prefix));
         }
-
-        assert!(
-            signature.description.contains("Playwright"),
-            "the description must name the tool-managed Playwright cache it excludes"
-        );
+        assert!(!signature
+            .exclude_prefixes
+            .iter()
+            .any(|entry| entry == "com.apple."));
+        for name in [
+            "com.apple.dt.Xcode",
+            "com.apple.helpd",
+            "com.apple.Safari",
+            "com.apple.e5rt.e5bundlecache",
+        ] {
+            assert!(signature
+                .exclusions
+                .contains(&format!("~/Library/Caches/{name}")));
+        }
     }
 
     #[test]

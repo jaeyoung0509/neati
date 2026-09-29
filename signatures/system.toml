@@ -88,7 +88,7 @@ description = "Developer-tool temporary artifacts observed by prefix and age. Th
 
 [[signatures]]
 id = "system.intensive.user_app_caches"
-name = "Third-Party Application Cache"
+name = "Application Cache"
 category = "system"
 family = "applications"
 risk = "safe"
@@ -97,7 +97,6 @@ platforms = ["macos"]
 paths = ["~/Library/Caches"]
 min_age_days = 0
 exclude_prefixes = [
-    "com.apple.",
     "CloudKit",
     "BraveSoftware",
     "Google",
@@ -105,9 +104,22 @@ exclude_prefixes = [
     "dotslash",
     "ms-playwright"
 ]
+exclusions = [
+    "~/Library/Caches/com.apple.helpd",
+    "~/Library/Caches/com.apple.dt.Xcode",
+    "~/Library/Caches/com.apple.CloudKit",
+    "~/Library/Caches/com.apple.Safari",
+    "~/Library/Caches/com.apple.wallpaper",
+    "~/Library/Caches/com.apple.VisualIntelligence",
+    "~/Library/Caches/com.apple.e5rt.e5bundlecache",
+    "~/Library/Caches/pypoetry",
+    "~/Library/Caches/Yarn",
+    "~/Library/Caches/llama.cpp",
+]
 intensive_only = false
 discovery = "always"
-description = "Regenerable third-party application cache entries, including recently created files. Running applications and structured state remain protected. Apple, CloudKit, system, and tool-managed namespaces are excluded case-insensitively; Chrome, Homebrew, and DotSlash have separate owner contracts. Playwright browser bundles are managed by the Playwright CLI."
+description = "Regenerable Apple and third-party cache payloads, including recently created files. Running owners, credentials, settings, databases and compiled model stores remain protected. Dedicated browser, Help, Xcode and package-manager entries retain their own scope."
+consequence = "Applications may download resources or rebuild caches on next use."
 
 [[signatures]]
 id = "system.chrome.http_cache"
@@ -364,7 +376,13 @@ paths = [
 ]
 unit = "named_subtree"
 min_age_days = 0
-exclude_prefixes = ["Cursor"]
+exclusions = [
+    "~/Library/Application Support/Cursor/Cache",
+    "~/Library/Application Support/Cursor/CachedData",
+    "~/Library/Application Support/Cursor/Code Cache",
+    "~/Library/Application Support/Cursor/GPUCache",
+    "~/Library/Application Support/Cursor/ShaderCache",
+]
 description = "A narrowly named renderer, GPU, or shader cache subtree inside an application's data directory, including recently generated caches. Service Worker CacheStorage is excluded because it can hold offline application state. Cursor has a separate owner-verified cache contract."
 
 [[signatures]]
@@ -392,7 +410,8 @@ min_age_days = 30
 provider = "Xcode"
 artifact_kind = "build_artifact"
 consequence = "Xcode re-downloads the symbol set the next time the device is connected."
-description = "Per-OS-version symbol dumps kept for devices that have not been connected for at least 30 days."
+fail_if_running = ["Xcode", "xcodebuild", "Simulator", "XCBBuildService"]
+description = "Per-OS-version symbol dumps inactive for at least 30 days, while Xcode and Simulator are closed. Recent support sets stay intact."
 
 [[signatures]]
 id = "system.intensive.containers_caches"
@@ -725,3 +744,21 @@ exclusions = [
 ]
 artifact_kind = "compiled_kernel"
 description = "GPU cache-shaped subtrees reported for visibility. Without an owner-scoped cleanup signature, neati does not remove them."
+
+[[signatures]]
+id = "system.advisory.protected_apple_caches"
+name = "Apple Managed Cache Stores"
+category = "system"
+family = "system"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = [
+    "~/Library/Caches/com.apple.CloudKit",
+    "~/Library/Caches/com.apple.Safari",
+    "~/Library/Caches/com.apple.wallpaper",
+    "~/Library/Caches/com.apple.VisualIntelligence",
+    "~/Library/Caches/com.apple.e5rt.e5bundlecache",
+]
+description = "Safari state, wallpaper downloads and inference model stores remain managed by macOS. These observed bytes are not included in the cleanup estimate."
+consequence = "Manage Safari website data in Safari settings; macOS manages wallpaper and inference stores."

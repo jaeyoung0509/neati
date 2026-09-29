@@ -2236,6 +2236,7 @@ fn an_unreadable_root_is_reported_with_its_reason() {
         registry.get("test.unreadable").expect("registered"),
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
     );
     // Restore before the fixture is dropped so it can be removed.
     fs::set_permissions(&candidate, fs::Permissions::from_mode(0o755)).unwrap();
@@ -2346,6 +2347,7 @@ fn a_running_owner_keeps_its_cache_out_of_the_default_selection() {
         registry.get("test.running-owner").expect("registered"),
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
     );
     let idle_item = idle
         .iter()
@@ -2398,6 +2400,7 @@ fn the_shipped_explorer_cache_entry_scans_and_plans() {
         &signature,
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
     );
     let cache_item = items
         .iter()
@@ -2613,6 +2616,7 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
         registry.get("test.stale-namespace").expect("registered"),
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
     );
     let item = items
         .iter()
@@ -2740,6 +2744,9 @@ fn stale_file_and_directory_units_execute_with_matching_estimates() {
             &signature,
             &environment,
             &neati_lib::models::NeverCancelled,
+            &neati_lib::applications::RunningApplications::from_process_names([
+                "fixture-idle".into()
+            ]),
         );
         assert_eq!(items.len(), 2);
         assert!(items.iter().all(|item| item.cleanable_bytes() > 0));

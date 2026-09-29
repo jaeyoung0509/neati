@@ -8,7 +8,7 @@ use crate::metrics::memory::MemorySampler;
 use crate::metrics::memory_termination::{
     CreateMemoryLeaseParams, MemoryLeaseMember, MemoryTerminationStore,
 };
-use crate::models::{CleanupQuitApp, CleanupQuitPreview, RunningProcessPolicy, ScanResult};
+use crate::models::{CleanupQuitApp, CleanupQuitPreview, RunningProcessPolicy};
 use crate::signatures::SignatureRegistry;
 use neati_platform::PlatformEnvironment;
 
@@ -68,11 +68,8 @@ impl super::CleanupService {
                     .get()
                     .filter(|scan| scan.scan_id == scan_id)
                     .ok_or("The scan changed. Scan again before quitting apps.")?;
-                if super::cleanup_service::unix_timestamp().saturating_sub(scan.finished_at)
-                    > u64::from(ScanResult::VALID_FOR_SECONDS)
-                {
-                    return Err("The scan expired. Scan again before quitting apps.".into());
-                }
+                scan.validate_for_cleanup(&scan_id, super::cleanup_service::unix_timestamp())
+                    .map_err(|error| error.to_string())?;
                 let ids: HashSet<_> = item_ids.into_iter().collect();
                 let mut apps: BTreeMap<String, (Vec<MemoryLeaseMember>, Vec<String>)> =
                     BTreeMap::new();

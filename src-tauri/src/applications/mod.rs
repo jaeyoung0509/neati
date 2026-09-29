@@ -94,7 +94,7 @@ impl AppFsProbe for NativeAppFsProbe {}
 /// Match a trusted executable's bundle to a cache namespace. This does not
 /// authorize termination; the memory lease boundary still validates the process.
 pub(crate) fn executable_owns_namespace(executable: &Path, namespace: &str) -> bool {
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
     {
         let Some(bundle) = app_bundle_of(executable) else {
             return false;
@@ -110,7 +110,7 @@ pub(crate) fn executable_owns_namespace(executable: &Path, namespace: &str) -> b
             .and_then(|name| name.to_str())
             .is_some_and(|name| name.eq_ignore_ascii_case(namespace))
     }
-    #[cfg(target_os = "windows")]
+    #[cfg(not(target_os = "macos"))]
     {
         let _ = (executable, namespace);
         false

@@ -147,7 +147,7 @@ macro_rules! impl_provider {
             }
 
             fn requires_confirmation(&self) -> bool {
-                true
+                !self.0.store.removes_units()
             }
 
             fn scan(
@@ -465,7 +465,7 @@ impl CargoStoreProvider {
             units: Vec::new(),
             refusals: Vec::new(),
             process_guard: guard.clone(),
-            requires_confirmation: true,
+            requires_confirmation: !self.store.removes_units(),
         };
         if !self.store.removes_units() {
             return Err(OwnerProviderRefusal::for_selections(
@@ -1330,6 +1330,31 @@ mod tests {
                 .all(|item| item.signature_id != "dev.cargo.registry.src"),
             "an advisory store is not enumerated by the archive provider"
         );
+
+        let archive = items
+            .iter()
+            .find(|item| item.signature_id == "dev.cargo.registry.cache")
+            .unwrap();
+        assert!(archive.is_selected);
+        assert_eq!(
+            archive.disposition.eligibility,
+            crate::models::CleanupEligibility::AutoCleanable
+        );
+        assert_eq!(archive.cleanable_bytes(), 30);
+        let plan = providers
+            .prepare(
+                &registry,
+                &archive.signature_id,
+                &[OwnerProviderSelection {
+                    item_id: archive.id.clone(),
+                    name: archive.name.clone(),
+                    path: archive.path.clone().into(),
+                    expected_bytes: archive.cleanable_bytes(),
+                }],
+                &environment,
+            )
+            .unwrap();
+        assert!(!plan.requires_confirmation);
 
         // The archive provider refuses a selection that names the source
         // store's root: a root is not a credential for another store.

@@ -1,0 +1,184 @@
+{
+  "date": "2026-09-29",
+  "host": "macOS 27.0 (26A428), Apple silicon",
+  "neati_version": "0.3.77",
+  "neati_commit": "3bd3600",
+  "neati_build": "Cargo dev-profile read-only scan_machine example using production ScanEngine; not an optimized release timing",
+  "mole_version": "1.55.0 (installed Homebrew)",
+  "timings": [
+    {
+      "tool": "mole",
+      "run": 1,
+      "started": "2026-09-29T01:09:55.562711+00:00",
+      "elapsed_seconds": 30.532,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 1,
+      "started": "2026-09-29T01:10:26.095867+00:00",
+      "elapsed_seconds": 20.376,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 2,
+      "started": "2026-09-29T01:10:46.472150+00:00",
+      "elapsed_seconds": 18.162,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "mole",
+      "run": 2,
+      "started": "2026-09-29T01:11:04.634023+00:00",
+      "elapsed_seconds": 26.769,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "mole",
+      "run": 3,
+      "started": "2026-09-29T01:11:31.403511+00:00",
+      "elapsed_seconds": 28.044,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 3,
+      "started": "2026-09-29T01:11:59.447868+00:00",
+      "elapsed_seconds": 19.335,
+      "exit_code": 0,
+      "timed_out": false
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "mole_reported_potential": "609.0MB",
+      "mole_preview_items": 222,
+      "mole_rounded_sum_bytes": 609093000,
+      "mole_path_overlap": {
+        "nested_item_count": 7,
+        "nested_rounded_preview_bytes": 193673000,
+        "top_level_rounded_preview_bytes": 415420000
+      },
+      "neati_observed_bytes": 5531278016,
+      "neati_cleanable_bytes": 361495232,
+      "neati_selected_bytes": 30191616,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 341,
+          "kind": "io_error"
+        },
+        {
+          "count": 29,
+          "kind": "permission_denied"
+        },
+        {
+          "count": 147,
+          "kind": "full_disk_access"
+        }
+      ],
+      "path_relationships": {
+        "reference_only": 26,
+        "neati_descendants": 4,
+        "exact": 18,
+        "neati_ancestor": 174
+      },
+      "reference_only_rounded_bytes": 1568000
+    },
+    {
+      "run": 2,
+      "mole_reported_potential": "609.3MB",
+      "mole_preview_items": 222,
+      "mole_rounded_sum_bytes": 609394000,
+      "mole_path_overlap": {
+        "nested_item_count": 7,
+        "nested_rounded_preview_bytes": 193673000,
+        "top_level_rounded_preview_bytes": 415721000
+      },
+      "neati_observed_bytes": 5531351744,
+      "neati_cleanable_bytes": 361495232,
+      "neati_selected_bytes": 30191616,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 341,
+          "kind": "io_error"
+        },
+        {
+          "count": 29,
+          "kind": "permission_denied"
+        },
+        {
+          "count": 147,
+          "kind": "full_disk_access"
+        }
+      ],
+      "path_relationships": {
+        "reference_only": 26,
+        "neati_descendants": 4,
+        "exact": 18,
+        "neati_ancestor": 174
+      },
+      "reference_only_rounded_bytes": 1568000
+    },
+    {
+      "run": 3,
+      "mole_reported_potential": "610.4MB",
+      "mole_preview_items": 222,
+      "mole_rounded_sum_bytes": 610395000,
+      "mole_path_overlap": {
+        "nested_item_count": 7,
+        "nested_rounded_preview_bytes": 194673000,
+        "top_level_rounded_preview_bytes": 415722000
+      },
+      "neati_observed_bytes": 5534689984,
+      "neati_cleanable_bytes": 364653248,
+      "neati_selected_bytes": 30191616,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 341,
+          "kind": "io_error"
+        },
+        {
+          "count": 29,
+          "kind": "permission_denied"
+        },
+        {
+          "count": 147,
+          "kind": "full_disk_access"
+        }
+      ],
+      "path_relationships": {
+        "reference_only": 26,
+        "neati_descendants": 4,
+        "exact": 18,
+        "neati_ancestor": 174
+      },
+      "reference_only_rounded_bytes": 1568000
+    }
+  ],
+  "median_seconds": {
+    "neati": 19.335,
+    "mole": 28.044
+  },
+  "no_cleanup_executed": true,
+  "mole_system_preview": "skipped: no cached sudo session",
+  "mole_protection": "19 core whitelist patterns; unchanged",
+  "neati_settings": "full embedded catalog, native providers, extended scope enabled, no excluded signatures",
+  "execution_order": "M1 N1 N2 M2 M3 N3",
+  "limitations": [
+    "Live filesystem, active applications and unflushed OS caches; sequential repeated runs, not a cold-cache laboratory benchmark.",
+    "Mole potential includes overlapping ancestor/descendant rows and unmeasured owner-command actions.",
+    "neati cleanable includes conditional/reviewable entries; selected is smaller.",
+    "neati reports partial coverage; CLI process permission context differs from a separately installed signed app.",
+    "No deletion throughput, actual freed space, or recovery correctness was measured."
+  ]
+}

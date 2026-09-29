@@ -1,0 +1,115 @@
+{
+  "date": "2026-09-29",
+  "host": "macOS 27.0 (26A428), Apple silicon",
+  "version": "0.3.78",
+  "base_commit": "df6711cbe549f0b94076af2f96f6c6933ac93cf4",
+  "implementation_diff_sha256": "4dfe3fe31b4ee8e2e1bf6e0d599684895cca1bcbc798bfc17271d74dd00682f6",
+  "command": "target/debug/examples/scan_machine --live-read-only --full-catalog-read-only --private-ledger",
+  "profile": "Cargo dev; full catalog; native providers; extended enabled",
+  "runs": [
+    {
+      "run": 1,
+      "elapsed_seconds": 21.831,
+      "version": "0.3.78",
+      "observed_bytes": 5559720640,
+      "cleanable_bytes": 415136448,
+      "selected_bytes": 55988224,
+      "quality": "partial",
+      "gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 31,
+          "kind": "permission_denied"
+        },
+        {
+          "count": 454,
+          "kind": "full_disk_access"
+        }
+      ],
+      "unknown_owner_items": 0,
+      "generic_unknown_owner_items": 0,
+      "baseline_unknown_items_still_observed": 328,
+      "baseline_unknown_current_eligibility": {
+        "auto_cleanable": 13,
+        "recent": 5,
+        "blocked": 310
+      },
+      "baseline_unknown_current_selected_bytes": 25796608
+    },
+    {
+      "run": 2,
+      "elapsed_seconds": 18.228,
+      "version": "0.3.78",
+      "observed_bytes": 5558991552,
+      "cleanable_bytes": 415136448,
+      "selected_bytes": 55988224,
+      "quality": "partial",
+      "gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 31,
+          "kind": "permission_denied"
+        },
+        {
+          "count": 454,
+          "kind": "full_disk_access"
+        }
+      ],
+      "unknown_owner_items": 0,
+      "generic_unknown_owner_items": 0,
+      "baseline_unknown_items_still_observed": 328,
+      "baseline_unknown_current_eligibility": {
+        "auto_cleanable": 13,
+        "recent": 5,
+        "blocked": 310
+      },
+      "baseline_unknown_current_selected_bytes": 25796608
+    },
+    {
+      "run": 3,
+      "elapsed_seconds": 18.033,
+      "version": "0.3.78",
+      "observed_bytes": 5559188160,
+      "cleanable_bytes": 415136448,
+      "selected_bytes": 55988224,
+      "quality": "partial",
+      "gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 31,
+          "kind": "permission_denied"
+        },
+        {
+          "count": 454,
+          "kind": "full_disk_access"
+        }
+      ],
+      "unknown_owner_items": 0,
+      "generic_unknown_owner_items": 0,
+      "baseline_unknown_items_still_observed": 328,
+      "baseline_unknown_current_eligibility": {
+        "auto_cleanable": 13,
+        "recent": 5,
+        "blocked": 310
+      },
+      "baseline_unknown_current_selected_bytes": 25796608
+    }
+  ],
+  "median_seconds": 18.228,
+  "no_cleanup_executed": true,
+  "limitations": [
+    "Comparison to earlier same-day baseline, not simultaneous or frozen-cache A/B.",
+    "Active apps and caches continued changing; byte differences are not all caused by this fix.",
+    "Partial coverage and conditional cleanup estimates remain; no disk recovery measured.",
+    "Mole baseline was not rerun for this focused regression check."
+  ]
+}

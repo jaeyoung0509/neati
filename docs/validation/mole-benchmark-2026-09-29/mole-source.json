@@ -1,0 +1,10 @@
+{
+  "version": "Mole 1.55.0 installed Homebrew",
+  "inspected": "2026-09-29",
+  "files": {
+    "lib/clean/dev.sh": "15de41d8fe6a69cb95c108b0e8a6d42b401e8a91b44059e8bf8e59f209c5e62d",
+    "lib/clean/user.sh": "ff5ae4f2b2acf6309078cb321c383ed4c40accf34265a71670d29f9a71c39f44",
+    "lib/clean/caches.sh": "409ee7174f9a7232ca7d7d3a6c80c6e24a4fc4a6938659d157f2918d7c6520fe",
+    "lib/core/file_ops.sh": "27095ae30ab43333acecf0498a8c9245ae0c0521a3284e5539a7be2c4a0bf039"
+  }
+}

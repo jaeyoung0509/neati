@@ -22,7 +22,10 @@ namespace owner into the private deletion plan. The process snapshot matches
 bundle identifiers at a component boundary, bundle names and exact executable
 names. A daemon namespace's last component can match its executable. This is
 process evidence, not a general open-file proof. Unknown process state cannot
-authorize cleanup. Installed applications are not terminated automatically.
+authorize cleanup. Flat executable containers under `/System/Library` with
+no `Contents` or root `Info.plist` retain executable/name guards without
+invalidating unrelated bundle identities. Missing or malformed metadata in
+a conventional bundle still makes unmatched inferred owners unknown. Installed applications are not terminated automatically.
 
 ## Scope and accounting
 
@@ -71,10 +74,11 @@ error suppression are not a deletion authorization mechanism for neati.
 ## Remaining issue work
 
 This batch delivers the payload and shared-guard increments. The linked issues
-remain open for these separately testable contracts:
+track these separately testable contracts:
 
-- #347: additional proven cache-database adapters and open-handle validation.
-- #348: custom XDG roots and an owner operation for abandoned runtime staging.
+- #357 (remaining contracts from closed #347/#348): proven cache-database
+  adapters, open-handle validation, custom XDG roots and an owner operation for
+  abandoned runtime staging. Their payload/catalog increments shipped in #355.
 - #349: updater pending files, shared-container ownership and open-handle checks.
 - #350: DeviceSupport retention by recency, Products/XCTestDevices contracts and
   simulator lifecycle operations.
@@ -89,3 +93,23 @@ remain open for these separately testable contracts:
   including disjoint nested coverage and a dedicated retained-scope projection.
 
 CLI #335 and usage diagnostics #354 are outside this batch.
+
+## Mole-aligned disposable download defaults
+
+Ready Homebrew download files and Cargo registry `.crate` archive units are
+selected by default and use ordinary explicit cleanup, including Quick Clean.
+Their owner adapters still validate scope, file/archive shape, process state,
+identity and the current inventory before mutation. A provider implementation
+alone is not a reason to require a second confirmation for disposable downloads.
+Cargo extracted sources/git stores and Homebrew API metadata remain outside
+this authorization. Homebrew installed-version cleanup and browser offline
+stores retain their distinct reviewed contracts.
+
+The installed Mole 1.55.0 `lib/clean/dev.sh` processes Cargo registry archive
+caches in its Rust cleanup and Homebrew downloads in normal cleanup.
+`lib/clean/user.sh::clean_browsers` guards ordinary Chrome profile caches but
+calls `clean_service_worker_cache` separately; `lib/clean/caches.sh` enumerates
+depth-two CacheStorage units and preserves its whitelist. neati currently owns
+a whole-store Trash operation, so copying that process policy alone would not
+copy Mole's deletion unit. Fine-grained browser ownership remains #349/#352.
+No log/temp retention thresholds changed in #359.

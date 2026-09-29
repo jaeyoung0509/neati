@@ -33,7 +33,7 @@ fail_if_running = ["brew", "ruby"]
 provider = "Homebrew"
 artifact_kind = "download_cache"
 consequence = "Homebrew may download these archives again during a later install or upgrade."
-description = "Direct downloaded files in Homebrew's cache, verified and removed by a dedicated owner-scoped provider after explicit review. This deep download purge is separate from `brew cleanup`, which can also remove old installed formula versions."
+description = "Direct downloaded files in Homebrew's cache, selected when idle and verified, then removed by its dedicated provider through ordinary cleanup. This deep download purge is separate from `brew cleanup`, which can also remove old installed formula versions."
 
 [[signatures]]
 id = "dev.homebrew.cleanup"
@@ -62,7 +62,7 @@ platforms = ["macos"]
 paths = ["~/Library/Caches/Homebrew/api", "~/Library/Caches/Homebrew/bootsnap"]
 provider = "Homebrew"
 artifact_kind = "download_cache"
-description = "Homebrew API and runtime metadata stay visible but are not part of the reviewed download-file cleanup."
+description = "Homebrew API and runtime metadata stay visible but are not part of download-file cleanup."
 
 [[signatures]]
 id = "dev.go.build"

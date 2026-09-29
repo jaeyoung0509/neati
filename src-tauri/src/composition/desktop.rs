@@ -117,20 +117,23 @@ pub fn desktop_state_with_catalog(
         crate::services::PlanLifecycle::cleanup(),
     ));
     let scan_store = Arc::new(crate::services::ScanStore::new());
-    let cleanup_service = Arc::new(CleanupService::new(
-        scan_service,
-        plan_store,
-        scan_store,
-        operation_gate.clone(),
-        budgets.clone(),
-        environment.clone(),
-        registry.clone(),
-        docker_status.clone(),
-        lifecycle_providers.clone(),
-        owner_providers.clone(),
-        trash_backend,
-        platform_capabilities.clone(),
-    ));
+    let cleanup_service = Arc::new(
+        CleanupService::new(
+            scan_service,
+            plan_store,
+            scan_store,
+            operation_gate.clone(),
+            budgets.clone(),
+            environment.clone(),
+            registry.clone(),
+            docker_status.clone(),
+            lifecycle_providers.clone(),
+            owner_providers.clone(),
+            trash_backend,
+            platform_capabilities.clone(),
+        )
+        .with_quit_dependencies(memory_sampler.clone(), memory_termination_store.clone()),
+    );
 
     // The AI surfaces share one single-flight, cache, and generation set with
     // the background runtime, so a foreground refresh and a background tick

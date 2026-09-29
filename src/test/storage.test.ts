@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { render } from 'svelte/server';
 import { readFileSync } from 'node:fs';
 import StorageView from '../routes/dashboard/StorageView.svelte';
+import CategoryCard from '../lib/components/CategoryCard.svelte';
 import StorageSummary from '../lib/components/StorageSummary.svelte';
 import CategoryDetailView from '../routes/dashboard/CategoryDetailView.svelte';
 import ItemRow from '../lib/components/ItemRow.svelte';
@@ -104,11 +105,25 @@ describe('Storage scan summary', () => {
     scanStore.lastScan!.ambiguous_overlap_bytes = 2048;
 
     const { body } = render(StorageSummary);
-    expect(body).toContain('Cleanup candidates');
+    expect(body).toContain('Ready to clean now');
     expect(body).toContain('ready now');
     expect(body).toContain('1 KB');
     expect(body).toContain('8 KB–10 KB');
     expect(body).toContain('Includes items that must be kept.');
+  });
+
+  it('puts ready bytes first when a much larger cache requires app exit', () => {
+    const category = publishScan([
+      scanItem({ id: 'ready', disposition: { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: 1024 } }),
+      scanItem({ id: 'running', owner_running: true, size: { logical: 1073741824, allocated: 1073741824 }, disposition: { eligibility: 'reviewable', reason: null, cleanable_bytes: 1073741824 } }),
+    ], 'mixed');
+    const summary = render(StorageSummary).body;
+    const card = render(CategoryCard, { props: { categoryResult: category } }).body;
+    expect(summary).toMatch(/text-metric-lg[^>]*>\s*1 KB/);
+    expect(summary).toContain('1 GB requires idle apps');
+    expect(card).toContain('1 GB requires idle apps');
+    expect(card).toContain('Ready now');
+    expect(card).not.toContain('Can clean');
   });
 
   it('labels an expired scan as a previous estimate', () => {
@@ -116,7 +131,7 @@ describe('Storage scan summary', () => {
     const freshness = vi.spyOn(scanStore, 'freshness', 'get').mockReturnValue('stale');
     const { body } = render(StorageSummary);
     freshness.mockRestore();
-    expect(body).toContain('Last cleanup estimate');
+    expect(body).toContain('Last ready-to-clean estimate');
     expect(body).toContain('Scan again to verify these results.');
     expect(body).not.toContain('Available to clean');
   });
@@ -496,7 +511,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(body).toContain('Stop scan');
     expect(body).not.toContain('Old cache');
     expect(body).not.toContain('Clean selected');
-    expect(body).not.toContain('Last cleanup estimate');
+    expect(body).not.toContain('Last ready-to-clean estimate');
   });
 
   it('uses the header scan control as the only freshness status UI', () => {

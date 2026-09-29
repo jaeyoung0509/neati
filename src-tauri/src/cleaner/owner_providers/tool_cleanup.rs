@@ -117,6 +117,9 @@ impl NativeToolCommandRunner {
                 }
             }
             ToolCacheKind::Mise => {
+                // Inventory must not refill the update cache or prune unrelated
+                // entries as a side effect of doctor. Keep preview and mutation
+                // in the same explicit environment.
                 command.args(if dry_run {
                     &["doctor", "--json"][..]
                 } else {
@@ -131,6 +134,12 @@ impl NativeToolCommandRunner {
             .env("CONDA_NO_PLUGINS", "true")
             .env("NO_COLOR", "1")
             .current_dir(&home);
+        if matches!(self.kind, ToolCacheKind::Mise) {
+            command
+                .env("MISE_DISABLE_UPDATE_WARNING", "1")
+                .env("MISE_AUTO_UPDATE", "0")
+                .env("MISE_CACHE_PRUNE_AGE", "0s");
+        }
         for name in [
             "CONDA_PKGS_DIRS",
             "CONDARC",
@@ -678,13 +687,20 @@ fn parse_mise_roots(
     let state = directory("state")?;
     let data = directory("data")?;
     let config = directory("config")?;
-    let task_settings = value
-        .pointer("/settings/task")
+    // doctor emits only non-default settings. An empty settings object means
+    // the documented default task cache; malformed settings still fail closed.
+    let settings = value
+        .get("settings")
         .and_then(|v| v.as_object())
-        .ok_or("mise did not report its task cache settings")?;
-    let task_setting = task_settings
-        .get("cache_dir")
-        .unwrap_or(&serde_json::Value::Null);
+        .ok_or("mise did not report its settings")?;
+    let task_setting = match settings.get("task") {
+        None => &serde_json::Value::Null,
+        Some(task) => task
+            .as_object()
+            .ok_or("mise returned invalid task settings")?
+            .get("cache_dir")
+            .unwrap_or(&serde_json::Value::Null),
+    };
     let task = match task_setting {
         serde_json::Value::Null => cache.join("task-artifacts/v2"),
         serde_json::Value::String(path) if !path.is_empty() => PathBuf::from(path).join("v2"),
@@ -802,6 +818,50 @@ mod tests {
         ]
         .contains(arg)));
     }
+    #[test]
+    fn mise_preview_and_cleanup_disable_incidental_updates_and_pruning() {
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home("/profile");
+        let runner = NativeToolCommandRunner {
+            kind: ToolCacheKind::Mise,
+        };
+        for dry_run in [true, false] {
+            let command = runner
+                .command(&environment, Path::new("/profile/.local/bin/mise"), dry_run)
+                .unwrap();
+            let variables: std::collections::HashMap<_, _> = command.get_envs().collect();
+            for (key, expected) in [
+                ("MISE_DISABLE_UPDATE_WARNING", "1"),
+                ("MISE_AUTO_UPDATE", "0"),
+                ("MISE_CACHE_PRUNE_AGE", "0s"),
+            ] {
+                assert_eq!(
+                    variables.get(std::ffi::OsStr::new(key)).copied().flatten(),
+                    Some(std::ffi::OsStr::new(expected))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn mise_default_settings_match_real_doctor_output() {
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home("/profile");
+        let report = serde_json::json!({"dirs": {"cache":"/profile/Library/Caches/mise", "state":"/profile/.local/state/mise", "data":"/profile/.local/share/mise", "config":"/profile/.config/mise"}, "settings": {}});
+        let roots = parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).unwrap();
+        assert_eq!(
+            roots,
+            vec![
+                PathBuf::from("/profile/.local/state/mise/env-cache"),
+                PathBuf::from("/profile/.local/state/mise/task-artifacts"),
+                PathBuf::from("/profile/Library/Caches/mise")
+            ]
+        );
+        let mut malformed = report;
+        malformed["settings"]["task"] = serde_json::json!("unknown");
+        assert!(parse_mise_roots(&serde_json::to_vec(&malformed).unwrap(), &environment).is_err());
+    }
+
     #[test]
     fn mise_scope_includes_external_tasks_and_environment_caches_without_overlap() {
         let environment =

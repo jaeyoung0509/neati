@@ -16,16 +16,21 @@ For stale-content cleanup, a protected directory's entire descendant tree is
 excluded from the reclaim estimate while its measured bytes remain observed.
 A whole-directory cleanup cannot bypass these classifications.
 
-Owner processes are checked during discovery, planning and execution. On
-macOS, user-cache and Application Support paths also carry their inferred
-namespace owner into the private deletion plan. The process snapshot matches
-bundle identifiers at a component boundary, bundle names and exact executable
-names. A daemon namespace's last component can match its executable. This is
-process evidence, not a general open-file proof. Unknown process state cannot
-authorize cleanup. Flat executable containers under `/System/Library` with
-no `Contents` or root `Info.plist` retain executable/name guards without
-invalidating unrelated bundle identities. Missing or malformed metadata in
-a conventional bundle still makes unmatched inferred owners unknown. Installed applications are not terminated automatically.
+Owner use is checked during discovery, planning and execution. On macOS,
+ordinary pruned payloads under `Library/Caches` and `Library/Logs` use a bounded
+open-file check on the exact unit. A running app or daemon alone does not block
+all its disposable files. Explicit catalog executable guards still take
+precedence, and other stores retain inferred namespace-owner guards. Unknown
+process or handle evidence cannot authorize cleanup. Structured-state and
+compiled-model exclusions apply independently of these checks.
+
+An explicit “Review apps to quit” action is available for verified user apps
+whose caches genuinely require owner exit. The backend maps current scan item
+IDs to existing short-lived process leases; protected/system processes remain
+unavailable. The user saves work and confirms a graceful quit request. Cancellation
+stops the next step, and no automatic force quit is offered. A fresh scan and
+new cleanup review are required before deletion. Windows currently asks the user
+to quit the app themselves because its process adapter has no graceful operation.
 
 ## Scope and accounting
 
@@ -121,10 +126,13 @@ No log/temp retention thresholds changed in #359.
 
 - Chromium offline caches use disjoint depth-two directory units. Origin
   indexes are separate advisory observations. Each selected unit goes to Trash;
-  the plan and result now state that mutation channel correctly. Browsers must
-  be stopped, and macOS verifies open files before planning and execution.
-  A running browser is a typed in-use/reviewable observation, never selected.
-  Its conditional candidate bytes are **not** ready-now or freed-space claims.
+  the plan and result state that mutation channel correctly. On macOS, each
+  offline unit is checked for open handles during scan, planning, and immediately
+  before the Trash move. Chrome may remain running when the selected unit is idle.
+  In-use units remain reviewable and unknown use remains blocked. Component
+  update stores retain their browser-wide owner guard. Windows also retains
+  the offline browser guard until an exact-use adapter is implemented.
+  Offline-asset removal still requires review of its network/re-download effect.
 - Container and group-container payloads and ordinary application logs use
   zero-day retention. macOS additionally probes open files within each unit
   with a bounded `lsof` invocation. A warning, timeout or unreadable result
@@ -166,3 +174,18 @@ Owner command references reviewed September 29, 2026:
 [mise cache behavior](https://mise.jdx.dev/cache-behavior.html),
 [Gradle directories](https://docs.gradle.org/current/userguide/directory_layout.html),
 [JetBrains system directories](https://www.jetbrains.com/help/idea/tuning-the-ide.html).
+
+## Actionable cleanup batch
+
+The headline and category metrics show **ready now** bytes. Review-required and
+running-owner candidates appear separately; neither is presented as immediately
+executable or as freed disk space. The selection footer continues to show the
+actual selection. Moving a unit to Trash is reported separately from permanent
+delete and does not claim that free disk space increased.
+
+mise doctor may omit default settings. Its command adapter accepts an empty
+settings object, retains strict root validation, and disables update checks,
+automatic updates and opportunistic cache pruning in its own command environment.
+This prevents the verification command from recreating `latest-version` or
+pruning unrelated cache entries. Tool commands still rebind executable and
+candidate identities at each mutation boundary.

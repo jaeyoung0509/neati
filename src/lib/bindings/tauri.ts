@@ -52,6 +52,7 @@ export const commands = {
 	discovery: ScanDiscovery,
 } | null>("get_last_scan"),
 	createDeletePlan: (scanId: string, selectedItemIds: string[]) => typedError<PlanPreview_Serialize, CleanupFailure>(__TAURI_INVOKE("create_delete_plan", { scanId, selectedItemIds })),
+	previewCleanupQuit: (scanId: string, itemIds: string[]) => typedError<CleanupQuitPreview, string>(__TAURI_INVOKE("preview_cleanup_quit", { scanId, itemIds })),
 	executeClean: (planId: string, confirmed: boolean, onEvent: Channel<CleanEvent_Deserialize>) => typedError<CleanResult_Serialize, CleanupFailure>(__TAURI_INVOKE("execute_clean", { planId, confirmed, onEvent })),
 	quickCleanSafe: (onEvent: Channel<CleanEvent_Deserialize>) => typedError<CleanResult_Serialize, CleanupFailure>(__TAURI_INVOKE("quick_clean_safe", { onEvent })),
 	/**
@@ -1287,6 +1288,20 @@ export type CleanupOverlap_Serialize = {
 export type CleanupOwnership = {
 	owner: string,
 	confidence: OwnershipConfidence,
+};
+
+/**  Adapter projection of short-lived, backend-owned process authority. */
+export type CleanupQuitApp = {
+	name: string,
+	lease_id: string,
+	item_ids: string[],
+};
+
+export type CleanupQuitPreview = {
+	scan_id: string,
+	apps: CleanupQuitApp[],
+	/**  Names of selected caches whose owner cannot be safely quit by neati. */
+	unavailable: string[],
 };
 
 /**

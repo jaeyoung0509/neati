@@ -9,6 +9,28 @@ pub enum OpenFileState {
     Unknown,
 }
 
+/// Injectable observation port; production reads lsof and fixtures state the
+/// handle evidence without depending on the host operating system.
+pub trait OpenFileProbe: Send + Sync + std::fmt::Debug {
+    fn observe(&self, path: &Path) -> OpenFileState;
+}
+
+#[derive(Debug)]
+pub struct NativeOpenFileProbe;
+impl OpenFileProbe for NativeOpenFileProbe {
+    fn observe(&self, path: &Path) -> OpenFileState {
+        observe_open_files(path)
+    }
+}
+
+#[derive(Debug)]
+pub struct FixedOpenFileProbe(pub OpenFileState);
+impl OpenFileProbe for FixedOpenFileProbe {
+    fn observe(&self, _path: &Path) -> OpenFileState {
+        self.0
+    }
+}
+
 pub fn observe_open_files(path: &Path) -> OpenFileState {
     #[cfg(target_os = "macos")]
     {

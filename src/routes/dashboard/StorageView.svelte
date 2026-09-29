@@ -1,13 +1,16 @@
 <script lang="ts">
+  import CleanupQuitDialog from '../../lib/components/CleanupQuitDialog.svelte';
+  import { quitAndRescan } from '../../lib/utils/cleanupQuit';
   import CleanupReviewDialog from '../../lib/components/CleanupReviewDialog.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import ScanFreshnessNotice from '../../lib/components/ScanFreshnessNotice.svelte';
   import { onMount, tick } from 'svelte';
-  import type { CategoryResult, PlanPreview } from '../../lib/models/types';
+  import type { CategoryResult, PlanPreview, CleanupQuitPreview } from '../../lib/models/types';
   import { scanStore } from '../../lib/stores/scan.svelte';
+  import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import {
-    tauriOpenStorageSettings,
+    tauriOpenStorageSettings, tauriPreviewCleanupQuit, tauriTerminateMemoryGroup,
   } from '../../lib/utils/tauri';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
@@ -55,6 +58,8 @@
 
   onMount(() => {
     void platformCapabilitiesStore.load();
+    void platformContextStore.load();
+    return () => { quitCancelled = true; };
   });
 
   let isApplicationsInspectable = $derived(
@@ -82,6 +87,60 @@
   let showResultModal = $state(false);
   let review = $state<{ scanId: string; plan: PlanPreview } | null>(null);
   let isPreparingReview = $state(false);
+  let quitPreview = $state<CleanupQuitPreview | null>(null);
+  let quitBusy = $state(false);
+  let quitProgress = $state('');
+  let quitCancelled = false;
+  let runningItems = $derived(scan?.categories.flatMap(category => category.items)
+    .filter(item => item.owner_running && isActionable(item)) ?? []);
+
+  async function previewQuit() {
+    if (!scan || !scanStore.canClean) return;
+    isPreparingReview = true;
+    try {
+      quitProgress = '';
+      quitPreview = await tauriPreviewCleanupQuit(scan.scan_id, runningItems.map(item => item.id));
+    } catch (error) { scanStore.error = String(error); }
+    finally { isPreparingReview = false; }
+  }
+
+  function cancelQuit() {
+    quitCancelled = true;
+    if (!quitBusy) quitPreview = null;
+  }
+
+  async function confirmQuit() {
+    if (!quitPreview || quitPreview.scan_id !== scan?.scan_id || !scanStore.canClean) {
+      quitProgress = 'The scan changed. Close this dialog and try again.';
+      return;
+    }
+    quitBusy = true;
+    quitCancelled = false;
+    try {
+      const items = await quitAndRescan(quitPreview, {
+        quit: lease => tauriTerminateMemoryGroup(lease, 'graceful'),
+        scan: () => scanStore.runScan(),
+        cancelled: () => quitCancelled,
+        progress: message => { quitProgress = message; },
+      });
+      if (quitCancelled) { quitPreview = null; return; }
+      if (!items.length) { quitProgress = 'No reviewed caches are ready. Check the latest scan.'; return; }
+      const scanId = scanStore.lastScan?.scan_id;
+      // Provider units can still require review after their owner exits and
+      // therefore are not preselected by the fresh scan.
+      for (const item of items) scanStore.setItemSelected(item.id, true);
+      const plan = await scanStore.prepareCleanup(items);
+      if (quitCancelled) { quitPreview = null; return; }
+      if (plan && scanId && scanStore.lastScan?.scan_id === scanId && scanStore.canClean) {
+        quitPreview = null;
+        // Always review newly available targets after a quit; the original
+        // dialog authorized app shutdown, not an unseen deletion plan.
+        review = { scanId, plan };
+      } else { quitProgress = scanStore.error ?? 'The caches changed. Close this dialog and check the latest scan.'; }
+    } catch (error) { quitProgress = String(error); }
+    finally { quitBusy = false; }
+  }
+
   const storagePanelId = $props.id();
   const baseStorageTabs = [
     { id: 'cleanup', label: 'Cleanup' },
@@ -237,6 +296,16 @@
   {:else}
     {#if !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
       <StorageSummary />
+      {#if runningItems.length > 0}
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-meta text-muted-foreground">
+          <span>Some caches still require their app to be idle.</span>
+          {#if platformContextStore.context?.platform === 'macos'}
+            <Button variant="outline" size="sm" disabled={!scanStore.canClean || isPreparingReview || quitBusy} onclick={previewQuit}>Review apps to quit…</Button>
+          {:else}
+            <span>Quit the apps yourself, then scan again.</span>
+          {/if}
+        </div>
+      {/if}
     {/if}
 
     <!-- Scan Progress -->
@@ -428,3 +497,7 @@
     background: hsl(var(--background));
   }
 </style>
+
+{#if quitPreview}
+  <CleanupQuitDialog preview={quitPreview} busy={quitBusy} progress={quitProgress} onCancel={cancelQuit} onConfirm={confirmQuit} />
+{/if}

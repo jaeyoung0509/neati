@@ -5,7 +5,9 @@ Apple and third-party regenerable payloads share the ordinary cleanup flow.
 Settings names the protected state classes; it does not imply a blanket Apple exclusion.
 Storage's “Why some bytes stay” disclosure explains retained observations using
 backend eligibility and measurement facts. Keep ready-now, close-app-first and
-review bytes distinct. Partial results and overlapping observations must retain
+review bytes distinct. The primary headline and category metric show ready-now
+bytes; conditional amounts appear in secondary copy. App shutdown is a separate
+reviewed action followed by a fresh scan and cleanup review. Partial results and overlapping observations must retain
 their visible qualifications; a conditional candidate is not recovered space.
 
 Extended cache scanning is always included on supported platforms. Settings

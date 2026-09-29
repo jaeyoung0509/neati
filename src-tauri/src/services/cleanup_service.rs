@@ -22,7 +22,7 @@ use crate::services::system_service::DockerStatusCache;
 use crate::signatures::SignatureRegistry;
 use neati_platform::PlatformEnvironment;
 
-fn unix_timestamp() -> u64 {
+pub(super) fn unix_timestamp() -> u64 {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
@@ -138,11 +138,11 @@ enum CleanupIntent {
 pub struct CleanupService {
     scan_service: Arc<ScanService>,
     plan_store: Arc<PlanStore<DeletePlan>>,
-    scan_store: Arc<ScanStore>,
+    pub(super) scan_store: Arc<ScanStore>,
     operation_gate: StorageOperationGate,
     budgets: Arc<ExecutionBudgets>,
-    environment: Arc<PlatformEnvironment>,
-    registry: Arc<SignatureRegistry>,
+    pub(super) environment: Arc<PlatformEnvironment>,
+    pub(super) registry: Arc<SignatureRegistry>,
     docker_status_cache: Arc<DockerStatusCache>,
     lifecycle_providers: Arc<LifecycleProviderRegistry>,
     owner_providers: Arc<OwnerProviderRegistry>,
@@ -152,7 +152,8 @@ pub struct CleanupService {
     /// The cancellation handles of the scans this service is running, keyed by
     /// the id each scan reports so `cancel_scan` can reach one in flight.
     scan_cancellations: Arc<CancellationRegistry>,
-    platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    pub(super) platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    pub(super) quit_dependencies: Option<super::cleanup_quit::CleanupQuitDependencies>,
 }
 
 impl CleanupService {
@@ -173,6 +174,7 @@ impl CleanupService {
         platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     ) -> Self {
         Self {
+            quit_dependencies: None,
             scan_service,
             plan_store,
             scan_store,

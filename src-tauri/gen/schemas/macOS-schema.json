@@ -477,6 +477,12 @@
           "markdownDescription": "Enables the preview_ai_recommendation command without any pre-configured scope."
         },
         {
+          "description": "Enables the preview_cleanup_quit command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-preview-cleanup-quit",
+          "markdownDescription": "Enables the preview_cleanup_quit command without any pre-configured scope."
+        },
+        {
           "description": "Enables the prune_docker_target command without any pre-configured scope.",
           "type": "string",
           "const": "allow-prune-docker-target",
@@ -913,6 +919,12 @@
           "type": "string",
           "const": "deny-preview-ai-recommendation",
           "markdownDescription": "Denies the preview_ai_recommendation command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the preview_cleanup_quit command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-preview-cleanup-quit",
+          "markdownDescription": "Denies the preview_cleanup_quit command without any pre-configured scope."
         },
         {
           "description": "Denies the prune_docker_target command without any pre-configured scope.",

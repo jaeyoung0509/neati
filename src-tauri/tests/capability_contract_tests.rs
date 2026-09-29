@@ -113,10 +113,11 @@ const READ_ONLY_PERMISSIONS: [&str; 44] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 29] = [
+const MUTATING_PERMISSIONS: [&str; 30] = [
     "allow-connect-openrouter-oauth",
     "allow-consume-ai-recommendation-preview",
     "allow-create-delete-plan",
+    "allow-preview-cleanup-quit",
     "allow-delete-ai-provider-credential",
     "allow-delete-local-model",
     "allow-disable-manual-awake",

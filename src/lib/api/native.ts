@@ -34,6 +34,7 @@ import type {
   MemoryTerminationMode,
   MemoryTerminationResult,
   PlanPreview,
+  CleanupQuitPreview,
   PlatformCapabilities,
   PlatformContext,
   ProviderDescriptor,
@@ -229,6 +230,10 @@ export const nativeApi = {
 
   async getLastScan(): Promise<PublishedScan | null> {
     return await commands.getLastScan();
+  },
+
+  async previewCleanupQuit(scanId: string, itemIds: string[]): Promise<CleanupQuitPreview> {
+    return await unwrap(commands.previewCleanupQuit(scanId, itemIds));
   },
 
   async createPlan(scanId: string, items: ScanItem[]): Promise<PlanPreview> {

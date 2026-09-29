@@ -221,7 +221,7 @@ describe('metric and action consistency contracts', () => {
     expect(rendered.body).toContain('Developer Package Managers and Language Toolchains');
     expect(rendered.body).toContain('[overflow-wrap:normal]');
     expect(rendered.body).not.toContain('truncate');
-    expect(rendered.body).toContain('303.4 MB');
+    expect(rendered.body).toContain('41.6 MB');
     for (const jargon of ['Partial', 'Safe:', 'Rebuild:', 'Manual:', 'entries skipped', 'items not fully measured', 'Selected:']) {
       expect(rendered.body).not.toContain(jargon);
     }
@@ -355,11 +355,11 @@ describe('metric and action consistency contracts', () => {
       },
     });
 
-    expect(rendered.body).toContain('292.4 MB');
+    expect(rendered.body).toContain('84.9 MB');
     expect(rendered.body).not.toContain('Selected:');
   });
 
-  it('keeps Selected visible when the selection differs from the safe subtotal', () => {
+  it('keeps ready bytes independent of the current selection', () => {
     scanStore.selectedMap = { safe: false, rebuild: true };
     const rendered = render(CategoryCard, {
       props: {
@@ -417,7 +417,7 @@ describe('metric and action consistency contracts', () => {
       },
     });
 
-    expect(rendered.body).toContain('280 MB');
+    expect(rendered.body).toContain('80 MB');
     expect(rendered.body).not.toContain('Selected:');
   });
 });

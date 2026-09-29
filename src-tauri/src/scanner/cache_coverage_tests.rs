@@ -13,7 +13,11 @@ fn write(path: &Path) {
 }
 
 fn idle() -> RunningApplications {
-    RunningApplications::from_process_names(["fixture-unrelated".into()])
+    RunningApplications::from_process_names(["fixture-unrelated".into()]).with_open_file_probe(
+        std::sync::Arc::new(neati_platform::open_files::FixedOpenFileProbe(
+            neati_platform::open_files::OpenFileState::Idle,
+        )),
+    )
 }
 
 fn scan(
@@ -107,7 +111,8 @@ fn apple_payloads_are_immediately_eligible_but_nested_models_are_not_reclaimable
 }
 
 #[test]
-fn inferred_owner_is_rechecked_at_planning_and_execution() {
+fn ordinary_cache_checks_handles_at_scan_planning_and_execution() {
+    use neati_platform::open_files::{FixedOpenFileProbe, OpenFileState};
     let fixture = tempfile::tempdir().unwrap();
     let environment = PlatformEnvironment::simulated(PathFlavor::current())
         .with_platform(PlatformKind::Macos)
@@ -117,7 +122,23 @@ fn inferred_owner_is_rechecked_at_planning_and_execution() {
         .path()
         .join("Library/Caches/com.apple.parsecd/payload");
     write(&payload);
-    let busy = RunningApplications::from_process_names(["parsecd".into()]);
+    let process = |handles| {
+        RunningApplications::from_process_names(["parsecd".into()])
+            .with_open_file_probe(std::sync::Arc::new(FixedOpenFileProbe(handles)))
+    };
+    let idle = process(OpenFileState::Idle);
+    let busy = process(OpenFileState::InUse);
+    let unknown = process(OpenFileState::Unknown);
+    let items = scan(
+        &registry,
+        "system.intensive.user_app_caches",
+        &environment,
+        &idle,
+    );
+    assert!(
+        items[0].is_selected,
+        "a running daemon does not block idle payloads"
+    );
     let busy_items = scan(
         &registry,
         "system.intensive.user_app_caches",
@@ -126,45 +147,37 @@ fn inferred_owner_is_rechecked_at_planning_and_execution() {
     );
     assert!(busy_items[0].owner_running);
     assert!(!busy_items[0].is_selected);
-    let unknown = scan(
-        &registry,
-        "system.intensive.user_app_caches",
-        &environment,
-        &RunningApplications::default(),
-    );
     assert_eq!(
-        unknown[0].quality,
+        scan(
+            &registry,
+            "system.intensive.user_app_caches",
+            &environment,
+            &unknown
+        )[0]
+        .quality,
         crate::models::ObservationQuality::Unavailable
     );
-    let items = scan(
-        &registry,
-        "system.intensive.user_app_caches",
-        &environment,
-        &idle(),
-    );
     let owners = OwnerProviderRegistry::new(Vec::new());
-    let refused = SafetyPlanner::create_plan_with_process_probe(
+    assert!(SafetyPlanner::create_plan_with_process_probe(
         &items,
         &registry,
         &environment,
         &owners,
-        &busy,
-    );
-    assert!(matches!(
-        refused,
-        Err(crate::models::NeatiError::RefusedSelection(_))
-    ));
+        &busy
+    )
+    .is_err());
     let plan = SafetyPlanner::create_plan_with_process_probe(
         &items,
         &registry,
         &environment,
         &owners,
-        &idle(),
+        &idle,
     )
     .unwrap();
+    assert_eq!(plan.targets[0].process_guard.cache_owner(), None);
     assert_eq!(
-        plan.targets[0].process_guard.cache_owner(),
-        Some("com.apple.parsecd")
+        plan.targets[0].process_guard.open_file_path(),
+        payload.parent()
     );
     let result = CleanExecutor::execute_with_process_probe(
         plan,
@@ -176,7 +189,6 @@ fn inferred_owner_is_rechecked_at_planning_and_execution() {
         |_| {},
     );
     assert_eq!(result.items[0].status, crate::models::CleanStatus::Failed);
-    assert_eq!(result.items[0].bytes_reclaimed, 0);
     assert!(payload.exists());
 }
 
@@ -473,12 +485,22 @@ fn container_zero_day_policy_keeps_open_payloads_and_preserves_structured_state(
     let signature = registry.get("system.intensive.containers_caches").unwrap();
     assert_eq!(signature.min_age_days, Some(0));
     let opened = std::fs::File::open(&payload).unwrap();
-    let busy = scan(&registry, &signature.id, &environment, &idle());
+    let busy = scan(
+        &registry,
+        &signature.id,
+        &environment,
+        &RunningApplications::from_process_names(["fixture-unrelated".into()]),
+    );
     assert_eq!(busy.len(), 1);
     assert!(busy[0].owner_running, "{busy:?}");
     assert!(!busy[0].is_selected);
     drop(opened);
-    let ready = scan(&registry, &signature.id, &environment, &idle());
+    let ready = scan(
+        &registry,
+        &signature.id,
+        &environment,
+        &RunningApplications::from_process_names(["fixture-unrelated".into()]),
+    );
     assert!(ready[0].is_selected);
     assert_eq!(ready[0].cleanable_bytes() * 2, ready[0].observed_bytes());
     assert_eq!(

@@ -91,6 +91,32 @@ pub struct NativeAppFsProbe;
 
 impl AppFsProbe for NativeAppFsProbe {}
 
+/// Match a trusted executable's bundle to a cache namespace. This does not
+/// authorize termination; the memory lease boundary still validates the process.
+pub(crate) fn executable_owns_namespace(executable: &Path, namespace: &str) -> bool {
+    #[cfg(not(target_os = "windows"))]
+    {
+        let Some(bundle) = app_bundle_of(executable) else {
+            return false;
+        };
+        let metadata = read_bundle_metadata(bundle).metadata;
+        metadata.bundle_id.is_some_and(|id| {
+            namespace == id
+                || namespace
+                    .strip_prefix(&id)
+                    .is_some_and(|suffix| suffix.starts_with('.'))
+        }) || bundle
+            .file_stem()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.eq_ignore_ascii_case(namespace))
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let _ = (executable, namespace);
+        false
+    }
+}
+
 /// The bundle identifiers of the applications that are running right now.
 ///
 /// A cleanup scan needs to know whether the application that owns a cache
@@ -100,7 +126,7 @@ impl AppFsProbe for NativeAppFsProbe {}
 /// executable lives inside a `.app` bundle is running that bundle, so the
 /// probe costs one process-table pass and one `Info.plist` read per running
 /// bundle, and it needs no per-application rule and no inventory walk.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default)]
 pub struct RunningApplications {
     bundle_ids: Vec<String>,
     bundle_names: Vec<String>,
@@ -110,9 +136,25 @@ pub struct RunningApplications {
     gradle_running: bool,
     gradle_state_known: bool,
     python_commands_known: bool,
+    open_files: Option<std::sync::Arc<dyn neati_platform::open_files::OpenFileProbe>>,
 }
 
 impl RunningApplications {
+    pub fn with_open_file_probe(
+        mut self,
+        probe: std::sync::Arc<dyn neati_platform::open_files::OpenFileProbe>,
+    ) -> Self {
+        self.open_files = Some(probe);
+        self
+    }
+
+    fn open_file_state(&self, path: &Path) -> neati_platform::open_files::OpenFileState {
+        self.open_files.as_ref().map_or_else(
+            || neati_platform::open_files::observe_open_files(path),
+            |probe| probe.observe(path),
+        )
+    }
+
     /// Asks the process table which application bundles are in use.
     ///
     /// Process names guard catalogued caches on every desktop platform;
@@ -223,6 +265,7 @@ impl RunningApplications {
             .collect::<Vec<_>>();
         Self {
             gradle_state_known: !process_names.iter().any(|name| is_java(name)),
+            open_files: None,
             gradle_running: false,
             python_commands_known: !process_names.iter().any(|name| name.starts_with("python")),
             process_state_known: !process_names.is_empty(),
@@ -249,6 +292,7 @@ impl RunningApplications {
             bundle_state_known: true,
             process_names: Vec::new(),
             process_state_known: false,
+            open_files: None,
             gradle_running: false,
             gradle_state_known: false,
             python_commands_known: false,
@@ -326,7 +370,7 @@ impl RunningApplications {
             return None;
         }
         if let Some(path) = policy.open_file_path().filter(|_| names.is_empty()) {
-            match neati_platform::open_files::observe_open_files(path) {
+            match self.open_file_state(path) {
                 neati_platform::open_files::OpenFileState::Idle => {}
                 neati_platform::open_files::OpenFileState::InUse => {
                     names.push("An application using this cache".into())

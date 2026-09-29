@@ -36,6 +36,7 @@
     "allow-cancel-scan",
     "allow-get-last-scan",
     "allow-create-delete-plan",
+    "allow-preview-cleanup-quit",
     "allow-execute-clean",
     "allow-get-memory-metrics",
     "allow-get-cpu-metrics",

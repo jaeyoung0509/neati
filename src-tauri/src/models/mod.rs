@@ -15,6 +15,8 @@
 //! absorb a future core type into this namespace, and the compiler cannot warn
 //! about a name that was never written down.
 
+mod cleanup_quit;
+pub use cleanup_quit::*;
 pub mod agent_activity;
 pub mod ai_control_center;
 pub mod ai_usage;

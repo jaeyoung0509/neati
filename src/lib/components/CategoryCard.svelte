@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CategoryResult } from '../models/types';
   import { formatBytes } from '../utils/format';
-  import { emptyCategoryMessage, isBulkSelectable, presentedItems, summarizeCategory } from '../utils/cleanup';
+  import { cleanupAvailability, emptyCategoryMessage, isBulkSelectable, presentedItems, summarizeCategory } from '../utils/cleanup';
   import { scanStore } from '../stores/scan.svelte';
   import Checkbox from './Checkbox.svelte';
   import {
@@ -36,6 +36,7 @@
 
   let cleanableItems = $derived(categoryResult.items.filter(isBulkSelectable));
   let summary = $derived(summarizeCategory(categoryResult.items, scanStore.selectedMap));
+  let availability = $derived(cleanupAvailability(categoryResult.items));
   let emptyMessage = $derived(emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category));
 
   let allSelected = $derived.by(() => {
@@ -95,6 +96,9 @@
       </h3>
       <p data-region="metadata" class="mt-0.5 text-meta text-muted-foreground">
         {presented.length} {presented.length === 1 ? 'item' : 'items'}
+        {#if availability.running > 0} · {formatBytes(availability.running)} requires idle apps{/if}
+        {#if availability.review > 0} · {formatBytes(availability.review)} needs review{/if}
+        {#if summary.unestimated_count > 0} · {summary.unestimated_count} tool-managed{/if}
         {#if emptyMessage} · {emptyMessage}{/if}
       </p>
     </div>
@@ -104,16 +108,10 @@
       class="shrink-0 text-right category-amount"
     >
       <span class="block whitespace-nowrap text-body font-semibold font-mono tabular-nums text-foreground">
-        {#if summary.cleanable_bytes > 0}
-          {formatBytes(summary.cleanable_bytes)}
-        {:else if summary.cleanable_count > 0}
-          Not estimated
-        {:else}
-          —
-        {/if}
+        {formatBytes(availability.ready)}
       </span>
       <span class="block whitespace-nowrap text-caption text-muted-foreground">
-        {summary.cleanable_bytes > 0 ? 'Can clean' : summary.cleanable_count > 0 ? 'Tool-managed' : ''}
+        Ready now
       </span>
     </div>
 

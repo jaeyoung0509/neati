@@ -1044,3 +1044,38 @@ it('partitions retained bytes once without interpreting localized reasons', () =
   ]);
   expect(groups.reduce((sum, group) => sum + group.bytes, 0) + rows.reduce((sum, row) => sum + cleanableBytes(row), 0)).toBe(200);
 });
+
+// One projection powers both Storage and Settings, independently of translated copy.
+import { cleanupGuidance } from '../lib/utils/cleanup';
+import { cleanItemAmounts, diskFreeChange } from '../lib/utils/cleanResult';
+
+it('routes retained owners from backend facts without treating app presence as payload use', () => {
+  const ready = item({ owner_running: false, ownership: { owner: 'Chrome', confidence: 'declared' } });
+  expect(cleanupGuidance(ready)).toMatchObject({ cause: 'ready', action: 'review', owner: 'Chrome' });
+  const running = item({ owner_running: true, disposition: { eligibility: 'reviewable', cleanable_bytes: 100, reason: '사용 중' } });
+  expect(cleanupGuidance(running)).toMatchObject({ cause: 'running', action: 'quit' });
+  const unavailable = item({ quality: 'partial', disposition: { eligibility: 'blocked', cleanable_bytes: null, reason: 'Inspect again' } });
+  expect(cleanupGuidance(unavailable)).toMatchObject({ cause: 'unavailable', action: 'rescan', cleanableBytes: 0 });
+  const managed = item({ category: 'container', disposition: { eligibility: 'advisory', cleanable_bytes: null, reason: 'Owner only' } });
+  expect(cleanupGuidance(managed)).toMatchObject({ cause: 'managed', action: 'containers' });
+  const protectedRow = item({ disposition: { eligibility: 'blocked', cleanable_bytes: null, reason: 'Protected database' } });
+  expect(cleanupGuidance(protectedRow)).toMatchObject({ cause: 'protected', action: 'unavailable' });
+});
+
+it('keeps the 1.5 MB ready / 1.3 GB busy / 5.9 MB review regression consistent through outcomes', () => {
+  const ready = item({ id: 'ready', size: { logical: 1_500_000, allocated: 1_500_000 } });
+  const busy = item({ id: 'busy', owner_running: true, size: { logical: 1_300_000_000, allocated: 1_300_000_000 }, disposition: { eligibility: 'reviewable', cleanable_bytes: 1_300_000_000, reason: 'Requires idle owner' } });
+  const review = item({ id: 'review', size: { logical: 5_900_000, allocated: 5_900_000 }, disposition: { eligibility: 'reviewable', cleanable_bytes: 5_900_000, reason: 'Review' } });
+  const rows = [ready, busy, review];
+  expect(cleanupAvailability(rows)).toEqual({ ready: 1_500_000, running: 1_300_000_000, review: 5_900_000 });
+  const summary = summarizeCategory(rows, { ready: true, busy: false, review: false });
+  expect(summary.selected_bytes).toBe(1_500_000);
+  expect(summary.selected_bytes).toBeLessThanOrEqual(summary.cleanable_bytes);
+  expect(summary.cleanable_bytes).toBeLessThanOrEqual(summary.observed_bytes);
+  // The same provider may remove part permanently and move another part to Trash.
+  expect(cleanItemAmounts({ bytes_reclaimed: 500_000, moved_to_trash_bytes: 1_000_000 })).toEqual({ removed: 500_000, moved: 1_000_000 });
+  expect(diskFreeChange({ actual_disk_free_delta: -8192 })).toBe(-8192);
+  expect(diskFreeChange({ actual_disk_free_delta: 0 })).toBe(0);
+  expect(diskFreeChange({ actual_disk_free_delta: null })).toBeNull();
+  expect(cleanupAvailability([busy, review])).toEqual({ ready: 0, running: 1_300_000_000, review: 5_900_000 });
+});

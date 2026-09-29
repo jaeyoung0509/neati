@@ -662,3 +662,18 @@ safety buffer, or other invented setting.
   wrap between words instead of shrinking or breaking inside a word.
 - Every new screen is checked at 800 × 560, 960 × 660, and a larger desktop
   size, in light and dark themes, with reduced motion enabled.
+
+## Scan explanations and outcomes
+
+Storage and Settings share the same typed presentation of each item's owner,
+backend eligibility and next action. Keep the item list in a keyboard-accessible
+disclosure; name unavailable operations rather than offering a cleanup button.
+Review links open the relevant category, and owner review reuses the existing
+graceful quit flow. A previous scan stays visibly marked as previous.
+
+Observed storage uses a range when containment or shared physical storage cannot
+be resolved. Explain that row amounts are upper bounds in that case. Unknown
+locations remain visible without contributing an invented zero or cleanup authority.
+Results show permanent removal and Trash movement separately even for a single
+provider outcome. Disk free-space change is a separate signed reading, including
+zero and negative changes; other activity can affect it.

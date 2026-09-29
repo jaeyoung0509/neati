@@ -39,6 +39,12 @@ fn scan_unit_relationship(
         .borrow_mut()
         .relationship(candidate, container)
     {
+        UnitRelationship::Equivalent
+            if candidate.signature_id.starts_with(super::coverage::PREFIX)
+                != container.signature_id.starts_with(super::coverage::PREFIX) =>
+        {
+            Some(UnitRelationship::SharedStorage)
+        }
         UnitRelationship::Equivalent => Some(
             if exact_authorities_can_fold(candidate, container, registry) {
                 UnitRelationship::Equivalent
@@ -667,6 +673,7 @@ impl ScanEngine {
         // and the broader unit can be in another category. The categories are
         // restated before any number derived from them is reported.
         let overlap_started = Instant::now();
+        super::coverage::route_to_owners(&mut category_results);
         let relationships = RefCell::new(ScanRelationships::default());
         let overlap = resolve_unit_overlaps_with(
             &mut category_results,
@@ -679,6 +686,15 @@ impl ScanEngine {
         spans.push(ScanSpan {
             source_id: "scan.overlap_resolution".into(),
             duration_ms: overlap_started
+                .elapsed()
+                .as_millis()
+                .min(u128::from(u64::MAX)) as u64,
+        });
+        let physical_started = Instant::now();
+        let physical = super::shared_storage::audit(&mut category_results, environment);
+        spans.push(ScanSpan {
+            source_id: "scan.physical_overlap_audit".into(),
+            duration_ms: physical_started
                 .elapsed()
                 .as_millis()
                 .min(u128::from(u64::MAX)) as u64,
@@ -697,8 +713,8 @@ impl ScanEngine {
         }
         let suppressed_overlap_count = overlap.suppressed_count;
         let suppressed_overlap_bytes = overlap.suppressed_bytes;
-        let ambiguous_overlap_count = overlap.ambiguous_count;
-        let ambiguous_overlap_bytes = overlap.ambiguous_bytes;
+        let ambiguous_overlap_count = overlap.ambiguous_count + physical.count;
+        let ambiguous_overlap_bytes = overlap.ambiguous_bytes.saturating_add(physical.bytes);
 
         // The per-category events carry the totals the resolution settled: a
         // category that folded an overlapping unit away reports what it now
@@ -720,6 +736,12 @@ impl ScanEngine {
             .as_secs();
 
         let mut incomplete_reasons = provider_incomplete_reasons;
+        if physical.incomplete {
+            incomplete_reasons.push(
+                "Physical storage overlap could not be fully inspected; observed bytes are a range"
+                    .into(),
+            );
+        }
         for cat in &category_results {
             for item in &cat.items {
                 if let Some(reason) = &item.incomplete_reason {
@@ -745,7 +767,11 @@ impl ScanEngine {
         // Item-derived gaps already contribute their own observation quality,
         // including the all-unavailable case. Only scan-level incompleteness
         // that is not represented by a retained item must force Partial.
-        let scan_quality = if was_cancelled || has_selector_truncation || provider_scan_incomplete {
+        let scan_quality = if was_cancelled
+            || has_selector_truncation
+            || provider_scan_incomplete
+            || physical.incomplete
+        {
             ObservationQuality::Partial
         } else {
             aggregate_quality(category_results.iter().map(|cat| cat.quality))
@@ -808,6 +834,11 @@ impl ScanEngine {
             .flat_map(|slice| slice.categories.clone())
             .collect::<Vec<_>>();
         let overlap_started = Instant::now();
+        for category in &mut categories {
+            category.ambiguous_overlap_count = 0;
+            category.ambiguous_overlap_bytes = 0;
+        }
+        super::coverage::route_to_owners(&mut categories);
         let relationships = RefCell::new(ScanRelationships::default());
         let overlap = resolve_unit_overlaps_with(
             &mut categories,
@@ -817,6 +848,7 @@ impl ScanEngine {
                 scan_unit_relationship(candidate, container, registry, &relationships)
             },
         );
+        let physical = super::shared_storage::audit(&mut categories, environment);
         let overlap_duration_ms = overlap_started
             .elapsed()
             .as_millis()
@@ -864,7 +896,13 @@ impl ScanEngine {
             incomplete_reasons.push("Scan was cancelled before completion".to_string());
             add_scan_gap(&mut gaps, ScanGapKind::Cancelled, 1);
         }
-        let quality = if cancelled {
+        if physical.incomplete {
+            incomplete_reasons.push(
+                "Physical storage overlap could not be fully inspected; observed bytes are a range"
+                    .into(),
+            );
+        }
+        let quality = if cancelled || physical.incomplete {
             ObservationQuality::Partial
         } else {
             aggregate_quality(categories.iter().map(|category| category.quality))
@@ -922,8 +960,8 @@ impl ScanEngine {
             suppressed_duplicate_bytes,
             suppressed_overlap_count: overlap.suppressed_count,
             suppressed_overlap_bytes: overlap.suppressed_bytes,
-            ambiguous_overlap_count: overlap.ambiguous_count,
-            ambiguous_overlap_bytes: overlap.ambiguous_bytes,
+            ambiguous_overlap_count: overlap.ambiguous_count + physical.count,
+            ambiguous_overlap_bytes: overlap.ambiguous_bytes.saturating_add(physical.bytes),
             cancelled,
             metrics,
         })

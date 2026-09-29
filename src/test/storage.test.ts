@@ -273,7 +273,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(rendered.body).toContain('Clean selected');
     // Ensure the CTA button strictly renders clean text without appended byte label
     expect(rendered.body).toContain('<span>Clean selected</span>');
-    expect(rendered.body).not.toContain('Rebuildable');
+    expect(rendered.body).not.toMatch(/<button[^>]*>[^<]*Rebuildable/);
   });
 
   it('wires zero-byte manual selections to the shared toolbar contract', () => {

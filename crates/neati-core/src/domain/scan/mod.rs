@@ -1212,7 +1212,7 @@ impl CategoryResult {
     ///
     /// `quality` is not recomputed: it may have been stated by the scan (a
     /// cancelled category is `Partial` whatever its items look like).
-    pub(super) fn recompute_accounting(&mut self) {
+    pub fn recompute_accounting(&mut self) {
         let mut total_bytes = 0u64;
         let mut cleanable_bytes = 0u64;
         let mut safe_bytes = 0u64;

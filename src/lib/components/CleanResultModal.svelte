@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import type { CleanResult } from '../models/types';
   import { formatBytes } from '../utils/format';
-  import { cleanOutcome } from '../utils/cleanResult';
+  import { cleanOutcome, cleanItemAmounts, diskFreeChange } from '../utils/cleanResult';
   import Button from './Button.svelte';
   import { CheckCircle2, AlertTriangle, X, AlertCircle, CircleMinus } from '@lucide/svelte';
   import { restoreFocus } from '../utils/focus';
@@ -20,6 +20,7 @@
   let dialog: HTMLDialogElement;
 
   let outcome = $derived(cleanOutcome(result));
+  let freeChange = $derived(diskFreeChange(result));
   // A skipped target was not removed and did not fail, so it belongs to
   // neither the failure list nor the cleaned list.
   let skippedItems = $derived(result.items.filter((i) => i.status === 'skipped'));
@@ -172,12 +173,10 @@
       </div>
       <div class="mt-0.5 text-meta text-muted-foreground">
         {movedOnly ? `Moved to ${platformContextStore.trashLabel}` : 'Removed from storage'}
-        {#if !movedOnly && outcome !== 'failed' && result.actual_disk_free_delta != null && result.actual_disk_free_delta > 0}
-          <span class="ml-1 text-success tabular-nums">
-            (Disk free space change: +{formatBytes(result.actual_disk_free_delta)})
-          </span>
-        {/if}
       </div>
+      {#if freeChange !== null}
+        <p class="mt-2 text-meta text-muted-foreground">Disk free space change: {freeChange > 0 ? '+' : freeChange < 0 ? '−' : ''}{formatBytes(Math.abs(freeChange))}. Other activity can affect this reading.</p>
+      {/if}
       {#if movedOnly}
         <div class="mt-1 text-meta text-muted-foreground">
           Disk space is reclaimed after {platformContextStore.trashLabel} is emptied.
@@ -253,7 +252,9 @@
             <div class="p-2.5 text-meta">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-medium text-foreground">{item.name}</span>
-                <span class="shrink-0 whitespace-nowrap font-mono tabular-nums text-meta text-warning">+{formatBytes((item.moved_to_trash_bytes ?? 0) || item.bytes_reclaimed)}</span>
+                <span class="shrink-0 text-right font-mono tabular-nums text-meta text-warning">{#if cleanItemAmounts(item).removed > 0}<span class="block">{formatBytes(cleanItemAmounts(item).removed)} removed</span>{/if}
+                  {#if cleanItemAmounts(item).moved > 0}<span class="block">{formatBytes(cleanItemAmounts(item).moved)} moved</span>{/if}
+                  {#if cleanItemAmounts(item).removed === 0 && cleanItemAmounts(item).moved === 0}No measured removal{/if}</span>
               </div>
               <div class="mt-0.5 text-meta text-warning">
                 {item.error_message || 'Some files were locked or in use'}
@@ -273,8 +274,10 @@
             <div class="px-2.5 py-2 text-meta">
               <div class="flex items-center justify-between gap-2">
                 <span class="min-w-0 break-words text-foreground">{item.name}</span>
-                <span class="shrink-0 whitespace-nowrap font-mono tabular-nums text-muted-foreground">
-                  {formatBytes((item.moved_to_trash_bytes ?? 0) || item.bytes_reclaimed)}
+                <span class="shrink-0 text-right font-mono tabular-nums text-muted-foreground">
+                  {#if cleanItemAmounts(item).removed > 0}<span class="block">{formatBytes(cleanItemAmounts(item).removed)} removed</span>{/if}
+                  {#if cleanItemAmounts(item).moved > 0}<span class="block">{formatBytes(cleanItemAmounts(item).moved)} moved</span>{/if}
+                  {#if cleanItemAmounts(item).removed === 0 && cleanItemAmounts(item).moved === 0}No measured removal{/if}
                 </span>
               </div>
               {#if item.error_message}

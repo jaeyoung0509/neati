@@ -881,6 +881,13 @@ impl DirectoryScanner {
         let unit_kind = signature.unit_kind();
         let mut items = Vec::new();
         let mut entry_failure = None;
+        let mut coverage_count = 0usize;
+        // Temp roots are deliberately a prefix-only catalog, even for read-only
+        // accounting. Unrelated user/session files are outside this inventory.
+        let observe_include_misses = !["${TEMP}", "$TMPDIR", "/tmp", "/private/tmp"]
+            .iter()
+            .filter_map(|pattern| SignatureLoader::expand_path(pattern, environment))
+            .any(|temp| temp == root);
 
         for entry in entries {
             if context.cancellation.is_cancelled() {
@@ -905,6 +912,17 @@ impl DirectoryScanner {
                 &name,
                 &signature.include_prefixes,
             ) {
+                if !observe_include_misses {
+                    continue;
+                }
+                coverage_count += 1;
+                if coverage_count > 64 {
+                    entry_failure =
+                        Some("Excluded namespace observation reached its 64-root limit".into());
+                    continue;
+                }
+                items.push(super::coverage::observe(signature, &path,
+                    "Outside this signature's included namespaces; no cleanup operation is authorized", context));
                 continue;
             }
             let child_is_link = SymlinkGuard::is_symlink(&path);
@@ -962,6 +980,18 @@ impl DirectoryScanner {
                 &signature.exclusions,
                 environment,
             ) {
+                coverage_count += 1;
+                if coverage_count > 64 {
+                    entry_failure =
+                        Some("Excluded namespace observation reached its 64-root limit".into());
+                    continue;
+                }
+                items.push(super::coverage::observe(
+                    signature,
+                    &path,
+                    "Excluded from generic cleanup; use its dedicated owner when available",
+                    context,
+                ));
                 continue;
             }
 
@@ -1621,7 +1651,8 @@ mod tests {
         assert!(
             broad_items
                 .iter()
-                .all(|item| !item.path.contains("CloudKit")),
+                .all(|item| !item.path.contains("CloudKit")
+                    || (!item.allows_cleanup() && !item.is_selected)),
             "the service-owned CloudKit tree cannot produce removable child items"
         );
     }
@@ -1653,7 +1684,8 @@ mod tests {
         );
         assert!(generic_items
             .iter()
-            .all(|item| item.path != cache.to_string_lossy()));
+            .all(|item| item.path != cache.to_string_lossy()
+                || (!item.allows_cleanup() && !item.is_selected)));
 
         assert!(registry.get("dev.homebrew.downloads").is_some());
     }
@@ -1684,7 +1716,8 @@ mod tests {
                     ),
                 )),
         );
-        assert!(items.iter().all(|item| !item.path.contains("/dotslash")));
+        assert!(items.iter().all(|item| !item.path.contains("/dotslash")
+            || (!item.allows_cleanup() && !item.is_selected)));
         assert!(inactive.exists());
         assert!(cache.join("active-object").exists());
     }
@@ -1718,7 +1751,9 @@ mod tests {
                 ))
         )
         .iter()
-        .all(|item| !item.path.contains("/Google")));
+        .all(
+            |item| !item.path.contains("/Google") || (!item.allows_cleanup() && !item.is_selected)
+        ));
         for id in ["system.chrome.http_cache", "system.chrome.code_cache"] {
             let signature = registry.get(id).expect("reviewed Chrome cache");
             let items = DirectoryScanner::scan_signature(
@@ -2296,6 +2331,14 @@ mod tests {
                     ),
                 )),
         );
+        let (observations, items): (Vec<_>, Vec<_>) = items.into_iter().partition(|item| {
+            item.signature_id
+                .starts_with(super::super::coverage::PREFIX)
+        });
+        assert!(!observations.is_empty());
+        assert!(observations
+            .iter()
+            .all(|item| !item.allows_cleanup() && !item.is_selected && item.observed_bytes() > 0));
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         assert_eq!(
             names,
@@ -2559,7 +2602,10 @@ mod tests {
             .find(|item| item.name == "third.party.cache")
             .expect("eligible cache remains visible");
         assert_eq!(eligible_item.quality, ObservationQuality::Fresh);
-        assert!(!items.iter().any(|item| item.name == "com.apple.protected"));
+        assert!(items
+            .iter()
+            .filter(|item| item.name == "com.apple.protected")
+            .all(|item| !item.allows_cleanup() && !item.is_selected));
         #[cfg(unix)]
         {
             let symlink = items
@@ -2871,11 +2917,8 @@ mod tests {
         );
     }
 
-    /// An excluded namespace is dropped regardless of the case it happens to
-    /// use on disk (APFS is case-insensitive), so the shipped signature's
-    /// `FamilyCircle` entry also removes the `familycircled` namespace the scan
-    /// actually observed, and the tool-managed `ms-playwright` namespace never
-    /// reaches the candidate list.
+    /// Excluded namespaces remain visible without becoming cleanup candidates,
+    /// including case-insensitive prefix matches.
     #[test]
     fn aged_child_scan_drops_excluded_namespaces_case_insensitively() {
         let root = tempfile::tempdir().unwrap();
@@ -2931,6 +2974,14 @@ mod tests {
                     ),
                 )),
         );
+        let (observations, items): (Vec<_>, Vec<_>) = items.into_iter().partition(|item| {
+            item.signature_id
+                .starts_with(super::super::coverage::PREFIX)
+        });
+        assert!(!observations.is_empty());
+        assert!(observations
+            .iter()
+            .all(|item| !item.allows_cleanup() && !item.is_selected && item.observed_bytes() > 0));
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         assert_eq!(
             names,

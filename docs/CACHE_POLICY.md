@@ -39,8 +39,10 @@ a conventional bundle still makes unmatched inferred owners unknown. Installed a
 | Zed `node/cache` and `node/*/cache` | Download payloads only; installed runtimes/extensions/language servers remain outside scope |
 | Xcode DeviceSupport | Existing 30-day retention plus active Xcode/Simulator guards |
 
-Developer-cache paths in this increment are literal `~/.cache` locations.
-They do not claim to honor custom `XDG_CACHE_HOME` settings or search projects.
+Named JavaScript cache paths honor the injected `XDG_CACHE_HOME`, defaulting
+to `~/.cache`. Gradle roots honor `GRADLE_USER_HOME`, defaulting to `~/.gradle`.
+Invalid relative or ambiguous overrides do not fall back to another location.
+No project search is introduced.
 Running Node/Bun blocks these generic JavaScript cache signatures because the
 process executable alone cannot identify which build tool is using them.
 
@@ -77,12 +79,12 @@ This batch delivers the payload and shared-guard increments. The linked issues
 track these separately testable contracts:
 
 - #357 (remaining contracts from closed #347/#348): proven cache-database
-  adapters, open-handle validation, custom XDG roots and an owner operation for
+  adapters, complete retained-scope accounting and an owner operation for
   abandoned runtime staging. Their payload/catalog increments shipped in #355.
 - #349: updater pending files, shared-container ownership and open-handle checks.
 - #350: DeviceSupport retention by recency, Products/XCTestDevices contracts and
   simulator lifecycle operations.
-- #351: Gradle argv-aware ownership, conda/mise owner commands and IDE stores.
+- #351: additional IDE/store contracts beyond the scoped providers below.
   In particular, [`mise cache clear`](https://mise.jdx.dev/cache-behavior.html)
   also clears environment caches, so a single measured cache directory does
   not describe its complete mutation scope. Conda's operation must exclude
@@ -109,7 +111,58 @@ The installed Mole 1.55.0 `lib/clean/dev.sh` processes Cargo registry archive
 caches in its Rust cleanup and Homebrew downloads in normal cleanup.
 `lib/clean/user.sh::clean_browsers` guards ordinary Chrome profile caches but
 calls `clean_service_worker_cache` separately; `lib/clean/caches.sh` enumerates
-depth-two CacheStorage units and preserves its whitelist. neati currently owns
+depth-two CacheStorage units and preserves its whitelist. Before this batch, neati owned
 a whole-store Trash operation, so copying that process policy alone would not
-copy Mole's deletion unit. Fine-grained browser ownership remains #349/#352.
+copy Mole's deletion unit. This batch uses depth-two cache directories; see the
+contract below.
 No log/temp retention thresholds changed in #359.
+
+## Mole comparison batch: browser units, developer stores and retained bytes
+
+- Chromium offline caches use disjoint depth-two directory units. Origin
+  indexes are separate advisory observations. Each selected unit goes to Trash;
+  the plan and result now state that mutation channel correctly. Browsers must
+  be stopped, and macOS verifies open files before planning and execution.
+  A running browser is a typed in-use/reviewable observation, never selected.
+  Its conditional candidate bytes are **not** ready-now or freed-space claims.
+- Container and group-container payloads and ordinary application logs use
+  zero-day retention. macOS additionally probes open files within each unit
+  with a bounded `lsof` invocation. A warning, timeout or unreadable result
+  cannot establish an idle unit. Generic structured-state protections remain.
+- Gradle local build-cache payloads are separate from advisory dependency
+  stores. Seven-day daemon logs and three-day worker scratch payloads have
+  their own units. Known Gradle Java launcher/worker arguments guard all three;
+  an unrelated Java application does not. Missing Java arguments remain unknown.
+- JetBrains and Android Studio disposable payloads have explicit IDE owners.
+  Local history, configuration, plugins, databases and locks are retained.
+- Conda uses only `clean --yes --index-cache --tarballs --logfiles --json`,
+  preceded by its JSON dry-run. `--all`, `--packages`, `--force-pkgs-dirs` and
+  arbitrary user arguments are not accepted. mise uses `cache clear`; its
+  diagnostic JSON must describe cache, external task-cache and state roots,
+  including environment caches. Scope overlapping installed tools, configuration
+  or known user-content roots is refused. Both are reviewed macOS owner actions
+  tied to a candidate digest and executable identity, with bounded commands,
+  repeated discovery, post-action observation and no filesystem fallback.
+  Their platform adapters are exercised with temporary executable fixtures.
+  Neither tool was installed for the live benchmark; real installed CLI
+  compatibility is not claimed by those fixture tests.
+- Named geod/mediaanalysisd container temporary payloads use three-day inactivity.
+  Completed Brave crash uploads use seven days, diagnostic/crash reports fourteen.
+  Suggestions and Help metadata remain observation-only. These entries explain
+  measured Mole gaps without treating every reference row as a deletion grant.
+- Storage expands a compact retained-byte breakdown from backend eligibility,
+  quality and size facts. Each non-candidate byte is counted once per retained
+  observation. Existing overlap ranges remain visible; reason totals are labeled
+  upper bounds when observations overlap. Partial results explicitly exclude
+  unknown bytes. No frontend message matching decides eligibility.
+
+This increment advances #349, #351, #353 and #357. Their broader contracts stay
+open: updater pending stores, complete ownership of cache database families,
+all generic exclusion/include-list observations, cross-scope hard-link
+accounting, and abandoned installed-runtime staging are separate remaining work.
+
+Owner command references reviewed September 29, 2026:
+[Conda clean](https://docs.conda.io/projects/conda/en/stable/commands/clean.html),
+[mise cache behavior](https://mise.jdx.dev/cache-behavior.html),
+[Gradle directories](https://docs.gradle.org/current/userguide/directory_layout.html),
+[JetBrains system directories](https://www.jetbrains.com/help/idea/tuning-the-ide.html).

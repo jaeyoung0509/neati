@@ -1,0 +1,1164 @@
+{
+  "date": "2026-09-29",
+  "host": "macOS 27.0 (26A428), Apple silicon",
+  "execution_context": "Both tools launched as children of the same Python runner from the Codex shell execution host after the user changed macOS access permissions. Previously refused Safari cache, Safari Library and Mail directory enumeration probes passed before measurement. The responsible TCC application identity was not independently resolved.",
+  "access_probes": [
+    {
+      "scope": "safari_cache",
+      "readable": true
+    },
+    {
+      "scope": "safari_library",
+      "readable": true
+    },
+    {
+      "scope": "mail_library",
+      "readable": true
+    }
+  ],
+  "neati_version": "0.3.79",
+  "mole_version": "1.55.0",
+  "profile": "neati Cargo dev scan_machine example; production ScanEngine and native providers",
+  "retention_policy": "Mole comparison batch: zero-day container cache payloads and ordinary logs; named scratch/crash retention and owner checks remain explicit",
+  "timings": [
+    {
+      "tool": "mole",
+      "run": 1,
+      "started": "2026-09-29T02:33:07.917709+00:00",
+      "elapsed_seconds": 43.31,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 1,
+      "started": "2026-09-29T02:33:51.229527+00:00",
+      "elapsed_seconds": 30.81,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 2,
+      "started": "2026-09-29T02:34:22.040795+00:00",
+      "elapsed_seconds": 27.749,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "mole",
+      "run": 2,
+      "started": "2026-09-29T02:34:49.790414+00:00",
+      "elapsed_seconds": 41.805,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "mole",
+      "run": 3,
+      "started": "2026-09-29T02:35:31.597217+00:00",
+      "elapsed_seconds": 39.798,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 3,
+      "started": "2026-09-29T02:36:11.397214+00:00",
+      "elapsed_seconds": 34.189,
+      "exit_code": 0,
+      "timed_out": false
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "mole_reported_potential": "2.07GB",
+      "mole_preview_items": 523,
+      "mole_rounded_sum_bytes": 2065329000,
+      "mole_path_overlap": {
+        "nested_item_count": 10,
+        "nested_rounded_preview_bytes": 274481000,
+        "top_level_rounded_preview_bytes": 1790848000
+      },
+      "neati_observed_bytes": 8116386496,
+      "neati_cleanable_bytes": 1787067072,
+      "neati_selected_bytes": 382545920,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "neati_dispositions": {
+        "advisory": {
+          "items": 73,
+          "observed_bytes": 1043894272,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "blocked": {
+          "items": 34,
+          "observed_bytes": 4567683072,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "reviewable": {
+          "items": 154,
+          "observed_bytes": 1583811264,
+          "cleanable_bytes": 1404521152,
+          "selected_bytes": 0
+        },
+        "auto_cleanable": {
+          "items": 55,
+          "observed_bytes": 397574144,
+          "cleanable_bytes": 382545920,
+          "selected_bytes": 382545920
+        },
+        "recent": {
+          "items": 83,
+          "observed_bytes": 523423744,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        }
+      },
+      "neati_chromium_offline_observed_bytes": 613736448,
+      "neati_unknown_owner_items": 0,
+      "path_relationships": {
+        "reference_only": 59,
+        "neati_descendants": 6,
+        "exact": 104,
+        "neati_ancestor": 354
+      },
+      "reference_only_rounded_bytes": 1312000,
+      "signature_totals": {
+        "adapter.orbstack.storage": {
+          "items": 1,
+          "observed_bytes": 1107533824,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.codex.cache": {
+          "items": 1,
+          "observed_bytes": 28889088,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.gemini.cache": {
+          "items": 1,
+          "observed_bytes": 110592,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.gemini.logs": {
+          "items": 1,
+          "observed_bytes": 3829760,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.cargo.registry.cache": {
+          "items": 1,
+          "observed_bytes": 105439232,
+          "cleanable_bytes": 105439232,
+          "selected_bytes": 105439232
+        },
+        "dev.codex.runtimes": {
+          "items": 1,
+          "observed_bytes": 3404017664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.gradle.build_cache": {
+          "items": 1,
+          "observed_bytes": 147456,
+          "cleanable_bytes": 143360,
+          "selected_bytes": 143360
+        },
+        "dev.gradle.caches": {
+          "items": 5,
+          "observed_bytes": 230047744,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.gradle.daemon_logs": {
+          "items": 3,
+          "observed_bytes": 6197248,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.homebrew.cleanup": {
+          "items": 1,
+          "observed_bytes": 6200000,
+          "cleanable_bytes": 6200000,
+          "selected_bytes": 0
+        },
+        "dev.homebrew.downloads": {
+          "items": 1,
+          "observed_bytes": 129212416,
+          "cleanable_bytes": 129212416,
+          "selected_bytes": 129212416
+        },
+        "dev.homebrew.metadata": {
+          "items": 2,
+          "observed_bytes": 51654656,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.npm.cache": {
+          "items": 1,
+          "observed_bytes": 634880,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.pnpm.store": {
+          "items": 1,
+          "observed_bytes": 160395264,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.macos_system_caches": {
+          "items": 3,
+          "observed_bytes": 0,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.protected_apple_caches": {
+          "items": 2,
+          "observed_bytes": 26398720,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.trash": {
+          "items": 1,
+          "observed_bytes": 633884672,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.brave.completed_crash_reports": {
+          "items": 4,
+          "observed_bytes": 3268608,
+          "cleanable_bytes": 3268608,
+          "selected_bytes": 0
+        },
+        "system.brave.gpu_cache": {
+          "items": 7,
+          "observed_bytes": 32460800,
+          "cleanable_bytes": 32460800,
+          "selected_bytes": 32460800
+        },
+        "system.chrome.code_cache": {
+          "items": 2,
+          "observed_bytes": 32014336,
+          "cleanable_bytes": 32014336,
+          "selected_bytes": 0
+        },
+        "system.chrome.gpu_cache": {
+          "items": 20,
+          "observed_bytes": 36159488,
+          "cleanable_bytes": 36159488,
+          "selected_bytes": 0
+        },
+        "system.chrome.http_cache": {
+          "items": 1,
+          "observed_bytes": 113217536,
+          "cleanable_bytes": 113217536,
+          "selected_bytes": 0
+        },
+        "system.chromium.component_downloads": {
+          "items": 1,
+          "observed_bytes": 271151104,
+          "cleanable_bytes": 271151104,
+          "selected_bytes": 0
+        },
+        "system.chromium.offline_cache_storage": {
+          "items": 95,
+          "observed_bytes": 613736448,
+          "cleanable_bytes": 613552128,
+          "selected_bytes": 0
+        },
+        "system.cloudkit.cache": {
+          "items": 1,
+          "observed_bytes": 5668864,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.container.worker_temp": {
+          "items": 24,
+          "observed_bytes": 14786560,
+          "cleanable_bytes": 13840384,
+          "selected_bytes": 0
+        },
+        "system.crash_reports": {
+          "items": 23,
+          "observed_bytes": 241664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.darwin_user_cache": {
+          "items": 4,
+          "observed_bytes": 8749056,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.developer_temp": {
+          "items": 14,
+          "observed_bytes": 73494528,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.help.metadata": {
+          "items": 3,
+          "observed_bytes": 65536,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.helpd.generated_cache": {
+          "items": 1,
+          "observed_bytes": 16723968,
+          "cleanable_bytes": 16723968,
+          "selected_bytes": 16723968
+        },
+        "system.helpd.page_cache": {
+          "items": 1,
+          "observed_bytes": 13434880,
+          "cleanable_bytes": 13434880,
+          "selected_bytes": 13434880
+        },
+        "system.intensive.application_logs": {
+          "items": 11,
+          "observed_bytes": 7061504,
+          "cleanable_bytes": 7061504,
+          "selected_bytes": 1449984
+        },
+        "system.intensive.containers_caches": {
+          "items": 48,
+          "observed_bytes": 799080448,
+          "cleanable_bytes": 335945728,
+          "selected_bytes": 49770496
+        },
+        "system.intensive.darwin_user_cache_other": {
+          "items": 33,
+          "observed_bytes": 83623936,
+          "cleanable_bytes": 32768,
+          "selected_bytes": 32768
+        },
+        "system.intensive.group_containers_caches": {
+          "items": 15,
+          "observed_bytes": 11067392,
+          "cleanable_bytes": 8007680,
+          "selected_bytes": 7999488
+        },
+        "system.intensive.user_app_caches": {
+          "items": 63,
+          "observed_bytes": 69926912,
+          "cleanable_bytes": 49201152,
+          "selected_bytes": 25878528
+        },
+        "system.suggestions.observation": {
+          "items": 1,
+          "observed_bytes": 15859712,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        }
+      },
+      "slowest_spans": [
+        {
+          "duration_ms": 6221,
+          "source_id": "dev.homebrew.cleanup"
+        },
+        {
+          "duration_ms": 5167,
+          "source_id": "system.advisory.trash"
+        },
+        {
+          "duration_ms": 4736,
+          "source_id": "dev.codex.runtimes"
+        },
+        {
+          "duration_ms": 3076,
+          "source_id": "cache_providers"
+        },
+        {
+          "duration_ms": 2962,
+          "source_id": "system.intensive.containers_caches"
+        },
+        {
+          "duration_ms": 1238,
+          "source_id": "system.intensive.group_containers_caches"
+        },
+        {
+          "duration_ms": 1112,
+          "source_id": "system.intensive.application_logs"
+        },
+        {
+          "duration_ms": 817,
+          "source_id": "scan.overlap_resolution"
+        },
+        {
+          "duration_ms": 789,
+          "source_id": "system.chrome.http_cache"
+        },
+        {
+          "duration_ms": 473,
+          "source_id": "dev.gradle.caches"
+        },
+        {
+          "duration_ms": 445,
+          "source_id": "system.developer_temp"
+        },
+        {
+          "duration_ms": 386,
+          "source_id": "system.intensive.user_app_caches"
+        }
+      ],
+      "offline_eligibility_counts": {
+        "reviewable": 50,
+        "advisory": 45
+      }
+    },
+    {
+      "run": 2,
+      "mole_reported_potential": "2.07GB",
+      "mole_preview_items": 523,
+      "mole_rounded_sum_bytes": 2065330000,
+      "mole_path_overlap": {
+        "nested_item_count": 10,
+        "nested_rounded_preview_bytes": 274481000,
+        "top_level_rounded_preview_bytes": 1790849000
+      },
+      "neati_observed_bytes": 8116456128,
+      "neati_cleanable_bytes": 1787132608,
+      "neati_selected_bytes": 382545920,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "neati_dispositions": {
+        "advisory": {
+          "items": 73,
+          "observed_bytes": 1043898368,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "blocked": {
+          "items": 34,
+          "observed_bytes": 4567683072,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "reviewable": {
+          "items": 154,
+          "observed_bytes": 1583876800,
+          "cleanable_bytes": 1404586688,
+          "selected_bytes": 0
+        },
+        "auto_cleanable": {
+          "items": 55,
+          "observed_bytes": 397574144,
+          "cleanable_bytes": 382545920,
+          "selected_bytes": 382545920
+        },
+        "recent": {
+          "items": 83,
+          "observed_bytes": 523423744,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        }
+      },
+      "neati_chromium_offline_observed_bytes": 613736448,
+      "neati_unknown_owner_items": 0,
+      "path_relationships": {
+        "reference_only": 59,
+        "neati_descendants": 6,
+        "exact": 104,
+        "neati_ancestor": 354
+      },
+      "reference_only_rounded_bytes": 1312000,
+      "signature_totals": {
+        "adapter.orbstack.storage": {
+          "items": 1,
+          "observed_bytes": 1107533824,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.codex.cache": {
+          "items": 1,
+          "observed_bytes": 28889088,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.gemini.cache": {
+          "items": 1,
+          "observed_bytes": 110592,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.gemini.logs": {
+          "items": 1,
+          "observed_bytes": 3829760,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.cargo.registry.cache": {
+          "items": 1,
+          "observed_bytes": 105439232,
+          "cleanable_bytes": 105439232,
+          "selected_bytes": 105439232
+        },
+        "dev.codex.runtimes": {
+          "items": 1,
+          "observed_bytes": 3404017664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.gradle.build_cache": {
+          "items": 1,
+          "observed_bytes": 147456,
+          "cleanable_bytes": 143360,
+          "selected_bytes": 143360
+        },
+        "dev.gradle.caches": {
+          "items": 5,
+          "observed_bytes": 230047744,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.gradle.daemon_logs": {
+          "items": 3,
+          "observed_bytes": 6197248,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.homebrew.cleanup": {
+          "items": 1,
+          "observed_bytes": 6200000,
+          "cleanable_bytes": 6200000,
+          "selected_bytes": 0
+        },
+        "dev.homebrew.downloads": {
+          "items": 1,
+          "observed_bytes": 129212416,
+          "cleanable_bytes": 129212416,
+          "selected_bytes": 129212416
+        },
+        "dev.homebrew.metadata": {
+          "items": 2,
+          "observed_bytes": 51654656,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.npm.cache": {
+          "items": 1,
+          "observed_bytes": 634880,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.pnpm.store": {
+          "items": 1,
+          "observed_bytes": 160395264,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.macos_system_caches": {
+          "items": 3,
+          "observed_bytes": 0,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.protected_apple_caches": {
+          "items": 2,
+          "observed_bytes": 26398720,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.trash": {
+          "items": 1,
+          "observed_bytes": 633884672,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.brave.completed_crash_reports": {
+          "items": 4,
+          "observed_bytes": 3268608,
+          "cleanable_bytes": 3268608,
+          "selected_bytes": 0
+        },
+        "system.brave.gpu_cache": {
+          "items": 7,
+          "observed_bytes": 32460800,
+          "cleanable_bytes": 32460800,
+          "selected_bytes": 32460800
+        },
+        "system.chrome.code_cache": {
+          "items": 2,
+          "observed_bytes": 32014336,
+          "cleanable_bytes": 32014336,
+          "selected_bytes": 0
+        },
+        "system.chrome.gpu_cache": {
+          "items": 20,
+          "observed_bytes": 36159488,
+          "cleanable_bytes": 36159488,
+          "selected_bytes": 0
+        },
+        "system.chrome.http_cache": {
+          "items": 1,
+          "observed_bytes": 113217536,
+          "cleanable_bytes": 113217536,
+          "selected_bytes": 0
+        },
+        "system.chromium.component_downloads": {
+          "items": 1,
+          "observed_bytes": 271151104,
+          "cleanable_bytes": 271151104,
+          "selected_bytes": 0
+        },
+        "system.chromium.offline_cache_storage": {
+          "items": 95,
+          "observed_bytes": 613736448,
+          "cleanable_bytes": 613552128,
+          "selected_bytes": 0
+        },
+        "system.cloudkit.cache": {
+          "items": 1,
+          "observed_bytes": 5668864,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.container.worker_temp": {
+          "items": 24,
+          "observed_bytes": 14786560,
+          "cleanable_bytes": 13840384,
+          "selected_bytes": 0
+        },
+        "system.crash_reports": {
+          "items": 23,
+          "observed_bytes": 241664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.darwin_user_cache": {
+          "items": 4,
+          "observed_bytes": 8749056,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.developer_temp": {
+          "items": 14,
+          "observed_bytes": 73498624,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.help.metadata": {
+          "items": 3,
+          "observed_bytes": 65536,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.helpd.generated_cache": {
+          "items": 1,
+          "observed_bytes": 16723968,
+          "cleanable_bytes": 16723968,
+          "selected_bytes": 16723968
+        },
+        "system.helpd.page_cache": {
+          "items": 1,
+          "observed_bytes": 13434880,
+          "cleanable_bytes": 13434880,
+          "selected_bytes": 13434880
+        },
+        "system.intensive.application_logs": {
+          "items": 11,
+          "observed_bytes": 7127040,
+          "cleanable_bytes": 7127040,
+          "selected_bytes": 1449984
+        },
+        "system.intensive.containers_caches": {
+          "items": 48,
+          "observed_bytes": 799080448,
+          "cleanable_bytes": 335945728,
+          "selected_bytes": 49770496
+        },
+        "system.intensive.darwin_user_cache_other": {
+          "items": 33,
+          "observed_bytes": 83623936,
+          "cleanable_bytes": 32768,
+          "selected_bytes": 32768
+        },
+        "system.intensive.group_containers_caches": {
+          "items": 15,
+          "observed_bytes": 11067392,
+          "cleanable_bytes": 8007680,
+          "selected_bytes": 7999488
+        },
+        "system.intensive.user_app_caches": {
+          "items": 63,
+          "observed_bytes": 69926912,
+          "cleanable_bytes": 49201152,
+          "selected_bytes": 25878528
+        },
+        "system.suggestions.observation": {
+          "items": 1,
+          "observed_bytes": 15859712,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        }
+      },
+      "slowest_spans": [
+        {
+          "duration_ms": 5253,
+          "source_id": "system.advisory.trash"
+        },
+        {
+          "duration_ms": 4827,
+          "source_id": "dev.codex.runtimes"
+        },
+        {
+          "duration_ms": 4339,
+          "source_id": "dev.homebrew.cleanup"
+        },
+        {
+          "duration_ms": 3261,
+          "source_id": "cache_providers"
+        },
+        {
+          "duration_ms": 2673,
+          "source_id": "system.intensive.containers_caches"
+        },
+        {
+          "duration_ms": 1253,
+          "source_id": "system.intensive.group_containers_caches"
+        },
+        {
+          "duration_ms": 891,
+          "source_id": "system.intensive.application_logs"
+        },
+        {
+          "duration_ms": 816,
+          "source_id": "scan.overlap_resolution"
+        },
+        {
+          "duration_ms": 698,
+          "source_id": "system.chrome.http_cache"
+        },
+        {
+          "duration_ms": 429,
+          "source_id": "dev.gradle.caches"
+        },
+        {
+          "duration_ms": 391,
+          "source_id": "system.developer_temp"
+        },
+        {
+          "duration_ms": 354,
+          "source_id": "system.intensive.user_app_caches"
+        }
+      ],
+      "offline_eligibility_counts": {
+        "reviewable": 50,
+        "advisory": 45
+      }
+    },
+    {
+      "run": 3,
+      "mole_reported_potential": "2.07GB",
+      "mole_preview_items": 523,
+      "mole_rounded_sum_bytes": 2065330000,
+      "mole_path_overlap": {
+        "nested_item_count": 10,
+        "nested_rounded_preview_bytes": 274481000,
+        "top_level_rounded_preview_bytes": 1790849000
+      },
+      "neati_observed_bytes": 8116476608,
+      "neati_cleanable_bytes": 1787153088,
+      "neati_selected_bytes": 382566400,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "neati_dispositions": {
+        "advisory": {
+          "items": 73,
+          "observed_bytes": 1043898368,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "blocked": {
+          "items": 34,
+          "observed_bytes": 4567683072,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "reviewable": {
+          "items": 154,
+          "observed_bytes": 1583876800,
+          "cleanable_bytes": 1404586688,
+          "selected_bytes": 0
+        },
+        "auto_cleanable": {
+          "items": 55,
+          "observed_bytes": 397594624,
+          "cleanable_bytes": 382566400,
+          "selected_bytes": 382566400
+        },
+        "recent": {
+          "items": 83,
+          "observed_bytes": 523423744,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        }
+      },
+      "neati_chromium_offline_observed_bytes": 613736448,
+      "neati_unknown_owner_items": 0,
+      "path_relationships": {
+        "reference_only": 59,
+        "neati_descendants": 6,
+        "exact": 104,
+        "neati_ancestor": 354
+      },
+      "reference_only_rounded_bytes": 1312000,
+      "signature_totals": {
+        "adapter.orbstack.storage": {
+          "items": 1,
+          "observed_bytes": 1107533824,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.codex.cache": {
+          "items": 1,
+          "observed_bytes": 28889088,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.gemini.cache": {
+          "items": 1,
+          "observed_bytes": 110592,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "ai.gemini.logs": {
+          "items": 1,
+          "observed_bytes": 3829760,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.cargo.registry.cache": {
+          "items": 1,
+          "observed_bytes": 105439232,
+          "cleanable_bytes": 105439232,
+          "selected_bytes": 105439232
+        },
+        "dev.codex.runtimes": {
+          "items": 1,
+          "observed_bytes": 3404017664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.gradle.build_cache": {
+          "items": 1,
+          "observed_bytes": 147456,
+          "cleanable_bytes": 143360,
+          "selected_bytes": 143360
+        },
+        "dev.gradle.caches": {
+          "items": 5,
+          "observed_bytes": 230047744,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.gradle.daemon_logs": {
+          "items": 3,
+          "observed_bytes": 6197248,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.homebrew.cleanup": {
+          "items": 1,
+          "observed_bytes": 6200000,
+          "cleanable_bytes": 6200000,
+          "selected_bytes": 0
+        },
+        "dev.homebrew.downloads": {
+          "items": 1,
+          "observed_bytes": 129212416,
+          "cleanable_bytes": 129212416,
+          "selected_bytes": 129212416
+        },
+        "dev.homebrew.metadata": {
+          "items": 2,
+          "observed_bytes": 51654656,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.npm.cache": {
+          "items": 1,
+          "observed_bytes": 634880,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "dev.pnpm.store": {
+          "items": 1,
+          "observed_bytes": 160395264,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.macos_system_caches": {
+          "items": 3,
+          "observed_bytes": 0,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.protected_apple_caches": {
+          "items": 2,
+          "observed_bytes": 26398720,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.advisory.trash": {
+          "items": 1,
+          "observed_bytes": 633884672,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.brave.completed_crash_reports": {
+          "items": 4,
+          "observed_bytes": 3268608,
+          "cleanable_bytes": 3268608,
+          "selected_bytes": 0
+        },
+        "system.brave.gpu_cache": {
+          "items": 7,
+          "observed_bytes": 32460800,
+          "cleanable_bytes": 32460800,
+          "selected_bytes": 32460800
+        },
+        "system.chrome.code_cache": {
+          "items": 2,
+          "observed_bytes": 32014336,
+          "cleanable_bytes": 32014336,
+          "selected_bytes": 0
+        },
+        "system.chrome.gpu_cache": {
+          "items": 20,
+          "observed_bytes": 36159488,
+          "cleanable_bytes": 36159488,
+          "selected_bytes": 0
+        },
+        "system.chrome.http_cache": {
+          "items": 1,
+          "observed_bytes": 113217536,
+          "cleanable_bytes": 113217536,
+          "selected_bytes": 0
+        },
+        "system.chromium.component_downloads": {
+          "items": 1,
+          "observed_bytes": 271151104,
+          "cleanable_bytes": 271151104,
+          "selected_bytes": 0
+        },
+        "system.chromium.offline_cache_storage": {
+          "items": 95,
+          "observed_bytes": 613736448,
+          "cleanable_bytes": 613552128,
+          "selected_bytes": 0
+        },
+        "system.cloudkit.cache": {
+          "items": 1,
+          "observed_bytes": 5668864,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.container.worker_temp": {
+          "items": 24,
+          "observed_bytes": 14786560,
+          "cleanable_bytes": 13840384,
+          "selected_bytes": 0
+        },
+        "system.crash_reports": {
+          "items": 23,
+          "observed_bytes": 241664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.darwin_user_cache": {
+          "items": 4,
+          "observed_bytes": 8749056,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.developer_temp": {
+          "items": 14,
+          "observed_bytes": 73498624,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.help.metadata": {
+          "items": 3,
+          "observed_bytes": 65536,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "system.helpd.generated_cache": {
+          "items": 1,
+          "observed_bytes": 16723968,
+          "cleanable_bytes": 16723968,
+          "selected_bytes": 16723968
+        },
+        "system.helpd.page_cache": {
+          "items": 1,
+          "observed_bytes": 13434880,
+          "cleanable_bytes": 13434880,
+          "selected_bytes": 13434880
+        },
+        "system.intensive.application_logs": {
+          "items": 11,
+          "observed_bytes": 7147520,
+          "cleanable_bytes": 7147520,
+          "selected_bytes": 1470464
+        },
+        "system.intensive.containers_caches": {
+          "items": 48,
+          "observed_bytes": 799080448,
+          "cleanable_bytes": 335945728,
+          "selected_bytes": 49770496
+        },
+        "system.intensive.darwin_user_cache_other": {
+          "items": 33,
+          "observed_bytes": 83623936,
+          "cleanable_bytes": 32768,
+          "selected_bytes": 32768
+        },
+        "system.intensive.group_containers_caches": {
+          "items": 15,
+          "observed_bytes": 11067392,
+          "cleanable_bytes": 8007680,
+          "selected_bytes": 7999488
+        },
+        "system.intensive.user_app_caches": {
+          "items": 63,
+          "observed_bytes": 69926912,
+          "cleanable_bytes": 49201152,
+          "selected_bytes": 25878528
+        },
+        "system.suggestions.observation": {
+          "items": 1,
+          "observed_bytes": 15859712,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        }
+      },
+      "slowest_spans": [
+        {
+          "duration_ms": 6667,
+          "source_id": "dev.homebrew.cleanup"
+        },
+        {
+          "duration_ms": 6148,
+          "source_id": "dev.codex.runtimes"
+        },
+        {
+          "duration_ms": 6084,
+          "source_id": "system.advisory.trash"
+        },
+        {
+          "duration_ms": 3351,
+          "source_id": "cache_providers"
+        },
+        {
+          "duration_ms": 3261,
+          "source_id": "system.intensive.containers_caches"
+        },
+        {
+          "duration_ms": 1362,
+          "source_id": "system.intensive.group_containers_caches"
+        },
+        {
+          "duration_ms": 1203,
+          "source_id": "system.intensive.application_logs"
+        },
+        {
+          "duration_ms": 873,
+          "source_id": "system.chrome.http_cache"
+        },
+        {
+          "duration_ms": 858,
+          "source_id": "scan.overlap_resolution"
+        },
+        {
+          "duration_ms": 511,
+          "source_id": "dev.gradle.caches"
+        },
+        {
+          "duration_ms": 490,
+          "source_id": "system.developer_temp"
+        },
+        {
+          "duration_ms": 405,
+          "source_id": "system.intensive.user_app_caches"
+        }
+      ],
+      "offline_eligibility_counts": {
+        "reviewable": 50,
+        "advisory": 45
+      }
+    }
+  ],
+  "median_seconds": {
+    "neati": 30.81,
+    "mole": 41.805
+  },
+  "no_cleanup_executed": true,
+  "mole_system_preview": "Skipped; stdout requested sudo -v for full system preview. Full Disk Access was used without administrator elevation.",
+  "limitations": [
+    "Live filesystem and active applications; unflushed caches.",
+    "Full Disk Access is not root access and does not imply identical tool scopes.",
+    "Rounded path overlap normalization is not a verified reclaim estimate.",
+    "No deletion throughput, actual freed space or release-build performance was measured.",
+    "Conda and mise were absent; owner-command integration is fixture-tested, not validated against installed CLIs."
+  ],
+  "bundle_verification": {
+    "version": "0.3.79",
+    "executable": "Neati",
+    "icon_present": true,
+    "icon_matches_source": true,
+    "frontend_entry_assets": [
+      "assets/index-Diq3Mdwj.js",
+      "assets/core-DNaw6KYU.js",
+      "assets/rolldown-runtime-DK3Fl9T5.js",
+      "assets/dpi-Cq0vR3n3.js",
+      "assets/event-BlJUiB_z.js",
+      "assets/window-CGM1TOkC.js",
+      "assets/index-CR0cx2UG.css"
+    ],
+    "embedded_asset_names": {
+      "assets/index-Diq3Mdwj.js": true,
+      "assets/core-DNaw6KYU.js": true,
+      "assets/rolldown-runtime-DK3Fl9T5.js": true,
+      "assets/dpi-Cq0vR3n3.js": true,
+      "assets/event-BlJUiB_z.js": true,
+      "assets/window-CGM1TOkC.js": true,
+      "assets/index-CR0cx2UG.css": true
+    },
+    "installed_app_replaced": false
+  },
+  "mole_preview_restored_and_verified": true
+}

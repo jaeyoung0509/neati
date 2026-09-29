@@ -45,7 +45,7 @@ fail_if_running = [
 owner = "Chromium browsers"
 provider = "Chromium CacheStorage"
 consequence = "Offline website assets move to Trash and may need a network connection to download again. Cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
-description = "Only the exact Service Worker/CacheStorage subtree in a recognized browser profile is reviewed. This distinct, confirmed action preserves every neighboring profile database and Service Worker registration store."
+description = "Each depth-two CacheStorage directory is a separate reviewed Trash unit. Origin indexes, neighboring profile databases and Service Worker registrations remain intact; a running browser must be closed first."
 
 [[signatures]]
 id = "system.developer_temp"
@@ -102,7 +102,8 @@ exclude_prefixes = [
     "Google",
     "Homebrew",
     "dotslash",
-    "ms-playwright"
+    "ms-playwright",
+    "JetBrains"
 ]
 exclusions = [
     "~/Library/Caches/com.apple.helpd",
@@ -291,21 +292,21 @@ description = "Only a verified profile HTTP cache is reviewed. Cookies, history,
 
 [[signatures]]
 id = "system.intensive.application_logs"
-name = "Stale Application Logs"
+name = "Application Logs"
 category = "system"
 family = "applications"
 risk = "safe"
 strategy = "delete_stale_contents"
 platforms = ["macos"]
 paths = ["~/Library/Logs"]
-min_age_days = 14
+min_age_days = 0
 exclude_prefixes = [
     "DiagnosticReports",
     "CrashReporter"
 ]
 intensive_only = true
 discovery = "always"
-description = "Application log entries that have been inactive for at least 14 days: an application that is running keeps the file it is writing. Diagnostic and crash reports remain protected."
+description = "Idle application log payloads, verified against owner processes and open files. Diagnostic and crash reports have their own retention policy."
 
 # ---------------------------------------------------------------------------
 # macOS: roots that belong to the system rather than to the profile, plus the
@@ -422,9 +423,9 @@ risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos"]
 paths = ["~/Library/Containers/*/Data/Library/Caches"]
-min_age_days = 14
-intensive_only = true
-description = "Entries of cache directories inside sandboxed application containers that have been inactive for at least 14 days. The container's own state, preferences, and documents are outside this scope either way: only the `Caches` directory is read, and only the entries inside it that are old enough are removed. Reading this tree needs Full Disk Access; without it the affected containers are reported as inaccessible rather than as empty."
+min_age_days = 0
+intensive_only = false
+description = "Regenerable container cache payloads are eligible immediately when their owner is idle. Structured state, locks and compiled models remain protected. Inaccessible locations are reported explicitly."
 
 [[signatures]]
 id = "system.intensive.group_containers_caches"
@@ -435,9 +436,9 @@ risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos"]
 paths = ["~/Library/Group Containers/*/Library/Caches"]
-min_age_days = 14
-intensive_only = true
-description = "Entries of cache directories inside group containers, which shared application families write. Only the `Caches` directory is in scope, and only the entries inside it that have been inactive for at least 14 days are removed."
+min_age_days = 0
+intensive_only = false
+description = "Regenerable container cache payloads are eligible immediately when their owner is idle. Structured state, locks and compiled models remain protected. Inaccessible locations are reported explicitly."
 
 [[signatures]]
 id = "system.advisory.macos_system_caches"
@@ -762,3 +763,66 @@ paths = [
 ]
 description = "Safari state, wallpaper downloads and inference model stores remain managed by macOS. These observed bytes are not included in the cleanup estimate."
 consequence = "Manage Safari website data in Safari settings; macOS manages wallpaper and inference stores."
+
+[[signatures]]
+id = "system.container.worker_temp"
+name = "Apple Worker Temporary Payloads"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Containers/com.apple.geod/Data/tmp", "~/Library/Containers/com.apple.mediaanalysisd/Data/tmp"]
+min_age_days = 3
+consequence = "Idle, old temporary payloads are regenerated when needed. Active workers and structured state stay protected."
+description = "Named worker temporary locations observed in the Mole comparison. No other container or system temporary directory is authorized."
+
+[[signatures]]
+id = "system.crash_reports"
+name = "Old Diagnostic and Crash Reports"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Logs/DiagnosticReports", "~/Library/Logs/CrashReporter"]
+min_age_days = 14
+fail_if_running = ["ReportCrash", "diagnosticd"]
+description = "Old diagnostic reports outside the ordinary log entry. Reports from the last fourteen days remain available for troubleshooting."
+
+[[signatures]]
+id = "system.brave.completed_crash_reports"
+name = "Brave Completed Crash Reports"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/BraveSoftware/Brave-Browser/Crashpad/completed"]
+min_age_days = 7
+fail_if_running = ["Brave Browser", "Brave Browser Helper", "chrome_crashpad_handler"]
+description = "Completed crash uploads older than seven days. Pending reports and browser profile state stay outside this scope."
+
+[[signatures]]
+id = "system.suggestions.observation"
+name = "Suggestions State"
+category = "system"
+family = "system"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Suggestions"]
+provider = "macOS Suggestions"
+description = "Observed to explain reference-cleaner coverage. Learned suggestions and indexes are owned by macOS and remain outside generic cache deletion."
+
+[[signatures]]
+id = "system.help.metadata"
+name = "Help Viewer Metadata"
+category = "system"
+family = "applications"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Caches/com.apple.helpd/HSTS.plist", "~/Library/Caches/com.apple.helpd/HelpCache.plist", "~/Library/Caches/com.apple.helpd/CSHelpIndex.plist"]
+provider = "Help Viewer"
+description = "Help indexes and transport metadata remain browser-owned state. Disposable Help payloads have their own cleanup units."

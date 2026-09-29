@@ -384,3 +384,107 @@ fn zed_download_cache_scope_preserves_installed_runtimes_and_editor_content() {
         .iter()
         .all(|item| item.owner_running && !item.is_selected));
 }
+
+#[test]
+fn custom_gradle_home_partitions_payloads_from_dependencies_and_locks() {
+    let fixture = tempfile::tempdir().unwrap();
+    // Windows CI may expose TEMP through an 8.3 alias (RUNNER~1). Cache
+    // overrides deliberately reject aliases; use the fixture's resolved path.
+    let home = neati_platform::NativePlatformPaths::normalize_verbatim_path(
+        &fixture.path().canonicalize().unwrap(),
+    );
+    let gradle = home.join("tools/gradle");
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_home(&home)
+        .with_cache_path_override("GRADLE_USER_HOME", &gradle);
+    for relative in [
+        "caches/build-cache-1/output",
+        "caches/build-cache-1/build-cache-1.lock",
+        "caches/modules-2/dependency",
+        "wrapper/dists/runtime",
+        "gradle.properties",
+    ] {
+        write(&gradle.join(relative));
+    }
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    let payloads = scan(&registry, "dev.gradle.build_cache", &environment, &idle());
+    let advisory = scan(&registry, "dev.gradle.caches", &environment, &idle());
+    assert_eq!(payloads.len(), 1);
+    assert_eq!(advisory.len(), 1);
+    assert_eq!(
+        payloads[0].observed_bytes(),
+        2 * payloads[0].cleanable_bytes()
+    );
+    assert!(payloads[0].is_selected);
+    assert_eq!(advisory[0].cleanable_bytes(), 0);
+    assert!(advisory[0].path.ends_with("modules-2"));
+    let signature = registry.get("dev.gradle.build_cache").unwrap();
+    assert!(signature.process_guard().guards_gradle());
+    assert!(!signature.process_guard().matches("java"));
+    assert!(!registry.path_is_in_scope(signature, &gradle.join("caches/modules-2"), &environment));
+}
+
+#[test]
+fn xdg_cache_override_is_used_by_discovery_and_authorization() {
+    let fixture = tempfile::tempdir().unwrap();
+    let home = neati_platform::NativePlatformPaths::normalize_verbatim_path(
+        &fixture.path().canonicalize().unwrap(),
+    );
+    let custom = home.join("custom-cache");
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_home(&home)
+        .with_cache_path_override("XDG_CACHE_HOME", &custom);
+    write(&custom.join("typescript/payload"));
+    write(&home.join(".cache/typescript/leave"));
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    let signature = registry
+        .all()
+        .into_iter()
+        .find(|signature| {
+            signature
+                .paths
+                .contains(&"${XDG_CACHE_HOME}/typescript".to_string())
+        })
+        .unwrap();
+    let items = scan(&registry, &signature.id, &environment, &idle());
+    assert_eq!(items.len(), 1);
+    assert!(Path::new(&items[0].path).starts_with(&custom));
+    assert!(!registry.path_is_in_scope(
+        signature,
+        &home.join(".cache/typescript/leave"),
+        &environment
+    ));
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn container_zero_day_policy_keeps_open_payloads_and_preserves_structured_state() {
+    let fixture = tempfile::tempdir().unwrap();
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_platform(PlatformKind::Macos)
+        .with_home(fixture.path());
+    let root = fixture
+        .path()
+        .join("Library/Containers/com.example.fixture/Data/Library/Caches");
+    let payload = root.join("download/payload");
+    write(&payload);
+    write(&root.join("download/Cache.db"));
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    let signature = registry.get("system.intensive.containers_caches").unwrap();
+    assert_eq!(signature.min_age_days, Some(0));
+    let opened = std::fs::File::open(&payload).unwrap();
+    let busy = scan(&registry, &signature.id, &environment, &idle());
+    assert_eq!(busy.len(), 1);
+    assert!(busy[0].owner_running, "{busy:?}");
+    assert!(!busy[0].is_selected);
+    drop(opened);
+    let ready = scan(&registry, &signature.id, &environment, &idle());
+    assert!(ready[0].is_selected);
+    assert_eq!(ready[0].cleanable_bytes() * 2, ready[0].observed_bytes());
+    assert_eq!(
+        signature
+            .process_guard_for(&payload, &environment)
+            .open_file_path(),
+        Some(payload.as_path())
+    );
+}

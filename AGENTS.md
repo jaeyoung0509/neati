@@ -253,6 +253,13 @@ safety conventions below when changing neati.
   Scan estimates must exclude descendants of protected directories, and inferred
   cache-owner guards must reach planning and execution.
 
+- Container cache payloads and ordinary application logs also use zero-day
+  retention, with bounded macOS open-file checks at scan, planning and execution.
+  Unknown open-file state cannot authorize deletion. Chromium offline units are
+  depth-two cache directories; origin metadata stays advisory and units move to
+  Trash only after the browser stops. Owner command previews must cover their
+  complete mutation scope, bind executable/candidate identity, and recheck it.
+
 - Extended (formerly intensive) cache scanning is standard on supported platforms,
   not a user toggle. Legacy settings are normalized to enabled. The broader
   scope remains subject to age, process, structured-state, signature-scope and explicit

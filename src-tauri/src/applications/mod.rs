@@ -107,6 +107,9 @@ pub struct RunningApplications {
     bundle_state_known: bool,
     process_names: Vec<String>,
     process_state_known: bool,
+    gradle_running: bool,
+    gradle_state_known: bool,
+    python_commands_known: bool,
 }
 
 impl RunningApplications {
@@ -116,13 +119,50 @@ impl RunningApplications {
     /// bundle identifiers additionally identify macOS cache namespaces.
     pub fn probe() -> Self {
         let mut system = System::new();
-        system.refresh_processes(ProcessesToUpdate::All, true);
-        let observed = Self::from_process_names(
+        system.refresh_processes_specifics(
+            ProcessesToUpdate::All,
+            true,
+            sysinfo::ProcessRefreshKind::nothing()
+                .with_exe(sysinfo::UpdateKind::Always)
+                .with_cmd(sysinfo::UpdateKind::Always),
+        );
+        let mut observed = Self::from_process_names(
             system
                 .processes()
                 .values()
                 .map(|process| process.name().to_string_lossy().into_owned()),
         );
+        observed.gradle_state_known = true;
+        observed.python_commands_known = true;
+        for process in system.processes().values() {
+            if process.name().to_string_lossy().starts_with("python") && process.cmd().is_empty() {
+                observed.python_commands_known = false;
+            }
+            let args = process
+                .cmd()
+                .iter()
+                .map(|part| part.to_string_lossy().into_owned())
+                .collect::<Vec<_>>();
+            if args.iter().take(3).any(|arg| {
+                Path::new(arg)
+                    .file_name()
+                    .and_then(|v| v.to_str())
+                    .is_some_and(|name| matches!(name, "conda" | "conda.exe"))
+            }) || args
+                .windows(2)
+                .any(|pair| pair[0] == "-m" && pair[1] == "conda")
+            {
+                observed.process_names.push("conda".into());
+            }
+            observed.observe_gradle_command(
+                &process.name().to_string_lossy(),
+                &process
+                    .cmd()
+                    .iter()
+                    .map(|part| part.to_string_lossy().into_owned())
+                    .collect::<Vec<_>>(),
+            );
+        }
         #[cfg(target_os = "macos")]
         let observed = {
             let mut observed = observed;
@@ -182,6 +222,9 @@ impl RunningApplications {
             .filter(|name| !name.is_empty())
             .collect::<Vec<_>>();
         Self {
+            gradle_state_known: !process_names.iter().any(|name| is_java(name)),
+            gradle_running: false,
+            python_commands_known: !process_names.iter().any(|name| name.starts_with("python")),
             process_state_known: !process_names.is_empty(),
             process_names,
             bundle_ids: Vec::new(),
@@ -206,7 +249,29 @@ impl RunningApplications {
             bundle_state_known: true,
             process_names: Vec::new(),
             process_state_known: false,
+            gradle_running: false,
+            gradle_state_known: false,
+            python_commands_known: false,
         }
+    }
+
+    fn observe_gradle_command(&mut self, name: &str, args: &[String]) {
+        if !is_java(name) {
+            return;
+        }
+        if args.is_empty() {
+            self.gradle_state_known = false;
+            return;
+        }
+        self.gradle_running |= args.iter().any(|arg| {
+            matches!(
+                arg.as_str(),
+                "org.gradle.launcher.daemon.bootstrap.GradleDaemon"
+                    | "org.gradle.launcher.GradleMain"
+                    | "org.gradle.wrapper.GradleWrapperMain"
+                    | "worker.org.gradle.process.internal.worker.GradleWorkerMain"
+            )
+        });
     }
 
     /// Matches a guarded cache owner against the same process snapshot used
@@ -221,12 +286,21 @@ impl RunningApplications {
         if !self.process_state_known {
             return None;
         }
+        if policy.guards_gradle() && !self.gradle_state_known {
+            return None;
+        }
+        if policy.matches("conda") && !self.python_commands_known {
+            return None;
+        }
         let mut names: Vec<String> = self
             .process_names
             .iter()
             .filter(|name| policy.matches(name))
             .cloned()
             .collect();
+        if policy.guards_gradle() && self.gradle_running {
+            names.push("Gradle".into());
+        }
         if let Some(owner) = policy.cache_owner() {
             if self.owner_of(owner).is_some()
                 || self
@@ -250,6 +324,15 @@ impl RunningApplications {
         }
         if policy.cache_owner().is_some() && names.is_empty() && !self.bundle_state_known {
             return None;
+        }
+        if let Some(path) = policy.open_file_path().filter(|_| names.is_empty()) {
+            match neati_platform::open_files::observe_open_files(path) {
+                neati_platform::open_files::OpenFileState::Idle => {}
+                neati_platform::open_files::OpenFileState::InUse => {
+                    names.push("An application using this cache".into())
+                }
+                neati_platform::open_files::OpenFileState::Unknown => return None,
+            }
         }
         names.sort();
         names.dedup();
@@ -277,6 +360,12 @@ impl RunningApplications {
     pub fn is_empty(&self) -> bool {
         self.bundle_ids.is_empty()
     }
+}
+
+fn is_java(name: &str) -> bool {
+    ["java", "java.exe", "javaw", "javaw.exe"]
+        .iter()
+        .any(|expected| name.eq_ignore_ascii_case(expected))
 }
 
 impl neati_core::domain::cleanup::RunningProcessProbe for RunningApplications {
@@ -1062,6 +1151,30 @@ fn unix_timestamp() -> u64 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn gradle_java_ownership_distinguishes_other_java_apps_and_unknown_arguments() {
+        use neati_core::domain::cleanup::RunningProcessPolicy;
+        let guard = RunningProcessPolicy::none().with_gradle_owner();
+        let mut snapshot = super::RunningApplications::from_process_names(["java".into()]);
+        assert_eq!(snapshot.running_executables(&guard), None);
+        snapshot.gradle_state_known = true;
+        snapshot.observe_gradle_command("java", &["java".into(), "com.example.Server".into()]);
+        assert_eq!(snapshot.running_executables(&guard), Some(vec![]));
+        snapshot.observe_gradle_command(
+            "java",
+            &[
+                "java".into(),
+                "org.gradle.launcher.daemon.bootstrap.GradleDaemon".into(),
+            ],
+        );
+        assert_eq!(
+            snapshot.running_executables(&guard),
+            Some(vec!["Gradle".into()])
+        );
+        snapshot.observe_gradle_command("java", &[]);
+        assert_eq!(snapshot.running_executables(&guard), None);
+    }
+
     use super::*;
     use crate::models::AppInstallSource;
     use neati_core::domain::cleanup::RunningProcessPolicy;

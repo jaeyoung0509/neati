@@ -45,6 +45,8 @@ pub enum OwnerUnitState {
     Ready,
     /// Fully measured, but the provider's age threshold has not passed.
     Recent,
+    /// Measured payload retained until its owner stops.
+    InUse,
     /// The owner, not neati, decides when this unit goes. The unit stays
     /// inventoried with its observed bytes and is never selectable.
     Advisory,
@@ -62,6 +64,7 @@ impl OwnerUnitState {
         match self {
             Self::Ready => "ready",
             Self::Recent => "recent",
+            Self::InUse => "in use",
             Self::Advisory => "advisory",
             Self::Refused => "refused",
             Self::Blocked => "blocked",
@@ -132,6 +135,25 @@ impl OwnerUnitObservation {
             logical_bytes,
             entry_count,
             state: OwnerUnitState::Recent,
+            detail: Some(detail.into()),
+        }
+    }
+
+    pub fn in_use(
+        unit_key: impl Into<String>,
+        path: PathBuf,
+        logical_bytes: u64,
+        allocated_bytes: u64,
+        entry_count: u64,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self {
+            unit_key: unit_key.into(),
+            path,
+            allocated_bytes,
+            logical_bytes,
+            entry_count,
+            state: OwnerUnitState::InUse,
             detail: Some(detail.into()),
         }
     }

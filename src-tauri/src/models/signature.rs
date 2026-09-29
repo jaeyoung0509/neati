@@ -570,7 +570,12 @@ impl Signature {
 
     /// The process guard the execution boundary applies to this signature.
     pub fn process_guard(&self) -> RunningProcessPolicy {
-        RunningProcessPolicy::guarding(self.fail_if_running.clone())
+        let guard = RunningProcessPolicy::guarding(self.fail_if_running.clone());
+        if self.provider == "Gradle" {
+            guard.with_gradle_owner()
+        } else {
+            guard
+        }
     }
 
     /// Resolve an inferred macOS cache owner from the trusted target location.
@@ -580,8 +585,20 @@ impl Signature {
         path: &std::path::Path,
         environment: &neati_platform::PlatformEnvironment,
     ) -> RunningProcessPolicy {
-        let guard = self.process_guard();
-        if !guard.is_empty() || environment.platform() != PlatformKind::Macos {
+        let mut guard = self.process_guard();
+        if environment.platform() == PlatformKind::Macos
+            && environment.user_home().is_some_and(|home| {
+                path.starts_with(home.join("Library/Containers"))
+                    || path.starts_with(home.join("Library/Group Containers"))
+                    || path.starts_with(home.join("Library/Logs"))
+            })
+        {
+            guard = guard.with_open_files(path.to_path_buf());
+        }
+        if !self.fail_if_running.is_empty()
+            || guard.guards_gradle()
+            || environment.platform() != PlatformKind::Macos
+        {
             return guard;
         }
         let Some(home) = environment.user_home() else {
@@ -592,6 +609,7 @@ impl Signature {
             "Library/Application Support",
             "Library/Containers",
             "Library/Group Containers",
+            "Library/Logs",
         ] {
             if let Ok(relative) = path.strip_prefix(home.join(root)) {
                 if let Some(owner) = relative

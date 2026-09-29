@@ -38,6 +38,8 @@ pub mod dotslash;
 pub mod homebrew;
 #[cfg(target_os = "macos")]
 pub mod homebrew_cleanup;
+#[cfg(target_os = "macos")]
+pub mod tool_cleanup;
 
 use crate::models::{
     derive_cleanup_disposition, CacheManagementMode, CacheSizeSemantics, CleanStrategy,
@@ -157,6 +159,16 @@ impl OwnerProviderRegistry {
             trash.clone(),
         ));
         let providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
+            #[cfg(target_os = "macos")]
+            Arc::new(tool_cleanup::ToolCleanupProvider::native(
+                tool_cleanup::ToolCacheKind::Conda,
+                process.clone(),
+            )),
+            #[cfg(target_os = "macos")]
+            Arc::new(tool_cleanup::ToolCleanupProvider::native(
+                tool_cleanup::ToolCacheKind::Mise,
+                process.clone(),
+            )),
             Arc::new(browser::ChromiumCacheProvider::new(
                 browser::BrowserCacheKind::ComponentDownloads,
                 process.clone(),
@@ -479,7 +491,7 @@ impl OwnerProviderRegistry {
         // still decides whether a plan may touch it.
         let (quality, reason) = match (unit.state, unit.detail.clone()) {
             (OwnerUnitState::Ready, _) => (ObservationQuality::Fresh, None),
-            (OwnerUnitState::Recent | OwnerUnitState::Refused, _) => {
+            (OwnerUnitState::Recent | OwnerUnitState::Refused | OwnerUnitState::InUse, _) => {
                 (ObservationQuality::Fresh, None)
             }
             (OwnerUnitState::Advisory, detail) => (ObservationQuality::Fresh, detail),
@@ -519,7 +531,9 @@ impl OwnerProviderRegistry {
     ) -> ScanItem {
         let mut cache_metadata = signature.cache_metadata();
         cache_metadata.consequence = provider.consequence().to_string();
-        if unit.is_some_and(|unit| unit.state != OwnerUnitState::Ready) {
+        if unit.is_some_and(|unit| {
+            !matches!(unit.state, OwnerUnitState::Ready | OwnerUnitState::InUse)
+        }) {
             // Advisory and blocked units report bytes nothing may remove, so
             // the estimate is what was observed rather than what is
             // reclaimable; a partial measurement says so as well.
@@ -552,6 +566,7 @@ impl OwnerProviderRegistry {
                 incomplete_reason.as_deref(),
             )
             .with_gate(gate)
+            .with_running_owner(unit.is_some_and(|unit| unit.state == OwnerUnitState::InUse))
             .with_lifecycle_provider_action(true)
             .with_confirmation_requirement(provider.requires_confirmation())
             .with_provider_restriction(provider_restriction.as_ref()),
@@ -586,7 +601,7 @@ impl OwnerProviderRegistry {
             provider_restriction,
             entry_kind: EntryKind::Directory,
             gate,
-            owner_running: false,
+            owner_running: unit.is_some_and(|unit| unit.state == OwnerUnitState::InUse),
             lifecycle_provider_action: true,
             requires_confirmation: provider.requires_confirmation(),
             overlaps: Vec::new(),
@@ -822,6 +837,24 @@ mod tests {
 
     fn unit(key: &str, bytes: u64) -> OwnerUnitObservation {
         OwnerUnitObservation::ready(key, PathBuf::from("/store").join(key), bytes, bytes, 2)
+    }
+
+    #[test]
+    fn an_in_use_owner_unit_is_reviewable_and_never_selected() {
+        let mut in_use = unit("active", 4096);
+        in_use.state = OwnerUnitState::InUse;
+        in_use.detail = Some("Close the owner first".into());
+        let (registry, providers) =
+            catalog(StatedProvider::enumerating("test.owner", vec![in_use]).shared());
+        let items = discover(&registry, &providers);
+        assert!(items[0].owner_running);
+        assert!(!items[0].is_selected);
+        assert_eq!(
+            items[0].disposition.eligibility,
+            crate::models::CleanupEligibility::Reviewable
+        );
+        assert_eq!(items[0].cleanable_bytes(), 4096);
+        assert_eq!(items[0].quality, crate::models::ObservationQuality::Fresh);
     }
 
     /// Every enumerated unit becomes one item with its own identity and its own

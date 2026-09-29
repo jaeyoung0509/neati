@@ -1,11 +1,12 @@
 <script lang="ts">
   import { scanStore } from '../stores/scan.svelte';
-  import { cleanupAvailability, observedByteRange, summarizeCategory } from '../utils/cleanup';
+  import { cleanupAvailability, observedByteRange, retainedByteGroups, summarizeCategory } from '../utils/cleanup';
   import { formatBytes } from '../utils/format';
 
   let scan = $derived(scanStore.lastScan);
   let summary = $derived(summarizeCategory(scan?.categories.flatMap(category => category.items) ?? []));
   let availability = $derived(cleanupAvailability(scan?.categories.flatMap(category => category.items) ?? []));
+  let retained = $derived(retainedByteGroups(scan?.categories.flatMap(category => category.items) ?? []));
   let observed = $derived(observedByteRange(scan?.total_bytes ?? 0, scan?.ambiguous_overlap_bytes));
   let isCurrent = $derived(scanStore.freshness === 'fresh' || scanStore.freshness === 'partial');
   let estimateLabel = $derived(isCurrent ? 'Cleanup candidates' : 'Last cleanup estimate');
@@ -47,6 +48,18 @@
       {:else}{formatBytes(observed.upper)}{/if}
     </p>
     <p class="mt-1 text-meta text-muted-foreground">Includes items that must be kept.</p>
+    {#if scan && retained.length > 0}
+      <details class="mt-2 text-meta text-muted-foreground">
+        <summary class="cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Why some bytes stay</summary>
+        <dl class="mt-2 space-y-1" aria-label="Retained bytes by reason">
+          {#each retained as group (group.kind)}
+            <div class="flex flex-wrap justify-between gap-x-3"><dt>{group.label}</dt><dd class="font-mono tabular-nums text-foreground">{formatBytes(group.bytes)}</dd></div>
+          {/each}
+        </dl>
+        {#if observed.isAmbiguous}<p class="mt-2">Some observations overlap; these reason totals are upper bounds.</p>{/if}
+        {#if scanStore.freshness === 'partial'}<p class="mt-2">Unread locations may contain additional bytes.</p>{/if}
+      </details>
+    {/if}
   </div>
 </section>
 

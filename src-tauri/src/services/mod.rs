@@ -2,6 +2,7 @@ mod ai_service;
 pub mod cancellation;
 mod cleanup_quit;
 pub mod desktop_notifications;
+mod empty_trash;
 mod plan_store;
 pub mod progress;
 mod scan_service;

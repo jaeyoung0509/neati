@@ -14,3 +14,5 @@ pub use storage::{
     LargeFileScanEvent, LargeFileScanRequest, LargeFileScanResult, TrashItemResult,
     TrashPlanPreview, TrashResult,
 };
+
+pub mod empty_trash;

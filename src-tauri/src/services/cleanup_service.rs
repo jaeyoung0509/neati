@@ -139,7 +139,7 @@ pub struct CleanupService {
     scan_service: Arc<ScanService>,
     plan_store: Arc<PlanStore<DeletePlan>>,
     pub(super) scan_store: Arc<ScanStore>,
-    operation_gate: StorageOperationGate,
+    pub(super) operation_gate: StorageOperationGate,
     budgets: Arc<ExecutionBudgets>,
     pub(super) environment: Arc<PlatformEnvironment>,
     pub(super) registry: Arc<SignatureRegistry>,
@@ -153,6 +153,7 @@ pub struct CleanupService {
     /// the id each scan reports so `cancel_scan` can reach one in flight.
     scan_cancellations: Arc<CancellationRegistry>,
     pub(super) platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    pub(super) empty_trash: Arc<super::empty_trash::EmptyTrashState>,
     pub(super) quit_dependencies: Option<super::cleanup_quit::CleanupQuitDependencies>,
 }
 
@@ -175,6 +176,7 @@ impl CleanupService {
     ) -> Self {
         Self {
             quit_dependencies: None,
+            empty_trash: Arc::new(super::empty_trash::EmptyTrashState::default()),
             scan_service,
             plan_store,
             scan_store,

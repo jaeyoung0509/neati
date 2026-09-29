@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cancel-empty-trash"
+description = "Enables the cancel_empty_trash command without any pre-configured scope."
+commands.allow = ["cancel_empty_trash"]
+
+[[permission]]
+identifier = "deny-cancel-empty-trash"
+description = "Denies the cancel_empty_trash command without any pre-configured scope."
+commands.deny = ["cancel_empty_trash"]

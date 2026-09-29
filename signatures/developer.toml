@@ -636,7 +636,7 @@ platforms = ["macos", "linux"]
 paths = ["~/.cache/codex-runtimes"]
 provider = "Codex"
 artifact_kind = "package_store"
-description = "Installed runtimes and dependencies, including installation staging. An old install-* name does not prove that the runtime is unused. Custom XDG locations are not inferred."
+description = "Installed runtimes and dependencies are observation-only. Recognized abandoned installation staging has a separate reviewed owner operation; this aggregate does not authorize deletion. Custom XDG locations are not inferred."
 consequence = "Manage these installations through Codex. Observed size is not a cleanup estimate."
 
 [[signatures]]
@@ -704,7 +704,7 @@ owner = "JetBrains IDEs"
 fail_if_running = ["idea", "idea64", "pycharm", "webstorm", "clion", "rider", "goland", "datagrip", "rubymine", "rustrover", "phpstorm", "fleet"]
 artifact_kind = "build_artifact"
 consequence = "The IDE rebuilds disposable cache payloads. Local history, settings, plugins, databases and locks remain protected."
-exclusions = ["LocalHistory", "localHistory"]
+exclusions = ["LocalHistory", "localHistory", "index", "caches", "vcs-log"]
 description = "Ordinary cache and index payloads beneath versioned JetBrains system directories. Installed plugins and IDE configuration are outside this scope."
 
 [[signatures]]
@@ -771,6 +771,190 @@ provider = "Android Studio"
 owner = "Android Studio"
 fail_if_running = ["studio", "studio64", "studio64.exe"]
 artifact_kind = "build_artifact"
-exclusions = ["LocalHistory", "localHistory"]
+exclusions = ["LocalHistory", "localHistory", "index", "caches", "vcs-log"]
 consequence = "Android Studio rebuilds disposable caches. Local history, databases, settings and plugins remain protected."
 description = "Versioned Android Studio system caches, separate from Chrome's profile directories."
+
+[[signatures]]
+id = "dev.editor.offline_cache_storage"
+name = "Editor Offline Assets"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "editor.offline_cache_storage"
+fail_if_running = ["Code", "Code - Insiders", "Cursor"]
+platforms = ["macos"]
+paths = []
+owner = "VS Code / Cursor"
+provider = "VS Code / Cursor"
+consequence = "Offline webview assets may need a network connection to rebuild. Settings and profile databases remain intact."
+description = "Offline webview assets may need a network connection to rebuild. Settings and profile databases remain intact."
+
+[[signatures]]
+id = "dev.ide.disposable_indexes"
+name = "IDE Rebuildable Indexes"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "ide.disposable_indexes"
+fail_if_running = ["idea", "pycharm", "webstorm", "clion", "rider", "goland", "datagrip", "rubymine", "rustrover", "phpstorm", "studio"]
+platforms = ["macos"]
+paths = []
+owner = "JetBrains / Android Studio"
+provider = "JetBrains / Android Studio"
+consequence = "Selected indexes move to Trash. Indexing runs again; Local History, settings and plugins remain intact."
+description = "Selected indexes move to Trash. Indexing runs again; Local History, settings and plugins remain intact."
+
+
+[[signatures]]
+id = "dev.gradle.release_notifications"
+name = "Gradle Release Notification Markers"
+category = "developer"
+family = "developer"
+risk = "safe"
+strategy = "owner_provider"
+provider_id = "gradle.notification_markers"
+platforms = ["macos"]
+paths = []
+provider = "Gradle"
+owner = "Gradle"
+fail_if_running = ["gradle", "gradlew"]
+consequence = "Gradle may display its release highlights again. Build caches, dependencies and wrapper distributions stay intact."
+description = "Disposable release notification markers in Gradle User Home. Typed Gradle Java ownership guards scan, planning and execution; structured state remains protected."
+
+[[signatures]]
+id = "dev.node_gyp.headers"
+name = "Node Development Headers"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "node_gyp.headers"
+fail_if_running = ["node", "bun", "clang", "clang++", "make", "ninja"]
+platforms = ["macos"]
+paths = []
+owner = "node-gyp"
+provider = "node-gyp"
+consequence = "Complete versioned downloaded SDKs move to Trash while builds are idle; installed Node runtimes remain outside the scope."
+description = "Complete versioned downloaded SDKs move to Trash while builds are idle; installed Node runtimes remain outside the scope."
+
+[[signatures]]
+id = "dev.electron.download_archives"
+name = "Electron Download Archives"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "electron.download_archives"
+fail_if_running = ["node", "bun"]
+platforms = ["macos"]
+paths = []
+owner = "Electron"
+provider = "Electron"
+consequence = "Only named macOS Electron release ZIPs in default download caches; installed apps, executables and browser bundles stay intact."
+description = "Only named macOS Electron release ZIPs in default download caches; installed apps, executables and browser bundles stay intact."
+
+[[signatures]]
+id = "dev.swiftpm.global_cache"
+name = "SwiftPM Global Download Cache"
+category = "developer"
+family = "package_managers"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "swiftpm.purge_cache"
+platforms = ["macos"]
+paths = []
+fail_if_running = ["swift", "swift-package", "swift-build", "swift-test", "swift-frontend", "Xcode", "xcodebuild", "git", "sourcekit-lsp"]
+owner = "Swift Package Manager"
+provider = "Swift Package Manager"
+artifact_kind = "package_store"
+consequence = "SwiftPM purges global repository downloads, registry downloads and manifest cache. Packages may need downloading again; project builds, installed toolchains and configuration remain intact."
+description = "Fixed owner purge with an exact three-scope preview, toolchain version and executable identity checks, isolated command workspace and final owner/open-handle checks. Unsupported versions and manifest journal companions block cleanup."
+
+[[signatures]]
+id = "dev.codex.abandoned_staging"
+name = "Abandoned Runtime Installation Staging"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "codex.abandoned_staging"
+platforms = ["macos"]
+paths = []
+fail_if_running = ["ChatGPT", "Codex", "Codex (Renderer)", "Codex (Service)", "codex", "node", "python", "python3", "tar", "unzip"]
+owner = "Codex runtime installer"
+provider = "Codex runtime installer"
+consequence = "Reviewed abandoned installation staging moves to Trash; an interrupted download may restart. The independently activated runtime stays intact."
+description = "Exact six-character installer staging directories only, with recognized layout, independently activated format-2 macOS runtime, seven-day whole-tree inactivity, stopped owners and idle handles. Installed runtimes remain observation-only."
+
+[[signatures]]
+id = "dev.cocoapods.download_store"
+name = "CocoaPods Download Store"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Caches/CocoaPods"]
+owner = "CocoaPods"
+provider = "CocoaPods"
+artifact_kind = "package_store"
+description = "Observation only. pod cache clean owns downloaded pod caches; no complete versioned command preview is implemented. Repositories, project Pods, credentials and installed tools are not generic cleanup targets."
+
+[[signatures]]
+id = "dev.android.sdk_installation"
+name = "Android SDK Installation"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Android/sdk"]
+owner = "Android SDK Manager"
+provider = "Android SDK Manager"
+artifact_kind = "package_store"
+description = "Observation only. SDK packages and system images require explicit package selection through SDK Manager or sdkmanager --uninstall. Downloads and incomplete installation records cannot authorize removal of installed packages."
+
+[[signatures]]
+id = "dev.orbstack.data"
+name = "OrbStack Machine and Container Data"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data"]
+owner = "OrbStack"
+provider = "OrbStack"
+artifact_kind = "package_store"
+description = "Observation only for the known group-container data root. VM disks and machine data are not disposable caches; use the Containers workflow for supported Docker resources. A machine lifecycle adapter is required for this store."
+
+[[signatures]]
+id = "dev.corepack.distributions"
+name = "Corepack Package Manager Distributions"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.cache/node/corepack"]
+owner = "Corepack"
+provider = "Corepack"
+artifact_kind = "package_store"
+description = "Observation only. corepack cache clean removes package manager distributions needed for offline use. Installed manager versions require an owner command with complete scope and executable validation."
+
+[[signatures]]
+id = "dev.browser.downloaded_bundles"
+name = "Downloaded Browser Bundles"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Caches/ms-playwright", "~/.cache/ms-playwright", "~/.cache/puppeteer"]
+owner = "Playwright / Puppeteer"
+provider = "Playwright / Puppeteer"
+artifact_kind = "package_store"
+description = "Observation only. These are executable browser installations used by projects and automation. Download age does not prove they are unused; an owner uninstall operation is required."

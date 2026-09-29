@@ -50,6 +50,7 @@ rfd = "0.17"
 regex = "1.10"
 plist = "1.7"
 rayon = "1.12"
+tempfile = "3.13"
 tokio = { version = "1", features = ["sync", "time", "rt", "macros", "process", "io-util"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -79,7 +80,6 @@ windows-sys = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
-tempfile = "3.13"
 specta-typescript = "=0.0.12"
 # `tauri::test` builds the state a command handler reads without a window, so an
 # integration test can assert the IPC surface answers from the injected

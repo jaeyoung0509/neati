@@ -103,7 +103,13 @@ exclude_prefixes = [
     "Homebrew",
     "dotslash",
     "ms-playwright",
-    "JetBrains"
+    "JetBrains",
+    "cursor-updater",
+    "notion-updater",
+    "electron",
+    "node-gyp",
+    "org.swift.swiftpm",
+    "CocoaPods"
 ]
 exclusions = [
     "~/Library/Caches/com.apple.helpd",
@@ -696,7 +702,7 @@ paths = [
     "~/.Trash",
     "/Volumes/*/.Trashes/*",
 ]
-description = "Items that have been moved to the Trash and their per-volume counterparts, which occupy space until the Trash is emptied. Emptying it is a Finder operation with its own semantics (restore, put back, per-volume behaviour), so neati reports the space and leaves the operation to the system that owns it."
+description = "Items that have been moved to the Trash and their per-volume counterparts, which occupy space until the Trash is emptied. Review Trash offers a separate, explicit permanent-removal action for the home Trash. Other volumes remain observation-only; these bytes are never cache cleanup candidates."
 
 # Exact exclusions keep known owners under the corresponding ai.toml rules;
 # unknown owners remain observation-only even when cache names are recognized.
@@ -826,3 +832,116 @@ platforms = ["macos"]
 paths = ["~/Library/Caches/com.apple.helpd/HSTS.plist", "~/Library/Caches/com.apple.helpd/HelpCache.plist", "~/Library/Caches/com.apple.helpd/CSHelpIndex.plist"]
 provider = "Help Viewer"
 description = "Help indexes and transport metadata remain browser-owned state. Disposable Help payloads have their own cleanup units."
+
+[[signatures]]
+id = "system.mail.download_copies"
+name = "Mail Downloaded Attachment Copies"
+category = "system"
+family = "user"
+risk = "manual"
+strategy = "owner_provider"
+provider_id = "mail.download_copies"
+fail_if_running = ["Mail", "maild"]
+platforms = ["macos"]
+paths = []
+owner = "Mail"
+provider = "Mail"
+consequence = "Reviewed attachment copies inactive for thirty days move to Trash. Save edits first; messages and attachment stores remain intact."
+description = "Reviewed attachment copies inactive for thirty days move to Trash. Save edits first; messages and attachment stores remain intact."
+
+[[signatures]]
+id = "system.downloads.abandoned"
+name = "Incomplete Downloads"
+category = "system"
+family = "user"
+risk = "manual"
+strategy = "owner_provider"
+provider_id = "downloads.abandoned"
+fail_if_running = ["Google Chrome", "Safari", "Firefox", "curl", "wget", "aria2c"]
+platforms = ["macos"]
+paths = []
+owner = "Download applications"
+provider = "Download applications"
+consequence = "Reviewed incomplete downloads inactive for seven days move to Trash. They cannot resume from the original location; completed downloads remain intact."
+description = "Reviewed incomplete downloads inactive for seven days move to Trash. They cannot resume from the original location; completed downloads remain intact."
+
+[[signatures]]
+id = "system.updater.unreferenced_staging"
+name = "Unreferenced Update Archives"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "updater.unreferenced_staging"
+fail_if_running = ["Cursor", "Notion", "ShipIt", "installer"]
+platforms = ["macos"]
+paths = []
+owner = "Cursor / Notion updater"
+provider = "electron-updater"
+consequence = "Unreferenced update archives move to Trash and may need downloading again. The currently referenced installer remains intact."
+description = "Only direct ZIP/DMG children of known pending directories, inactive for seven days, with stopped owners and verified idle handles. Malformed or unknown manifest formats block cleanup."
+
+
+[[signatures]]
+id = "system.podcasts.streamed_media"
+name = "Podcasts Streaming Scratch"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Containers/com.apple.podcasts/Data/tmp/StreamedMedia"]
+min_age_days = 3
+fail_if_running = ["Podcasts", "Podcasts Up Next"]
+owner = "Podcasts"
+provider = "Podcasts"
+consequence = "Inactive streamed media scratch may need downloading again. Downloaded episodes in the application library remain outside this scope."
+description = "Only the named StreamedMedia temporary subtree. Per-entry inactivity, owner and open-file checks apply; no container-wide temporary cleanup."
+
+[[signatures]]
+id = "system.shell.completion_cache"
+name = "Zsh Completion Cache"
+category = "system"
+family = "developer"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "shell.completion_cache"
+fail_if_running = ["zsh"]
+platforms = ["macos"]
+paths = []
+owner = "Zsh"
+provider = "Zsh"
+consequence = "Only direct home completion-dump files with verified idle handles. Shell configuration and history stay intact."
+description = "Only direct home completion-dump files with verified idle handles. Shell configuration and history stay intact."
+
+[[signatures]]
+id = "system.google_updater.logs"
+name = "Google Updater Logs"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "owner_provider"
+provider_id = "google_updater.logs"
+fail_if_running = ["GoogleUpdater", "GoogleUpdater Helper"]
+platforms = ["macos"]
+paths = []
+owner = "Google Updater"
+provider = "Google Updater"
+consequence = "Previous updater diagnostics move to Trash; updater preferences, installed versions and update metadata remain intact."
+description = "Only updater.log and updater.log.old in the user-level updater directory, with idle owner and exact open-handle checks. System installations remain outside scope."
+
+[[signatures]]
+id = "system.messages.preview_images"
+name = "Messages Preview and Sticker Images"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "messages.preview_images"
+platforms = ["macos"]
+paths = []
+fail_if_running = ["Messages", "imagent"]
+owner = "Messages"
+provider = "Messages preview cache"
+consequence = "Selected preview and sticker images move to Trash and may be generated again. Original message attachments and conversations remain intact."
+description = "Reviewed image files inside three named preview/sticker cache scopes only. Databases and unsupported entries are never authorized; app ownership and exact handles are checked again before moving each file."

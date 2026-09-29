@@ -232,6 +232,15 @@ export const nativeApi = {
     return await commands.getLastScan();
   },
 
+  async previewEmptyTrash() {
+    return await unwrap(commands.previewEmptyTrash());
+  },
+  async executeEmptyTrash(planId: string) {
+    return await unwrap(commands.executeEmptyTrash(planId, true));
+  },
+  async cancelEmptyTrash(planId: string) {
+    return await commands.cancelEmptyTrash(planId);
+  },
   async previewCleanupQuit(scanId: string, itemIds: string[]): Promise<CleanupQuitPreview> {
     return await unwrap(commands.previewCleanupQuit(scanId, itemIds));
   },

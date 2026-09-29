@@ -335,3 +335,17 @@ safety conventions below when changing neati.
 - Sidebar presentation groups destinations into Overview, Storage, System,
   and Tools. Preserve saved visibility and relative order within each group;
   indent direct workflow shortcuts beneath their owner without changing routes.
+
+## Reviewed cleanup additions
+
+- Preserve the owner-operation scopes and compatibility limits in
+  `docs/CLEANUP_362_SCOPE.md`. Mail Downloads and incomplete downloads are typed
+  reviewed targets, never generic blacklist exceptions.
+- Codex staging may carry internal relative links when the entire verified
+  staging directory moves to Trash without dereferencing them. Absolute or
+  escaping links are refused; activated runtimes stay observation-only.
+- Home Trash emptying uses its separate private one-shot snapshot and bounded
+  descriptor-based native adapter. Never add Trash bytes to cache candidates,
+  preselect permanent removal, or extend this action to volume Trash.
+- Privileged system cleanup remains unavailable until the signed-helper
+  prerequisites in `docs/PRIVILEGED_CLEANUP_ADR.md` are satisfied.

@@ -6,11 +6,13 @@
 //! [`crate::application::dto::cleanup`], which carry item IDs and byte totals
 //! and nothing a caller could replay into a mutation.
 
+pub mod empty_trash;
 pub mod family;
 pub mod operation;
 pub mod owner;
 pub mod plan;
 pub mod provider;
+pub mod reviewed_cache;
 pub mod strategy;
 pub mod structured;
 

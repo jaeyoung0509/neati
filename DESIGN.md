@@ -662,3 +662,12 @@ safety buffer, or other invented setting.
   wrap between words instead of shrinking or breaking inside a word.
 - Every new screen is checked at 800 × 560, 960 × 660, and a larger desktop
   size, in light and dark themes, with reduced motion enabled.
+
+## Reviewed home Trash action
+
+Storage offers a secondary Review Trash action on macOS. It presents the exact
+home scope, observed bytes and names before a destructive confirmation. Use the
+shared destructive button style for permanent removal, a native modal focus
+trap, focus restoration, Stop while running, and per-entry results. Other-volume
+Trash is outside this action. Observed Trash bytes do not increase cache
+candidates; removed file data is not presented as measured free-space recovery.

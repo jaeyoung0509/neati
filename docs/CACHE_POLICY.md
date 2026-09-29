@@ -80,26 +80,14 @@ error suppression are not a deletion authorization mechanism for neati.
 
 ## Remaining issue work
 
-This batch delivers the payload and shared-guard increments. The linked issues
-track these separately testable contracts:
+The consolidated operation tracker is #362; accounting, retained-scope navigation,
+deduplication and observation performance are #363. They replace #349, #351,
+#352 and #353. CLI #335 and Xcode #350 stay separate. Usage diagnostics #354 was
+closed after the owner's verification.
 
-- #357 (remaining contracts from closed #347/#348): proven cache-database
-  adapters, complete retained-scope accounting and an owner operation for
-  abandoned runtime staging. Their payload/catalog increments shipped in #355.
-- #349: updater pending files, shared-container ownership and open-handle checks.
-- #350: DeviceSupport retention by recency, Products/XCTestDevices contracts and
-  simulator lifecycle operations.
-- #351: additional IDE/store contracts beyond the scoped providers below.
-  In particular, [`mise cache clear`](https://mise.jdx.dev/cache-behavior.html)
-  also clears environment caches, so a single measured cache directory does
-  not describe its complete mutation scope. Conda's operation must exclude
-  `--packages`, whose symlink caveat is documented by
-  [conda](https://docs.conda.io/projects/conda/en/stable/commands/clean.html).
-- #352: explicit quit-and-clean/Trash operations and privileged adapters.
-- #353: bounded observation of all include-list misses and excluded subtrees,
-  including disjoint nested coverage and a dedicated retained-scope projection.
-
-CLI #335 and usage diagnostics #354 are outside this batch.
+[The #362 scope ledger](CLEANUP_362_SCOPE.md) lists each implemented operation,
+unsupported owner store and the approved privileged-cleanup blocker. Ordinary
+scope decisions must not be described as implementations of unsupported commands.
 
 ## Mole-aligned disposable download defaults
 
@@ -164,10 +152,9 @@ No log/temp retention thresholds changed in #359.
   upper bounds when observations overlap. Partial results explicitly exclude
   unknown bytes. No frontend message matching decides eligibility.
 
-This increment advances #349, #351, #353 and #357. Their broader contracts stay
-open: updater pending stores, complete ownership of cache database families,
-all generic exclusion/include-list observations, cross-scope hard-link
-accounting, and abandoned installed-runtime staging are separate remaining work.
+The remaining work from this historical increment is consolidated in #362
+(operations) and #363 (coverage and accounting). See the current scope ledger
+above; the original trackers are no longer active.
 
 Owner command references reviewed September 29, 2026:
 [Conda clean](https://docs.conda.io/projects/conda/en/stable/commands/clean.html),
@@ -189,3 +176,18 @@ automatic updates and opportunistic cache pruning in its own command environment
 This prevents the verification command from recreating `latest-version` or
 pruning unrelated cache entries. Tool commands still rebind executable and
 candidate identities at each mutation boundary.
+
+## Reviewed owner actions — 0.3.81
+
+The new owner adapters and their explicit limits are listed in
+[CLEANUP_362_SCOPE.md](CLEANUP_362_SCOPE.md). Editor offline assets, updater staging,
+IDE indexes, runtime installation staging, Mail copies, Messages previews and
+incomplete downloads require review. Node header downloads, Electron ZIPs, Zsh
+completion dumps, Gradle markers and updater logs use ordinary cleanup when
+verified idle. Every operation re-derives its native scope and use state.
+
+Home Trash emptying is a separate permanent action with an exact expiring
+snapshot and per-entry outcomes. It never joins the cache candidate selection.
+Mail Downloads and incomplete Downloads are typed reviewed scopes, analogous to
+the existing reviewed storage workflows; neither broadens generic filesystem
+cleanup or the blacklist. Private plans remain in the backend.

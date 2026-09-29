@@ -420,9 +420,12 @@ family = "package_managers"
 risk = "rebuild"
 strategy = "manual"
 paths = [
-    "~/.gradle/caches"
+    "${GRADLE_USER_HOME}/caches"
 ]
-description = "Gradle owns retention and locking for this shared cache; neati reports it as advisory only."
+unit = "child_namespace"
+min_age_days = 0
+exclude_prefixes = ["build-cache-"]
+description = "Gradle dependency and version stores remain advisory. Disposable local build caches have a separate cleanup entry."
 provider = "Gradle"
 artifact_kind = "package_store"
 consequence = "Deleting entries can force dependency downloads and expensive task rebuilds."
@@ -550,12 +553,12 @@ family = "developer"
 risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos", "linux"]
-paths = ["~/.cache/typescript"]
+paths = ["${XDG_CACHE_HOME}/typescript"]
 min_age_days = 0
 fail_if_running = ["node", "bun", "typescript"]
 owner = "Typescript"
 artifact_kind = "build_artifact"
-description = "Disposable payloads in the literal ~/.cache/typescript directory. Custom XDG or project cache locations are not inferred; settings, databases and executable files remain protected."
+description = "Disposable payloads in the literal ${XDG_CACHE_HOME}/typescript directory. XDG_CACHE_HOME is honored; project cache locations are not inferred; settings, databases and executable files remain protected."
 consequence = "Typescript regenerates its cache on the next run."
 
 [[signatures]]
@@ -566,12 +569,12 @@ family = "developer"
 risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos", "linux"]
-paths = ["~/.cache/vite"]
+paths = ["${XDG_CACHE_HOME}/vite"]
 min_age_days = 0
 fail_if_running = ["node", "bun", "vite"]
 owner = "Vite"
 artifact_kind = "build_artifact"
-description = "Disposable payloads in the literal ~/.cache/vite directory. Custom XDG or project cache locations are not inferred; settings, databases and executable files remain protected."
+description = "Disposable payloads in the literal ${XDG_CACHE_HOME}/vite directory. XDG_CACHE_HOME is honored; project cache locations are not inferred; settings, databases and executable files remain protected."
 consequence = "Vite regenerates its cache on the next run."
 
 [[signatures]]
@@ -582,12 +585,12 @@ family = "developer"
 risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos", "linux"]
-paths = ["~/.cache/webpack"]
+paths = ["${XDG_CACHE_HOME}/webpack"]
 min_age_days = 0
 fail_if_running = ["node", "bun", "webpack"]
 owner = "Webpack"
 artifact_kind = "build_artifact"
-description = "Disposable payloads in the literal ~/.cache/webpack directory. Custom XDG or project cache locations are not inferred; settings, databases and executable files remain protected."
+description = "Disposable payloads in the literal ${XDG_CACHE_HOME}/webpack directory. XDG_CACHE_HOME is honored; project cache locations are not inferred; settings, databases and executable files remain protected."
 consequence = "Webpack regenerates its cache on the next run."
 
 [[signatures]]
@@ -598,12 +601,12 @@ family = "developer"
 risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos", "linux"]
-paths = ["~/.cache/eslint"]
+paths = ["${XDG_CACHE_HOME}/eslint"]
 min_age_days = 0
 fail_if_running = ["node", "bun", "eslint"]
 owner = "Eslint"
 artifact_kind = "build_artifact"
-description = "Disposable payloads in the literal ~/.cache/eslint directory. Custom XDG or project cache locations are not inferred; settings, databases and executable files remain protected."
+description = "Disposable payloads in the literal ${XDG_CACHE_HOME}/eslint directory. XDG_CACHE_HOME is honored; project cache locations are not inferred; settings, databases and executable files remain protected."
 consequence = "Eslint regenerates its cache on the next run."
 
 [[signatures]]
@@ -614,12 +617,12 @@ family = "developer"
 risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos", "linux"]
-paths = ["~/.cache/prettier"]
+paths = ["${XDG_CACHE_HOME}/prettier"]
 min_age_days = 0
 fail_if_running = ["node", "bun", "prettier"]
 owner = "Prettier"
 artifact_kind = "build_artifact"
-description = "Disposable payloads in the literal ~/.cache/prettier directory. Custom XDG or project cache locations are not inferred; settings, databases and executable files remain protected."
+description = "Disposable payloads in the literal ${XDG_CACHE_HOME}/prettier directory. XDG_CACHE_HOME is honored; project cache locations are not inferred; settings, databases and executable files remain protected."
 consequence = "Prettier regenerates its cache on the next run."
 
 [[signatures]]
@@ -651,3 +654,123 @@ owner = "Zed"
 artifact_kind = "download_cache"
 description = "Only download-cache payloads inside Zed's Node directory. Installed runtimes, extensions, agents and language servers remain outside the cleanup scope."
 consequence = "Zed may download cached Node resources again."
+
+[[signatures]]
+id = "dev.gradle.build_cache"
+name = "Gradle Local Build Cache"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_stale_contents"
+paths = ["${GRADLE_USER_HOME}/caches"]
+include_prefixes = ["build-cache-"]
+min_age_days = 0
+provider = "Gradle"
+owner = "Gradle"
+fail_if_running = ["gradle", "gradle.exe"]
+artifact_kind = "build_artifact"
+consequence = "Gradle rebuilds cached task outputs. Dependencies, wrapper distributions and cache locks stay intact."
+description = "Disposable task output payloads, guarded by Gradle's Java launcher and worker arguments instead of every Java application."
+
+[[signatures]]
+id = "dev.gradle.daemon_logs"
+name = "Gradle Daemon Logs"
+category = "developer"
+family = "developer"
+risk = "safe"
+strategy = "delete_stale_contents"
+paths = ["${GRADLE_USER_HOME}/daemon/*"]
+include_prefixes = ["daemon-"]
+min_age_days = 7
+provider = "Gradle"
+owner = "Gradle"
+fail_if_running = ["gradle", "gradle.exe"]
+artifact_kind = "temporary"
+consequence = "Old daemon diagnostics are removed; daemon registries and locks remain."
+description = "Inactive daemon logs older than seven days, only while Gradle launchers and workers are stopped."
+
+[[signatures]]
+id = "dev.jetbrains.index_payloads"
+name = "JetBrains IDE Cache Payloads"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Caches/JetBrains/*"]
+min_age_days = 0
+provider = "JetBrains"
+owner = "JetBrains IDEs"
+fail_if_running = ["idea", "idea64", "pycharm", "webstorm", "clion", "rider", "goland", "datagrip", "rubymine", "rustrover", "phpstorm", "fleet"]
+artifact_kind = "build_artifact"
+consequence = "The IDE rebuilds disposable cache payloads. Local history, settings, plugins, databases and locks remain protected."
+exclusions = ["LocalHistory", "localHistory"]
+description = "Ordinary cache and index payloads beneath versioned JetBrains system directories. Installed plugins and IDE configuration are outside this scope."
+
+[[signatures]]
+id = "dev.conda.disposable_cache"
+name = "Conda Download and Index Caches"
+category = "developer"
+family = "package_managers"
+risk = "rebuild"
+strategy = "owner_provider"
+platforms = ["macos"]
+paths = []
+provider_id = "conda.disposable_cache"
+provider = "Conda"
+owner = "Conda"
+fail_if_running = ["conda", "mamba", "micromamba"]
+artifact_kind = "download_cache"
+consequence = "Conda removes downloaded archives, index caches and logs. Installed environments and extracted packages remain intact."
+description = "A reviewed, fixed-argument conda clean action whose JSON dry-run and candidate identities are checked again before execution."
+
+[[signatures]]
+id = "dev.mise.cache_clear"
+name = "mise Tool, Task and Environment Caches"
+category = "developer"
+family = "package_managers"
+risk = "rebuild"
+strategy = "owner_provider"
+platforms = ["macos"]
+paths = []
+provider_id = "mise.cache_clear"
+provider = "mise"
+owner = "mise"
+fail_if_running = ["mise"]
+artifact_kind = "download_cache"
+consequence = "mise clears metadata, task outputs and cached environments. Installed tools and configuration remain intact."
+description = "A reviewed fixed cache clear command. The complete cache and state scope must be available from mise's JSON diagnostics and unchanged before execution."
+
+[[signatures]]
+id = "dev.gradle.workers"
+name = "Gradle Worker Temporary Payloads"
+category = "developer"
+family = "developer"
+risk = "safe"
+strategy = "delete_stale_contents"
+paths = ["${GRADLE_USER_HOME}/workers"]
+min_age_days = 3
+provider = "Gradle"
+owner = "Gradle"
+fail_if_running = ["gradle", "gradle.exe"]
+artifact_kind = "temporary"
+description = "Old worker scratch payloads while Gradle launchers and workers are stopped. Executables, locks and structured state remain protected."
+
+[[signatures]]
+id = "dev.android_studio.cache_payloads"
+name = "Android Studio Cache Payloads"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Caches/Google"]
+include_prefixes = ["AndroidStudio"]
+min_age_days = 0
+provider = "Android Studio"
+owner = "Android Studio"
+fail_if_running = ["studio", "studio64", "studio64.exe"]
+artifact_kind = "build_artifact"
+exclusions = ["LocalHistory", "localHistory"]
+consequence = "Android Studio rebuilds disposable caches. Local history, databases, settings and plugins remain protected."
+description = "Versioned Android Studio system caches, separate from Chrome's profile directories."

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ScanItem, NeatiSettings } from '../lib/models/types';
 import {
   cleanableBytes,
+  retainedByteGroups,
   cleanupAvailability,
   isBulkSelectable,
   cleanableTotals,
@@ -1025,4 +1026,21 @@ describe('ineligibleStates', () => {
     ]);
     expect(ineligibleStates([cleanable(), cleanable()])).toEqual([]);
   });
+});
+
+it('partitions retained bytes once without interpreting localized reasons', () => {
+  const rows = [
+    item({ size: { logical: 100, allocated: 100 }, disposition: { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: 60 } }),
+    item({ size: { logical: 50, allocated: 50 }, disposition: { eligibility: 'advisory', reason: '소유자가 관리', cleanable_bytes: null } }),
+    item({ size: { logical: 30, allocated: 30 }, disposition: { eligibility: 'recent', reason: '保留', cleanable_bytes: null } }),
+    item({ quality: 'partial', size: { logical: 20, allocated: 20 }, disposition: { eligibility: 'blocked', reason: '읽기 실패', cleanable_bytes: null } }),
+  ];
+  const groups = retainedByteGroups(rows);
+  expect(groups).toEqual([
+    { kind: 'managed', label: 'Managed by the owner', bytes: 50 },
+    { kind: 'recent', label: 'Kept by age policy', bytes: 30 },
+    { kind: 'unavailable', label: 'Could not verify', bytes: 20 },
+    { kind: 'protected', label: 'Protected or recent entries', bytes: 40 },
+  ]);
+  expect(groups.reduce((sum, group) => sum + group.bytes, 0) + rows.reduce((sum, row) => sum + cleanableBytes(row), 0)).toBe(200);
 });

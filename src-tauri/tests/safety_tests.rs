@@ -2737,6 +2737,7 @@ fn stale_file_and_directory_units_execute_with_matching_estimates() {
         signature.platforms.clear();
         signature.intensive_only = false;
         signature.risk = risk;
+        signature.min_age_days = Some(14); // This fixture exercises nonzero retention independently of catalog defaults.
         let mut registry = SignatureRegistry::new();
         registry.register(signature.clone());
         let environment = PlatformEnvironment::native();

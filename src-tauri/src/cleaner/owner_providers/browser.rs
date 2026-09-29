@@ -1,13 +1,9 @@
 //! Owner-scoped cleanup for Chromium-managed download and offline caches.
 //!
-//! Chromium's component updater keeps one metadata-coupled store at
-//! `component_crx_cache`; deleting individual payloads would leave that index
-//! inconsistent. CacheStorage likewise owns indexes below one exact profile
-//! subtree. These adapters therefore move only the complete owner store to the
-//! operating system Trash, and only while every supported browser process is
-//! known to be stopped. Profile databases, extensions, installed components,
-//! cookies, history, and Service Worker registration data are siblings and are
-//! never part of either unit.
+//! Component downloads are one metadata-coupled store. Offline CacheStorage
+//! uses depth-two cache directories, matching Mole's deletion granularity.
+//! Origin indexes and Service Worker registrations remain outside those units.
+//! Every unit is re-enumerated and requires a stopped browser before Trash.
 
 use super::OwnerScopedProvider;
 use crate::models::{
@@ -272,15 +268,54 @@ impl ChromiumCacheProvider {
                     }
                     let owner = self.owner_state(layout);
                     for (profile, path) in paths {
-                        if let Some(unit) = self.observe_unit(
-                            environment,
-                            layout,
-                            Some(&profile),
-                            &browser_root,
-                            path,
-                            &owner,
-                        ) {
-                            units.push(unit);
+                        let entries = SymlinkGuard::validate_anchored_path(&path, environment)
+                            .map_err(|error| error.to_string())
+                            .and_then(|()| offline_entries(&path));
+                        match entries {
+                            Ok(entries) => {
+                                for (entry, payload) in entries {
+                                    let relative =
+                                        entry.strip_prefix(&path).expect("enumerated child");
+                                    let key = format!(
+                                        "{profile}/{}",
+                                        relative.to_string_lossy().replace('\\', "/")
+                                    );
+                                    if payload {
+                                        if let Some(unit) = self.observe_unit(
+                                            environment,
+                                            layout,
+                                            Some(&key),
+                                            &browser_root,
+                                            entry,
+                                            &owner,
+                                        ) {
+                                            units.push(unit);
+                                        }
+                                    } else {
+                                        let measured = self.measuring.measure(&entry);
+                                        if measured.allocated_bytes > 0 || !measured.complete {
+                                            let mut unit = OwnerUnitObservation::advisory(
+                                            unit_key(layout.key, Some(&key)), entry,
+                                            measured.logical_bytes, measured.allocated_bytes, measured.entry_count,
+                                            "CacheStorage origin metadata stays with the browser",
+                                        );
+                                            if !measured.complete {
+                                                unit.state = OwnerUnitState::Blocked;
+                                                unit.detail = measured.detail;
+                                            }
+                                            units.push(unit);
+                                        }
+                                    }
+                                }
+                            }
+                            Err(detail) => units.push(OwnerUnitObservation::blocked(
+                                unit_key(layout.key, Some(&profile)),
+                                path,
+                                0,
+                                0,
+                                0,
+                                detail,
+                            )),
                         }
                     }
                 }
@@ -330,7 +365,9 @@ impl ChromiumCacheProvider {
             }
             Ok(_) => {}
         }
-        if SymlinkGuard::validate_anchored_path(browser_root, environment).is_err() {
+        if SymlinkGuard::validate_anchored_path(browser_root, environment).is_err()
+            || SymlinkGuard::validate_anchored_path(&path, environment).is_err()
+        {
             return Some(OwnerUnitObservation::blocked(
                 unit_key(layout.key, profile),
                 path,
@@ -367,6 +404,22 @@ impl ChromiumCacheProvider {
             return None;
         }
         let key = unit_key(layout.key, profile);
+        let file_state;
+        let owner = if matches!(owner, BrowserOwnerState::Idle)
+            && environment.platform() == PlatformKind::Macos
+        {
+            file_state = match self
+                .process
+                .running(&RunningProcessPolicy::none().with_open_files(path.clone()))
+            {
+                Some(names) if names.is_empty() => BrowserOwnerState::Idle,
+                Some(names) => BrowserOwnerState::Running(names),
+                None => BrowserOwnerState::Unknown,
+            };
+            &file_state
+        } else {
+            owner
+        };
         Some(match owner {
             BrowserOwnerState::Idle => OwnerUnitObservation::ready(
                 key,
@@ -375,7 +428,7 @@ impl ChromiumCacheProvider {
                 measurement.allocated_bytes,
                 measurement.entry_count,
             ),
-            BrowserOwnerState::Running(running) => OwnerUnitObservation::refused(
+            BrowserOwnerState::Running(running) => OwnerUnitObservation::in_use(
                 key,
                 path,
                 measurement.logical_bytes,
@@ -414,7 +467,7 @@ impl ChromiumCacheProvider {
             ));
         }
         let mut plan = OwnerProviderAuthorization {
-            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
+            deletion_disposition: self.deletion_disposition(),
             signature_id: String::new(),
             provider_id: self.id().into(),
             risk: crate::models::RiskTier::Rebuild,
@@ -496,13 +549,22 @@ impl ChromiumCacheProvider {
         let expected = match self.kind {
             BrowserCacheKind::ComponentDownloads => root.join("component_crx_cache"),
             BrowserCacheKind::OfflineCacheStorage => {
-                let profile = unit.unit_key.split_once('/')?.1;
-                if !profile_name(profile) {
+                let mut parts = unit.unit_key.split('/').skip(1);
+                let profile = parts.next()?;
+                let origin = parts.next()?;
+                let cache = parts.next()?;
+                if !profile_name(profile)
+                    || parts.next().is_some()
+                    || !ordinary_component(origin)
+                    || !ordinary_component(cache)
+                {
                     return None;
                 }
                 root.join(profile)
                     .join("Service Worker")
                     .join("CacheStorage")
+                    .join(origin)
+                    .join(cache)
             }
         };
         (unit.path == expected).then_some(root)
@@ -597,6 +659,10 @@ impl OwnerScopedProvider for ChromiumCacheProvider {
         self.kind.needs_confirmation()
     }
 
+    fn deletion_disposition(&self) -> neati_core::domain::cleanup::DeletionDisposition {
+        neati_core::domain::cleanup::DeletionDisposition::Trash
+    }
+
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
         let (browser_key, profile) = unit
             .unit_key
@@ -612,7 +678,11 @@ impl OwnerScopedProvider for ChromiumCacheProvider {
         match (self.kind, profile) {
             (BrowserCacheKind::ComponentDownloads, _) => format!("{browser} component downloads"),
             (BrowserCacheKind::OfflineCacheStorage, Some(profile)) => {
-                format!("{browser} {profile} offline cache")
+                format!(
+                    "{browser} {} offline cache · {}",
+                    profile.split('/').next().unwrap_or(profile),
+                    unit.path.file_name().unwrap_or_default().to_string_lossy()
+                )
             }
             (BrowserCacheKind::OfflineCacheStorage, None) => format!("{browser} offline cache"),
         }
@@ -721,7 +791,12 @@ fn direct_profiles(root: &Path) -> Result<Vec<String>, ProfileRead> {
         ))
     })?;
     let mut profiles = Vec::new();
-    for entry in entries {
+    for (index, entry) in entries.enumerate() {
+        if index >= MAX_STORE_ENTRIES {
+            return Err(ProfileRead::Unsafe(
+                "Browser profile listing exceeds its entry limit".into(),
+            ));
+        }
         let entry = entry.map_err(|error| {
             ProfileRead::Unsafe(format!("A browser profile listing was incomplete: {error}"))
         })?;
@@ -741,7 +816,43 @@ fn profile_name(name: &str) -> bool {
         })
 }
 
-fn inspect_store(root: &Path) -> Result<(), String> {
+fn ordinary_component(name: &str) -> bool {
+    !name.is_empty() && name != "." && name != ".." && !name.contains(['/', '\\'])
+}
+
+/// Disjoint observations: only directories exactly two levels below the store
+/// are removable. Every other entry is retained and measured once.
+fn offline_entries(root: &Path) -> Result<Vec<(PathBuf, bool)>, String> {
+    let mut pending = vec![(root.to_path_buf(), 0usize)];
+    let mut entries = Vec::new();
+    let mut count = 0usize;
+    while let Some((directory, depth)) = pending.pop() {
+        let metadata = fs::symlink_metadata(&directory).map_err(|error| error.to_string())?;
+        if !metadata.is_dir() || metadata.file_type().is_symlink() {
+            return Err("CacheStorage contains an unsafe directory".into());
+        }
+        for entry in fs::read_dir(directory).map_err(|error| error.to_string())? {
+            count += 1;
+            if count > MAX_STORE_ENTRIES {
+                return Err("CacheStorage exceeds its enumeration limit".into());
+            }
+            let entry = entry.map_err(|error| error.to_string())?;
+            let metadata = fs::symlink_metadata(entry.path()).map_err(|error| error.to_string())?;
+            if metadata.file_type().is_symlink() {
+                return Err("CacheStorage contains a symbolic link".into());
+            }
+            if metadata.is_dir() && depth == 0 {
+                pending.push((entry.path(), 1));
+            } else {
+                entries.push((entry.path(), metadata.is_dir() && depth == 1));
+            }
+        }
+    }
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(entries)
+}
+
+pub(super) fn inspect_store(root: &Path) -> Result<(), String> {
     let mut stack = vec![(root.to_path_buf(), 0usize)];
     let mut seen = 0usize;
     while let Some((path, depth)) = stack.pop() {
@@ -923,7 +1034,7 @@ mod tests {
         let profile = ChromiumCacheProvider::base(&environment)
             .unwrap()
             .join("Google/Chrome/Default");
-        let cache = profile.join("Service Worker/CacheStorage");
+        let cache = profile.join("Service Worker/CacheStorage/origin/cache");
         fs::create_dir_all(&cache).unwrap();
         fs::write(cache.join("index.txt"), vec![2; 8192]).unwrap();
         for sibling in [
@@ -960,13 +1071,99 @@ mod tests {
     }
 
     #[test]
+    fn offline_units_preserve_origin_indexes_and_unselected_cache_siblings() {
+        let (_temp, environment, guard) = mac_fixture();
+        let root = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join("Google/Chrome/Default/Service Worker/CacheStorage");
+        for relative in [
+            "origin/first/payload",
+            "origin/second/payload",
+            "origin/index.txt",
+            "index.txt",
+        ] {
+            let path = root.join(relative);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, vec![1; 4096]).unwrap();
+        }
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(Idle),
+            Arc::new(FixtureTrash::default()),
+        );
+        let observed = provider.scan(&environment, &guard);
+        assert_eq!(observed.units.len(), 4);
+        assert_eq!(
+            observed
+                .units
+                .iter()
+                .filter(|unit| unit.state == OwnerUnitState::Advisory)
+                .count(),
+            2
+        );
+        let selected = observed
+            .units
+            .iter()
+            .find(|unit| unit.path.ends_with("origin/first"))
+            .unwrap();
+        let plan = provider
+            .prepare(&environment, &guard, &[selection(selected)])
+            .unwrap();
+        assert_eq!(
+            plan.deletion_disposition,
+            neati_core::domain::cleanup::DeletionDisposition::Trash
+        );
+        assert_eq!(
+            provider.execute(&environment, &plan).units[0].status,
+            ProviderStatus::Cleaned
+        );
+        assert!(!root.join("origin/first").exists());
+        for retained in ["origin/second/payload", "origin/index.txt", "index.txt"] {
+            assert!(root.join(retained).exists());
+        }
+    }
+
+    #[test]
+    fn open_file_probe_can_refuse_an_otherwise_idle_browser_unit() {
+        struct OpenFile;
+        impl RunningProcessProbe for OpenFile {
+            fn running(&self, guard: &RunningProcessPolicy) -> Option<Vec<String>> {
+                Some(if guard.open_file_path().is_some() {
+                    vec!["cache reader".into()]
+                } else {
+                    vec![]
+                })
+            }
+        }
+        let (_temp, environment, guard) = mac_fixture();
+        let path = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join("Google/Chrome/Default/Service Worker/CacheStorage/origin/cache");
+        fs::create_dir_all(&path).unwrap();
+        fs::write(path.join("payload"), vec![1; 4096]).unwrap();
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(OpenFile),
+            Arc::new(FixtureTrash::default()),
+        );
+        let observed = provider.scan(&environment, &guard);
+        assert_eq!(observed.units[0].state, OwnerUnitState::InUse);
+        assert!(provider
+            .prepare(&environment, &guard, &[selection(&observed.units[0])])
+            .is_err());
+        assert!(path.exists());
+    }
+
+    #[test]
     fn multiple_profiles_are_enumerated_without_recursive_discovery() {
         let (_temp, environment, guard) = mac_fixture();
         let root = ChromiumCacheProvider::base(&environment)
             .unwrap()
             .join("Google/Chrome");
         for profile in ["Default", "Profile 2"] {
-            let cache = root.join(profile).join("Service Worker/CacheStorage");
+            let cache = root
+                .join(profile)
+                .join("Service Worker/CacheStorage/origin/cache");
             fs::create_dir_all(&cache).unwrap();
             fs::write(cache.join("entry"), vec![3; 4096]).unwrap();
         }
@@ -983,11 +1180,11 @@ mod tests {
         assert!(observation
             .units
             .iter()
-            .any(|unit| unit.unit_key == "chrome/Default"));
+            .any(|unit| unit.unit_key == "chrome/Default/origin/cache"));
         assert!(observation
             .units
             .iter()
-            .any(|unit| unit.unit_key == "chrome/Profile 2"));
+            .any(|unit| unit.unit_key == "chrome/Profile 2/origin/cache"));
     }
 
     #[test]
@@ -1005,7 +1202,7 @@ mod tests {
         );
         let observation = provider.scan(&environment, &guard);
         assert_eq!(observation.status, ProviderStatus::Ready);
-        assert_eq!(observation.units[0].state, OwnerUnitState::Refused);
+        assert_eq!(observation.units[0].state, OwnerUnitState::InUse);
         assert!(observation.units[0].allocated_bytes > 0);
     }
 

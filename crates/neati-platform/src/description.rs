@@ -153,6 +153,20 @@ impl PlatformEnvironment {
                 "NPM_CONFIG_STORE_DIR",
                 "npm_config_store_dir",
                 "DOTSLASH_CACHE",
+                "GRADLE_USER_HOME",
+                "CONDA_PKGS_DIRS",
+                "CONDARC",
+                "MISE_CACHE_DIR",
+                "MISE_STATE_DIR",
+                "MISE_DATA_DIR",
+                "MISE_CONFIG_DIR",
+                "MISE_CONFIG_FILE",
+                "MISE_GLOBAL_CONFIG_FILE",
+                "MISE_TASK_CACHE_DIR",
+                "XDG_STATE_HOME",
+                "XDG_DATA_HOME",
+                "XDG_CONFIG_HOME",
+                "XDG_CACHE_HOME",
             ]
             .into_iter()
             .filter_map(|name| {
@@ -366,6 +380,36 @@ impl PlatformEnvironment {
     }
 
     pub fn expand_placeholder(&self, pattern: &str) -> Option<PathBuf> {
+        for (token, variable, default) in [
+            ("${GRADLE_USER_HOME}", "GRADLE_USER_HOME", ".gradle"),
+            ("${XDG_CACHE_HOME}", "XDG_CACHE_HOME", ".cache"),
+        ] {
+            if let Some(suffix) = pattern.strip_prefix(token) {
+                if !suffix.is_empty() && !suffix.starts_with(['/', '\\']) {
+                    return None;
+                }
+                let root = match self.cache_path_override(variable) {
+                    Some(path) => {
+                        let text = path.to_str()?;
+                        if !super::path_algebra::is_absolute(text, self.flavor)
+                            || super::path_algebra::has_parent_traversal(text, self.flavor)
+                            || super::path_algebra::has_alternate_data_stream(text, self.flavor)
+                            || super::path_algebra::contains_short_name(text, self.flavor)
+                            || super::path_algebra::has_trailing_dot_or_space(text, self.flavor)
+                        {
+                            return None;
+                        }
+                        path.to_path_buf()
+                    }
+                    None => super::paths::join_with_flavor(self.user_home()?, default, self.flavor),
+                };
+                return Some(super::paths::join_with_flavor(
+                    root,
+                    suffix.trim_start_matches(['/', '\\']),
+                    self.flavor,
+                ));
+            }
+        }
         PlatformPathsProvider::expand_placeholder(self, pattern)
     }
 }
@@ -1014,5 +1058,30 @@ mod tests {
             &desktop.to_string_lossy(),
             environment.flavor()
         ));
+    }
+}
+
+#[cfg(test)]
+mod cache_root_tests {
+    use super::*;
+    #[test]
+    fn invalid_custom_cache_roots_never_fall_back_to_home() {
+        let env = PlatformEnvironment::simulated(PathFlavor::Posix)
+            .with_home("/profile")
+            .with_cache_path_override("GRADLE_USER_HOME", "relative");
+        assert_eq!(env.expand_placeholder("${GRADLE_USER_HOME}/caches"), None);
+        let env = PlatformEnvironment::simulated(PathFlavor::Posix).with_home("/profile");
+        assert_eq!(
+            env.expand_placeholder("${XDG_CACHE_HOME}/vite"),
+            Some(PathBuf::from("/profile/.cache/vite"))
+        );
+        assert_eq!(env.expand_placeholder("${XDG_CACHE_HOME}suffix"), None);
+        let env = PlatformEnvironment::simulated(PathFlavor::Windows)
+            .with_home(r"C:\Users\test")
+            .with_cache_path_override("GRADLE_USER_HOME", r"D:\BuildCaches\gradle");
+        assert_eq!(
+            env.expand_placeholder("${GRADLE_USER_HOME}/caches"),
+            Some(PathBuf::from(r"D:\BuildCaches\gradle\caches"))
+        );
     }
 }

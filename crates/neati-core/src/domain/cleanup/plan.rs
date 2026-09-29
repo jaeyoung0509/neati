@@ -75,6 +75,8 @@ impl CleanupMode {
 pub struct RunningProcessPolicy {
     executables: Vec<String>,
     cache_owner: Option<String>,
+    gradle_owner: bool,
+    open_file_path: Option<PathBuf>,
 }
 
 impl RunningProcessPolicy {
@@ -88,6 +90,8 @@ impl RunningProcessPolicy {
         Self {
             executables,
             cache_owner: None,
+            gradle_owner: false,
+            open_file_path: None,
         }
     }
 
@@ -95,6 +99,24 @@ impl RunningProcessPolicy {
     pub fn with_cache_owner(mut self, owner: String) -> Self {
         self.cache_owner = Some(owner);
         self
+    }
+
+    pub fn with_open_files(mut self, path: PathBuf) -> Self {
+        self.open_file_path = Some(path);
+        self
+    }
+
+    pub fn open_file_path(&self) -> Option<&std::path::Path> {
+        self.open_file_path.as_deref()
+    }
+
+    pub fn with_gradle_owner(mut self) -> Self {
+        self.gradle_owner = true;
+        self
+    }
+
+    pub fn guards_gradle(&self) -> bool {
+        self.gradle_owner
     }
 
     pub fn cache_owner(&self) -> Option<&str> {
@@ -106,7 +128,10 @@ impl RunningProcessPolicy {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.executables.is_empty() && self.cache_owner.is_none()
+        self.executables.is_empty()
+            && self.cache_owner.is_none()
+            && !self.gradle_owner
+            && self.open_file_path.is_none()
     }
 
     /// Whether a running process name matches this policy.

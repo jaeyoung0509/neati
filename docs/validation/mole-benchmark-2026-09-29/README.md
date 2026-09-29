@@ -2,7 +2,7 @@
 
 2026-09-29 · macOS 27.0 (26A428) · Apple silicon.
 
-**Result:** neati scanned faster in this setup. Mole displayed a larger potential total, but about 194 MB was represented by nested parent/child paths. neati also has an overly broad owner-verification failure introduced in merged PR #355 and tracked in #356.
+**Latest result (0.3.79):** median scan time was 30.810 s for neati and 41.805 s for Mole. neati reported 1.787 GB of conditional candidates and 382.5–382.6 MB selected. See the final section for this batch. Earlier sections preserve the historical measurements, including the owner-verification bug fixed in #358.
 
 ## Method
 
@@ -159,3 +159,92 @@ frontend typecheck, Vitest (434 passed), Vite build, bindings (no drift), versio
 synchronization and `just build-fast` all passed. The final 0.3.78 app's icon
 and embedded frontend were verified. It was not installed or launched to replace
 the user's app. Windows runtime behavior remains manually unverified.
+
+
+## 0.3.79: four-theme Mole comparison batch
+
+Refs #349, #351, #353 and #357. [Aggregate evidence](mole-batch.json) includes
+three runs per tool, per-signature byte totals and the slowest scanner spans.
+The commands, run order and effective access probes match the earlier comparison.
+This batch changes container-cache and ordinary-log retention to zero days and
+splits offline CacheStorage into individual depth-two cache directories. Named
+temporary and crash-report scopes retain their documented age policies.
+
+| Metric | neati 0.3.79 | Mole 1.55.0 |
+| --- | ---: | ---: |
+| Run 1 | 30.810 s | 43.310 s |
+| Run 2 | 27.749 s | 41.805 s |
+| Run 3 | 34.189 s | 39.798 s |
+| Median | **30.810 s** | **41.805 s** |
+| Conditional candidates / reported potential | 1.787 GB | 2.07 GB |
+| Default selected | **382.5–382.6 MB** | No equivalent selection result |
+| Observed, including retained data | 8.116 GB | No comparable inventory |
+| Unmatched reference paths | 59 rows / 1.312 MB rounded | 523 preview rows total |
+
+All six invocations completed successfully. Access probes passed; neati still
+reported 5 permission-denied and 7 IO gaps, zero Full Disk Access gaps and zero
+unknown-owner items. Coverage remains partial. Mole still skipped privileged
+system preview. Its ten nested path overlaps total 274.481 MB, leaving about
+1.791 GB of disjoint rounded path footprints. That figure is not measured
+reclaimable space, even though it is close to neati's conditional estimate.
+
+### What the additional observations mean
+
+Run 2, decimal MB:
+
+| Population | Observed | Conditional candidates | Selected |
+| --- | ---: | ---: | ---: |
+| Chromium offline CacheStorage | 613.736 | 613.552 | 0 |
+| Container cache payloads | 799.080 | 335.946 | 49.770 |
+| Group-container cache payloads | 11.067 | 8.008 | 7.999 |
+| Ordinary application logs | 7.127 | 7.127 | 1.450 |
+| Gradle local build cache | 0.147 | 0.143 | 0.143 |
+| Named Apple worker temporary files | 14.787 | 13.840 | 0 |
+| Completed Brave crash reports | 3.269 | 3.269 | 0 |
+| Diagnostic reports | 0.242 | 0 | 0 |
+| Suggestions state | 15.860 | 0 | 0 |
+| Help metadata | 0.066 | 0 | 0 |
+
+Offline CacheStorage is now 50 reviewable cache directories plus 45 advisory
+metadata observations. Active browsers keep every cache unselected; closing a
+browser and passing fresh checks is still required. Component downloads also
+remain conditional while their browser runs. The increase in the conditional
+total therefore includes a change from blocked to explicitly close-app-first
+presentation, not just new deletion scope.
+
+Compared with the preceding 0.3.78 policy measurement, selected bytes rose from
+331.907 MB to 382.546 MB and conditional candidates from 529.878 MB to about
+1,787 MB. The unmatched rounded preview sum fell from 24.577 MB to 1.312 MB.
+Live caches and reference row counts changed between those measurements, so
+these deltas cannot all be attributed to code. Path coverage also includes
+observation-only entries such as Suggestions and Help metadata.
+
+### Performance and verification limits
+
+The current median is 26.3% shorter than Mole's invocation, but longer than
+neati's previous 14.278-second policy measurement. In run 2, container/group/log
+spans together consumed 4.817 seconds; other substantial spans were Trash
+observation (5.253 s), Codex runtime observation (4.827 s), Homebrew cleanup
+preview (4.339 s) and cache providers (3.261 s). These timings identify costs,
+not a controlled attribution of the whole regression. This is a dev-build scan
+benchmark on a changing filesystem, with no deletion throughput or actual freed
+space measurement.
+
+Rust checks, Clippy, formatting and all tests passed (1,201 passed, 5 ignored).
+Frontend typecheck, 435 tests, production build, architecture/version checks and
+binding generation passed. The final debug app reports 0.3.79, contains the
+current frontend asset names and matches the source icon. The installed/running
+app was not replaced. Windows runtime behavior remains locally unverified.
+Conda and mise were absent: their native command adapters were exercised with
+temporary executable/store fixtures; installed CLI compatibility is still open.
+
+[Light](storage-summary-light.png) and [dark](storage-summary-dark.png) screenshots
+show the production browser preview with mixed actionable/advisory/partial data.
+The native disclosure was checked with the keyboard. Native glass was not
+revalidated. No real cache cleanup or application termination ran, and Mole's
+previous preview file was restored and byte-compared. Private ledgers stay local.
+
+The four broader issues remain open for updater/editor stores, additional
+package-store contracts, generic excluded-scope discovery, physical-alias
+accounting and abandoned runtime staging. This PR delivers the scoped increments
+above without claiming those remaining contracts complete.

@@ -100,6 +100,38 @@ export function cleanupAvailability(items: ScanItem[]) {
   return { ready, running, review };
 }
 
+export interface RetainedByteGroup {
+  kind: 'managed' | 'recent' | 'scope' | 'unavailable' | 'protected' | 'unestimated';
+  label: string;
+  bytes: number;
+}
+
+/** Partition the non-candidate population using typed backend facts. */
+export function retainedByteGroups(items: ScanItem[]): RetainedByteGroup[] {
+  const groups: RetainedByteGroup[] = [
+    { kind: 'managed', label: 'Managed by the owner', bytes: 0 },
+    { kind: 'recent', label: 'Kept by age policy', bytes: 0 },
+    { kind: 'scope', label: 'Outside cleanup scope', bytes: 0 },
+    { kind: 'unavailable', label: 'Could not verify', bytes: 0 },
+    { kind: 'protected', label: 'Protected or recent entries', bytes: 0 },
+    { kind: 'unestimated', label: 'Tool decides what is unused', bytes: 0 },
+  ];
+  for (const item of items) {
+    const bytes = observedBytes(item) - cleanableBytes(item);
+    if (bytes <= 0) continue;
+    const eligibility = item.disposition?.eligibility;
+    const kind: RetainedByteGroup['kind'] =
+      item.quality !== 'fresh' ? 'unavailable' :
+      eligibility === 'advisory' ? 'managed' :
+      eligibility === 'recent' ? 'recent' :
+      eligibility === 'policy_gated' ? 'scope' :
+      item.cache_metadata?.management_mode === 'tool_managed' && item.cache_metadata.artifact_kind === 'package_store' ? 'unestimated' :
+      'protected';
+    groups.find(group => group.kind === kind)!.bytes += bytes;
+  }
+  return groups.filter(group => group.bytes > 0);
+}
+
 /** Whether the item is explicitly blocked from generic cleanup (e.g. nested .app, inaccessible). */
 export function isBlocked(item: ScanItem): boolean {
   return !item.disposition || item.disposition.eligibility === 'blocked';

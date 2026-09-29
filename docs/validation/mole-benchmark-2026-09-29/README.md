@@ -127,3 +127,35 @@ No application was stopped and no cache deletion ran. The prior Mole preview
 file was restored and verified. These are live-system dev-build scan timings,
 not release performance or measured disk recovery. Private ledgers and previews
 stay local; only aggregate evidence is committed.
+
+## #359: ordinary cleanup for verified download archives
+
+The user then requested Mole-aligned policy. Ready Homebrew downloads and Cargo
+registry archives now enter ordinary cleanup without a second confirmation,
+using their existing owner adapters. Retention thresholds and stateful-store
+review were unchanged. [Installed source hashes](mole-source.json) identify the
+Mole files inspected for this policy decision.
+
+[Three final scans](policy-defaults.json), with the same effective permissions,
+reported 529,877,696 conditional cleanable bytes and 331,907,072 selected bytes.
+Scan times were 16.693, 14.278 and 14.064 seconds (median 14.278). Coverage
+remained partial with 5 permission-denied and 7 IO gap records.
+
+| Download population | Observed/cleanable bytes | Selected before | Selected after |
+| --- | ---: | ---: | ---: |
+| Homebrew downloads | 129,212,416 | 0 | 129,212,416 |
+| Cargo registry archives | 105,439,232 | 0 | 105,439,232 |
+| Total | 234,651,648 | 0 | 234,651,648 |
+
+The total selected amount changed from 66,039,808 to 331,907,072 bytes. Only
+234,651,648 bytes are directly attributable to this policy change; Help and
+container eligibility also changed as live process state changed. The aggregate
+cleanable delta is not evidence that this patch expanded filesystem scope.
+Mole was not rerun for this focused policy comparison. No real cleanup ran.
+
+Final local verification: `cargo check`, `cargo test` (1,184 passed, 5 ignored),
+owner-provider tests (51 passed), Clippy with warnings denied, format, architecture,
+frontend typecheck, Vitest (434 passed), Vite build, bindings (no drift), version
+synchronization and `just build-fast` all passed. The final 0.3.78 app's icon
+and embedded frontend were verified. It was not installed or launched to replace
+the user's app. Windows runtime behavior remains manually unverified.

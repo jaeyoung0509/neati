@@ -324,7 +324,7 @@ impl OwnerScopedProvider for HomebrewDownloadsProvider {
         "Homebrew downloads these files again when a future installation needs them."
     }
     fn requires_confirmation(&self) -> bool {
-        true
+        false
     }
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
         let label = unit
@@ -443,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn only_direct_downloads_are_reviewable_and_a_selected_file_is_removed() {
+    fn only_direct_downloads_are_ready_and_a_selected_file_is_removed() {
         let (_temp, environment, provider, guard) = fixture();
         let root = HomebrewDownloadsProvider::root(&environment).unwrap();
         fs::create_dir_all(&root).unwrap();
@@ -471,11 +471,63 @@ mod tests {
         let plan = provider
             .prepare(&environment, &guard, &[selection])
             .unwrap();
+        assert!(!provider.requires_confirmation());
+        assert!(!plan.requires_confirmation);
         let outcome = provider.execute(&environment, &plan);
         assert_eq!(outcome.units.len(), 1);
         assert_eq!(outcome.units[0].status, ProviderStatus::Cleaned);
         assert!(!valid.exists());
         assert!(root.join("unexpected.txt").exists());
+    }
+
+    #[test]
+    fn ready_downloads_are_selected_by_the_catalog_without_a_second_review() {
+        let (_temp, environment, provider, _guard) = fixture();
+        let root = HomebrewDownloadsProvider::root(&environment).unwrap();
+        fs::create_dir_all(&root).unwrap();
+        let valid = root.join(format!("{}--archive.tar.gz", "a".repeat(64)));
+        fs::write(&valid, vec![b'x'; 8192]).unwrap();
+        fs::write(root.join("unexpected.txt"), b"keep").unwrap();
+        let catalog =
+            crate::signatures::SignatureRegistry::load_embedded_with(&environment).unwrap();
+        let providers = crate::cleaner::OwnerProviderRegistry::new(vec![Arc::new(provider)]);
+        let items = providers.scan_items(
+            &catalog,
+            crate::models::Category::Developer,
+            true,
+            &[],
+            &environment,
+        );
+        let ready = items
+            .iter()
+            .find(|item| item.path == valid.to_string_lossy())
+            .unwrap();
+        assert!(ready.is_selected);
+        assert_eq!(
+            ready.disposition.eligibility,
+            crate::models::CleanupEligibility::AutoCleanable
+        );
+        assert_eq!(ready.cleanable_bytes(), ready.observed_bytes());
+        let advisory = items
+            .iter()
+            .find(|item| item.path.ends_with("unexpected.txt"))
+            .unwrap();
+        assert!(!advisory.is_selected);
+        assert_eq!(advisory.cleanable_bytes(), 0);
+        let plan = providers
+            .prepare(
+                &catalog,
+                &ready.signature_id,
+                &[OwnerProviderSelection {
+                    item_id: ready.id.clone(),
+                    name: ready.name.clone(),
+                    path: valid,
+                    expected_bytes: ready.cleanable_bytes(),
+                }],
+                &environment,
+            )
+            .unwrap();
+        assert!(!plan.requires_confirmation);
     }
 
     #[test]

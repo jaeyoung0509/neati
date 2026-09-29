@@ -1,0 +1,152 @@
+{
+  "version": "0.3.78",
+  "issue": 359,
+  "date": "2026-09-29",
+  "host": "macOS 27.0 (26A428), Apple silicon",
+  "baseline": "full-disk-access.json run 3, before download-confirmation policy change",
+  "baseline_selected_bytes": 66039808,
+  "baseline_download_populations": {
+    "dev.homebrew.downloads": {
+      "items": 1,
+      "observed_bytes": 129212416,
+      "cleanable_bytes": 129212416,
+      "selected_bytes": 0,
+      "eligibility": [
+        "reviewable"
+      ]
+    },
+    "dev.cargo.registry.cache": {
+      "items": 1,
+      "observed_bytes": 105439232,
+      "cleanable_bytes": 105439232,
+      "selected_bytes": 0,
+      "eligibility": [
+        "reviewable"
+      ]
+    }
+  },
+  "runs": [
+    {
+      "run": 1,
+      "elapsed_seconds": 16.693,
+      "observed_bytes": 7333472960,
+      "cleanable_bytes": 529877696,
+      "selected_bytes": 331907072,
+      "quality": "partial",
+      "gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "download_populations": {
+        "dev.homebrew.downloads": {
+          "items": 1,
+          "observed_bytes": 129212416,
+          "cleanable_bytes": 129212416,
+          "selected_bytes": 129212416,
+          "eligibility": [
+            "auto_cleanable"
+          ]
+        },
+        "dev.cargo.registry.cache": {
+          "items": 1,
+          "observed_bytes": 105439232,
+          "cleanable_bytes": 105439232,
+          "selected_bytes": 105439232,
+          "eligibility": [
+            "auto_cleanable"
+          ]
+        }
+      }
+    },
+    {
+      "run": 2,
+      "elapsed_seconds": 14.278,
+      "observed_bytes": 7333472960,
+      "cleanable_bytes": 529877696,
+      "selected_bytes": 331907072,
+      "quality": "partial",
+      "gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "download_populations": {
+        "dev.homebrew.downloads": {
+          "items": 1,
+          "observed_bytes": 129212416,
+          "cleanable_bytes": 129212416,
+          "selected_bytes": 129212416,
+          "eligibility": [
+            "auto_cleanable"
+          ]
+        },
+        "dev.cargo.registry.cache": {
+          "items": 1,
+          "observed_bytes": 105439232,
+          "cleanable_bytes": 105439232,
+          "selected_bytes": 105439232,
+          "eligibility": [
+            "auto_cleanable"
+          ]
+        }
+      }
+    },
+    {
+      "run": 3,
+      "elapsed_seconds": 14.064,
+      "observed_bytes": 7333472960,
+      "cleanable_bytes": 529877696,
+      "selected_bytes": 331907072,
+      "quality": "partial",
+      "gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "download_populations": {
+        "dev.homebrew.downloads": {
+          "items": 1,
+          "observed_bytes": 129212416,
+          "cleanable_bytes": 129212416,
+          "selected_bytes": 129212416,
+          "eligibility": [
+            "auto_cleanable"
+          ]
+        },
+        "dev.cargo.registry.cache": {
+          "items": 1,
+          "observed_bytes": 105439232,
+          "cleanable_bytes": 105439232,
+          "selected_bytes": 105439232,
+          "eligibility": [
+            "auto_cleanable"
+          ]
+        }
+      }
+    }
+  ],
+  "median_seconds": 14.278,
+  "retention_thresholds": "unchanged",
+  "no_cleanup_executed": true,
+  "limitations": [
+    "Live filesystem; data changed since baseline.",
+    "neati Cargo dev-profile read-only example; partial coverage remains.",
+    "Mole was not rerun for this focused policy comparison; its earlier same-day full-access preview remains the reference."
+  ]
+}

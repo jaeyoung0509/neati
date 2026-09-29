@@ -256,7 +256,9 @@ safety conventions below when changing neati.
 - Extended (formerly intensive) cache scanning is standard on supported platforms,
   not a user toggle. Legacy settings are normalized to enabled. The broader
   scope remains subject to age, process, structured-state, signature-scope and explicit
-  cleanup authorization checks remain mandatory; provider review is preserved.
+  cleanup authorization checks remain mandatory. Ready Homebrew downloads and
+  Cargo registry archives use ordinary cleanup through their owner adapters;
+  stateful provider operations retain review.
 
 - Cleanup targets originate from registered TOML signatures. The planner must
   reject paths outside a signature's resolved scope.

@@ -217,8 +217,9 @@ impl OwnerProviderRegistry {
     /// Every fact on an item comes from a stated source: the catalog owns the
     /// name, category, risk tier, owner, and description; the provider owns the
     /// units, the bytes its measurement observed, and the consequence text. No
-    /// unit is ever auto-selected — the disposition decides that, and a
-    /// provider's units are never generic cleanup's to remove.
+    /// unit bypasses disposition: ready disposable downloads can be selected
+    /// automatically, while stateful operations require review. The owner
+    /// provider remains the only executor of its units.
     pub fn scan_items(
         &self,
         registry: &SignatureRegistry,

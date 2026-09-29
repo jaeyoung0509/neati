@@ -93,3 +93,23 @@ track these separately testable contracts:
   including disjoint nested coverage and a dedicated retained-scope projection.
 
 CLI #335 and usage diagnostics #354 are outside this batch.
+
+## Mole-aligned disposable download defaults
+
+Ready Homebrew download files and Cargo registry `.crate` archive units are
+selected by default and use ordinary explicit cleanup, including Quick Clean.
+Their owner adapters still validate scope, file/archive shape, process state,
+identity and the current inventory before mutation. A provider implementation
+alone is not a reason to require a second confirmation for disposable downloads.
+Cargo extracted sources/git stores and Homebrew API metadata remain outside
+this authorization. Homebrew installed-version cleanup and browser offline
+stores retain their distinct reviewed contracts.
+
+The installed Mole 1.55.0 `lib/clean/dev.sh` processes Cargo registry archive
+caches in its Rust cleanup and Homebrew downloads in normal cleanup.
+`lib/clean/user.sh::clean_browsers` guards ordinary Chrome profile caches but
+calls `clean_service_worker_cache` separately; `lib/clean/caches.sh` enumerates
+depth-two CacheStorage units and preserves its whitelist. neati currently owns
+a whole-store Trash operation, so copying that process policy alone would not
+copy Mole's deletion unit. Fine-grained browser ownership remains #349/#352.
+No log/temp retention thresholds changed in #359.

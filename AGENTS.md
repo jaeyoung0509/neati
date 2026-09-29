@@ -50,6 +50,9 @@ safety conventions below when changing neati.
   commands above and inspect the `.app` bundle's version and packaged icon.
   A build is not an installation: state whether the running/installed app was
   actually replaced. Do not publish a release or tag as part of a version bump.
+- Screenshots in PRs are required only when the change actually affects the UI
+  or visible assets. PRs with no UI changes do not need screenshots; backend,
+  test, documentation, and workflow changes can use relevant checks as evidence.
 - The PR description and final handoff must identify linked issues, the version
   transition (or documented no-bump reason), checks run and their results, visual
   evidence for UI/asset changes, and any unverified platform behavior. Report CI
@@ -335,3 +338,16 @@ safety conventions below when changing neati.
 - Sidebar presentation groups destinations into Overview, Storage, System,
   and Tools. Preserve saved visibility and relative order within each group;
   indent direct workflow shortcuts beneath their owner without changing routes.
+
+## Scan accounting and coverage
+
+- Excluded namespaces may be measured through the bounded coverage observer.
+  Its synthetic IDs are unregistered and must never grant cleanup authority.
+  Route a fully covered exact namespace to its dedicated owner; retain partial
+  or unresolved overlap as an explicit range without suppressing owner actions.
+- A physical overlap audit is observation only. Separate hard-link entries retain
+  separate operations; uncertain physical contributions qualify the observed
+  range and never become permission to mutate another path.
+- Browser unit observations may use the shared scan pool, capped at four workers.
+  Every unit still gets its own use verdict; planning and execution obtain fresh
+  observations, including the final pre-mutation check.

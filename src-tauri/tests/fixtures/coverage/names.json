@@ -1,0 +1,24 @@
+{
+  "owned": "dedicated.store",
+  "excluded_unknown": "unclassified.store",
+  "ordinary": "ordinary.cache",
+  "payload_bytes": 8192,
+  "ignore": [
+    {
+      "kind": "zero_bytes",
+      "reason": "No measured storage contribution; partial zero observations remain visible."
+    },
+    {
+      "kind": "symlink_descendants",
+      "reason": "Do not traverse links or mount points; report incomplete coverage."
+    },
+    {
+      "kind": "outside_registered_roots",
+      "reason": "No home/project-wide inventory or deletion authority."
+    },
+    {
+      "kind": "unrecognized_temporary_children",
+      "reason": "Temporary roots are inventoried only for registered tool prefixes; unrelated session files stay outside scope."
+    }
+  ]
+}

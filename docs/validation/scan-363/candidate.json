@@ -1,0 +1,1634 @@
+{
+  "cancelled": false,
+  "categories": [
+    {
+      "category": "ai",
+      "cleanable_bytes": 0,
+      "items": 3,
+      "observed_bytes": 33533952,
+      "skipped_entries": 2
+    },
+    {
+      "category": "developer",
+      "cleanable_bytes": 167939232,
+      "items": 19,
+      "observed_bytes": 4862299296,
+      "skipped_entries": 3
+    },
+    {
+      "category": "container",
+      "cleanable_bytes": 0,
+      "items": 1,
+      "observed_bytes": 1107533824,
+      "skipped_entries": 0
+    },
+    {
+      "category": "system",
+      "cleanable_bytes": 3461652480,
+      "items": 373,
+      "observed_bytes": 6349766656,
+      "skipped_entries": 13
+    }
+  ],
+  "cleanable_bytes": 3629591712,
+  "container_scan": null,
+  "coverage_groups": [
+    {
+      "count": 1,
+      "owner": "unattributed",
+      "reason": "io_error",
+      "root": "user_cache",
+      "source_id": "coverage:dev.android_studio.cache_payloads"
+    },
+    {
+      "count": 1,
+      "owner": "unattributed",
+      "reason": "io_error",
+      "root": "user_cache",
+      "source_id": "coverage:system.intensive.user_app_caches"
+    },
+    {
+      "count": 1,
+      "owner": "unattributed",
+      "reason": "io_error",
+      "root": "other",
+      "source_id": "dev.codex.runtimes"
+    },
+    {
+      "count": 3,
+      "owner": "unattributed",
+      "reason": "io_error",
+      "root": "other",
+      "source_id": "system.advisory.macos_system_caches"
+    },
+    {
+      "count": 4,
+      "owner": "unattributed",
+      "reason": "io_error",
+      "root": "other",
+      "source_id": "system.intensive.darwin_user_cache_other"
+    },
+    {
+      "count": 5,
+      "owner": "unattributed",
+      "reason": "permission_denied",
+      "root": "other",
+      "source_id": "system.intensive.darwin_user_cache_other"
+    }
+  ],
+  "gaps": [
+    {
+      "count": 10,
+      "kind": "io_error"
+    },
+    {
+      "count": 5,
+      "kind": "permission_denied"
+    }
+  ],
+  "included_signatures": [
+    "ai.cursor.logs",
+    "system.intensive.group_containers_caches",
+    "ai.cursor.extensions.cache",
+    "dev.opam.downloads",
+    "system.chrome.http_cache",
+    "system.helpd.page_cache",
+    "system.advisory.application_gpu_caches",
+    "ai.llamacpp.opencl.macos",
+    "ai.cursor.renderer_cache",
+    "dev.bun.cache",
+    "system.crash_reports",
+    "dev.mypy.global_cache",
+    "dev.gradle.daemon_logs",
+    "dev.conda.disposable_cache",
+    "dev.uv.cache",
+    "container.docker.dangling_images",
+    "dev.nuget.http",
+    "system.advisory.macos_system_caches",
+    "system.intensive.darwin_user_cache_other",
+    "ai.gemini.logs",
+    "system.intensive.containers_caches",
+    "system.chromium.offline_cache_storage",
+    "dev.typescript.user_cache",
+    "dev.pnpm.store",
+    "dev.cargo.git",
+    "dev.vite.user_cache",
+    "dev.nuget.plugins",
+    "dev.nuget.temp",
+    "system.cloudkit.cache",
+    "dev.ruff.global_cache",
+    "dev.clang.module_cache",
+    "system.brave.gpu_cache",
+    "system.help.metadata",
+    "dev.cargo.registry.cache",
+    "ai.antigravity.gpu_cache",
+    "dev.ruby.downloads",
+    "container.docker.builder",
+    "dev.prettier.user_cache",
+    "system.intensive.application_logs",
+    "dev.zed.node_download_cache",
+    "dev.gradle.build_cache",
+    "system.darwin_user_cache",
+    "dev.homebrew.downloads",
+    "container.docker.unused_images",
+    "dev.rustup.downloads",
+    "dev.npm.cache",
+    "dev.codex.runtimes",
+    "system.brave.code_cache",
+    "ai.claude.logs",
+    "dev.zig.global_cache",
+    "system.developer_temp",
+    "system.helpd.generated_cache",
+    "dev.webpack.user_cache",
+    "system.suggestions.observation",
+    "dev.eslint.user_cache",
+    "system.chromium.component_downloads",
+    "system.advisory.protected_apple_caches",
+    "dev.pip.cache",
+    "dev.xcode.archives",
+    "ai.gemini.cache",
+    "system.chrome.gpu_cache",
+    "system.chrome.code_cache",
+    "dev.composer.cache",
+    "system.advisory.simulator_devices",
+    "system.intensive.user_app_caches",
+    "dev.go.mod",
+    "ai.opencode.cache",
+    "dev.cargo.registry.src",
+    "dev.poetry.cache",
+    "system.app_support_cache_segments",
+    "dev.homebrew.metadata",
+    "dev.playwright.browsers",
+    "dev.mise.cache_clear",
+    "ai.claude.cache",
+    "ai.codex.gpu_cache",
+    "dev.jetbrains.index_payloads",
+    "system.saved_application_state",
+    "system.container.worker_temp",
+    "system.brave.http_cache",
+    "dev.xcode.caches",
+    "dev.xcode.derived_data",
+    "system.xcode_device_support",
+    "dev.gradle.caches",
+    "dev.android_studio.cache_payloads",
+    "dev.hex.cache",
+    "system.advisory.trash",
+    "dev.nuget.global_packages",
+    "dev.m2.repository",
+    "ai.cursor.gpu_cache",
+    "dev.go.build",
+    "ai.aider.cache",
+    "dev.dotslash.stale_artifacts",
+    "dev.homebrew.cleanup",
+    "dev.gradle.workers",
+    "system.advisory.device_backups",
+    "container.docker.stopped_containers",
+    "container.colima.cache",
+    "container.podman.cache",
+    "system.brave.completed_crash_reports",
+    "ai.torchinductor.temp",
+    "container.docker.unused_volumes",
+    "dev.yarn.cache",
+    "ai.codex.cache"
+  ],
+  "incomplete_items": 15,
+  "metrics": {
+    "directories_read": 13294,
+    "duration_ms": 28016,
+    "peak_outstanding_directory_tasks": 16,
+    "visited_entries": 110972
+  },
+  "observed_bytes": 12353133728,
+  "observed_lower_bound_bytes": 1141067776,
+  "overlap_uncertain_bytes": 11212065952,
+  "platform": "macos",
+  "provider_scan": null,
+  "quality": "partial",
+  "retained_bytes_upper_bound": 8723542016,
+  "schema": 3,
+  "scope": "full embedded catalog and native providers; intensive cleanup enabled; no cleanup",
+  "selected_bytes": 213688320,
+  "signature_results": [
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.cursor.logs",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 516096,
+      "incomplete_items": 0,
+      "items": 13,
+      "observed_bytes": 3641344,
+      "selected_bytes": 512000,
+      "signature_id": "system.intensive.group_containers_caches",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.cursor.extensions.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.opam.downloads",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 1248518144,
+      "incomplete_items": 0,
+      "items": 2,
+      "observed_bytes": 1248518144,
+      "selected_bytes": 0,
+      "signature_id": "system.chrome.http_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 13434880,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 13434880,
+      "selected_bytes": 13434880,
+      "signature_id": "system.helpd.page_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.advisory.application_gpu_caches",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.llamacpp.opencl.macos",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.cursor.renderer_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.bun.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 10,
+      "observed_bytes": 65536,
+      "selected_bytes": 0,
+      "signature_id": "system.crash_reports",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.mypy.global_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 3,
+      "observed_bytes": 6197248,
+      "selected_bytes": 0,
+      "signature_id": "dev.gradle.daemon_logs",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.conda.disposable_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.uv.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "container.docker.dangling_images",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.nuget.http",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 3,
+      "items": 3,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.advisory.macos_system_caches",
+      "skipped_entries": 3
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 9,
+      "items": 33,
+      "observed_bytes": 93077504,
+      "selected_bytes": 0,
+      "signature_id": "system.intensive.darwin_user_cache_other",
+      "skipped_entries": 9
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 4329472,
+      "selected_bytes": 0,
+      "signature_id": "ai.gemini.logs",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 236056576,
+      "incomplete_items": 0,
+      "items": 39,
+      "observed_bytes": 693764096,
+      "selected_bytes": 0,
+      "signature_id": "system.intensive.containers_caches",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 1168809984,
+      "incomplete_items": 0,
+      "items": 100,
+      "observed_bytes": 1169010688,
+      "selected_bytes": 0,
+      "signature_id": "system.chromium.offline_cache_storage",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.typescript.user_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 160202752,
+      "selected_bytes": 0,
+      "signature_id": "dev.pnpm.store",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.cargo.git",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.vite.user_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.nuget.plugins",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.nuget.temp",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 3829760,
+      "selected_bytes": 0,
+      "signature_id": "system.cloudkit.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.ruff.global_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.clang.module_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.brave.gpu_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 3,
+      "observed_bytes": 65536,
+      "selected_bytes": 0,
+      "signature_id": "system.help.metadata",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 105439232,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 105439232,
+      "selected_bytes": 105439232,
+      "signature_id": "dev.cargo.registry.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.antigravity.gpu_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.ruby.downloads",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "container.docker.builder",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.prettier.user_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 11075584,
+      "incomplete_items": 0,
+      "items": 4,
+      "observed_bytes": 11075584,
+      "selected_bytes": 5828608,
+      "signature_id": "system.intensive.application_logs",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.zed.node_download_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 4096,
+      "selected_bytes": 0,
+      "signature_id": "dev.gradle.build_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 4,
+      "observed_bytes": 8749056,
+      "selected_bytes": 0,
+      "signature_id": "system.darwin_user_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.homebrew.downloads",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "container.docker.unused_images",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.rustup.downloads",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 162455552,
+      "selected_bytes": 0,
+      "signature_id": "dev.npm.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 1,
+      "items": 1,
+      "observed_bytes": 3404017664,
+      "selected_bytes": 0,
+      "signature_id": "dev.codex.runtimes",
+      "skipped_entries": 2
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.brave.code_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.claude.logs",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.zig.global_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 48,
+      "observed_bytes": 1481138176,
+      "selected_bytes": 0,
+      "signature_id": "system.developer_temp",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 16728064,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 16728064,
+      "selected_bytes": 16728064,
+      "signature_id": "system.helpd.generated_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.webpack.user_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 11583488,
+      "selected_bytes": 0,
+      "signature_id": "system.suggestions.observation",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.eslint.user_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 1372160,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 1372160,
+      "selected_bytes": 0,
+      "signature_id": "system.chromium.component_downloads",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 2,
+      "observed_bytes": 26398720,
+      "selected_bytes": 0,
+      "signature_id": "system.advisory.protected_apple_caches",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.pip.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.xcode.archives",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 110592,
+      "selected_bytes": 0,
+      "signature_id": "ai.gemini.cache",
+      "skipped_entries": 2
+    },
+    {
+      "cleanable_bytes": 26492928,
+      "incomplete_items": 0,
+      "items": 17,
+      "observed_bytes": 26492928,
+      "selected_bytes": 0,
+      "signature_id": "system.chrome.gpu_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 596688896,
+      "incomplete_items": 0,
+      "items": 3,
+      "observed_bytes": 596688896,
+      "selected_bytes": 0,
+      "signature_id": "system.chrome.code_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.composer.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.advisory.simulator_devices",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 134410240,
+      "incomplete_items": 0,
+      "items": 53,
+      "observed_bytes": 152383488,
+      "selected_bytes": 71745536,
+      "signature_id": "system.intensive.user_app_caches",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.go.mod",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.opencode.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.cargo.registry.src",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.poetry.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.app_support_cache_segments",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 2,
+      "observed_bytes": 38645760,
+      "selected_bytes": 0,
+      "signature_id": "dev.homebrew.metadata",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.playwright.browsers",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.mise.cache_clear",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.claude.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.codex.gpu_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.jetbrains.index_payloads",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.saved_application_state",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 7548928,
+      "incomplete_items": 0,
+      "items": 2,
+      "observed_bytes": 7864320,
+      "selected_bytes": 0,
+      "signature_id": "system.container.worker_temp",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.brave.http_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.xcode.caches",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.xcode.derived_data",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.xcode_device_support",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 5,
+      "observed_bytes": 230047744,
+      "selected_bytes": 0,
+      "signature_id": "dev.gradle.caches",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.android_studio.cache_payloads",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.hex.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.advisory.trash",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.nuget.global_packages",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.m2.repository",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.cursor.gpu_cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.go.build",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.aider.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.dotslash.stale_artifacts",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 62500000,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 62500000,
+      "selected_bytes": 0,
+      "signature_id": "dev.homebrew.cleanup",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.gradle.workers",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.advisory.device_backups",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "container.docker.stopped_containers",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "container.colima.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "container.podman.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "system.brave.completed_crash_reports",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "ai.torchinductor.temp",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "container.docker.unused_volumes",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 0,
+      "observed_bytes": 0,
+      "selected_bytes": 0,
+      "signature_id": "dev.yarn.cache",
+      "skipped_entries": 0
+    },
+    {
+      "cleanable_bytes": 0,
+      "incomplete_items": 0,
+      "items": 1,
+      "observed_bytes": 29093888,
+      "selected_bytes": 0,
+      "signature_id": "ai.codex.cache",
+      "skipped_entries": 0
+    }
+  ],
+  "skipped_entries": 18,
+  "spans": [
+    {
+      "duration_ms": 0,
+      "source_id": "ai.aider.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.antigravity.gpu_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.claude.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.claude.logs"
+    },
+    {
+      "duration_ms": 3,
+      "source_id": "ai.codex.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.codex.gpu_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.cursor.extensions.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.cursor.gpu_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.cursor.logs"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.cursor.renderer_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.gemini.cache"
+    },
+    {
+      "duration_ms": 38,
+      "source_id": "ai.gemini.logs"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.llamacpp.opencl.macos"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "ai.opencode.cache"
+    },
+    {
+      "duration_ms": 2,
+      "source_id": "ai.torchinductor.temp"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "lifecycle_providers.ai"
+    },
+    {
+      "duration_ms": 16,
+      "source_id": "dev.android_studio.cache_payloads"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.bun.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.cargo.git"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.cargo.registry.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.cargo.registry.src"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.clang.module_cache"
+    },
+    {
+      "duration_ms": 4117,
+      "source_id": "dev.codex.runtimes"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.composer.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.conda.disposable_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.dotslash.stale_artifacts"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.eslint.user_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.go.build"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.go.mod"
+    },
+    {
+      "duration_ms": 40,
+      "source_id": "dev.gradle.build_cache"
+    },
+    {
+      "duration_ms": 414,
+      "source_id": "dev.gradle.caches"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.gradle.daemon_logs"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.gradle.workers"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.hex.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.homebrew.cleanup"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.homebrew.downloads"
+    },
+    {
+      "duration_ms": 61,
+      "source_id": "dev.homebrew.metadata"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.jetbrains.index_payloads"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.m2.repository"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.mise.cache_clear"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.mypy.global_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.npm.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.nuget.global_packages"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.nuget.http"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.nuget.plugins"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.nuget.temp"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.opam.downloads"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.pip.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.playwright.browsers"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.pnpm.store"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.poetry.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.prettier.user_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.ruby.downloads"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.ruff.global_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.rustup.downloads"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.typescript.user_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.uv.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.vite.user_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.webpack.user_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.xcode.archives"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.xcode.caches"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.xcode.derived_data"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.yarn.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.zed.node_download_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.zig.global_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.xcode_device_support"
+    },
+    {
+      "duration_ms": 3257,
+      "source_id": "cache_providers"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "lifecycle_providers.developer"
+    },
+    {
+      "duration_ms": 62,
+      "source_id": "dev.cargo.git"
+    },
+    {
+      "duration_ms": 121,
+      "source_id": "dev.cargo.registry.cache"
+    },
+    {
+      "duration_ms": 63,
+      "source_id": "dev.cargo.registry.src"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.conda.disposable_cache"
+    },
+    {
+      "duration_ms": 61,
+      "source_id": "dev.dotslash.stale_artifacts"
+    },
+    {
+      "duration_ms": 3529,
+      "source_id": "dev.homebrew.cleanup"
+    },
+    {
+      "duration_ms": 64,
+      "source_id": "dev.homebrew.downloads"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "dev.mise.cache_clear"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "container.colima.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "container.docker.builder"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "container.docker.dangling_images"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "container.docker.stopped_containers"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "container.docker.unused_images"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "container.docker.unused_volumes"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "container.podman.cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "lifecycle_providers.container"
+    },
+    {
+      "duration_ms": 14,
+      "source_id": "system.advisory.application_gpu_caches"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.advisory.device_backups"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.advisory.macos_system_caches"
+    },
+    {
+      "duration_ms": 4,
+      "source_id": "system.advisory.protected_apple_caches"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.advisory.simulator_devices"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.advisory.trash"
+    },
+    {
+      "duration_ms": 9,
+      "source_id": "system.app_support_cache_segments"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.brave.code_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.brave.completed_crash_reports"
+    },
+    {
+      "duration_ms": 4,
+      "source_id": "system.brave.gpu_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.brave.http_cache"
+    },
+    {
+      "duration_ms": 718,
+      "source_id": "system.chrome.code_cache"
+    },
+    {
+      "duration_ms": 75,
+      "source_id": "system.chrome.gpu_cache"
+    },
+    {
+      "duration_ms": 1884,
+      "source_id": "system.chrome.http_cache"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.chromium.component_downloads"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.chromium.offline_cache_storage"
+    },
+    {
+      "duration_ms": 46,
+      "source_id": "system.cloudkit.cache"
+    },
+    {
+      "duration_ms": 2,
+      "source_id": "system.container.worker_temp"
+    },
+    {
+      "duration_ms": 1,
+      "source_id": "system.crash_reports"
+    },
+    {
+      "duration_ms": 24,
+      "source_id": "system.darwin_user_cache"
+    },
+    {
+      "duration_ms": 787,
+      "source_id": "system.developer_temp"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.help.metadata"
+    },
+    {
+      "duration_ms": 18,
+      "source_id": "system.helpd.generated_cache"
+    },
+    {
+      "duration_ms": 33,
+      "source_id": "system.helpd.page_cache"
+    },
+    {
+      "duration_ms": 317,
+      "source_id": "system.intensive.application_logs"
+    },
+    {
+      "duration_ms": 1450,
+      "source_id": "system.intensive.containers_caches"
+    },
+    {
+      "duration_ms": 103,
+      "source_id": "system.intensive.darwin_user_cache_other"
+    },
+    {
+      "duration_ms": 783,
+      "source_id": "system.intensive.group_containers_caches"
+    },
+    {
+      "duration_ms": 5523,
+      "source_id": "system.intensive.user_app_caches"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "system.saved_application_state"
+    },
+    {
+      "duration_ms": 4,
+      "source_id": "system.suggestions.observation"
+    },
+    {
+      "duration_ms": 0,
+      "source_id": "lifecycle_providers.system"
+    },
+    {
+      "duration_ms": 62,
+      "source_id": "system.chromium.component_downloads"
+    },
+    {
+      "duration_ms": 2400,
+      "source_id": "system.chromium.offline_cache_storage"
+    },
+    {
+      "duration_ms": 988,
+      "source_id": "scan.overlap_resolution"
+    },
+    {
+      "duration_ms": 507,
+      "source_id": "scan.physical_overlap_audit"
+    }
+  ],
+  "started_at": 1790693483,
+  "unavailable_signatures": [],
+  "version": "0.3.81",
+  "validation": {
+    "date": "2026-09-29",
+    "os": "macOS 27.0 (26A428)",
+    "architecture": "Apple Silicon",
+    "mode": "read-only",
+    "elevation": false,
+    "permissions": "Same execution host; no sudo. OS access refusals remain recorded; Full Disk Access parity with an installed app is not asserted."
+  }
+}

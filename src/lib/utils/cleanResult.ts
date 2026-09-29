@@ -46,3 +46,14 @@ export function cleanOutcome(
   if (failedCount > 0 || partialCount > 0 || skippedCount > 0) return 'partial';
   return 'success';
 }
+
+/** Mutation channels are independent; a provider can report both in one outcome. */
+export function cleanItemAmounts(item: { bytes_reclaimed: number; moved_to_trash_bytes?: number }) {
+  return { removed: Math.max(0, item.bytes_reclaimed), moved: Math.max(0, item.moved_to_trash_bytes ?? 0) };
+}
+
+/** A disk reading is independent of cleanup, and may be zero or negative. */
+export function diskFreeChange(result: Pick<CleanResult, 'actual_disk_free_delta'>): number | null {
+  return result.actual_disk_free_delta != null && Number.isFinite(result.actual_disk_free_delta)
+    ? result.actual_disk_free_delta : null;
+}

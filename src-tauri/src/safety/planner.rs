@@ -223,7 +223,7 @@ impl SafetyPlanner {
                     | UnitRelationship::EquivalentConflict
                     | UnitRelationship::Contained
                     | UnitRelationship::AuthorityConflict => true,
-                    UnitRelationship::Distinct => false,
+                    UnitRelationship::Distinct | UnitRelationship::SharedStorage => false,
                 }
             });
             if contained {

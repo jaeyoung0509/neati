@@ -105,7 +105,7 @@ fn test_temp_scanner_only_includes_known_direct_children() {
 
     let items = DirectoryScanner::scan_signature(
         &signature,
-        &PlatformEnvironment::native(),
+        &PlatformEnvironment::native().with_temp_dir(dir.path()),
         &neati_core::application::dto::scan::NeverCancelled,
         &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
             .with_open_file_probe(std::sync::Arc::new(

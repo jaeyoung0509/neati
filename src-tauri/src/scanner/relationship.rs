@@ -53,7 +53,17 @@ impl ScanRelationships {
         candidate: &ScanItem,
         container: &ScanItem,
     ) -> UnitRelationship {
-        unit_relationship_with(candidate, container, self)
+        let relationship = unit_relationship_with(candidate, container, self);
+        if relationship == UnitRelationship::Distinct
+            && self
+                .identity(Path::new(&candidate.unit.path))
+                .zip(self.identity(Path::new(&container.unit.path)))
+                .is_some_and(|(left, right)| !left.is_unknown() && left.same_entity(right))
+        {
+            UnitRelationship::SharedStorage
+        } else {
+            relationship
+        }
     }
 }
 
@@ -307,7 +317,16 @@ mod tests {
             (&first, &first, UnitRelationship::Equivalent),
             (&first, &parent, UnitRelationship::Contained),
         ] {
-            assert_eq!(snapshot.relationship(candidate, container), expected);
+            let snapshot_expected =
+                if candidate.id != container.id && expected == UnitRelationship::Distinct {
+                    UnitRelationship::SharedStorage
+                } else {
+                    expected
+                };
+            assert_eq!(
+                snapshot.relationship(candidate, container),
+                snapshot_expected
+            );
             assert_eq!(unit_relationship(candidate, container), expected);
         }
     }

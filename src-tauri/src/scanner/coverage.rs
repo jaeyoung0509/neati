@@ -217,7 +217,7 @@ mod tests {
 mod routing_tests {
     use super::*;
     use crate::cleaner::{LifecycleProviderRegistry, OwnerProviderRegistry};
-    use crate::models::{CleanStrategy, NeverCancelled, PlatformKind};
+    use crate::models::{Category, CleanStrategy, NeverCancelled, PlatformKind};
     use crate::scanner::ScanEngine;
     use crate::signatures::SignatureRegistry;
     use neati_platform::{path_algebra::PathFlavor, PlatformEnvironment};
@@ -245,6 +245,11 @@ mod routing_tests {
             .get("system.intensive.user_app_caches")
             .unwrap()
             .clone();
+        // Keep the shipped namespace policy, but run it against a host-neutral
+        // fixture. The macOS declaration belongs to the real Library root,
+        // not to these temporary directories on the Windows CI runner.
+        broad.paths = vec![root.to_string_lossy().into_owned()];
+        broad.platforms.clear();
         broad.exclude_prefixes = vec![
             names["owned"].as_str().unwrap().into(),
             names["excluded_unknown"].as_str().unwrap().into(),
@@ -263,6 +268,11 @@ mod routing_tests {
         let mut registry = SignatureRegistry::new();
         registry.register(broad);
         registry.register(owner);
+        assert_eq!(
+            registry.by_category_for_mode(Category::System, true).len(),
+            2,
+            "both fixture signatures must be discoverable on the host platform"
+        );
         let result = ScanEngine::scan(
             &registry,
             &LifecycleProviderRegistry::new(Vec::new()),

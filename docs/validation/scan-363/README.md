@@ -138,3 +138,13 @@ screenshots, as requested by the owner.
 CI is reported on the PR separately. Windows filesystem behavior and packaging
 were not run on this Mac. PR #364 was still open at final verification; if it
 merges first, synchronize this PR's version to the next patch before merge.
+
+## CI fixture correction, 2026-09-30
+
+The initial Windows Rust job failed the coverage routing fixture: it expected
+three rows but received none. The fixture copied the macOS-only declaration from
+the production signature, so Windows discovery filtered out both fixture rules.
+The correction relocates the broad rule to its explicit temporary root and makes
+both fixture rules platform-neutral. An assertion now checks that both rules
+reach discovery before checking their accounting. Production catalog platforms
+and cleanup permissions are unchanged. This follow-up retains version 0.3.81.

@@ -250,14 +250,17 @@ safety conventions below when changing neati.
 
 - Follow `docs/CACHE_POLICY.md`: Apple user-cache payloads use the ordinary
   zero-day pipeline, with explicit owner routing and compiled-model protection.
-  Scan estimates must exclude descendants of protected directories, and inferred
-  cache-owner guards must reach planning and execution.
+  Scan estimates must exclude descendants of protected directories. Ordinary
+  pruned user-cache/log payloads use exact macOS open-file checks at scan,
+  planning and execution; explicit executable guards and inferred owners for
+  other stores remain enforced.
 
 - Container cache payloads and ordinary application logs also use zero-day
   retention, with bounded macOS open-file checks at scan, planning and execution.
   Unknown open-file state cannot authorize deletion. Chromium offline units are
   depth-two cache directories; origin metadata stays advisory and units move to
-  Trash only after the browser stops. Owner command previews must cover their
+  Trash after exact macOS unit-use checks; Windows retains the stopped-browser
+  requirement until it has an open-file adapter. Owner command previews must cover their
   complete mutation scope, bind executable/candidate identity, and recheck it.
 
 - Extended (formerly intensive) cache scanning is standard on supported platforms,
@@ -313,9 +316,9 @@ safety conventions below when changing neati.
   `StaleEntryPolicy::allows`, so the scan and the guard cannot drift.
 - Structured-state classification, process guards, and the running-owner fact
   are re-derived at execution: a database, a lock, a credential, a
-  configuration file, a bundle, or an executable inside a pruned tree stays,
-  and a cache whose application is running is `reviewable` rather than
-  automatic.
+  configuration file, a bundle, or an executable inside a pruned tree stays.
+  A cache blocked by its owner-use policy is `reviewable` rather than automatic;
+  exact-use policies do not infer busy payloads from app presence alone.
 - Generic cleanup never removes structured state: databases, their WAL/SHM
   companions, locks, credentials, configuration, bundles, and executables are
   refused by the planner and skipped by the execution guard. A provider that

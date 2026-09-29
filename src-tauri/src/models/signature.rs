@@ -604,6 +604,18 @@ impl Signature {
         let Some(home) = environment.user_home() else {
             return guard;
         };
+        // Ordinary pruned payloads retain structured-state protection. A running
+        // app alone does not make every cache/log file busy; use the exact unit.
+        // Explicit executable guards above and coupled provider stores stay strict.
+        if matches!(
+            self.strategy,
+            CleanStrategy::DeleteContents | CleanStrategy::DeleteStaleContents
+        ) && self.risk != RiskTier::Manual
+            && (path.starts_with(home.join("Library/Caches"))
+                || path.starts_with(home.join("Library/Logs")))
+        {
+            return guard.with_open_files(path.to_path_buf());
+        }
         for root in [
             "Library/Caches",
             "Library/Application Support",

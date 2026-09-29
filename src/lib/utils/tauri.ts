@@ -39,6 +39,7 @@ import type {
   MemoryTerminationMode,
   MemoryTerminationResult,
   PlanPreview,
+  CleanupQuitPreview,
   PlatformCapabilities,
   PlatformContext,
   ProviderDescriptor,
@@ -436,4 +437,8 @@ export function tauriPrepareAppUninstall(
 
 export function tauriExecuteTrashPlan(planId: string): Promise<TrashResult> {
   return storageApi.executeTrashPlan(planId);
+}
+
+export function tauriPreviewCleanupQuit(scanId: string, itemIds: string[]): Promise<CleanupQuitPreview> {
+  return api.previewCleanupQuit(scanId, itemIds);
 }

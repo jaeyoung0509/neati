@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-preview-cleanup-quit"
+description = "Enables the preview_cleanup_quit command without any pre-configured scope."
+commands.allow = ["preview_cleanup_quit"]
+
+[[permission]]
+identifier = "deny-preview-cleanup-quit"
+description = "Denies the preview_cleanup_quit command without any pre-configured scope."
+commands.deny = ["preview_cleanup_quit"]

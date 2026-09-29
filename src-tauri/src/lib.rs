@@ -648,6 +648,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::cancel_scan,
             commands::get_last_scan,
             commands::create_delete_plan,
+            commands::preview_cleanup_quit,
             commands::execute_clean,
             commands::quick_clean_safe,
             commands::reviewed_quick_clean_safe,

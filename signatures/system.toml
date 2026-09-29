@@ -45,7 +45,7 @@ fail_if_running = [
 owner = "Chromium browsers"
 provider = "Chromium CacheStorage"
 consequence = "Offline website assets move to Trash and may need a network connection to download again. Cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
-description = "Each depth-two CacheStorage directory is a separate reviewed Trash unit. Origin indexes, neighboring profile databases and Service Worker registrations remain intact; a running browser must be closed first."
+description = "Each depth-two CacheStorage directory is a separate reviewed Trash unit. Origin indexes, neighboring profile databases and Service Worker registrations remain intact; macOS checks whether each selected unit is in use, while Windows requires the browser to be stopped."
 
 [[signatures]]
 id = "system.developer_temp"

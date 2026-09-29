@@ -144,3 +144,13 @@ pub async fn reviewed_quick_clean_safe(
         .reviewed_quick_clean_safe(scan_id, selected_item_ids, &settings, progress)
         .await
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn preview_cleanup_quit(
+    scan_id: String,
+    item_ids: Vec<String>,
+    state: State<'_, DesktopState>,
+) -> Result<crate::models::CleanupQuitPreview, String> {
+    state.cleanup.preview_cleanup_quit(scan_id, item_ids).await
+}

@@ -30,6 +30,7 @@ import type {
   LocalModelInventory,
   MemoryMetrics,
   PlanPreview,
+  CleanupQuitPreview,
   PlatformCapabilities,
   PlatformContext,
   ProviderDescriptor,
@@ -1307,6 +1308,10 @@ export const mockApi = {
     return lastMockScan
       ? { result: lastMockScan, discovery: { status: 'exhausted' } }
       : null;
+  },
+
+  async previewCleanupQuit(scanId: string, itemIds: string[]): Promise<CleanupQuitPreview> {
+    return { scan_id: scanId, apps: itemIds.length ? [{ name: 'Google Chrome', lease_id: 'mock-lease-cleanup-chrome', item_ids: itemIds }] : [], unavailable: [] };
   },
 
   async createPlan(_scanId: string, items: ScanItem[]): Promise<PlanPreview> {

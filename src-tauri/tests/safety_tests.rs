@@ -2236,7 +2236,12 @@ fn an_unreadable_root_is_reported_with_its_reason() {
         registry.get("test.unreadable").expect("registered"),
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
-        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle,
+                ),
+            )),
     );
     // Restore before the fixture is dropped so it can be removed.
     fs::set_permissions(&candidate, fs::Permissions::from_mode(0o755)).unwrap();
@@ -2295,15 +2300,15 @@ fn a_running_owner_keeps_its_cache_out_of_the_default_selection() {
         unit: None,
         owner: String::new(),
         priority: 0,
-        fail_if_running: Vec::new(),
+        fail_if_running: vec!["Fixture Owner".into()],
         provider: String::new(),
         provider_id: None,
         artifact_kind: Default::default(),
         consequence: String::new(),
     });
 
-    let running = neati_lib::applications::RunningApplications::from_ids(vec![
-        "com.example.running".to_string(),
+    let running = neati_lib::applications::RunningApplications::from_process_names(vec![
+        "Fixture Owner".to_string(),
     ]);
     let counters = neati_lib::scanner::TraversalCounters::default();
     let environment = PlatformEnvironment::native();
@@ -2347,7 +2352,12 @@ fn a_running_owner_keeps_its_cache_out_of_the_default_selection() {
         registry.get("test.running-owner").expect("registered"),
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
-        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle,
+                ),
+            )),
     );
     let idle_item = idle
         .iter()
@@ -2400,7 +2410,12 @@ fn the_shipped_explorer_cache_entry_scans_and_plans() {
         &signature,
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
-        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle,
+                ),
+            )),
     );
     let cache_item = items
         .iter()
@@ -2616,7 +2631,12 @@ fn a_mixed_age_cache_namespace_reports_and_prunes_its_stale_remainder() {
         registry.get("test.stale-namespace").expect("registered"),
         &PlatformEnvironment::native(),
         &neati_lib::models::NeverCancelled,
-        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle,
+                ),
+            )),
     );
     let item = items
         .iter()

@@ -3,7 +3,8 @@
 //! Component downloads are one metadata-coupled store. Offline CacheStorage
 //! uses depth-two cache directories, matching Mole's deletion granularity.
 //! Origin indexes and Service Worker registrations remain outside those units.
-//! Every unit is re-enumerated and requires a stopped browser before Trash.
+//! Every unit is re-enumerated before Trash. On macOS, disposable offline
+//! units use exact open-file checks; coupled component stores require owner exit.
 
 use super::OwnerScopedProvider;
 use crate::models::{
@@ -52,6 +53,20 @@ impl BrowserCacheKind {
     fn needs_confirmation(self) -> bool {
         matches!(self, Self::OfflineCacheStorage)
     }
+}
+
+/// Narrows the catalog's multi-browser guard to the browser owning this unit.
+pub(crate) fn cache_owner_guard(
+    path: &Path,
+    environment: &PlatformEnvironment,
+) -> Option<RunningProcessPolicy> {
+    let base = ChromiumCacheProvider::base(environment)?;
+    ChromiumCacheProvider::layouts(environment)
+        .iter()
+        // Variant channels can share helper names with stable builds. Until
+        // shutdown maps their bundle identity, leave those apps for manual exit.
+        .find(|layout| !layout.key.contains('-') && path.starts_with(base.join(layout.relative)))
+        .map(browser_guard)
 }
 
 #[derive(Clone, Copy)]
@@ -266,7 +281,13 @@ impl ChromiumCacheProvider {
                     if paths.is_empty() {
                         continue;
                     }
-                    let owner = self.owner_state(layout);
+                    let owner = if environment.platform() == PlatformKind::Macos {
+                        // Offline payload units do not share the component store's
+                        // browser-wide lock. Check each unit's handles below.
+                        BrowserOwnerState::Idle
+                    } else {
+                        self.owner_state(layout)
+                    };
                     for (profile, path) in paths {
                         let entries = SymlinkGuard::validate_anchored_path(&path, environment)
                             .map_err(|error| error.to_string())
@@ -445,7 +466,7 @@ impl ChromiumCacheProvider {
                 measurement.logical_bytes,
                 measurement.allocated_bytes,
                 measurement.entry_count,
-                "The process table could not prove this browser is stopped",
+                "Cache use could not be verified; scan again",
             ),
         })
     }
@@ -619,6 +640,17 @@ impl ChromiumCacheProvider {
         }
         if let Err(detail) = inspect_store(&unit.path) {
             return refuse(detail);
+        }
+        // Recheck after enumeration and identity validation, immediately before
+        // the mutation. A handle opened since the preview revokes permission.
+        if environment.platform() == PlatformKind::Macos
+            && !matches!(self.process.running(
+                &RunningProcessPolicy::none().with_open_files(unit.path.clone())
+            ), Some(names) if names.is_empty())
+        {
+            return refuse(
+                "This cache is in use or its use could not be verified; scan again".into(),
+            );
         }
         if let Err(error) = self.trash.move_to_trash(&unit.path) {
             return refuse(format!(
@@ -1121,6 +1153,140 @@ mod tests {
         for retained in ["origin/second/payload", "origin/index.txt", "index.txt"] {
             assert!(root.join(retained).exists());
         }
+    }
+
+    #[test]
+    fn running_browser_allows_idle_offline_units_but_not_component_stores() {
+        struct BrowserOnly;
+        impl RunningProcessProbe for BrowserOnly {
+            fn running(&self, guard: &RunningProcessPolicy) -> Option<Vec<String>> {
+                Some(if guard.open_file_path().is_some() {
+                    Vec::new()
+                } else {
+                    vec!["Google Chrome".into()]
+                })
+            }
+        }
+        let (_temp, environment, guard) = mac_fixture();
+        let root = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join("Google/Chrome");
+        for relative in [
+            "Default/Service Worker/CacheStorage/origin/cache",
+            "component_crx_cache",
+        ] {
+            fs::create_dir_all(root.join(relative)).unwrap();
+            fs::write(root.join(relative).join("payload"), vec![1; 4096]).unwrap();
+        }
+        let trash = Arc::new(FixtureTrash::default());
+        let offline = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(BrowserOnly),
+            trash.clone(),
+        );
+        let observed = offline.scan(&environment, &guard);
+        assert_eq!(observed.units[0].state, OwnerUnitState::Ready);
+        let plan = offline
+            .prepare(&environment, &guard, &[selection(&observed.units[0])])
+            .unwrap();
+        assert_eq!(
+            offline.execute(&environment, &plan).units[0].status,
+            ProviderStatus::Cleaned
+        );
+        let components = provider(
+            BrowserCacheKind::ComponentDownloads,
+            Arc::new(BrowserOnly),
+            trash,
+        );
+        assert_eq!(
+            components.scan(&environment, &guard).units[0].state,
+            OwnerUnitState::InUse
+        );
+    }
+
+    #[test]
+    fn offline_handle_opened_at_final_check_prevents_trash() {
+        struct OpensAtMutation(std::sync::atomic::AtomicUsize);
+        impl RunningProcessProbe for OpensAtMutation {
+            fn running(&self, guard: &RunningProcessPolicy) -> Option<Vec<String>> {
+                Some(
+                    if guard.open_file_path().is_some()
+                        && self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 3
+                    {
+                        vec!["cache reader".into()]
+                    } else {
+                        Vec::new()
+                    },
+                )
+            }
+        }
+        let (_temp, environment, guard) = mac_fixture();
+        let path = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join("Google/Chrome/Default/Service Worker/CacheStorage/origin/cache");
+        fs::create_dir_all(&path).unwrap();
+        fs::write(path.join("payload"), vec![1; 4096]).unwrap();
+        let trash = Arc::new(FixtureTrash::default());
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(OpensAtMutation(std::sync::atomic::AtomicUsize::new(0))),
+            trash.clone(),
+        );
+        let observed = provider.scan(&environment, &guard);
+        let plan = provider
+            .prepare(&environment, &guard, &[selection(&observed.units[0])])
+            .unwrap();
+        assert_eq!(
+            provider.execute(&environment, &plan).units[0].status,
+            ProviderStatus::Blocked
+        );
+        assert!(path.exists());
+        assert!(trash.moved.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn unknown_offline_handle_state_never_authorizes_a_unit() {
+        let (_temp, environment, guard) = mac_fixture();
+        let path = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join("Google/Chrome/Default/Service Worker/CacheStorage/origin/cache");
+        fs::create_dir_all(&path).unwrap();
+        fs::write(path.join("payload"), vec![1; 4096]).unwrap();
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(Unknown),
+            Arc::new(FixtureTrash::default()),
+        );
+        let observed = provider.scan(&environment, &guard);
+        assert_eq!(observed.units[0].state, OwnerUnitState::Blocked);
+        assert!(provider
+            .prepare(&environment, &guard, &[selection(&observed.units[0])])
+            .is_err());
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn windows_offline_units_keep_the_browser_exit_requirement() {
+        let temp = tempfile::tempdir().unwrap();
+        let roots = neati_platform::paths::SimulatedPaths::new()
+            .with_flavor(neati_platform::PathFlavor::current())
+            .with_local_app_data(temp.path().to_path_buf());
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_platform(PlatformKind::Windows)
+            .with_roots(Arc::new(roots));
+        let path = temp
+            .path()
+            .join("Google/Chrome/User Data/Default/Service Worker/CacheStorage/origin/cache");
+        fs::create_dir_all(&path).unwrap();
+        fs::write(path.join("payload"), vec![1; 4096]).unwrap();
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(Busy),
+            Arc::new(FixtureTrash::default()),
+        );
+        let observed = provider.scan(&environment, &RunningProcessPolicy::none());
+        assert_eq!(observed.units[0].state, OwnerUnitState::InUse);
+        assert!(path.exists());
     }
 
     #[test]

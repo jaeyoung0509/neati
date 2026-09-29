@@ -9,14 +9,14 @@
   let retained = $derived(retainedByteGroups(scan?.categories.flatMap(category => category.items) ?? []));
   let observed = $derived(observedByteRange(scan?.total_bytes ?? 0, scan?.ambiguous_overlap_bytes));
   let isCurrent = $derived(scanStore.freshness === 'fresh' || scanStore.freshness === 'partial');
-  let estimateLabel = $derived(isCurrent ? 'Cleanup candidates' : 'Last cleanup estimate');
+  let estimateLabel = $derived(isCurrent ? 'Ready to clean now' : 'Last ready-to-clean estimate');
 </script>
 
 <section class="storage-summary" aria-label="Storage scan summary">
   <div class="summary-primary">
     <p class="text-meta font-medium text-muted-foreground">{scan ? estimateLabel : 'Available to clean'}</p>
     <p class="mt-1 text-metric-lg font-mono font-semibold tracking-tight tabular-nums text-foreground">
-      {scan ? summary.cleanable_bytes > 0 ? formatBytes(summary.cleanable_bytes) : summary.cleanable_count > 0 ? 'Not estimated' : formatBytes(0) : '—'}
+      {scan ? formatBytes(availability.ready) : '—'}
     </p>
     <p class="mt-1 text-meta text-muted-foreground">
       {#if !scan}
@@ -35,7 +35,7 @@
     {#if isCurrent}
       <p class="mt-2 text-meta text-muted-foreground">
         <span class="font-medium text-foreground">{formatBytes(availability.ready)} ready now</span>
-        {#if availability.running > 0} · {formatBytes(availability.running)} after closing apps{/if}
+        {#if availability.running > 0} · {formatBytes(availability.running)} requires idle apps{/if}
         {#if availability.review > 0} · {formatBytes(availability.review)} needs review{/if}
       </p>
     {/if}

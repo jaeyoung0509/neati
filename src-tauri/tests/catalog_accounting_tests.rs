@@ -27,7 +27,12 @@ fn temp_aliases_produce_one_cleanup_unit() {
         &signature,
         &environment,
         &NeverCancelled,
-        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle,
+                ),
+            )),
     );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].size.logical, 4096);
@@ -86,7 +91,12 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
         signature,
         &environment,
         &NeverCancelled,
-        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle,
+                ),
+            )),
     );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].path, modules.to_string_lossy());
@@ -106,6 +116,11 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
         &environment,
         &NeverCancelled,
         &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle
+                )
+            ))
     )
     .is_empty());
 }
@@ -329,7 +344,12 @@ fn profile_and_app_data_aliases_measure_cursor_cache_once() {
         &signature,
         &environment,
         &NeverCancelled,
-        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(
+                neati_platform::open_files::FixedOpenFileProbe(
+                    neati_platform::open_files::OpenFileState::Idle,
+                ),
+            )),
     );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].size.logical, 8192);

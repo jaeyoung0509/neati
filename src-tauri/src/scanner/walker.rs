@@ -770,7 +770,7 @@ impl DirectoryScanner {
         min_age_days: u32,
         gate: EligibilityGate,
         root_key: Option<&str>,
-        running_apps: &crate::applications::RunningApplications,
+        _running_apps: &crate::applications::RunningApplications,
     ) -> Vec<ScanItem> {
         let environment = context.environment;
         if context.cancellation.is_cancelled() {
@@ -1042,10 +1042,9 @@ impl DirectoryScanner {
                 ),
             };
 
-            // A namespace named after a running application's bundle
-            // identifier belongs to that application, and the unit is reported
-            // as selectable but never automatic.
-            let owner_running = running_apps.owner_of(&name).is_some();
+            // The signature's resolved guard below is the single owner policy.
+            // Do not pre-mark a whole namespace busy before its unit check.
+            let owner_running = false;
 
             let cache_metadata = signature.cache_metadata();
             let disposition = derive_cleanup_disposition(
@@ -1584,7 +1583,12 @@ mod tests {
             cloudkit_signature,
             &environment,
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         assert_eq!(cloudkit_items.len(), 1);
         assert_eq!(cloudkit_items[0].risk, RiskTier::Manual);
@@ -1601,7 +1605,12 @@ mod tests {
             broad_cache_signature,
             &environment,
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         assert!(
             broad_items
@@ -1635,7 +1644,12 @@ mod tests {
             broad,
             &environment,
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         assert!(generic_items
             .iter()
@@ -1663,7 +1677,12 @@ mod tests {
             broad,
             &environment,
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         assert!(items.iter().all(|item| !item.path.contains("/dotslash")));
         assert!(inactive.exists());
@@ -1692,6 +1711,11 @@ mod tests {
             &environment,
             &NeverCancelled,
             &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle
+                    )
+                ))
         )
         .iter()
         .all(|item| !item.path.contains("/Google")));
@@ -1862,7 +1886,12 @@ mod tests {
             &signature,
             &environment,
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
 
         assert_eq!(
@@ -1992,7 +2021,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
 
         let stale_item = items
@@ -2057,7 +2091,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
 
         let stale_item = items
@@ -2117,7 +2156,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         let ids: Vec<&str> = items.iter().map(|item| item.id.as_str()).collect();
@@ -2211,7 +2255,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         assert!(items.is_empty());
     }
@@ -2240,7 +2289,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         assert_eq!(
@@ -2302,7 +2356,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let item = open
             .iter()
@@ -2340,7 +2399,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
 
         let item = items
@@ -2390,7 +2454,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let item = items
             .iter()
@@ -2478,7 +2547,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let eligible_item = items
             .iter()
@@ -2609,7 +2683,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let plain = items
             .iter()
@@ -2732,7 +2811,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let item = items
             .iter()
@@ -2840,7 +2924,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         assert_eq!(
@@ -2904,7 +2993,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         assert_eq!(items.len(), 1);
         assert!(
@@ -2964,7 +3058,12 @@ mod tests {
             &signature,
             &environment(),
             &NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(std::sync::Arc::new(
+                    neati_platform::open_files::FixedOpenFileProbe(
+                        neati_platform::open_files::OpenFileState::Idle,
+                    ),
+                )),
         );
         std::fs::set_permissions(&containers, std::fs::Permissions::from_mode(0o755)).unwrap();
 

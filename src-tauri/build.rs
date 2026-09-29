@@ -28,6 +28,7 @@ fn main() {
         "cancel_scan",
         "get_last_scan",
         "create_delete_plan",
+        "preview_cleanup_quit",
         "execute_clean",
         "quick_clean_safe",
         "reviewed_quick_clean_safe",

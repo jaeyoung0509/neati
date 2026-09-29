@@ -1,5 +1,7 @@
 // Re-export generated types from Tauri Specta bindings
 export type {
+  CleanupQuitApp,
+  CleanupQuitPreview,
   AgentActivitySnapshot,
   AgentActivityStatus,
   AgentAdapterHealth,

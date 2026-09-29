@@ -671,3 +671,18 @@ shared destructive button style for permanent removal, a native modal focus
 trap, focus restoration, Stop while running, and per-entry results. Other-volume
 Trash is outside this action. Observed Trash bytes do not increase cache
 candidates; removed file data is not presented as measured free-space recovery.
+
+## Scan explanations and outcomes
+
+Storage and Settings share the same typed presentation of each item's owner,
+backend eligibility and next action. Keep the item list in a keyboard-accessible
+disclosure; name unavailable operations rather than offering a cleanup button.
+Review links open the relevant category, and owner review reuses the existing
+graceful quit flow. A previous scan stays visibly marked as previous.
+
+Observed storage uses a range when containment or shared physical storage cannot
+be resolved. Explain that row amounts are upper bounds in that case. Unknown
+locations remain visible without contributing an invented zero or cleanup authority.
+Results show permanent removal and Trash movement separately even for a single
+provider outcome. Disk free-space change is a separate signed reading, including
+zero and negative changes; other activity can affect it.

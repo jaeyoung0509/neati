@@ -1,4 +1,4 @@
-import type { CategoryResult, RiskTier, ScanItem } from '../models/types';
+import type { Category, CategoryResult, RiskTier, ScanItem } from '../models/types';
 
 export type CleanupSortMode = 'size' | 'name' | 'modified';
 
@@ -119,12 +119,9 @@ export function retainedByteGroups(items: ScanItem[]): RetainedByteGroup[] {
   for (const item of items) {
     const bytes = observedBytes(item) - cleanableBytes(item);
     if (bytes <= 0) continue;
-    const eligibility = item.disposition?.eligibility;
+    const cause = cleanupGuidance(item).cause;
     const kind: RetainedByteGroup['kind'] =
-      item.quality !== 'fresh' ? 'unavailable' :
-      eligibility === 'advisory' ? 'managed' :
-      eligibility === 'recent' ? 'recent' :
-      eligibility === 'policy_gated' ? 'scope' :
+      cause === 'unavailable' || cause === 'managed' || cause === 'recent' || cause === 'scope' ? cause :
       item.cache_metadata?.management_mode === 'tool_managed' && item.cache_metadata.artifact_kind === 'package_store' ? 'unestimated' :
       'protected';
     groups.find(group => group.kind === kind)!.bytes += bytes;
@@ -423,4 +420,56 @@ export function filterAndSortCleanupItems(
       if (sort === 'modified') return (right.last_modified ?? 0) - (left.last_modified ?? 0);
       return reclaimableBytes(right) - reclaimableBytes(left) || left.name.localeCompare(right.name);
     });
+}
+
+export type CleanupNextAction = 'review' | 'quit' | 'rescan' | 'containers' | 'models' | 'unavailable';
+export type CleanupCause = 'ready' | 'running' | 'review' | 'recent' | 'scope' | 'managed' | 'unavailable' | 'protected';
+export interface CleanupGuidance {
+  itemId: string;
+  name: string;
+  owner: string;
+  category: Category;
+  cause: CleanupCause;
+  label: string;
+  detail: string;
+  action: CleanupNextAction;
+  actionLabel: string;
+  observedBytes: number;
+  cleanableBytes: number;
+  retainedBytes: number;
+}
+
+/** Presentation of backend verdicts. Never infers eligibility from names or prose. */
+export function cleanupGuidance(item: ScanItem): CleanupGuidance {
+  const eligible = item.disposition?.eligibility;
+  const actionable = isActionable(item);
+  const cause: CleanupCause = item.quality !== 'fresh' ? 'unavailable'
+    : actionable && item.owner_running ? 'running'
+    : eligible === 'auto_cleanable' && actionable ? 'ready'
+    : eligible === 'reviewable' && actionable ? 'review'
+    : eligible === 'recent' ? 'recent'
+    : eligible === 'policy_gated' ? 'scope'
+    : eligible === 'advisory' ? 'managed' : 'protected';
+  const labels: Record<CleanupCause, string> = {
+    ready: 'Ready now', running: 'Requires idle owner', review: 'Needs review',
+    recent: 'Kept by age policy', scope: 'Outside cleanup scope', managed: 'Managed by the owner',
+    unavailable: 'Could not verify', protected: 'Protected entries',
+  };
+  const action: CleanupNextAction = cause === 'running' ? 'quit'
+    : cause === 'ready' || cause === 'review' ? 'review'
+    : cause === 'unavailable' || cause === 'recent' ? 'rescan'
+    : cause === 'managed' && item.category === 'container' ? 'containers'
+    : cause === 'managed' && item.category === 'model' ? 'models' : 'unavailable';
+  const actions: Record<CleanupNextAction, string> = {
+    review: 'Review item', quit: 'Review owner', rescan: 'Check in Storage',
+    containers: 'Open Containers', models: 'Open Local Models', unavailable: 'No cleanup action',
+  };
+  const observed = observedBytes(item);
+  const cleanable = cleanableBytes(item);
+  return {
+    itemId: item.id, name: item.name, owner: item.ownership?.owner || item.cache_metadata?.provider || 'Owner not established',
+    category: item.category, cause, label: labels[cause], action, actionLabel: actions[action],
+    detail: item.disposition?.reason || item.cache_metadata?.consequence || item.description || labels[cause],
+    observedBytes: observed, cleanableBytes: cleanable, retainedBytes: Math.max(0, observed - cleanable),
+  };
 }

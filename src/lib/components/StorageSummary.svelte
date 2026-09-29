@@ -1,4 +1,7 @@
 <script lang="ts">
+  import CleanupGuidanceList from './CleanupGuidanceList.svelte';
+  import type { CategoryResult, DashboardTab } from '../models/types';
+  let { onCategory, onQuit, onNavigate }: { onCategory?: (category: CategoryResult) => void; onQuit?: () => void; onNavigate?: (tab: DashboardTab) => void } = $props();
   import { scanStore } from '../stores/scan.svelte';
   import { cleanupAvailability, observedByteRange, retainedByteGroups, summarizeCategory } from '../utils/cleanup';
   import { formatBytes } from '../utils/format';
@@ -62,6 +65,7 @@
     {/if}
   </div>
 </section>
+{#if scan}<CleanupGuidanceList {scan} {onCategory} {onQuit} {onNavigate} current={isCurrent} />{/if}
 
 <style>
   .storage-summary {

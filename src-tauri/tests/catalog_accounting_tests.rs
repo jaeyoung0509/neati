@@ -122,7 +122,8 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
                 )
             ))
     )
-    .is_empty());
+    .iter()
+    .all(|item| !item.allows_cleanup() && !item.is_selected));
 }
 
 #[test]

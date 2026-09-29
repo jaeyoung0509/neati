@@ -477,6 +477,7 @@
               <OverviewView onNavigateTab={(tab) => selectTab(tab)} />
             {:else if currentTab === 'storage' || currentTab === 'large-files' || currentTab === 'applications' || currentTab === 'developer-artifacts' || currentTab === 'disks'}
               <StorageView
+                onNavigateTab={selectTab}
                 initialTab={currentTab === 'storage' ? 'cleanup' : currentTab}
                 onSelectWorkflow={(tab) => selectTab(tab === 'cleanup' ? 'storage' : tab)}
                 onSelectCategory={(cat) => (selectedCategory = cat)}
@@ -500,7 +501,7 @@
             {:else if currentTab === 'awake'}
               <AwakeView />
             {:else if currentTab === 'settings'}
-              <SettingsView />
+              <SettingsView onCategory={(category) => { selectTab('storage'); selectedCategory = category; }} onNavigate={selectTab} />
             {/if}
           </div>
         {/key}

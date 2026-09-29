@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-29",
+  "version": "1.55.0",
+  "mode": "mo clean --dry-run",
+  "duration_seconds": 30.005,
+  "exit_code": 0,
+  "reported_potential_space": "5.07GB",
+  "reported_items": 118,
+  "reported_categories": 5,
+  "elevation": false,
+  "system_caches": "Mole explicitly reported sudo required; system caches excluded",
+  "preview_path_rows": 118,
+  "path_relationship_counts": {
+    "exact_unit": 70,
+    "no_matching_unit": 14,
+    "inside_neati_unit": 31,
+    "contains_neati_units": 3
+  },
+  "exact_match_eligibility_counts": {
+    "auto_cleanable": 9,
+    "blocked": 7,
+    "reviewable": 54
+  },
+  "preview_rows_nested_under_another_preview_row": 6,
+  "matched_signature_counts": {
+    "system.intensive.user_app_caches": 14,
+    "coverage:system.intensive.user_app_caches": 2,
+    "system.intensive.application_logs": 2,
+    "coverage:system.intensive.application_logs": 2,
+    "system.suggestions.observation": 9,
+    "system.container.worker_temp": 1,
+    "system.helpd.generated_cache": 1,
+    "system.help.metadata": 3,
+    "system.helpd.page_cache": 1,
+    "system.chrome.code_cache": 3,
+    "system.chrome.http_cache": 2,
+    "system.chromium.offline_cache_storage": 51,
+    "dev.npm.cache": 14,
+    "dev.cargo.registry.cache": 1
+  },
+  "limitation": "Structural path matching is not equal mutation scope or unique allocated bytes. Rounded preview sizes are not reclaimed bytes. Tools ran sequentially on a changing live filesystem."
+}

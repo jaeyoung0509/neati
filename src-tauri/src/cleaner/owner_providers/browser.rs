@@ -294,40 +294,52 @@ impl ChromiumCacheProvider {
                             .and_then(|()| offline_entries(&path));
                         match entries {
                             Ok(entries) => {
-                                for (entry, payload) in entries {
+                                let observe = |(entry, payload): &(PathBuf, bool)| {
                                     let relative =
                                         entry.strip_prefix(&path).expect("enumerated child");
                                     let key = format!(
                                         "{profile}/{}",
                                         relative.to_string_lossy().replace('\\', "/")
                                     );
-                                    if payload {
-                                        if let Some(unit) = self.observe_unit(
+                                    if *payload {
+                                        self.observe_unit(
                                             environment,
                                             layout,
                                             Some(&key),
                                             &browser_root,
-                                            entry,
+                                            entry.clone(),
                                             &owner,
-                                        ) {
-                                            units.push(unit);
-                                        }
+                                        )
                                     } else {
-                                        let measured = self.measuring.measure(&entry);
-                                        if measured.allocated_bytes > 0 || !measured.complete {
-                                            let mut unit = OwnerUnitObservation::advisory(
-                                            unit_key(layout.key, Some(&key)), entry,
-                                            measured.logical_bytes, measured.allocated_bytes, measured.entry_count,
+                                        let measured = self.measuring.measure(entry);
+                                        if measured.allocated_bytes == 0 && measured.complete {
+                                            return None;
+                                        }
+                                        let mut unit = OwnerUnitObservation::advisory(
+                                            unit_key(layout.key, Some(&key)),
+                                            entry.clone(),
+                                            measured.logical_bytes,
+                                            measured.allocated_bytes,
+                                            measured.entry_count,
                                             "CacheStorage origin metadata stays with the browser",
                                         );
-                                            if !measured.complete {
-                                                unit.state = OwnerUnitState::Blocked;
-                                                unit.detail = measured.detail;
-                                            }
-                                            units.push(unit);
+                                        if !measured.complete {
+                                            unit.state = OwnerUnitState::Blocked;
+                                            unit.detail = measured.detail;
                                         }
+                                        Some(unit)
                                     }
-                                }
+                                };
+                                // Exact unit probes are independent. Reuse the application-owned
+                                // four-worker budget; no process observation survives this read.
+                                let observed: Vec<_> = crate::execution_budget::install_shared(
+                                    || {
+                                        use rayon::prelude::*;
+                                        entries.par_iter().map(observe).collect()
+                                    },
+                                    || entries.iter().map(observe).collect(),
+                                );
+                                units.extend(observed.into_iter().flatten());
                             }
                             Err(detail) => units.push(OwnerUnitObservation::blocked(
                                 unit_key(layout.key, Some(&profile)),
@@ -993,6 +1005,114 @@ mod tests {
             .with_home(temp.path());
         let guard = RunningProcessPolicy::guarding(vec!["Google Chrome".into()]);
         (temp, environment, guard)
+    }
+
+    #[test]
+    fn offline_probe_fanout_is_bounded_and_keeps_each_unit_verdict() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        #[derive(Default)]
+        struct Probe {
+            active: AtomicUsize,
+            peak: AtomicUsize,
+            calls: AtomicUsize,
+        }
+        impl RunningProcessProbe for Probe {
+            fn running(&self, guard: &RunningProcessPolicy) -> Option<Vec<String>> {
+                let path = guard.open_file_path().expect("exact unit probe");
+                self.calls.fetch_add(1, Ordering::SeqCst);
+                let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
+                self.peak.fetch_max(active, Ordering::SeqCst);
+                std::thread::sleep(std::time::Duration::from_millis(5));
+                self.active.fetch_sub(1, Ordering::SeqCst);
+                match path.file_name().unwrap().to_str().unwrap() {
+                    "unit-0" => None,
+                    "unit-1" => Some(vec!["fixture reader".into()]),
+                    _ => Some(vec![]),
+                }
+            }
+        }
+        let (_temp, environment, guard) = mac_fixture();
+        let root = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join("Google/Chrome/Default/Service Worker/CacheStorage/origin");
+        for index in 0..12 {
+            let path = root.join(format!("unit-{index}"));
+            fs::create_dir_all(&path).unwrap();
+            fs::write(path.join("payload"), vec![1; 4096]).unwrap();
+        }
+        let probe = Arc::new(Probe::default());
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            probe.clone(),
+            Arc::new(FixtureTrash::default()),
+        );
+        let start = std::time::Instant::now();
+        let observed = provider.scan(&environment, &guard);
+        assert_eq!(observed.units.len(), 12);
+        assert_eq!(probe.calls.load(Ordering::SeqCst), 12);
+        assert!((1..=4).contains(&probe.peak.load(Ordering::SeqCst)));
+        assert_eq!(
+            observed
+                .units
+                .iter()
+                .filter(|unit| unit.state == OwnerUnitState::Ready)
+                .count(),
+            10
+        );
+        assert_eq!(
+            observed
+                .units
+                .iter()
+                .find(|unit| unit.path.ends_with("unit-1"))
+                .unwrap()
+                .state,
+            OwnerUnitState::InUse
+        );
+        assert_ne!(
+            observed
+                .units
+                .iter()
+                .find(|unit| unit.path.ends_with("unit-0"))
+                .unwrap()
+                .state,
+            OwnerUnitState::Ready
+        );
+        let parallel_ms = start.elapsed().as_millis();
+        let serial_started = std::time::Instant::now();
+        let layout = MAC_LAYOUTS
+            .iter()
+            .find(|layout| layout.key == "chrome")
+            .unwrap();
+        let browser_root = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join(layout.relative);
+        let serial: Vec<_> = observed
+            .units
+            .iter()
+            .map(|unit| {
+                provider
+                    .observe_unit(
+                        &environment,
+                        layout,
+                        Some("fixture"),
+                        &browser_root,
+                        unit.path.clone(),
+                        &BrowserOwnerState::Idle,
+                    )
+                    .unwrap()
+            })
+            .collect();
+        for (parallel, serial) in observed.units.iter().zip(&serial) {
+            assert_eq!(parallel.path, serial.path);
+            assert_eq!(parallel.state, serial.state);
+            assert_eq!(parallel.allocated_bytes, serial.allocated_bytes);
+        }
+        println!(
+            "12 exact-unit probes: parallel {} ms, serial {} ms, peak {}",
+            parallel_ms,
+            serial_started.elapsed().as_millis(),
+            probe.peak.load(Ordering::SeqCst)
+        );
     }
 
     #[test]

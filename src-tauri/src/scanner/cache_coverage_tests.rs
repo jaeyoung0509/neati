@@ -76,7 +76,17 @@ fn apple_payloads_are_immediately_eligible_but_nested_models_are_not_reclaimable
         &environment,
         &idle(),
     );
-    assert_eq!(items.len(), 4);
+    assert_eq!(
+        items
+            .iter()
+            .filter(|item| !item.signature_id.starts_with(super::coverage::PREFIX))
+            .count(),
+        4
+    );
+    assert!(items
+        .iter()
+        .filter(|item| item.signature_id.starts_with(super::coverage::PREFIX))
+        .all(|item| !item.allows_cleanup() && !item.is_selected));
     let python = items.iter().find(|i| i.name == "com.apple.python").unwrap();
     assert!(python.is_selected);
     assert_eq!(
@@ -421,6 +431,20 @@ fn custom_gradle_home_partitions_payloads_from_dependencies_and_locks() {
     let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
     let payloads = scan(&registry, "dev.gradle.build_cache", &environment, &idle());
     let advisory = scan(&registry, "dev.gradle.caches", &environment, &idle());
+    let observations: Vec<_> = payloads
+        .iter()
+        .filter(|item| item.signature_id.starts_with(super::coverage::PREFIX))
+        .collect();
+    assert_eq!(observations.len(), 1);
+    assert!(observations.iter().all(|item| !item.allows_cleanup()));
+    let payloads: Vec<_> = payloads
+        .into_iter()
+        .filter(|item| !item.signature_id.starts_with(super::coverage::PREFIX))
+        .collect();
+    let advisory: Vec<_> = advisory
+        .into_iter()
+        .filter(|item| !item.signature_id.starts_with(super::coverage::PREFIX))
+        .collect();
     assert_eq!(payloads.len(), 1);
     assert_eq!(advisory.len(), 1);
     assert_eq!(

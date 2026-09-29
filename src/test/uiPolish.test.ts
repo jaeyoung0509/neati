@@ -174,7 +174,8 @@ describe('cleanup result feedback', () => {
     expect(failed.body).toContain('Cleanup failed');
     expect(failed.body).toContain('Review the errors below before trying again');
     expect(failed.body).not.toContain('Cleanup complete');
-    expect(failed.body).not.toContain('Disk free space change');
+    expect(failed.body).toContain('Disk free space change');
+    expect(failed.body).toContain('Other activity can affect this reading.');
 
     expect(success.body).not.toContain('partly cleaned');
     expect(partial.body).toContain('1 partly cleaned · 0 failed · 0 skipped');

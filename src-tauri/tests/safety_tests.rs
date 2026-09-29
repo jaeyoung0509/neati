@@ -2428,9 +2428,16 @@ fn the_shipped_explorer_cache_entry_scans_and_plans() {
         cache_item.disposition
     );
     assert!(cache_item.is_selected);
+    let outside = items
+        .iter()
+        .find(|item| item.path.ends_with("state.bin"))
+        .expect("uncovered data remains visible");
+    assert!(!outside.allows_cleanup() && !outside.is_selected);
+    let mut forged = outside.clone();
+    forged.is_selected = true;
     assert!(
-        !items.iter().any(|item| item.path.ends_with("state.bin")),
-        "the shipped prefix list keeps the rest of the directory out of scope"
+        SafetyPlanner::create_plan(&[forged], &registry, &no_owner_providers()).is_err(),
+        "observation cannot grant authority even with a forged selection"
     );
 
     // Discovery is not the claim: the plan must be buildable too.

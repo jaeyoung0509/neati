@@ -6,7 +6,7 @@
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import ScanFreshnessNotice from '../../lib/components/ScanFreshnessNotice.svelte';
   import { onMount, tick } from 'svelte';
-  import type { CategoryResult, PlanPreview, CleanupQuitPreview } from '../../lib/models/types';
+  import type { CategoryResult, DashboardTab, PlanPreview, CleanupQuitPreview } from '../../lib/models/types';
   import { scanStore } from '../../lib/stores/scan.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
@@ -37,6 +37,7 @@
 
   interface Props {
     onSelectCategory: (category: CategoryResult) => void;
+    onNavigateTab?: (tab: DashboardTab) => void;
     onOpenLargeFiles?: () => void;
     onOpenApplications?: () => void;
     onOpenDeveloperArtifacts?: () => void;
@@ -47,6 +48,7 @@
 
   let {
     onSelectCategory,
+    onNavigateTab,
     onOpenLargeFiles,
     onOpenApplications,
     onOpenDeveloperArtifacts,
@@ -299,7 +301,7 @@
     />
   {:else}
     {#if !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
-      <StorageSummary />
+      <StorageSummary onCategory={onSelectCategory} onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onNavigate={onNavigateTab} />
       {#if runningItems.length > 0}
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-meta text-muted-foreground">
           <span>Some caches still require their app to be idle.</span>

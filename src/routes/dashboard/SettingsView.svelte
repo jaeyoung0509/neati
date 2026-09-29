@@ -1,4 +1,8 @@
 <script lang="ts">
+  import CleanupGuidanceList from '../../lib/components/CleanupGuidanceList.svelte';
+  import { scanStore } from '../../lib/stores/scan.svelte';
+  import type { CategoryResult } from '../../lib/models/types';
+  let { onCategory, onNavigate }: { onCategory?: (category: CategoryResult) => void; onNavigate?: (tab: DashboardTab) => void } = $props();
   import { onMount } from 'svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { dashboardGroup, groupedDashboardTabs } from '../../lib/utils/dashboardNavigation';
@@ -614,6 +618,10 @@
       {/if}
     </Card>
   </div>
+
+  {#if scanStore.lastScan}
+    <CleanupGuidanceList scan={scanStore.lastScan} {onCategory} {onNavigate} current={scanStore.canClean} />
+  {/if}
 
   <!-- Cleaning Categories Defaults -->
   <div class="space-y-3">

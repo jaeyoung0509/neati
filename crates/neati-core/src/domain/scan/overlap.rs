@@ -110,6 +110,8 @@ pub struct OverlapReport {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnitRelationship {
     Distinct,
+    /// Distinct hard-link entries share storage but retain separate operations.
+    SharedStorage,
     /// The same location.
     Equivalent,
     /// The same location through two rules that disagree about what may be done
@@ -289,6 +291,10 @@ where
                         if container.gate.is_open() && candidate.gate.is_open() {
                             coverage_conflict_targets.push((*outer_category, *outer_item));
                         }
+                        None
+                    }
+                    UnitRelationship::SharedStorage => {
+                        ambiguity_target = true;
                         None
                     }
                     UnitRelationship::Distinct => None,

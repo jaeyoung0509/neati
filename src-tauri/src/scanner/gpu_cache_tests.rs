@@ -80,8 +80,12 @@ fn browser_gpu_scopes_measure_profiles_and_recheck_safety_before_fixture_trash()
         for path in [&protected, &offline, &lookalike, &deeper_cache] {
             write(path);
         }
-        let mut items =
-            DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+        let mut items = DirectoryScanner::scan_signature(
+            signature,
+            &fixture.environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         apply_signature_owner_state(&mut items, signature, &idle());
         assert_eq!(items.len(), caches.len());
         assert!(items
@@ -142,8 +146,12 @@ fn browser_gpu_scopes_refuse_new_structured_state_and_unknown_process_state() {
         .unwrap();
         let cache = paths;
         write(&cache.join("nested").join("shader.bin"));
-        let items =
-            DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            signature,
+            &fixture.environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         assert_eq!(items.len(), 1);
         assert_refused(
             fixture.plan(&items, &RunningApplications::default()),
@@ -176,7 +184,12 @@ fn browser_gpu_scopes_reject_links_and_replaced_roots() {
     )
     .unwrap();
     write(&cache.join("shader.bin"));
-    let items = DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+    let items = DirectoryScanner::scan_signature(
+        signature,
+        &fixture.environment,
+        &NeverCancelled,
+        &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+    );
     assert_eq!(items.len(), 1);
     let plan = fixture.plan(&items, &idle()).unwrap();
     let original = cache.with_file_name("original");
@@ -191,7 +204,12 @@ fn browser_gpu_scopes_reject_links_and_replaced_roots() {
     assert!(trash.moved().is_empty());
     let link = cache.with_file_name("DawnCache");
     directory_link(&link, &original);
-    let items = DirectoryScanner::scan_signature(signature, &fixture.environment, &NeverCancelled);
+    let items = DirectoryScanner::scan_signature(
+        signature,
+        &fixture.environment,
+        &NeverCancelled,
+        &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+    );
     assert_eq!(items.len(), 2);
     let refused_link = items
         .iter()
@@ -267,8 +285,12 @@ impl Fixture {
 
     fn scan(&self, owner: &str, processes: &RunningApplications) -> Vec<ScanItem> {
         let signature = self.signature(owner);
-        let mut items =
-            DirectoryScanner::scan_signature(signature, &self.environment, &NeverCancelled);
+        let mut items = DirectoryScanner::scan_signature(
+            signature,
+            &self.environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         apply_signature_owner_state(&mut items, signature, processes);
         items
     }
@@ -429,8 +451,12 @@ fn gpu_discovery_keeps_unknown_owners_visible_without_shadowing_known_owners() {
             fixture.cache(owner, cache);
         }
     }
-    let unknown =
-        DirectoryScanner::scan_signature(fixture.advisory(), &fixture.environment, &NeverCancelled);
+    let unknown = DirectoryScanner::scan_signature(
+        fixture.advisory(),
+        &fixture.environment,
+        &NeverCancelled,
+        &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+    );
     assert_eq!(unknown.len(), 2 * CACHE_NAMES.len());
     for item in &unknown {
         assert_eq!(item.risk, RiskTier::Manual);

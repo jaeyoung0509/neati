@@ -12,7 +12,6 @@
 //! user closes the tool, which is the outcome the user asked for.
 
 use neati_core::domain::cleanup::{RunningProcessPolicy, RunningProcessProbe};
-use sysinfo::{ProcessesToUpdate, System};
 
 /// The process-table port an owner-scoped provider reads through.
 ///
@@ -28,22 +27,7 @@ impl RunningProcessProbe for SysinfoProcessProbe {
         if guard.is_empty() {
             return Some(Vec::new());
         }
-        let mut system = System::new();
-        system.refresh_processes(ProcessesToUpdate::All, true);
-        if system.processes().is_empty() {
-            // A process table with no entries is not a machine with no
-            // processes; it is a table this process could not read.
-            return None;
-        }
-        let mut matched: Vec<String> = system
-            .processes()
-            .values()
-            .map(|process| process.name().to_string_lossy().into_owned())
-            .filter(|name| guard.matches(name))
-            .collect();
-        matched.sort();
-        matched.dedup();
-        Some(matched)
+        crate::applications::RunningApplications::probe().running_executables(guard)
     }
 }
 
@@ -63,9 +47,10 @@ pub fn running_executables_if_known(policy: &RunningProcessPolicy) -> Option<Vec
         return Some(Vec::new());
     }
 
-    matching_running_names(policy, running_process_names())
+    SysinfoProcessProbe.running(policy)
 }
 
+#[cfg(test)]
 fn matching_running_names(
     policy: &RunningProcessPolicy,
     process_names: Vec<String>,
@@ -90,24 +75,16 @@ pub fn blocked_by_running_process(policy: &RunningProcessPolicy) -> bool {
     if policy.is_empty() {
         return false;
     }
-    blocked_by(policy, &running_process_names())
+    SysinfoProcessProbe
+        .running(policy)
+        .is_none_or(|names| !names.is_empty())
 }
 
 /// The decision, given a process list. Split out so the rule is testable
 /// without depending on which processes the test runner happens to see.
+#[cfg(test)]
 fn blocked_by(policy: &RunningProcessPolicy, running: &[String]) -> bool {
     policy.matches_any(running.iter().map(String::as_str))
-}
-
-/// Every running process name, in one pass over the process table.
-fn running_process_names() -> Vec<String> {
-    let mut system = System::new();
-    system.refresh_processes(ProcessesToUpdate::All, true);
-    system
-        .processes()
-        .values()
-        .map(|process| process.name().to_string_lossy().into_owned())
-        .collect()
 }
 
 #[cfg(test)]

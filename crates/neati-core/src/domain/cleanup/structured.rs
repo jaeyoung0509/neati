@@ -70,6 +70,8 @@ pub enum StructuredStateKind {
     Configuration,
     /// An application, framework, or library bundle: an installable object.
     ApplicationBundle,
+    /// Compiled models retained by a live inference runtime.
+    CompiledModelCache,
     /// An executable image.
     Executable,
 }
@@ -85,6 +87,7 @@ impl StructuredStateKind {
             Self::Configuration => "configuration state",
             Self::ApplicationBundle => "application bundle",
             Self::Executable => "executable image",
+            Self::CompiledModelCache => "compiled model cache",
         }
     }
 
@@ -250,6 +253,9 @@ pub fn classify_structured_state(facts: PathFacts<'_>) -> Option<StructuredState
         .unwrap_or_default();
 
     if facts.entry_kind == EntryKind::Directory {
+        if lower == "com.apple.e5rt.e5bundlecache" {
+            return Some(StructuredStateKind::CompiledModelCache);
+        }
         if BUNDLE_EXTENSIONS.contains(&extension) {
             return Some(StructuredStateKind::ApplicationBundle);
         }

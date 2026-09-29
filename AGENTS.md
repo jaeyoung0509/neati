@@ -248,6 +248,11 @@ safety conventions below when changing neati.
 
 ## Cleanup safety invariants
 
+- Follow `docs/CACHE_POLICY.md`: Apple user-cache payloads use the ordinary
+  zero-day pipeline, with explicit owner routing and compiled-model protection.
+  Scan estimates must exclude descendants of protected directories, and inferred
+  cache-owner guards must reach planning and execution.
+
 - Extended (formerly intensive) cache scanning is standard on supported platforms,
   not a user toggle. Legacy settings are normalized to enabled. The broader
   scope remains subject to age, process, structured-state, signature-scope and explicit

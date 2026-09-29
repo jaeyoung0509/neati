@@ -107,6 +107,7 @@ fn test_temp_scanner_only_includes_known_direct_children() {
         &signature,
         &PlatformEnvironment::native(),
         &neati_core::application::dto::scan::NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
     );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].path, known.to_string_lossy());

@@ -930,15 +930,15 @@ export const mockApi = {
         const recentBytes = 640 * 1024 * 1024;
         const namespaceRoot = '~/Library/Caches';
         const intensiveItem: ScanItem = {
-          id: 'system.intensive.user_app_caches.mock-app',
+          id: 'system.intensive.user_app_caches.com.apple.python',
           signature_id: 'system.intensive.user_app_caches',
-          name: 'Third-Party Application Cache (Mock App)',
+          name: 'Application Cache (Apple Python)',
           category: 'system',
           risk: 'safe',
-          path: '~/Library/Caches/com.example.mock-app',
+          path: '~/Library/Caches/com.apple.python',
           size: { logical: intensiveBytes, allocated: intensiveBytes },
           file_count: 2400,
-          description: 'Regenerable third-party application cache',
+          description: 'Regenerable Apple cache payloads; the owner is idle. No age delay is required.',
           cache_metadata: { provider: 'neati', management_mode: 'neati', artifact_kind: 'temporary', consequence: '', size_semantics: 'physical_reclaimable', last_used_confidence: 'approximate' },
           disposition: {
             eligibility: 'auto_cleanable',
@@ -948,9 +948,9 @@ export const mockApi = {
           unit: {
             kind: 'child_namespace',
             root: namespaceRoot,
-            path: '~/Library/Caches/com.example.mock-app',
+            path: '~/Library/Caches/com.apple.python',
           },
-          ownership: { owner: 'com.example.mock-app', confidence: 'inferred' },
+          ownership: { owner: 'com.apple.python', confidence: 'inferred' },
           entry_kind: 'directory',
           gate: 'open',
           is_selected: true,
@@ -961,13 +961,13 @@ export const mockApi = {
         const blockedItem: ScanItem = {
           id: 'system.intensive.user_app_caches.mock-bundled',
           signature_id: 'system.intensive.user_app_caches',
-          name: 'Stale Third-Party Application Cache (Mock Bundled App)',
+          name: 'Application Cache (Mock Bundled App)',
           category: 'system',
           risk: 'safe',
           path: '~/Library/Caches/com.example.bundled-cache',
           size: { logical: blockedBytes, allocated: blockedBytes },
           file_count: 0,
-          description: 'Third-party cache inactive for at least 7 days',
+          description: 'An embedded application bundle is protected regardless of age.',
           cache_metadata: {
             provider: 'neati',
             management_mode: 'neati',

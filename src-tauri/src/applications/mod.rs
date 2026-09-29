@@ -103,6 +103,8 @@ impl AppFsProbe for NativeAppFsProbe {}
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RunningApplications {
     bundle_ids: Vec<String>,
+    bundle_names: Vec<String>,
+    bundle_state_known: bool,
     process_names: Vec<String>,
     process_state_known: bool,
 }
@@ -132,7 +134,16 @@ impl RunningApplications {
                 let Some(bundle) = app_bundle_of(executable) else {
                     continue;
                 };
-                if let Some(identifier) = bundle_identifier(bundle) {
+                if let Some(name) = bundle.file_stem().and_then(|name| name.to_str()) {
+                    observed.bundle_names.push(name.to_string());
+                }
+                let observation = read_bundle_metadata(bundle);
+                observed.bundle_state_known &= observation.incomplete_reason.is_none();
+                let metadata = observation.metadata;
+                if let Some(name) = metadata.display_name {
+                    observed.bundle_names.push(name);
+                }
+                if let Some(identifier) = metadata.bundle_id {
                     bundle_ids.push(identifier);
                 }
             }
@@ -152,6 +163,8 @@ impl RunningApplications {
             process_state_known: !process_names.is_empty(),
             process_names,
             bundle_ids: Vec::new(),
+            bundle_names: Vec::new(),
+            bundle_state_known: true,
         }
     }
 
@@ -167,6 +180,8 @@ impl RunningApplications {
         bundle_ids.dedup();
         Self {
             bundle_ids,
+            bundle_names: Vec::new(),
+            bundle_state_known: true,
             process_names: Vec::new(),
             process_state_known: false,
         }
@@ -190,6 +205,30 @@ impl RunningApplications {
             .filter(|name| policy.matches(name))
             .cloned()
             .collect();
+        if let Some(owner) = policy.cache_owner() {
+            if self.owner_of(owner).is_some()
+                || self
+                    .bundle_names
+                    .iter()
+                    .any(|name| name.eq_ignore_ascii_case(owner))
+            {
+                names.push(owner.to_string());
+            }
+            // Reverse-DNS namespaces commonly end in their daemon executable.
+            // Exact token equality avoids matching parsecd against parsecd-helper.
+            let leaf = owner.rsplit('.').next().unwrap_or(owner);
+            names.extend(
+                self.process_names
+                    .iter()
+                    .filter(|name| {
+                        name.eq_ignore_ascii_case(owner) || name.eq_ignore_ascii_case(leaf)
+                    })
+                    .cloned(),
+            );
+        }
+        if policy.cache_owner().is_some() && names.is_empty() && !self.bundle_state_known {
+            return None;
+        }
         names.sort();
         names.dedup();
         Some(names)
@@ -235,11 +274,6 @@ fn app_bundle_of(path: &Path) -> Option<&Path> {
             .extension()
             .is_some_and(|extension| extension.eq_ignore_ascii_case("app"))
     })
-}
-
-#[cfg(target_os = "macos")]
-fn bundle_identifier(bundle: &Path) -> Option<String> {
-    read_bundle_metadata(bundle).metadata.bundle_id
 }
 
 pub struct ApplicationScanner;
@@ -1009,6 +1043,57 @@ mod tests {
     use super::*;
     use crate::models::AppInstallSource;
     use neati_core::domain::cleanup::RunningProcessPolicy;
+
+    #[test]
+    fn inferred_cache_owners_match_bundle_boundaries_and_exact_process_names() {
+        let mut snapshot =
+            RunningApplications::from_process_names(["Finder".into(), "parsecd".into()]);
+        snapshot.bundle_ids = vec!["com.example.editor".into()];
+        snapshot.bundle_names = vec!["Example Editor".into()];
+        for owner in [
+            "com.example.editor",
+            "com.example.editor.helper",
+            "Example Editor",
+            "com.apple.parsecd",
+        ] {
+            let guard = RunningProcessPolicy::none().with_cache_owner(owner.into());
+            assert!(
+                !snapshot.running_executables(&guard).unwrap().is_empty(),
+                "{owner}"
+            );
+        }
+        for owner in [
+            "com.example.editorial",
+            "Example Editor-old",
+            "com.apple.parsecd-helper",
+        ] {
+            let guard = RunningProcessPolicy::none().with_cache_owner(owner.into());
+            assert_eq!(
+                snapshot.running_executables(&guard),
+                Some(Vec::new()),
+                "{owner}"
+            );
+        }
+        snapshot.bundle_state_known = false;
+        assert_eq!(
+            snapshot.running_executables(
+                &RunningProcessPolicy::none().with_cache_owner("com.example.other".into())
+            ),
+            None
+        );
+        assert_eq!(
+            snapshot
+                .running_executables(&RunningProcessPolicy::guarding(vec!["not-running".into()])),
+            Some(Vec::new())
+        );
+        assert_eq!(
+            RunningApplications::default().running_executables(
+                &RunningProcessPolicy::none().with_cache_owner("com.apple.parsecd".into())
+            ),
+            None
+        );
+    }
+
     use neati_platform::path_algebra::PathFlavor;
     use std::io::Write;
     #[cfg(not(target_os = "windows"))]

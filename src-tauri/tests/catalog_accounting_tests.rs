@@ -23,7 +23,12 @@ fn temp_aliases_produce_one_cleanup_unit() {
     let registry = SignatureRegistry::load_embedded_catalog().unwrap();
     let mut signature = registry.get("system.developer_temp").unwrap().clone();
     signature.min_age_days = Some(0);
-    let items = DirectoryScanner::scan_signature(&signature, &environment, &NeverCancelled);
+    let items = DirectoryScanner::scan_signature(
+        &signature,
+        &environment,
+        &NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+    );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].size.logical, 4096);
     assert_eq!(items[0].path, unit.to_string_lossy());
@@ -77,7 +82,12 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
     ] {
         assert!(signature.fail_if_running.iter().any(|guard| guard == owner));
     }
-    let items = DirectoryScanner::scan_signature(signature, &environment, &NeverCancelled);
+    let items = DirectoryScanner::scan_signature(
+        signature,
+        &environment,
+        &NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+    );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].path, modules.to_string_lossy());
     assert!(
@@ -91,7 +101,13 @@ fn clang_cache_has_an_exact_root_and_compiler_guards_without_an_age_gate() {
         .exclude_prefixes
         .iter()
         .any(|prefix| prefix == "clang"));
-    assert!(DirectoryScanner::scan_signature(broad, &environment, &NeverCancelled).is_empty());
+    assert!(DirectoryScanner::scan_signature(
+        broad,
+        &environment,
+        &NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+    )
+    .is_empty());
 }
 
 #[test]
@@ -216,7 +232,14 @@ fn additional_ecosystem_stores_are_measured_but_never_authorized() {
         let root = fixture.path().join(relative);
         fs::create_dir_all(&root).unwrap();
         fs::write(root.join("payload.bin"), vec![3; 8192]).unwrap();
-        let items = DirectoryScanner::scan_signature(signature, &environment, &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            signature,
+            &environment,
+            &NeverCancelled,
+            &neati_lib::applications::RunningApplications::from_process_names([
+                "fixture-idle".into()
+            ]),
+        );
         // The directory scanner also returns absent-root observations; the
         // engine filters those before publishing its inventory.
         assert_eq!(
@@ -302,7 +325,12 @@ fn profile_and_app_data_aliases_measure_cursor_cache_once() {
         "~/Library/Application Support/Cursor/Cache".into(),
         "${ROAMING_APP_DATA}/Cursor/Cache".into(),
     ];
-    let items = DirectoryScanner::scan_signature(&signature, &environment, &NeverCancelled);
+    let items = DirectoryScanner::scan_signature(
+        &signature,
+        &environment,
+        &NeverCancelled,
+        &neati_lib::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+    );
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].size.logical, 8192);
 }

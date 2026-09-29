@@ -13,3 +13,6 @@ pub use observation::{
 };
 pub use size::{get_allocated_size, PathMeasurement, SizeCalculator, SizeCalculatorMeasurement};
 pub use walker::DirectoryScanner;
+
+#[cfg(test)]
+mod cache_coverage_tests;

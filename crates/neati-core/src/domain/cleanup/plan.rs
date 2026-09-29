@@ -74,6 +74,7 @@ impl CleanupMode {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RunningProcessPolicy {
     executables: Vec<String>,
+    cache_owner: Option<String>,
 }
 
 impl RunningProcessPolicy {
@@ -84,7 +85,20 @@ impl RunningProcessPolicy {
 
     /// A guard that refuses the cleanup while any listed executable runs.
     pub fn guarding(executables: Vec<String>) -> Self {
-        Self { executables }
+        Self {
+            executables,
+            cache_owner: None,
+        }
+    }
+
+    /// An inferred cache owner, rechecked against process and bundle identities.
+    pub fn with_cache_owner(mut self, owner: String) -> Self {
+        self.cache_owner = Some(owner);
+        self
+    }
+
+    pub fn cache_owner(&self) -> Option<&str> {
+        self.cache_owner.as_deref()
     }
 
     pub fn executables(&self) -> &[String] {
@@ -92,7 +106,7 @@ impl RunningProcessPolicy {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.executables.is_empty()
+        self.executables.is_empty() && self.cache_owner.is_none()
     }
 
     /// Whether a running process name matches this policy.

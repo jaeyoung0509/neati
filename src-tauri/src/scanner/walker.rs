@@ -1,11 +1,10 @@
-use super::observation::{
-    NoRootProgress, ScanLimits, SignatureScan, TraversalCounters, WalkContext,
-};
+use super::observation::{NoRootProgress, ScanLimits, TraversalCounters};
+use super::observation::{SignatureScan, WalkContext};
 use crate::models::{
     classify_structured_state, derive_cleanup_disposition, AgeObservation, CacheSizeSemantics,
-    CancellationProbe, CleanupEligibility, CleanupOwnership, CleanupUnit, DispositionFacts,
-    EligibilityGate, EntryKind, FileSize, ObservationQuality, PathFacts, ScanItem, Signature,
-    StaleEntryObservation, StructuredStateKind,
+    CleanupEligibility, CleanupOwnership, CleanupUnit, DispositionFacts, EligibilityGate,
+    EntryKind, FileSize, ObservationQuality, PathFacts, ScanItem, Signature, StaleEntryObservation,
+    StructuredStateKind,
 };
 use crate::safety::SymlinkGuard;
 use crate::scanner::{PathMeasurement, SizeCalculator};
@@ -74,26 +73,13 @@ fn is_executable(_metadata: &fs::Metadata) -> bool {
     false
 }
 
-/// Whether a cache namespace name is excluded by the signature's prefix list.
-///
-/// Exclusion is case-insensitive: a cache namespace's on-disk casing is not
-/// stable (APFS is case-insensitive by default, so `familycircled` and
-/// `FamilyCircle` resolve to the same directory), and an exclusion that matches
-/// more is the fail-safe direction. `include_prefixes` stays case-sensitive,
-/// because widening an inclusion widens the cleanup surface.
-fn is_excluded_namespace(name: &str, exclude_prefixes: &[String]) -> bool {
-    let lowered = name.to_lowercase();
-    exclude_prefixes
-        .iter()
-        .any(|prefix| lowered.starts_with(&prefix.to_lowercase()))
-}
-
 impl DirectoryScanner {
-    /// Scans all configured paths for a given signature and returns discovered ScanItems.
+    /// Scan with explicit owner observations and default traversal bounds.
     pub fn scan_signature(
         signature: &Signature,
         environment: &PlatformEnvironment,
-        cancellation: &dyn CancellationProbe,
+        cancellation: &dyn crate::models::CancellationProbe,
+        running_apps: &crate::applications::RunningApplications,
     ) -> Vec<ScanItem> {
         // A walk nobody is watching: default bounds, counters nobody reads, no
         // progress listener. It behaves exactly like a watched walk.
@@ -110,7 +96,7 @@ impl DirectoryScanner {
             None,
             &context,
             EligibilityGate::Open,
-            &crate::applications::RunningApplications::default(),
+            running_apps,
         )
         .items
     }
@@ -251,6 +237,19 @@ impl DirectoryScanner {
         // every field is set: only an auto-cleanable unit with reclaimable
         // bytes may be pre-selected.
         for item in &mut items {
+            if item.risk != crate::models::RiskTier::Manual {
+                let guard = signature.process_guard_for(Path::new(&item.path), context.environment);
+                if !guard.is_empty() {
+                    match running_apps.running_executables(&guard) {
+                        Some(names) => item.owner_running |= !names.is_empty(),
+                        None => {
+                            item.quality = ObservationQuality::Unavailable;
+                            item.incomplete_reason =
+                                Some("Owner process state could not be verified".into());
+                        }
+                    }
+                }
+            }
             let disposition = item.derive_disposition();
             item.disposition = disposition;
             item.is_selected = item.is_pre_selectable();
@@ -902,12 +901,10 @@ impl DirectoryScanner {
             };
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().to_string();
-            if !signature.include_prefixes.is_empty()
-                && !signature
-                    .include_prefixes
-                    .iter()
-                    .any(|prefix| name.starts_with(prefix))
-            {
+            if !crate::signatures::exclusions::is_included_namespace(
+                &name,
+                &signature.include_prefixes,
+            ) {
                 continue;
             }
             let child_is_link = SymlinkGuard::is_symlink(&path);
@@ -957,7 +954,14 @@ impl DirectoryScanner {
                     continue;
                 }
             };
-            if is_excluded_namespace(&name, &signature.exclude_prefixes) {
+            if crate::signatures::exclusions::is_excluded_namespace(
+                &name,
+                &signature.exclude_prefixes,
+            ) || crate::signatures::exclusions::is_excluded(
+                &path,
+                &signature.exclusions,
+                environment,
+            ) {
                 continue;
             }
 
@@ -1399,6 +1403,11 @@ impl DirectoryScanner {
         if !meta.is_dir() {
             return stats;
         }
+        let stale_policy = if CandidateFacts::read(path, &meta).structured_state.is_some() {
+            None
+        } else {
+            stale_policy
+        };
 
         context.counters.directory_read();
         let entries = match fs::read_dir(path) {
@@ -1571,8 +1580,12 @@ mod tests {
         let cloudkit_signature = registry
             .get("system.cloudkit.cache")
             .expect("CloudKit observation signature");
-        let cloudkit_items =
-            DirectoryScanner::scan_signature(cloudkit_signature, &environment, &NeverCancelled);
+        let cloudkit_items = DirectoryScanner::scan_signature(
+            cloudkit_signature,
+            &environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         assert_eq!(cloudkit_items.len(), 1);
         assert_eq!(cloudkit_items[0].risk, RiskTier::Manual);
         assert_eq!(
@@ -1584,8 +1597,12 @@ mod tests {
         let broad_cache_signature = registry
             .get("system.intensive.user_app_caches")
             .expect("broad app cache signature");
-        let broad_items =
-            DirectoryScanner::scan_signature(broad_cache_signature, &environment, &NeverCancelled);
+        let broad_items = DirectoryScanner::scan_signature(
+            broad_cache_signature,
+            &environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         assert!(
             broad_items
                 .iter()
@@ -1614,7 +1631,12 @@ mod tests {
         let broad = registry
             .get("system.intensive.user_app_caches")
             .expect("broad app cache signature");
-        let generic_items = DirectoryScanner::scan_signature(broad, &environment, &NeverCancelled);
+        let generic_items = DirectoryScanner::scan_signature(
+            broad,
+            &environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         assert!(generic_items
             .iter()
             .all(|item| item.path != cache.to_string_lossy()));
@@ -1637,7 +1659,12 @@ mod tests {
         let registry = crate::signatures::SignatureRegistry::load_embedded_with(&environment)
             .expect("embedded catalog");
         let broad = registry.get("system.intensive.user_app_caches").unwrap();
-        let items = DirectoryScanner::scan_signature(broad, &environment, &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            broad,
+            &environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         assert!(items.iter().all(|item| !item.path.contains("/dotslash")));
         assert!(inactive.exists());
         assert!(cache.join("active-object").exists());
@@ -1660,14 +1687,24 @@ mod tests {
         let registry = crate::signatures::SignatureRegistry::load_embedded_with(&environment)
             .expect("embedded catalog");
         let broad = registry.get("system.intensive.user_app_caches").unwrap();
-        assert!(
-            DirectoryScanner::scan_signature(broad, &environment, &NeverCancelled)
-                .iter()
-                .all(|item| !item.path.contains("/Google"))
-        );
+        assert!(DirectoryScanner::scan_signature(
+            broad,
+            &environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+        )
+        .iter()
+        .all(|item| !item.path.contains("/Google")));
         for id in ["system.chrome.http_cache", "system.chrome.code_cache"] {
             let signature = registry.get(id).expect("reviewed Chrome cache");
-            let items = DirectoryScanner::scan_signature(signature, &environment, &NeverCancelled);
+            let items = DirectoryScanner::scan_signature(
+                signature,
+                &environment,
+                &NeverCancelled,
+                &crate::applications::RunningApplications::from_process_names([
+                    "fixture-idle".into()
+                ]),
+            );
             assert_eq!(items.len(), 2, "{id}");
             for item in items {
                 assert_eq!(item.risk, RiskTier::Rebuild);
@@ -1705,7 +1742,14 @@ mod tests {
             crate::signatures::SignatureRegistry::load_embedded_with(&environment).unwrap();
         for id in ["system.brave.http_cache", "system.brave.code_cache"] {
             let signature = registry.get(id).unwrap();
-            let items = DirectoryScanner::scan_signature(signature, &environment, &NeverCancelled);
+            let items = DirectoryScanner::scan_signature(
+                signature,
+                &environment,
+                &NeverCancelled,
+                &crate::applications::RunningApplications::from_process_names([
+                    "fixture-idle".into()
+                ]),
+            );
             assert_eq!(
                 items
                     .iter()
@@ -1737,7 +1781,14 @@ mod tests {
             .expect("embedded catalog");
         for id in ["system.helpd.generated_cache", "system.helpd.page_cache"] {
             let signature = registry.get(id).expect("reviewed Help cache");
-            let items = DirectoryScanner::scan_signature(signature, &environment, &NeverCancelled);
+            let items = DirectoryScanner::scan_signature(
+                signature,
+                &environment,
+                &NeverCancelled,
+                &crate::applications::RunningApplications::from_process_names([
+                    "fixture-idle".into()
+                ]),
+            );
             assert_eq!(items.len(), 1, "{id}");
             assert!(items[0].cleanable_bytes() > 0);
             assert!(items[0].is_selected);
@@ -1807,7 +1858,12 @@ mod tests {
         )];
         signature.platforms.clear();
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment, &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment,
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
 
         assert_eq!(
             items.len(),
@@ -1932,7 +1988,12 @@ mod tests {
         age_entry(&stale, 30);
 
         let signature = child_signature(root.path(), 7);
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
 
         let stale_item = items
             .iter()
@@ -1992,7 +2053,12 @@ mod tests {
         age_entry(&stale, 30);
 
         let signature = child_signature(root.path(), 7);
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
 
         let stale_item = items
             .iter()
@@ -2047,7 +2113,12 @@ mod tests {
         signature.paths = vec![format!("{}/*/GPUCache", root.path().to_string_lossy())];
         signature.unit = Some(crate::models::CleanupUnitKind::NamedSubtree);
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         let ids: Vec<&str> = items.iter().map(|item| item.id.as_str()).collect();
 
@@ -2136,7 +2207,12 @@ mod tests {
         signature.paths = vec![format!("{}/*/GPUCache", root.path().to_string_lossy())];
         signature.unit = Some(crate::models::CleanupUnitKind::NamedSubtree);
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         assert!(items.is_empty());
     }
 
@@ -2160,7 +2236,12 @@ mod tests {
         signature.paths = vec![format!("{}/*", root.path().to_string_lossy())];
         signature.include_prefixes = vec!["TempState".into()];
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         assert_eq!(
             names,
@@ -2217,7 +2298,12 @@ mod tests {
 
         // The same facts with the opt-in on produce an eligible unit: the gate
         // is the only difference.
-        let open = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let open = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let item = open
             .iter()
             .find(|item| item.name == "third.party")
@@ -2250,7 +2336,12 @@ mod tests {
         }
 
         let signature = child_signature(root.path(), 7);
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
 
         let item = items
             .iter()
@@ -2295,7 +2386,12 @@ mod tests {
         age_entry(&namespace.join("blob.bin"), 30);
 
         let signature = child_signature(root.path(), 7);
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let item = items
             .iter()
             .find(|item| item.name == "com.example.client")
@@ -2378,7 +2474,12 @@ mod tests {
             consequence: String::new(),
         };
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let eligible_item = items
             .iter()
             .find(|item| item.name == "third.party.cache")
@@ -2504,7 +2605,12 @@ mod tests {
             consequence: String::new(),
         };
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let plain = items
             .iter()
             .find(|item| item.name == "plain.cache")
@@ -2622,7 +2728,12 @@ mod tests {
         // The scan reports the same candidate: its own bytes, never the
         // outside tree's.
         let signature = child_signature(fixture.path(), 7);
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let item = items
             .iter()
             .find(|item| item.path == candidate.to_string_lossy())
@@ -2725,7 +2836,12 @@ mod tests {
             consequence: String::new(),
         };
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         let names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
         assert_eq!(
             names,
@@ -2784,7 +2900,12 @@ mod tests {
             consequence: String::new(),
         };
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         assert_eq!(items.len(), 1);
         assert!(
             items[0]
@@ -2839,7 +2960,12 @@ mod tests {
             consequence: String::new(),
         };
 
-        let items = DirectoryScanner::scan_signature(&signature, &environment(), &NeverCancelled);
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment(),
+            &NeverCancelled,
+            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+        );
         std::fs::set_permissions(&containers, std::fs::Permissions::from_mode(0o755)).unwrap();
 
         assert_eq!(

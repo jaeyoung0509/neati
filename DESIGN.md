@@ -1,5 +1,9 @@
 # neati Design System
 
+Cache scope and retained-byte semantics are defined in [Cache cleanup policy](docs/CACHE_POLICY.md).
+Apple and third-party regenerable payloads share the ordinary cleanup flow.
+Settings names the protected state classes; it does not imply a blanket Apple exclusion.
+
 Extended cache scanning is always included on supported platforms. Settings
 explain its scope without an on/off control; scanning never triggers deletion.
 Verified provider quotas render as soon as available, independently of other

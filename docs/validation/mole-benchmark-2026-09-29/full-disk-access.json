@@ -1,0 +1,285 @@
+{
+  "date": "2026-09-29",
+  "host": "macOS 27.0 (26A428), Apple silicon",
+  "execution_context": "Both tools launched as children of the same Python runner from the Codex shell execution host after the user changed macOS access permissions. Previously refused Safari cache, Safari Library and Mail directory enumeration probes passed before measurement. The responsible TCC application identity was not independently resolved.",
+  "access_probes": [
+    {
+      "scope": "safari_cache",
+      "readable": true
+    },
+    {
+      "scope": "safari_library",
+      "readable": true
+    },
+    {
+      "scope": "mail_library",
+      "readable": true
+    }
+  ],
+  "neati_version": "0.3.78",
+  "mole_version": "1.55.0",
+  "profile": "neati Cargo dev scan_machine example; production ScanEngine and native providers",
+  "retention_policy": "Unchanged; no age-threshold or protection relaxation",
+  "timings": [
+    {
+      "tool": "mole",
+      "run": 1,
+      "started": "2026-09-29T01:34:20.722178+00:00",
+      "elapsed_seconds": 42.732,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 1,
+      "started": "2026-09-29T01:35:03.455075+00:00",
+      "elapsed_seconds": 17.074,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 2,
+      "started": "2026-09-29T01:35:20.529562+00:00",
+      "elapsed_seconds": 14.345,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "mole",
+      "run": 2,
+      "started": "2026-09-29T01:35:34.874985+00:00",
+      "elapsed_seconds": 41.305,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "mole",
+      "run": 3,
+      "started": "2026-09-29T01:36:16.180824+00:00",
+      "elapsed_seconds": 39.447,
+      "exit_code": 0,
+      "timed_out": false
+    },
+    {
+      "tool": "neati",
+      "run": 3,
+      "started": "2026-09-29T01:36:55.628486+00:00",
+      "elapsed_seconds": 15.787,
+      "exit_code": 0,
+      "timed_out": false
+    }
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "mole_reported_potential": "1.34GB",
+      "mole_preview_items": 517,
+      "mole_rounded_sum_bytes": 1335847000,
+      "mole_path_overlap": {
+        "nested_item_count": 10,
+        "nested_rounded_preview_bytes": 226581000,
+        "top_level_rounded_preview_bytes": 1109266000
+      },
+      "neati_observed_bytes": 7333460672,
+      "neati_cleanable_bytes": 494635712,
+      "neati_selected_bytes": 66039808,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "neati_dispositions": {
+        "advisory": {
+          "items": 21,
+          "observed_bytes": 335089664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "blocked": {
+          "items": 38,
+          "observed_bytes": 5452500992,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "reviewable": {
+          "items": 59,
+          "observed_bytes": 655170240,
+          "cleanable_bytes": 428595904,
+          "selected_bytes": 0
+        },
+        "recent": {
+          "items": 98,
+          "observed_bytes": 814592000,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "auto_cleanable": {
+          "items": 27,
+          "observed_bytes": 76107776,
+          "cleanable_bytes": 66039808,
+          "selected_bytes": 66039808
+        }
+      },
+      "neati_chromium_offline_observed_bytes": 613732352,
+      "neati_unknown_owner_items": 0,
+      "path_relationships": {
+        "reference_only": 100,
+        "neati_descendants": 4,
+        "exact": 23,
+        "neati_ancestor": 390
+      },
+      "reference_only_rounded_bytes": 24577000
+    },
+    {
+      "run": 2,
+      "mole_reported_potential": "1.34GB",
+      "mole_preview_items": 517,
+      "mole_rounded_sum_bytes": 1335747000,
+      "mole_path_overlap": {
+        "nested_item_count": 10,
+        "nested_rounded_preview_bytes": 226581000,
+        "top_level_rounded_preview_bytes": 1109166000
+      },
+      "neati_observed_bytes": 7333407424,
+      "neati_cleanable_bytes": 494635712,
+      "neati_selected_bytes": 66039808,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "neati_dispositions": {
+        "advisory": {
+          "items": 21,
+          "observed_bytes": 335089664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "blocked": {
+          "items": 38,
+          "observed_bytes": 5452500992,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "reviewable": {
+          "items": 59,
+          "observed_bytes": 655170240,
+          "cleanable_bytes": 428595904,
+          "selected_bytes": 0
+        },
+        "recent": {
+          "items": 98,
+          "observed_bytes": 814538752,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "auto_cleanable": {
+          "items": 27,
+          "observed_bytes": 76107776,
+          "cleanable_bytes": 66039808,
+          "selected_bytes": 66039808
+        }
+      },
+      "neati_chromium_offline_observed_bytes": 613732352,
+      "neati_unknown_owner_items": 0,
+      "path_relationships": {
+        "reference_only": 100,
+        "neati_descendants": 4,
+        "exact": 23,
+        "neati_ancestor": 390
+      },
+      "reference_only_rounded_bytes": 24577000
+    },
+    {
+      "run": 3,
+      "mole_reported_potential": "1.34GB",
+      "mole_preview_items": 517,
+      "mole_rounded_sum_bytes": 1335747000,
+      "mole_path_overlap": {
+        "nested_item_count": 10,
+        "nested_rounded_preview_bytes": 226581000,
+        "top_level_rounded_preview_bytes": 1109166000
+      },
+      "neati_observed_bytes": 7333477056,
+      "neati_cleanable_bytes": 494635712,
+      "neati_selected_bytes": 66039808,
+      "neati_quality": "partial",
+      "neati_gaps": [
+        {
+          "count": 7,
+          "kind": "io_error"
+        },
+        {
+          "count": 5,
+          "kind": "permission_denied"
+        }
+      ],
+      "neati_dispositions": {
+        "advisory": {
+          "items": 21,
+          "observed_bytes": 335089664,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "blocked": {
+          "items": 38,
+          "observed_bytes": 5452500992,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "reviewable": {
+          "items": 59,
+          "observed_bytes": 655174336,
+          "cleanable_bytes": 428595904,
+          "selected_bytes": 0
+        },
+        "recent": {
+          "items": 98,
+          "observed_bytes": 814604288,
+          "cleanable_bytes": 0,
+          "selected_bytes": 0
+        },
+        "auto_cleanable": {
+          "items": 27,
+          "observed_bytes": 76107776,
+          "cleanable_bytes": 66039808,
+          "selected_bytes": 66039808
+        }
+      },
+      "neati_chromium_offline_observed_bytes": 613732352,
+      "neati_unknown_owner_items": 0,
+      "path_relationships": {
+        "reference_only": 100,
+        "neati_descendants": 4,
+        "exact": 23,
+        "neati_ancestor": 390
+      },
+      "reference_only_rounded_bytes": 24577000
+    }
+  ],
+  "median_seconds": {
+    "neati": 15.787,
+    "mole": 41.305
+  },
+  "no_cleanup_executed": true,
+  "mole_system_preview": "Skipped; stdout requested sudo -v for full system preview. Full Disk Access was used without administrator elevation.",
+  "limitations": [
+    "Live filesystem and active applications; unflushed caches.",
+    "Full Disk Access is not root access and does not imply identical tool scopes.",
+    "Rounded path overlap normalization is not a verified reclaim estimate.",
+    "No deletion throughput, actual freed space or release-build performance was measured."
+  ]
+}

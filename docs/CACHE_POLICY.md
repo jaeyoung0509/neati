@@ -22,7 +22,10 @@ namespace owner into the private deletion plan. The process snapshot matches
 bundle identifiers at a component boundary, bundle names and exact executable
 names. A daemon namespace's last component can match its executable. This is
 process evidence, not a general open-file proof. Unknown process state cannot
-authorize cleanup. Installed applications are not terminated automatically.
+authorize cleanup. Flat executable containers under `/System/Library` with
+no `Contents` or root `Info.plist` retain executable/name guards without
+invalidating unrelated bundle identities. Missing or malformed metadata in
+a conventional bundle still makes unmatched inferred owners unknown. Installed applications are not terminated automatically.
 
 ## Scope and accounting
 
@@ -71,10 +74,11 @@ error suppression are not a deletion authorization mechanism for neati.
 ## Remaining issue work
 
 This batch delivers the payload and shared-guard increments. The linked issues
-remain open for these separately testable contracts:
+track these separately testable contracts:
 
-- #347: additional proven cache-database adapters and open-handle validation.
-- #348: custom XDG roots and an owner operation for abandoned runtime staging.
+- #357 (remaining contracts from closed #347/#348): proven cache-database
+  adapters, open-handle validation, custom XDG roots and an owner operation for
+  abandoned runtime staging. Their payload/catalog increments shipped in #355.
 - #349: updater pending files, shared-container ownership and open-handle checks.
 - #350: DeviceSupport retention by recency, Products/XCTestDevices contracts and
   simulator lifecycle operations.

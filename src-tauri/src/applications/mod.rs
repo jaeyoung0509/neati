@@ -126,7 +126,6 @@ impl RunningApplications {
         #[cfg(target_os = "macos")]
         let observed = {
             let mut observed = observed;
-            let mut bundle_ids = Vec::new();
             for process in system.processes().values() {
                 let Some(executable) = process.exe() else {
                     continue;
@@ -134,23 +133,46 @@ impl RunningApplications {
                 let Some(bundle) = app_bundle_of(executable) else {
                     continue;
                 };
-                if let Some(name) = bundle.file_stem().and_then(|name| name.to_str()) {
-                    observed.bundle_names.push(name.to_string());
-                }
-                let observation = read_bundle_metadata(bundle);
-                observed.bundle_state_known &= observation.incomplete_reason.is_none();
-                let metadata = observation.metadata;
-                if let Some(name) = metadata.display_name {
-                    observed.bundle_names.push(name);
-                }
-                if let Some(identifier) = metadata.bundle_id {
-                    bundle_ids.push(identifier);
-                }
+                observed.observe_bundle(bundle, executable, Path::new("/System/Library"));
             }
-            observed.bundle_ids = Self::from_ids(bundle_ids).bundle_ids;
+            observed.bundle_ids.sort();
+            observed.bundle_ids.dedup();
             observed
         };
         observed
+    }
+
+    /// Flat system executable containers have no bundle identity to read. Keep
+    /// their process-name guard without treating an absent bundle layout as an
+    /// unreadable application. Real application metadata failures stay unknown.
+    #[cfg(any(target_os = "macos", all(test, not(target_os = "windows"))))]
+    fn observe_bundle(&mut self, bundle: &Path, executable: &Path, system_library: &Path) {
+        if let Some(name) = bundle.file_stem().and_then(|name| name.to_str()) {
+            self.bundle_names.push(name.to_string());
+        }
+        let definitely_absent = |path: &Path| {
+            fs::symlink_metadata(path)
+                .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound)
+        };
+        if bundle.starts_with(system_library)
+            && executable.parent() == Some(bundle)
+            && definitely_absent(&bundle.join("Contents"))
+            && definitely_absent(&bundle.join("Info.plist"))
+        {
+            return;
+        }
+        let observation = read_bundle_metadata(bundle);
+        self.bundle_state_known &= observation.incomplete_reason.is_none();
+        let metadata = observation.metadata;
+        if let Some(name) = metadata.display_name {
+            self.bundle_names.push(name);
+        }
+        if let Some(identifier) = metadata
+            .bundle_id
+            .filter(|identifier| !identifier.is_empty())
+        {
+            self.bundle_ids.push(identifier.to_ascii_lowercase());
+        }
     }
 
     /// An empty process table is unknown, not evidence of an idle machine.
@@ -1092,6 +1114,89 @@ mod tests {
             ),
             None
         );
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn flat_system_process_does_not_invalidate_unrelated_cache_owners() {
+        let temp = tempfile::tempdir().unwrap();
+        let system_library = temp.path().join("System/Library");
+        let bundle = system_library.join("CoreServices/liquiddetectiond.app");
+        fs::create_dir_all(&bundle).unwrap();
+        let executable = bundle.join("liquiddetectiond");
+        fs::write(&executable, b"fixture executable").unwrap();
+        let mut snapshot =
+            RunningApplications::from_process_names(["Finder".into(), "liquiddetectiond".into()]);
+        snapshot.observe_bundle(&bundle, &executable, &system_library);
+        let guard = |owner: &str| RunningProcessPolicy::none().with_cache_owner(owner.into());
+        assert_eq!(
+            snapshot.running_executables(&guard("com.apple.python")),
+            Some(vec![])
+        );
+        assert_eq!(
+            snapshot.running_executables(&guard("com.apple.liquiddetectiond")),
+            Some(vec!["liquiddetectiond".into()])
+        );
+        assert_eq!(
+            snapshot.running_executables(&guard("liquiddetectiond")),
+            Some(vec!["liquiddetectiond".into()])
+        );
+
+        // A restarted payload owner is still refused by the execution port.
+        snapshot.process_names.push("python".into());
+        assert_eq!(
+            neati_core::domain::cleanup::RunningProcessProbe::running(
+                &snapshot,
+                &guard("com.apple.python")
+            ),
+            Some(vec!["python".into()])
+        );
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn missing_or_malformed_real_bundle_metadata_stays_unknown() {
+        let temp = tempfile::tempdir().unwrap();
+        let system_library = temp.path().join("System/Library");
+        for (relative, executable_relative, metadata) in [
+            (
+                "System/Library/Services/Conventional.app",
+                "Contents/MacOS/tool",
+                None,
+            ),
+            (
+                "System/Library/Services/Malformed.app",
+                "tool",
+                Some("Contents/Info.plist"),
+            ),
+            (
+                "System/Library/Services/FlatWithMetadata.app",
+                "tool",
+                Some("Info.plist"),
+            ),
+            ("System/Library-lookalike/Flat.app", "tool", None),
+            ("Applications/Flat.app", "tool", None),
+            ("System/Library/Services/Nested.app", "bin/tool", None),
+        ] {
+            let bundle = temp.path().join(relative);
+            let executable = bundle.join(executable_relative);
+            fs::create_dir_all(executable.parent().unwrap()).unwrap();
+            fs::write(&executable, b"fixture").unwrap();
+            if let Some(metadata) = metadata {
+                let path = bundle.join(metadata);
+                fs::create_dir_all(path.parent().unwrap()).unwrap();
+                fs::write(path, b"malformed plist").unwrap();
+            }
+            let mut snapshot = RunningApplications::from_process_names(["tool".into()]);
+            snapshot.observe_bundle(&bundle, &executable, &system_library);
+            assert_eq!(
+                snapshot.running_executables(
+                    &RunningProcessPolicy::none().with_cache_owner("com.apple.python".into())
+                ),
+                None,
+                "{relative}"
+            );
+        }
     }
 
     use neati_platform::path_algebra::PathFlavor;

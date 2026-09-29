@@ -154,3 +154,25 @@ pub async fn preview_cleanup_quit(
 ) -> Result<crate::models::CleanupQuitPreview, String> {
     state.cleanup.preview_cleanup_quit(scan_id, item_ids).await
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn preview_empty_trash(
+    state: State<'_, DesktopState>,
+) -> Result<neati_core::application::dto::empty_trash::EmptyTrashPreview, String> {
+    state.cleanup.preview_empty_trash().await
+}
+#[tauri::command]
+#[specta::specta]
+pub async fn execute_empty_trash(
+    plan_id: String,
+    confirmed: bool,
+    state: State<'_, DesktopState>,
+) -> Result<neati_core::application::dto::empty_trash::EmptyTrashResult, String> {
+    state.cleanup.execute_empty_trash(plan_id, confirmed).await
+}
+#[tauri::command]
+#[specta::specta]
+pub fn cancel_empty_trash(plan_id: String, state: State<'_, DesktopState>) {
+    state.cleanup.cancel_empty_trash(&plan_id);
+}

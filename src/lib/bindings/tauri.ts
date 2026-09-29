@@ -53,6 +53,9 @@ export const commands = {
 } | null>("get_last_scan"),
 	createDeletePlan: (scanId: string, selectedItemIds: string[]) => typedError<PlanPreview_Serialize, CleanupFailure>(__TAURI_INVOKE("create_delete_plan", { scanId, selectedItemIds })),
 	previewCleanupQuit: (scanId: string, itemIds: string[]) => typedError<CleanupQuitPreview, string>(__TAURI_INVOKE("preview_cleanup_quit", { scanId, itemIds })),
+	previewEmptyTrash: () => typedError<EmptyTrashPreview_Serialize, string>(__TAURI_INVOKE("preview_empty_trash")),
+	executeEmptyTrash: (planId: string, confirmed: boolean) => typedError<EmptyTrashResult_Serialize, string>(__TAURI_INVOKE("execute_empty_trash", { planId, confirmed })),
+	cancelEmptyTrash: (planId: string) => __TAURI_INVOKE<void>("cancel_empty_trash", { planId }),
 	executeClean: (planId: string, confirmed: boolean, onEvent: Channel<CleanEvent_Deserialize>) => typedError<CleanResult_Serialize, CleanupFailure>(__TAURI_INVOKE("execute_clean", { planId, confirmed, onEvent })),
 	quickCleanSafe: (onEvent: Channel<CleanEvent_Deserialize>) => typedError<CleanResult_Serialize, CleanupFailure>(__TAURI_INVOKE("quick_clean_safe", { onEvent })),
 	/**
@@ -1939,6 +1942,46 @@ export type EligibilitySummary_Deserialize = {
 /**  The complete, ordered breakdown every aggregate carries. */
 export type EligibilitySummary_Serialize = {
 	buckets: EligibilityBucket_Serialize[],
+};
+
+export type EmptyTrashItemResult = {
+	path: string,
+	removed: boolean,
+	message: string,
+};
+
+export type EmptyTrashPreview = EmptyTrashPreview_Serialize | EmptyTrashPreview_Deserialize;
+
+export type EmptyTrashPreview_Deserialize = {
+	plan_id: string,
+	scope: string,
+	items: string[],
+	observed_bytes: number,
+	entry_count: number,
+};
+
+export type EmptyTrashPreview_Serialize = {
+	plan_id: string,
+	scope: string,
+	items: string[],
+	observed_bytes: number,
+	entry_count: number,
+};
+
+export type EmptyTrashResult = EmptyTrashResult_Serialize | EmptyTrashResult_Deserialize;
+
+export type EmptyTrashResult_Deserialize = {
+	removed_bytes: number,
+	removed_entries: number,
+	cancelled: boolean,
+	items: EmptyTrashItemResult[],
+};
+
+export type EmptyTrashResult_Serialize = {
+	removed_bytes: number,
+	removed_entries: number,
+	cancelled: boolean,
+	items: EmptyTrashItemResult[],
 };
 
 /**  The entry kind the caller observed, as far as the shared rule needs it. */

@@ -534,3 +534,29 @@ fn container_zero_day_policy_keeps_open_payloads_and_preserves_structured_state(
         Some(payload.as_path())
     );
 }
+
+#[test]
+fn podcasts_streaming_scratch_does_not_include_downloaded_episodes() {
+    let fixture = tempfile::tempdir().unwrap();
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_platform(PlatformKind::Macos)
+        .with_home(fixture.path());
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    let root = fixture
+        .path()
+        .join("Library/Containers/com.apple.podcasts/Data");
+    write(&root.join("tmp/StreamedMedia/chunk"));
+    write(&root.join("Library/Application Support/Downloaded/episode.m4a"));
+    let items = scan(
+        &registry,
+        "system.podcasts.streamed_media",
+        &environment,
+        &idle(),
+    );
+    assert_eq!(items.len(), 1);
+    assert!(Path::new(&items[0].path).ends_with(Path::new("StreamedMedia").join("chunk")));
+    assert_eq!(items[0].cleanable_bytes(), 0, "new chunks remain age gated");
+    assert!(root
+        .join("Library/Application Support/Downloaded/episode.m4a")
+        .exists());
+}

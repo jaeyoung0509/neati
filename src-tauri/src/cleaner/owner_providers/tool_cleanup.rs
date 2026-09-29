@@ -57,12 +57,14 @@ trait ToolCommandRunner: Send + Sync {
 pub enum ToolCacheKind {
     Conda,
     Mise,
+    Swiftpm,
 }
 impl ToolCacheKind {
     fn executable(self) -> &'static str {
         match self {
             Self::Conda => "conda",
             Self::Mise => "mise",
+            Self::Swiftpm => "swift-package",
         }
     }
 }
@@ -71,8 +73,12 @@ struct NativeToolCommandRunner {
 }
 impl NativeToolCommandRunner {
     fn executable(&self, environment: &PlatformEnvironment) -> Result<PathBuf, String> {
-        let path = crate::tooling::resolve_with(self.kind.executable(), environment)
-            .ok_or("Tool is not installed")?;
+        let path = if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            swiftpm_executable(environment)?
+        } else {
+            crate::tooling::resolve_with(self.kind.executable(), environment)
+                .ok_or("Tool is not installed")?
+        };
         let canonical = std::fs::canonicalize(&path).map_err(|e| e.to_string())?;
         let mut roots = vec![
             PathBuf::from("/opt/homebrew"),
@@ -93,6 +99,9 @@ impl NativeToolCommandRunner {
                 roots.push(home.join(".local/bin"));
             }
         }
+        if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            roots = vec![PathBuf::from("/Library/Developer/CommandLineTools/usr/bin"), PathBuf::from("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin")];
+        }
         if !roots.iter().any(|root| {
             canonical.starts_with(std::fs::canonicalize(root).unwrap_or_else(|_| root.clone()))
         }) || !canonical.is_file()
@@ -110,6 +119,9 @@ impl NativeToolCommandRunner {
         let home = environment.user_home().ok_or("No user home for Conda")?;
         let mut command = Command::new(executable);
         match self.kind {
+            ToolCacheKind::Swiftpm => {
+                command.arg("--version");
+            }
             ToolCacheKind::Conda => {
                 command.args(CLEAN_ARGS);
                 if dry_run {
@@ -175,8 +187,38 @@ impl NativeToolCommandRunner {
             ToctouGuard::verify(&executable, &reviewed.executable_identity)
                 .map_err(|error| error.to_string())?;
         }
+        let scratch = if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            Some(
+                tempfile::Builder::new()
+                    .prefix("neati-swiftpm-")
+                    .tempdir_in(environment.temp_dir())
+                    .map_err(|e| e.to_string())?,
+            )
+        } else {
+            None
+        };
+        let command = if let Some(scratch) = &scratch {
+            if dry_run {
+                let mut command = Command::new(&executable);
+                command
+                    .arg("--version")
+                    .current_dir(scratch.path())
+                    .env_clear()
+                    .env("HOME", scratch.path())
+                    .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin");
+                command
+            } else {
+                swiftpm_command(
+                    &executable,
+                    &swiftpm_cache_root(environment)?,
+                    scratch.path(),
+                )
+            }
+        } else {
+            self.command(environment, &executable, dry_run)?
+        };
         let output = neati_platform::subprocess::run_with_timeout(
-            self.command(environment, &executable, dry_run)?,
+            command,
             Duration::from_secs(if dry_run { 30 } else { 120 }),
         )
         .map_err(|error| error.to_string())?;
@@ -192,6 +234,7 @@ impl ToolCommandRunner for NativeToolCommandRunner {
         let candidates = match self.kind {
             ToolCacheKind::Conda => parse_candidates(&output)?,
             ToolCacheKind::Mise => parse_mise_roots(&output, environment)?,
+            ToolCacheKind::Swiftpm => swiftpm_candidates(&output, environment)?,
         };
         let mut digest = Sha256::new();
         digest.update(executable.as_os_str().as_encoded_bytes());
@@ -230,6 +273,9 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             digest.update(path.as_os_str().as_encoded_bytes());
             digest.update(format!("{identity:?}"));
             digest.update(measurement.allocated_bytes.to_le_bytes());
+            if matches!(self.kind, ToolCacheKind::Swiftpm) {
+                fingerprint_tree(path, &mut digest)?;
+            }
         }
         Ok(ToolPreview {
             prefix: executable
@@ -265,12 +311,138 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             Some(running) if running.is_empty() => {}
             _ => return Err("The owner is running or its state is unknown".into()),
         }
+        if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            verify_swiftpm_idle(&current.candidates, processes, guard)?;
+        }
         let (_, output) = self.run(environment, false, Some(&current))?;
         match self.kind {
             ToolCacheKind::Conda => parse_candidates(&output).map(|_| ()),
-            ToolCacheKind::Mise => Ok(()),
+            ToolCacheKind::Mise | ToolCacheKind::Swiftpm => Ok(()),
         }
     }
+}
+
+fn verify_swiftpm_idle(
+    paths: &[PathBuf],
+    processes: &dyn RunningProcessProbe,
+    guard: &RunningProcessPolicy,
+) -> Result<(), String> {
+    for path in paths {
+        match std::fs::symlink_metadata(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(e.to_string()),
+            Ok(_) => {}
+        }
+        if !matches!(processes.running(&guard.clone().with_open_files(path.clone())), Some(names) if names.is_empty())
+        {
+            return Err("SwiftPM cache handles are busy or unknown".into());
+        }
+    }
+    Ok(())
+}
+
+fn swiftpm_executable(environment: &PlatformEnvironment) -> Result<PathBuf, String> {
+    if let Some(tool) = environment.tool("swift-package") {
+        return tool
+            .path()
+            .map(Path::to_path_buf)
+            .ok_or("SwiftPM is unavailable".into());
+    }
+    let mut command = Command::new("/usr/bin/xcrun");
+    command
+        .args(["--find", "swift-package"])
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin");
+    let result = neati_platform::subprocess::run_with_timeout(command, Duration::from_secs(10))
+        .map_err(|e| e.to_string())?;
+    if !result.status.success() {
+        return Err(
+            "Select an installed Apple developer toolchain before reviewing SwiftPM cleanup".into(),
+        );
+    }
+    let path = String::from_utf8(result.stdout).map_err(|e| e.to_string())?;
+    Ok(PathBuf::from(path.trim()))
+}
+fn swiftpm_cache_root(environment: &PlatformEnvironment) -> Result<PathBuf, String> {
+    Ok(environment
+        .user_home()
+        .ok_or("User home unavailable")?
+        .join("Library/Caches/org.swift.swiftpm"))
+}
+fn swiftpm_candidates(
+    version: &[u8],
+    environment: &PlatformEnvironment,
+) -> Result<Vec<PathBuf>, String> {
+    // This is the owner version exercised by the real disposable-home validation.
+    // Unknown command semantics cannot authorize a broader package-store purge.
+    if version != b"Swift Package Manager - Swift 6.4.0-dev\n" {
+        return Err("SwiftPM cleanup is validated for Swift 6.4.0-dev only; this toolchain needs compatibility validation".into());
+    }
+    let root = swiftpm_cache_root(environment)?;
+    for suffix in ["-wal", "-shm", "-journal"] {
+        match std::fs::symlink_metadata(root.join(format!("manifests/manifest.db{suffix}"))) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            _ => return Err("SwiftPM manifest database has a journal or an unreadable companion; close its owner and review again".into()),
+        }
+    }
+    Ok([
+        "repositories",
+        "registry/downloads",
+        "manifests/manifest.db",
+    ]
+    .map(|name| root.join(name))
+    .to_vec())
+}
+fn swiftpm_command(executable: &Path, cache: &Path, scratch: &Path) -> Command {
+    let mut command = Command::new(executable);
+    command
+        .arg("--cache-path")
+        .arg(cache)
+        .arg("--config-path")
+        .arg(scratch.join("configuration"))
+        .arg("--security-path")
+        .arg(scratch.join("security"))
+        .arg("--scratch-path")
+        .arg(scratch.join("build"))
+        .arg("purge-cache")
+        .current_dir(scratch)
+        .env_clear()
+        .env("HOME", scratch)
+        .env("CFFIXED_USER_HOME", scratch)
+        .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin");
+    command
+}
+fn fingerprint_tree(root: &Path, digest: &mut Sha256) -> Result<(), String> {
+    let mut stack = vec![root.to_path_buf()];
+    let mut remaining = MAX_CANDIDATES;
+    let start = std::time::Instant::now();
+    while let Some(path) = stack.pop() {
+        remaining = remaining
+            .checked_sub(1)
+            .ok_or("SwiftPM inventory exceeds its entry limit")?;
+        if start.elapsed() > Duration::from_secs(10) {
+            return Err("SwiftPM inventory exceeded its time limit".into());
+        }
+        let metadata = std::fs::symlink_metadata(&path).map_err(|e| e.to_string())?;
+        if metadata.file_type().is_symlink() || (!metadata.is_file() && !metadata.is_dir()) {
+            return Err("SwiftPM inventory contains unsupported entries".into());
+        }
+        let identity = ToctouGuard::capture(&path).ok_or("SwiftPM entry identity unavailable")?;
+        digest.update(path.as_os_str().as_encoded_bytes());
+        digest.update(format!("{identity:?}"));
+        if metadata.is_dir() {
+            let mut children = Vec::new();
+            for entry in std::fs::read_dir(&path).map_err(|e| e.to_string())? {
+                if children.len() + stack.len() >= remaining {
+                    return Err("SwiftPM inventory exceeds its entry limit".into());
+                }
+                children.push(entry.map_err(|e| e.to_string())?.path());
+            }
+            children.sort();
+            stack.extend(children);
+        }
+    }
+    Ok(())
 }
 
 fn parse_candidates(bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
@@ -399,7 +571,9 @@ impl ToolCleanupProvider {
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
-        if crate::tooling::resolve_with(self.kind.executable(), environment).is_none() {
+        if !matches!(self.kind, ToolCacheKind::Swiftpm)
+            && crate::tooling::resolve_with(self.kind.executable(), environment).is_none()
+        {
             return OwnerStoreObservation::ready(None, Vec::new());
         }
         match self.process.running(guard) {
@@ -428,6 +602,13 @@ impl ToolCleanupProvider {
                 return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error)
             }
         };
+        if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            if let Err(error) =
+                verify_swiftpm_idle(&preview.candidates, self.process.as_ref(), guard)
+            {
+                return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error);
+            }
+        }
         let root = preview.prefix.clone();
         if preview.candidates.is_empty() || preview.estimated_bytes == 0 {
             return OwnerStoreObservation::ready(Some(root), Vec::new());
@@ -608,6 +789,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
         match self.kind {
             ToolCacheKind::Conda => "conda.disposable_cache",
             ToolCacheKind::Mise => "mise.cache_clear",
+            ToolCacheKind::Swiftpm => "swiftpm.purge_cache",
         }
     }
 
@@ -617,6 +799,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
 
     fn consequence(&self) -> &'static str {
         match self.kind {
+            ToolCacheKind::Swiftpm => "SwiftPM purges global repository downloads, registry downloads and its manifest cache. Dependencies may need downloading again. Project builds, installed toolchains, artifacts, configuration and security state stay intact.",
             ToolCacheKind::Conda => "Conda removes downloaded package archives, index caches and logs. Extracted packages and installed environments remain intact.",
             ToolCacheKind::Mise => "mise clears tool metadata, task output caches and cached environments using its own command. Installed tools, configuration and trust records remain intact; tasks may run again.",
         }
@@ -749,6 +932,64 @@ fn parse_mise_roots(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn swiftpm_scope_refuses_unknown_versions_journals_and_covers_every_handle() {
+        let root = tempfile::tempdir().unwrap();
+        let env =
+            neati_platform::PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+                .with_home(root.path());
+        assert!(super::swiftpm_candidates(b"Swift Package Manager - Swift 9.0\n", &env).is_err());
+        let version = b"Swift Package Manager - Swift 6.4.0-dev\n";
+        let paths = super::swiftpm_candidates(version, &env).unwrap();
+        assert_eq!(paths.len(), 3);
+        for path in &paths {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            if path.ends_with("manifest.db") {
+                std::fs::write(path, b"fixture").unwrap();
+            } else {
+                std::fs::create_dir(path).unwrap();
+            }
+        }
+        struct FirstBusy;
+        impl super::RunningProcessProbe for FirstBusy {
+            fn running(&self, policy: &super::RunningProcessPolicy) -> Option<Vec<String>> {
+                Some(
+                    if policy
+                        .open_file_path()
+                        .is_some_and(|p| p.ends_with("repositories"))
+                    {
+                        vec!["busy".into()]
+                    } else {
+                        vec![]
+                    },
+                )
+            }
+        }
+        assert!(super::verify_swiftpm_idle(
+            &paths,
+            &FirstBusy,
+            &super::RunningProcessPolicy::none()
+        )
+        .is_err());
+        std::fs::write(paths[2].with_extension("db-wal"), b"journal").unwrap();
+        assert!(super::swiftpm_candidates(version, &env).is_err());
+    }
+    #[test]
+    fn swiftpm_review_fingerprint_changes_when_only_a_descendant_is_replaced() {
+        use sha2::{Digest, Sha256};
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("nested/payload");
+        std::fs::create_dir(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"same size").unwrap();
+        let mut before = Sha256::new();
+        super::fingerprint_tree(root.path(), &mut before).unwrap();
+        std::fs::rename(&path, root.path().join("keep")).unwrap();
+        std::fs::write(&path, b"same size").unwrap();
+        let mut after = Sha256::new();
+        super::fingerprint_tree(root.path(), &mut after).unwrap();
+        assert_ne!(before.finalize(), after.finalize());
+    }
+
     use super::*;
     use std::sync::{
         atomic::{AtomicUsize, Ordering},
@@ -1032,7 +1273,11 @@ mod tests {
     fn native_commands_use_the_stated_home_and_fixed_owner_arguments() {
         let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
             .with_home("/profile");
-        for kind in [ToolCacheKind::Conda, ToolCacheKind::Mise] {
+        for kind in [
+            ToolCacheKind::Conda,
+            ToolCacheKind::Mise,
+            ToolCacheKind::Swiftpm,
+        ] {
             let runner = NativeToolCommandRunner { kind };
             let command = runner
                 .command(&environment, Path::new("/fixture/tool"), false)
@@ -1041,6 +1286,7 @@ mod tests {
             match kind {
                 ToolCacheKind::Conda => assert_eq!(args, CLEAN_ARGS),
                 ToolCacheKind::Mise => assert_eq!(args, ["cache", "clear"]),
+                ToolCacheKind::Swiftpm => assert_eq!(args, ["--version"]),
             }
             assert_eq!(command.get_current_dir(), Some(Path::new("/profile")));
         }

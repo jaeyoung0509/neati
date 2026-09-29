@@ -38,6 +38,7 @@ pub mod dotslash;
 pub mod homebrew;
 #[cfg(target_os = "macos")]
 pub mod homebrew_cleanup;
+pub mod reviewed_cache;
 #[cfg(target_os = "macos")]
 pub mod tool_cleanup;
 
@@ -158,7 +159,12 @@ impl OwnerProviderRegistry {
             measuring.clone(),
             trash.clone(),
         ));
-        let providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
+        let mut providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
+            #[cfg(target_os = "macos")]
+            Arc::new(tool_cleanup::ToolCleanupProvider::native(
+                tool_cleanup::ToolCacheKind::Swiftpm,
+                process.clone(),
+            )),
             #[cfg(target_os = "macos")]
             Arc::new(tool_cleanup::ToolCleanupProvider::native(
                 tool_cleanup::ToolCacheKind::Conda,
@@ -179,7 +185,7 @@ impl OwnerProviderRegistry {
                 browser::BrowserCacheKind::OfflineCacheStorage,
                 process.clone(),
                 measuring.clone(),
-                trash,
+                trash.clone(),
             )),
             Arc::new(cargo::CargoRegistryArchiveProvider::new(
                 process.clone(),
@@ -189,8 +195,33 @@ impl OwnerProviderRegistry {
                 process.clone(),
                 measuring.clone(),
             )),
-            Arc::new(cargo::CargoGitProvider::new(process, measuring)),
+            Arc::new(cargo::CargoGitProvider::new(
+                process.clone(),
+                measuring.clone(),
+            )),
         ];
+        use neati_core::domain::cleanup::reviewed_cache::ReviewedCacheKind;
+        for kind in [
+            ReviewedCacheKind::EditorOffline,
+            ReviewedCacheKind::NodeHeaders,
+            ReviewedCacheKind::ElectronArchives,
+            ReviewedCacheKind::ShellCompletions,
+            ReviewedCacheKind::GoogleUpdaterLogs,
+            ReviewedCacheKind::GradleMarkers,
+            ReviewedCacheKind::CodexStaging,
+            ReviewedCacheKind::UpdaterStaging,
+            ReviewedCacheKind::IdeIndexes,
+            ReviewedCacheKind::MailDownloads,
+            ReviewedCacheKind::MessagesPreviews,
+            ReviewedCacheKind::AbandonedDownloads,
+        ] {
+            providers.push(Arc::new(reviewed_cache::ReviewedCacheProvider::new(
+                kind,
+                process.clone(),
+                measuring.clone(),
+                trash.clone(),
+            )));
+        }
         #[cfg(target_os = "macos")]
         let providers = {
             let mut providers = providers;

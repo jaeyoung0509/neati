@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-execute-empty-trash"
+description = "Enables the execute_empty_trash command without any pre-configured scope."
+commands.allow = ["execute_empty_trash"]
+
+[[permission]]
+identifier = "deny-execute-empty-trash"
+description = "Denies the execute_empty_trash command without any pre-configured scope."
+commands.deny = ["execute_empty_trash"]

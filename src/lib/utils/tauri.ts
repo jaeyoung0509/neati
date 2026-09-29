@@ -442,3 +442,7 @@ export function tauriExecuteTrashPlan(planId: string): Promise<TrashResult> {
 export function tauriPreviewCleanupQuit(scanId: string, itemIds: string[]): Promise<CleanupQuitPreview> {
   return api.previewCleanupQuit(scanId, itemIds);
 }
+
+export function tauriPreviewEmptyTrash() { return api.previewEmptyTrash(); }
+export function tauriExecuteEmptyTrash(planId: string) { return api.executeEmptyTrash(planId); }
+export function tauriCancelEmptyTrash(planId: string) { return api.cancelEmptyTrash(planId); }

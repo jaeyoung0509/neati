@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyTrashAction from "../../lib/components/EmptyTrashAction.svelte";
   import CleanupQuitDialog from '../../lib/components/CleanupQuitDialog.svelte';
   import { quitAndRescan } from '../../lib/utils/cleanupQuit';
   import CleanupReviewDialog from '../../lib/components/CleanupReviewDialog.svelte';
@@ -245,6 +246,9 @@
   <PageHeader title="Cleanup" icon={HardDrive} class="storage-header">
     {#snippet actions()}
       {@render workflowSelector()}
+      {#if platformContextStore.context?.platform === "macos"}
+        <EmptyTrashAction disabled={scanStore.isScanning || scanStore.isCleaning} />
+      {/if}
       <Button
         variant="outline"
         size="sm"

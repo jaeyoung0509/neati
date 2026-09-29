@@ -46,6 +46,7 @@ import type {
   NeatiSettings_Serialize,
 } from '../models/types';
 import type { nativeApi } from './native';
+import * as emptyTrashMock from './mocks/emptyTrash';
 import { createDevelopmentPortsMock } from './mocks/developmentPorts';
 import { previewPlatform } from './mocks/previewPlatform';
 import { goldenCapabilitiesByPlatform } from '../models/platformCapabilities';
@@ -1310,6 +1311,9 @@ export const mockApi = {
       : null;
   },
 
+  previewEmptyTrash: emptyTrashMock.previewEmptyTrash,
+  executeEmptyTrash: emptyTrashMock.executeEmptyTrash,
+  cancelEmptyTrash: emptyTrashMock.cancelEmptyTrash,
   async previewCleanupQuit(scanId: string, itemIds: string[]): Promise<CleanupQuitPreview> {
     return { scan_id: scanId, apps: itemIds.length ? [{ name: 'Google Chrome', lease_id: 'mock-lease-cleanup-chrome', item_ids: itemIds }] : [], unavailable: [] };
   },

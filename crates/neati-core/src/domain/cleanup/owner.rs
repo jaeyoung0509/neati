@@ -28,6 +28,7 @@
 //!   afterwards, so an unverifiable removal is representable as partial rather
 //!   than reported as clean.
 
+use crate::domain::scan::ScanGapKind;
 use std::path::{Path, PathBuf};
 
 use super::plan::{CleanFailureReason, DeletionDisposition, RunningProcessPolicy};
@@ -98,9 +99,15 @@ pub struct OwnerUnitObservation {
     pub state: OwnerUnitState,
     /// Why the unit is not ready, in the provider's own words.
     pub detail: Option<String>,
+    pub inspection_issue: Option<ScanGapKind>,
 }
 
 impl OwnerUnitObservation {
+    pub fn with_inspection_issue(mut self, issue: ScanGapKind) -> Self {
+        self.inspection_issue = Some(issue);
+        self
+    }
+
     /// A unit the provider verified and would remove.
     pub fn ready(
         unit_key: impl Into<String>,
@@ -117,6 +124,7 @@ impl OwnerUnitObservation {
             entry_count,
             state: OwnerUnitState::Ready,
             detail: None,
+            inspection_issue: None,
         }
     }
 
@@ -136,6 +144,7 @@ impl OwnerUnitObservation {
             entry_count,
             state: OwnerUnitState::Recent,
             detail: Some(detail.into()),
+            inspection_issue: None,
         }
     }
 
@@ -155,6 +164,7 @@ impl OwnerUnitObservation {
             entry_count,
             state: OwnerUnitState::InUse,
             detail: Some(detail.into()),
+            inspection_issue: None,
         }
     }
 
@@ -174,6 +184,7 @@ impl OwnerUnitObservation {
             entry_count,
             state: OwnerUnitState::Refused,
             detail: Some(detail.into()),
+            inspection_issue: None,
         }
     }
 
@@ -194,6 +205,7 @@ impl OwnerUnitObservation {
             entry_count,
             state: OwnerUnitState::Advisory,
             detail: Some(detail.into()),
+            inspection_issue: None,
         }
     }
 
@@ -214,6 +226,7 @@ impl OwnerUnitObservation {
             entry_count,
             state: OwnerUnitState::Blocked,
             detail: Some(detail.into()),
+            inspection_issue: None,
         }
     }
 
@@ -237,9 +250,15 @@ pub struct OwnerStoreObservation {
     pub units: Vec<OwnerUnitObservation>,
     /// The provider's own words about a store-level status.
     pub detail: Option<String>,
+    pub inspection_issue: Option<ScanGapKind>,
 }
 
 impl OwnerStoreObservation {
+    pub fn with_inspection_issue(mut self, issue: ScanGapKind) -> Self {
+        self.inspection_issue = Some(issue);
+        self
+    }
+
     /// A store the provider read, with the units it found.
     pub fn ready(root: Option<PathBuf>, units: Vec<OwnerUnitObservation>) -> Self {
         Self {
@@ -247,6 +266,7 @@ impl OwnerStoreObservation {
             root,
             units,
             detail: None,
+            inspection_issue: None,
         }
     }
 
@@ -265,6 +285,8 @@ impl OwnerStoreObservation {
             root,
             units: Vec::new(),
             detail: Some(detail.into()),
+            inspection_issue: (status == ProviderStatus::Unsupported)
+                .then_some(ScanGapKind::UnsupportedAdapter),
         }
     }
 

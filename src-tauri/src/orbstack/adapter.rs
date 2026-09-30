@@ -105,6 +105,7 @@ impl OrbStackAdapter {
             last_modified,
             exists: true,
             quality: ObservationQuality::Fresh,
+            inspection_issue: None,
             incomplete_reason: None,
             skipped_entry_count: 0,
         })

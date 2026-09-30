@@ -506,6 +506,7 @@ impl OwnerProviderRegistry {
             ObservationQuality::Unavailable,
             Some(reason),
         )
+        .with_inspection_issue(observation.inspection_issue)
     }
 
     /// The item for one enumerated unit.
@@ -551,6 +552,7 @@ impl OwnerProviderRegistry {
             quality,
             reason,
         )
+        .with_inspection_issue(unit.inspection_issue)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -647,6 +649,7 @@ impl OwnerProviderRegistry {
             last_modified: None,
             exists: observation_exists(unit),
             quality,
+            inspection_issue: None,
             incomplete_reason,
             skipped_entry_count: 0,
         }
@@ -875,6 +878,37 @@ mod tests {
 
     fn unit(key: &str, bytes: u64) -> OwnerUnitObservation {
         OwnerUnitObservation::ready(key, PathBuf::from("/store").join(key), bytes, bytes, 2)
+    }
+
+    #[test]
+    fn refused_provider_diagnostics_survive_projection_without_granting_authority() {
+        for kind in [
+            crate::models::ScanGapKind::ToolMissing,
+            crate::models::ScanGapKind::UnsupportedAdapter,
+        ] {
+            let mut provider = StatedProvider::refusing(
+                "test.owner",
+                ProviderStatus::Blocked,
+                "권한이 아닌 도구 문제",
+            );
+            provider.store.inspection_issue = Some(kind);
+            let (registry, providers) = catalog(provider.shared());
+            let items = discover(&registry, &providers);
+            assert_eq!(items.len(), 1);
+            assert_eq!(items[0].inspection_issue, Some(kind));
+            assert!(!items[0].is_selected);
+            assert!(!items[0].allows_cleanup());
+        }
+        let provider = StatedProvider::refusing(
+            "test.owner",
+            ProviderStatus::Unsupported,
+            "permission denied",
+        );
+        let (registry, providers) = catalog(provider.shared());
+        assert_eq!(
+            discover(&registry, &providers)[0].inspection_issue,
+            Some(crate::models::ScanGapKind::UnsupportedAdapter)
+        );
     }
 
     #[test]

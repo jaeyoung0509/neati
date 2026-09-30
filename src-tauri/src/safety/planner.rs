@@ -948,6 +948,7 @@ mod tests {
             last_modified: None,
             exists: true,
             quality: ObservationQuality::Fresh,
+            inspection_issue: None,
             incomplete_reason: None,
             skipped_entry_count: 0,
         };

@@ -15,7 +15,6 @@ use neati_core::domain::scan::ScanSpan;
 use neati_core::domain::ScanMetrics;
 use neati_platform::PlatformEnvironment;
 use std::cell::RefCell;
-use std::path::Path;
 use std::time::{Instant, SystemTime};
 use uuid::Uuid;
 
@@ -170,41 +169,11 @@ fn add_scan_gap(gaps: &mut Vec<ScanGap>, kind: ScanGapKind, count: u64) {
     }
 }
 
-/// Maps an incomplete retained observation to a stable remediation category.
-///
-/// The item still carries the original backend reason for diagnostics, but the
-/// UI never has to parse that prose. Stable cancellation, depth, and access
-/// refusal markers are classified first; only an access refusal on a protected
-/// macOS path is attributed to Full Disk Access.
-pub fn scan_gap_kind(environment: &PlatformEnvironment, item: &ScanItem) -> Option<ScanGapKind> {
-    // A complete provider observation may carry advisory prose. That prose
-    // explains policy, not an unreadable scan location.
-    if item.quality == ObservationQuality::Fresh {
-        return None;
-    }
-    let reason = item.incomplete_reason.as_deref().unwrap_or_default();
-    if reason.to_ascii_lowercase().contains("cancel") {
-        return Some(ScanGapKind::Cancelled);
-    }
-    let lower = reason.to_ascii_lowercase();
-    if lower.contains("depth limit") {
-        return Some(ScanGapKind::DepthLimit);
-    }
-    let is_access_refusal = lower.contains("permission denied")
-        || lower.contains("operation not permitted")
-        || lower.contains("access denied");
-    if is_access_refusal
-        && neati_platform::environment::refusal_may_be_full_disk_access(
-            environment,
-            Path::new(&item.path),
-        )
-    {
-        return Some(ScanGapKind::FullDiskAccess);
-    }
-    if is_access_refusal {
-        return Some(ScanGapKind::PermissionDenied);
-    }
-    Some(ScanGapKind::IoError)
+/// Reports the source's typed diagnostic. Legacy observations stay unknown;
+/// prose and the location alone cannot prove a remediation.
+pub fn scan_gap_kind(item: &ScanItem) -> Option<ScanGapKind> {
+    (item.quality != ObservationQuality::Fresh)
+        .then_some(item.inspection_issue.unwrap_or(ScanGapKind::Unknown))
 }
 
 fn apply_verified_cache_owner_state(item: &mut ScanItem, running: Option<bool>) {
@@ -214,6 +183,7 @@ fn apply_verified_cache_owner_state(item: &mut ScanItem, running: Option<bool>) 
         None => {
             item.quality = ObservationQuality::Unavailable;
             item.incomplete_reason = Some("Owner process state could not be verified".into());
+            item.inspection_issue = Some(ScanGapKind::OwnerStateUnknown);
         }
     }
     item.disposition = item.derive_disposition();
@@ -749,7 +719,7 @@ impl ScanEngine {
                         incomplete_reasons.push(reason.clone());
                     }
                 }
-                if let Some(kind) = scan_gap_kind(environment, item) {
+                if let Some(kind) = scan_gap_kind(item) {
                     add_scan_gap(&mut gaps, kind, 1);
                 }
             }
@@ -886,7 +856,7 @@ impl ScanEngine {
                         incomplete_reasons.push(reason.clone());
                     }
                 }
-                if let Some(kind) = scan_gap_kind(environment, item) {
+                if let Some(kind) = scan_gap_kind(item) {
                     add_scan_gap(&mut gaps, kind, 1);
                 }
             }
@@ -1065,57 +1035,43 @@ mod tests {
     }
 
     #[test]
-    fn scan_gap_classification_is_typed_and_full_disk_access_is_context_aware() {
-        // Keep the fixture path in the simulated macOS path algebra all the
-        // way through. `std::path::Path::join` follows the CI host, so on
-        // Windows it would inject backslashes into an otherwise POSIX path and
-        // make the Full Disk Access containment check correctly reject it.
-        let home = "/Users/fixture";
-        let environment = PlatformEnvironment::simulated(PathFlavor::Posix)
-            .with_roots(std::sync::Arc::new(
-                neati_platform::paths::SimulatedPaths::new()
-                    .with_flavor(PathFlavor::Posix)
-                    .with_home(home),
-            ))
-            .with_platform(crate::models::PlatformKind::Macos);
-        let mut protected = ScanItem::mock(
-            "gap.protected",
-            "gap.protected",
-            "Protected",
+    fn scan_gaps_depend_on_typed_facts_not_diagnostic_language() {
+        let mut item = ScanItem::mock(
+            "gap",
+            "gap",
+            "Fixture",
             Category::System,
             RiskTier::Safe,
-            neati_platform::path_algebra::join(
-                home,
-                "Library/Containers/com.example/Data/Library/Caches",
-                PathFlavor::Posix,
-            ),
+            "/fixture/Library/Mail",
             FileSize::default(),
             0,
         );
-        protected.quality = ObservationQuality::Unavailable;
-        protected.incomplete_reason = Some("Operation not permitted".to_string());
-        assert_eq!(
-            scan_gap_kind(&environment, &protected),
-            Some(ScanGapKind::FullDiskAccess)
-        );
-
-        protected.incomplete_reason = Some("Directory depth limit exceeded".to_string());
-        assert_eq!(
-            scan_gap_kind(&environment, &protected),
-            Some(ScanGapKind::DepthLimit)
-        );
-
-        protected.path = neati_platform::path_algebra::join(home, "ordinary", PathFlavor::Posix);
-        protected.incomplete_reason = Some("I/O failure".to_string());
-        assert_eq!(
-            scan_gap_kind(&environment, &protected),
-            Some(ScanGapKind::IoError)
-        );
-        protected.incomplete_reason = Some("Permission denied".to_string());
-        assert_eq!(
-            scan_gap_kind(&environment, &protected),
-            Some(ScanGapKind::PermissionDenied)
-        );
+        item.quality = ObservationQuality::Unavailable;
+        item.rederive_disposition();
+        for kind in [
+            ScanGapKind::PermissionDenied,
+            ScanGapKind::FullDiskAccess,
+            ScanGapKind::ToolMissing,
+            ScanGapKind::UnsupportedAdapter,
+            ScanGapKind::Cancelled,
+            ScanGapKind::DepthLimit,
+            ScanGapKind::IoError,
+        ] {
+            item.inspection_issue = Some(kind);
+            for message in [
+                "알 수 없는 오류",
+                "cancel: permission denied, depth limit",
+                "",
+            ] {
+                item.incomplete_reason = Some(message.into());
+                assert_eq!(scan_gap_kind(&item), Some(kind));
+                assert!(!item.allows_cleanup());
+            }
+        }
+        item.inspection_issue = None;
+        assert_eq!(scan_gap_kind(&item), Some(ScanGapKind::Unknown));
+        item.quality = ObservationQuality::Fresh;
+        assert_eq!(scan_gap_kind(&item), None);
     }
 
     #[test]

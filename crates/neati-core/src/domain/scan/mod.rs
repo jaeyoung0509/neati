@@ -51,6 +51,11 @@ pub enum ScanGapKind {
     DepthLimit,
     Cancelled,
     IoError,
+    ToolMissing,
+    UnsupportedAdapter,
+    SafetyProtected,
+    OwnerStateUnknown,
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
@@ -931,6 +936,9 @@ pub struct ScanItem {
     pub quality: ObservationQuality,
     #[serde(default)]
     pub incomplete_reason: Option<String>,
+    /// Source-reported diagnostic only; never cleanup authorization.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inspection_issue: Option<ScanGapKind>,
     /// Entries the measurement did not account for (excluded, blacklisted,
     /// protected, unreadable, or beyond the depth limit). Reported so a
     /// partial total is never presented as a complete one.
@@ -940,6 +948,11 @@ pub struct ScanItem {
 }
 
 impl ScanItem {
+    pub fn with_inspection_issue(mut self, issue: Option<ScanGapKind>) -> Self {
+        self.inspection_issue = issue;
+        self
+    }
+
     pub fn observed_bytes(&self) -> u64 {
         self.size.observed_bytes()
     }
@@ -1079,6 +1092,7 @@ impl ScanItem {
             exists: true,
             quality: ObservationQuality::Fresh,
             incomplete_reason: None,
+            inspection_issue: None,
             skipped_entry_count: 0,
         }
     }
@@ -1437,6 +1451,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn inspection_issue_serializes_without_changing_cleanup_authority() {
+        let mut item = ScanItem::mock(
+            "fixture",
+            "fixture",
+            "Fixture",
+            Category::Developer,
+            RiskTier::Rebuild,
+            "/fixture/cache",
+            FileSize::new(4096, Some(4096)),
+            1,
+        );
+        let original = item.derive_disposition();
+        item.inspection_issue = Some(ScanGapKind::ToolMissing);
+        assert_eq!(item.derive_disposition(), original);
+        let serialized = serde_json::to_value(&item).unwrap();
+        assert_eq!(serialized["inspection_issue"], "tool_missing");
+        let round_trip: ScanItem = serde_json::from_value(serialized).unwrap();
+        assert_eq!(round_trip.inspection_issue, Some(ScanGapKind::ToolMissing));
+        item.inspection_issue = None;
+        let legacy = serde_json::to_value(&item).unwrap();
+        assert!(legacy.get("inspection_issue").is_none());
+        assert_eq!(
+            serde_json::from_value::<ScanItem>(legacy)
+                .unwrap()
+                .inspection_issue,
+            None
+        );
+    }
+
+    #[test]
     fn cleanup_observation_expiry_and_clock_rollback_fail_closed() {
         let scan = ScanResult {
             cancelled: false,
@@ -1560,6 +1604,7 @@ mod tests {
             last_modified: Some(MAX_SAFE - 2),
             exists: true,
             quality: ObservationQuality::Fresh,
+            inspection_issue: None,
             incomplete_reason: None,
             skipped_entry_count: MAX_SAFE - 3,
         };

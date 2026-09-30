@@ -1,5 +1,5 @@
 use super::observation::{ScanLimits, TraversalCounters};
-use crate::models::{CancellationProbe, FileSize, NeverCancelled};
+use crate::models::{CancellationProbe, FileSize, NeverCancelled, ScanGapKind};
 use crate::safety::{Blacklist, SymlinkGuard};
 use neati_platform::PlatformEnvironment;
 use rayon::{Scope, ThreadPool};
@@ -17,6 +17,7 @@ pub struct PathMeasurement {
     pub file_count: usize,
     pub complete: bool,
     pub incomplete_reason: Option<String>,
+    pub inspection_issue: Option<ScanGapKind>,
     /// Entries the walk did not account for: excluded, blacklisted, protected,
     /// unreadable, or beyond the depth limit. A size that skipped entries must
     /// never be presented as a complete measurement.
@@ -35,6 +36,7 @@ impl PathMeasurement {
             file_count,
             complete,
             incomplete_reason,
+            inspection_issue: None,
             skipped_entries: 0,
         }
     }
@@ -45,6 +47,7 @@ impl PathMeasurement {
             file_count,
             complete: true,
             incomplete_reason: None,
+            inspection_issue: None,
             skipped_entries: 0,
         }
     }
@@ -55,6 +58,7 @@ impl PathMeasurement {
             file_count,
             complete: false,
             incomplete_reason: Some(reason.into()),
+            inspection_issue: Some(ScanGapKind::Unknown),
             skipped_entries: 0,
         }
     }
@@ -65,10 +69,16 @@ impl PathMeasurement {
             file_count: 0,
             complete: false,
             incomplete_reason: Some(reason.into()),
+            inspection_issue: Some(ScanGapKind::Unknown),
             // The requested root itself could not be measured. Callers may
             // replace this when they have a more precise subtree count.
             skipped_entries: 1,
         }
+    }
+
+    pub fn with_inspection_issue(mut self, issue: ScanGapKind) -> Self {
+        self.inspection_issue = Some(issue);
+        self
     }
 
     /// Records how many entries the walk did not measure.
@@ -220,7 +230,43 @@ pub fn reclaimed_between(before: &PathMeasurement, after: &PathMeasurement) -> O
     )
 }
 
-fn measurement_for_metadata_error(path: &Path, error: &std::io::Error) -> PathMeasurement {
+pub(crate) fn describe_inspection_error(
+    environment: &PlatformEnvironment,
+    path: &Path,
+    error: &std::io::Error,
+) -> String {
+    if error.kind() == std::io::ErrorKind::PermissionDenied {
+        neati_platform::environment::describe_access_refusal(environment, path, &error.to_string())
+    } else {
+        error.to_string()
+    }
+}
+
+/// Classify the OS error at the failed path, before it becomes diagnostic prose.
+/// PermissionDenied includes POSIX/ACL and privacy refusals; path shape can only
+/// suggest Full Disk Access, not distinguish its cause from file permissions.
+pub(crate) fn inspection_issue_for_io(
+    environment: &PlatformEnvironment,
+    path: &Path,
+    error: &std::io::Error,
+) -> ScanGapKind {
+    match error.kind() {
+        std::io::ErrorKind::PermissionDenied
+            if neati_platform::environment::refusal_may_be_full_disk_access(environment, path) =>
+        {
+            ScanGapKind::FullDiskAccess
+        }
+        std::io::ErrorKind::PermissionDenied => ScanGapKind::PermissionDenied,
+        std::io::ErrorKind::Unsupported => ScanGapKind::UnsupportedAdapter,
+        _ => ScanGapKind::IoError,
+    }
+}
+
+fn measurement_for_metadata_error(
+    path: &Path,
+    error: &std::io::Error,
+    environment: &PlatformEnvironment,
+) -> PathMeasurement {
     if error.kind() == std::io::ErrorKind::NotFound {
         PathMeasurement::complete(FileSize::default(), 0)
     } else {
@@ -229,6 +275,7 @@ fn measurement_for_metadata_error(path: &Path, error: &std::io::Error) -> PathMe
             path.display(),
             error
         ))
+        .with_inspection_issue(inspection_issue_for_io(environment, path, error))
     }
 }
 
@@ -252,14 +299,16 @@ struct FailureRecord {
     depth: usize,
     path: String,
     message: String,
+    issue: ScanGapKind,
 }
 
 impl FailureRecord {
-    fn new(depth: usize, path: &Path, message: String) -> Self {
+    fn new(depth: usize, path: &Path, message: String, issue: ScanGapKind) -> Self {
         Self {
             depth,
             path: path.to_string_lossy().into_owned(),
             message,
+            issue,
         }
     }
 
@@ -432,12 +481,13 @@ impl SizeCalculator {
                 0,
                 "Protected by system safety blacklist",
             )
+            .with_inspection_issue(ScanGapKind::SafetyProtected)
             .with_skipped_entries(1);
         }
 
         let meta = match fs::symlink_metadata(path) {
             Ok(m) => m,
-            Err(err) => return measurement_for_metadata_error(path, &err),
+            Err(err) => return measurement_for_metadata_error(path, &err, environment),
         };
 
         // If path is a symlink, only measure the link itself. Reusing the
@@ -537,10 +587,11 @@ impl SizeCalculator {
         });
 
         let is_complete = complete.load(Ordering::Relaxed);
-        let incomplete_reason = reason
-            .into_inner()
-            .unwrap_or_default()
-            .map(|recorded: FailureRecord| recorded.message);
+        let failure = reason.into_inner().unwrap_or_default();
+        let inspection_issue = failure
+            .as_ref()
+            .map(|recorded: &FailureRecord| recorded.issue);
+        let incomplete_reason = failure.map(|recorded| recorded.message);
         PathMeasurement {
             size: FileSize::new(
                 logical.load(Ordering::Relaxed),
@@ -549,6 +600,7 @@ impl SizeCalculator {
             file_count: file_count.load(Ordering::Relaxed),
             complete: is_complete,
             incomplete_reason,
+            inspection_issue,
             skipped_entries: skipped.load(Ordering::Relaxed),
         }
     }
@@ -629,6 +681,7 @@ impl SizeCalculator {
                 depth,
                 dir,
                 cancelled_measurement_reason(dir),
+                ScanGapKind::Cancelled,
             ));
             return;
         }
@@ -641,6 +694,7 @@ impl SizeCalculator {
                     limits.max_depth,
                     dir.display()
                 ),
+                ScanGapKind::DepthLimit,
             ));
             return;
         }
@@ -653,6 +707,7 @@ impl SizeCalculator {
                     depth,
                     dir,
                     format!("Failed to read directory {}: {}", dir.display(), err),
+                    inspection_issue_for_io(environment, dir, &err),
                 ));
                 return;
             }
@@ -671,6 +726,7 @@ impl SizeCalculator {
                     depth,
                     dir,
                     cancelled_measurement_reason(dir),
+                    ScanGapKind::Cancelled,
                 ));
                 break;
             }
@@ -686,6 +742,7 @@ impl SizeCalculator {
                             dir.display(),
                             err
                         ),
+                        inspection_issue_for_io(environment, dir, &err),
                     ));
                     continue;
                 }
@@ -719,6 +776,7 @@ impl SizeCalculator {
                                 "Protected application bundle encountered in {}",
                                 child_path.display()
                             ),
+                            ScanGapKind::SafetyProtected,
                         ));
                         continue;
                     }
@@ -760,6 +818,7 @@ impl SizeCalculator {
                                     limits.max_depth,
                                     child_path.display()
                                 ),
+                                ScanGapKind::DepthLimit,
                             ));
                         }
                     }
@@ -773,6 +832,7 @@ impl SizeCalculator {
                             child_path.display(),
                             err
                         ),
+                        inspection_issue_for_io(environment, &child_path, &err),
                     ));
                 }
             }
@@ -816,6 +876,7 @@ impl SizeCalculator {
                 0,
                 cancelled_measurement_reason(dir),
             )
+            .with_inspection_issue(ScanGapKind::Cancelled)
             .with_skipped_entries(1);
         }
         if current_depth > max_depth {
@@ -828,6 +889,7 @@ impl SizeCalculator {
                     dir.display()
                 ),
             )
+            .with_inspection_issue(ScanGapKind::DepthLimit)
             .with_skipped_entries(1);
         }
 
@@ -836,6 +898,7 @@ impl SizeCalculator {
         let mut file_count = 0usize;
         let mut complete = true;
         let mut incomplete_reason: Option<String> = None;
+        let mut inspection_issue = None;
         let mut skipped_entries = 0u64;
 
         counters.directory_read();
@@ -847,6 +910,7 @@ impl SizeCalculator {
                     0,
                     format!("Failed to read directory {}: {}", dir.display(), err),
                 )
+                .with_inspection_issue(inspection_issue_for_io(environment, dir, &err))
                 .with_skipped_entries(1);
             }
         };
@@ -859,6 +923,7 @@ impl SizeCalculator {
                 skipped_entries += 1;
                 if incomplete_reason.is_none() {
                     incomplete_reason = Some(cancelled_measurement_reason(dir));
+                    inspection_issue = Some(ScanGapKind::Cancelled);
                 }
                 break;
             }
@@ -874,6 +939,7 @@ impl SizeCalculator {
                             dir.display(),
                             err
                         ));
+                        inspection_issue = Some(inspection_issue_for_io(environment, dir, &err));
                     }
                     continue;
                 }
@@ -910,6 +976,7 @@ impl SizeCalculator {
                                 "Protected application bundle encountered in {}",
                                 child_path.display()
                             ));
+                            inspection_issue = Some(ScanGapKind::SafetyProtected);
                         }
                         continue;
                     }
@@ -948,6 +1015,7 @@ impl SizeCalculator {
                             complete = false;
                             if incomplete_reason.is_none() {
                                 incomplete_reason = sub.incomplete_reason;
+                                inspection_issue = sub.inspection_issue;
                             }
                         }
                     }
@@ -961,6 +1029,8 @@ impl SizeCalculator {
                             child_path.display(),
                             err
                         ));
+                        inspection_issue =
+                            Some(inspection_issue_for_io(environment, &child_path, &err));
                     }
                 }
             }
@@ -971,6 +1041,7 @@ impl SizeCalculator {
             file_count,
             complete,
             incomplete_reason,
+            inspection_issue,
             skipped_entries,
         }
     }
@@ -995,6 +1066,82 @@ mod tests {
         fn is_cancelled(&self) -> bool {
             self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= self.after
         }
+    }
+
+    #[test]
+    fn pooled_and_inline_depth_limits_preserve_the_source_kind() {
+        let fixture = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(fixture.path().join("nested")).unwrap();
+        std::fs::write(fixture.path().join("nested/payload"), b"fixture").unwrap();
+        let environment = PlatformEnvironment::simulated(PathFlavor::current()).with_home(
+            if PathFlavor::current().is_windows() {
+                r"Z:\NeatiFixtureHome"
+            } else {
+                "/neati-fixture-home"
+            },
+        );
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .build()
+            .unwrap();
+        let limits = crate::scanner::ScanLimits {
+            max_depth: 0,
+            ..Default::default()
+        };
+        for workers in [None, Some(&pool)] {
+            let measurement = SizeCalculator::measure_path_with_pool(
+                fixture.path(),
+                &[],
+                workers,
+                &environment,
+                &crate::models::NeverCancelled,
+                limits,
+                &crate::scanner::TraversalCounters::default(),
+            );
+            assert!(!measurement.complete);
+            assert_eq!(
+                measurement.inspection_issue,
+                Some(crate::models::ScanGapKind::DepthLimit)
+            );
+            assert_eq!(measurement.size.logical, 0);
+        }
+    }
+
+    #[test]
+    fn io_diagnostics_require_an_os_access_verdict_at_the_failed_path() {
+        use super::{describe_inspection_error, inspection_issue_for_io};
+        use crate::models::{PlatformKind, ScanGapKind};
+        let env = PlatformEnvironment::simulated(PathFlavor::Posix)
+            .with_roots(std::sync::Arc::new(
+                neati_platform::paths::SimulatedPaths::new()
+                    .with_flavor(PathFlavor::Posix)
+                    .with_home("/fixture"),
+            ))
+            .with_platform(PlatformKind::Macos);
+        let protected = std::path::Path::new("/fixture/Library/Mail/messages");
+        let ordinary = std::path::Path::new("/fixture/cache");
+        let denied = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "권한 없음");
+        assert_eq!(
+            inspection_issue_for_io(&env, protected, &denied),
+            ScanGapKind::FullDiskAccess
+        );
+        assert_eq!(
+            inspection_issue_for_io(&env, ordinary, &denied),
+            ScanGapKind::PermissionDenied
+        );
+        let misleading = std::io::Error::other("permission denied; cancelled; depth limit");
+        assert_eq!(
+            inspection_issue_for_io(&env, protected, &misleading),
+            ScanGapKind::IoError
+        );
+        assert!(
+            !describe_inspection_error(&env, protected, &misleading).contains("System Settings")
+        );
+        let windows = PlatformEnvironment::simulated(PathFlavor::Windows).with_home(r"C:\fixture");
+        assert_eq!(
+            inspection_issue_for_io(&windows, protected, &denied),
+            ScanGapKind::PermissionDenied
+        );
     }
 
     #[test]
@@ -1055,11 +1202,15 @@ mod tests {
         );
 
         let denied = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "denied");
-        let measurement = measurement_for_metadata_error(root.path(), &denied);
+        let measurement = measurement_for_metadata_error(root.path(), &denied, &environment);
 
         assert!(!measurement.complete);
         assert_eq!(measurement.skipped_entries, 1);
         assert!(measurement.incomplete_reason.is_some());
+        assert_eq!(
+            measurement.inspection_issue,
+            Some(crate::models::ScanGapKind::PermissionDenied)
+        );
 
         let missing =
             SizeCalculator::measure_path_full(root.path().join("missing"), &[], &environment);

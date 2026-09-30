@@ -1,5 +1,7 @@
 use super::observation::{NoRootProgress, ScanLimits, TraversalCounters};
 use super::observation::{SignatureScan, WalkContext};
+use super::size::{describe_inspection_error, inspection_issue_for_io};
+use crate::models::ScanGapKind;
 use crate::models::{
     classify_structured_state, derive_cleanup_disposition, AgeObservation, CacheSizeSemantics,
     CleanupEligibility, CleanupOwnership, CleanupUnit, DispositionFacts, EligibilityGate,
@@ -142,21 +144,26 @@ impl DirectoryScanner {
                 let reason = format!(
                     "Could not inspect {}: {}",
                     failure.path.display(),
-                    neati_platform::environment::describe_access_refusal(
-                        context.environment,
-                        &failure.path,
-                        &failure.error,
-                    )
+                    failure.error
                 );
-                items.push(Self::unavailable_selector_item(
-                    signature,
-                    &failure.path,
-                    idx,
-                    fail_idx,
-                    failures.len(),
-                    reason,
-                    gate,
-                ));
+                items.push(
+                    Self::unavailable_selector_item(
+                        signature,
+                        &failure.path,
+                        idx,
+                        fail_idx,
+                        failures.len(),
+                        reason,
+                        gate,
+                    )
+                    .with_inspection_issue(failure.error_kind.map(|kind| {
+                        inspection_issue_for_io(
+                            context.environment,
+                            &failure.path,
+                            &std::io::Error::from(kind),
+                        )
+                    })),
+                );
             }
 
             // One pattern can name many roots (`Application Support/*/GPUCache`),
@@ -246,6 +253,7 @@ impl DirectoryScanner {
                             item.quality = ObservationQuality::Unavailable;
                             item.incomplete_reason =
                                 Some("Owner process state could not be verified".into());
+                            item.inspection_issue = Some(ScanGapKind::OwnerStateUnknown);
                         }
                     }
                 }
@@ -380,7 +388,8 @@ impl DirectoryScanner {
                 PathMeasurement::unavailable(format!(
                     "Configured path {} is a link, junction, or mount point; cleanup is blocked",
                     path_buf.display()
-                )),
+                ))
+                .with_inspection_issue(ScanGapKind::SafetyProtected),
                 None,
             ),
             Ok(metadata) => {
@@ -409,11 +418,12 @@ impl DirectoryScanner {
                 PathMeasurement::unavailable(format!(
                     "Could not inspect configured path {}: {}",
                     path_buf.display(),
-                    neati_platform::environment::describe_access_refusal(
-                        environment,
-                        path_buf,
-                        &err.to_string(),
-                    )
+                    describe_inspection_error(environment, path_buf, &err)
+                ))
+                .with_inspection_issue(inspection_issue_for_io(
+                    environment,
+                    path_buf,
+                    &err,
                 )),
                 None,
             ),
@@ -530,6 +540,7 @@ impl DirectoryScanner {
             last_modified,
             exists,
             quality,
+            inspection_issue: measurement.inspection_issue,
             incomplete_reason,
             skipped_entry_count,
         })
@@ -570,7 +581,7 @@ impl DirectoryScanner {
                     ),
                     gate,
                     false,
-                );
+                ).with_inspection_issue(Some(ScanGapKind::SafetyProtected));
             }
             Ok(_) => Self::measure_tree_stats(context, path_buf, &signature.exclusions, 0, None),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
@@ -586,7 +597,8 @@ impl DirectoryScanner {
                     format!("Configured path {} does not exist", path_buf.display()),
                     gate,
                     false,
-                );
+                )
+                .with_inspection_issue(None);
             }
             Err(err) => {
                 return Self::unavailable_aged_item(
@@ -601,15 +613,16 @@ impl DirectoryScanner {
                     format!(
                         "Could not inspect {}: {}",
                         path_buf.display(),
-                        neati_platform::environment::describe_access_refusal(
-                            environment,
-                            path_buf,
-                            &err.to_string(),
-                        )
+                        describe_inspection_error(environment, path_buf, &err)
                     ),
                     gate,
                     false,
-                );
+                )
+                .with_inspection_issue(Some(inspection_issue_for_io(
+                    environment,
+                    path_buf,
+                    &err,
+                )));
             }
         };
 
@@ -641,7 +654,8 @@ impl DirectoryScanner {
                 reason,
                 gate,
                 false,
-            );
+            )
+            .with_inspection_issue(stats.inspection_issue);
         }
 
         let facts = match fs::symlink_metadata(path_buf) {
@@ -707,6 +721,7 @@ impl DirectoryScanner {
             last_modified: newest_modified,
             exists: true,
             quality: ObservationQuality::Fresh,
+            inspection_issue: None,
             incomplete_reason: None,
             skipped_entry_count: stats.skipped_entries,
         }
@@ -808,7 +823,7 @@ impl DirectoryScanner {
                     ),
                     gate,
                     false,
-                )];
+                ).with_inspection_issue(Some(ScanGapKind::SafetyProtected))];
             }
             Ok(_) => {}
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => return vec![],
@@ -828,15 +843,16 @@ impl DirectoryScanner {
                     format!(
                         "Could not inspect {}: {}",
                         root.display(),
-                        neati_platform::environment::describe_access_refusal(
-                            environment,
-                            root,
-                            &err.to_string(),
-                        )
+                        describe_inspection_error(environment, root, &err)
                     ),
                     gate,
                     false,
-                )];
+                )
+                .with_inspection_issue(Some(inspection_issue_for_io(
+                    environment,
+                    root,
+                    &err,
+                )))];
             }
         }
         let entries = match fs::read_dir(root) {
@@ -861,15 +877,16 @@ impl DirectoryScanner {
                     format!(
                         "Could not inspect {}: {}",
                         root.display(),
-                        neati_platform::environment::describe_access_refusal(
-                            environment,
-                            root,
-                            &err.to_string(),
-                        )
+                        describe_inspection_error(environment, root, &err)
                     ),
                     gate,
                     false,
-                )];
+                )
+                .with_inspection_issue(Some(inspection_issue_for_io(
+                    environment,
+                    root,
+                    &err,
+                )))];
             }
         };
         let now = SystemTime::now();
@@ -881,6 +898,7 @@ impl DirectoryScanner {
         let unit_kind = signature.unit_kind();
         let mut items = Vec::new();
         let mut entry_failure = None;
+        let mut entry_issue = None;
         let mut coverage_count = 0usize;
         // Temp roots are deliberately a prefix-only catalog, even for read-only
         // accounting. Unrelated user/session files are outside this inventory.
@@ -897,6 +915,7 @@ impl DirectoryScanner {
                 Ok(entry) => entry,
                 Err(err) => {
                     if entry_failure.is_none() {
+                        entry_issue = Some(inspection_issue_for_io(environment, root, &err));
                         entry_failure = Some(format!(
                             "Could not read an entry in {}: {}",
                             root.display(),
@@ -928,47 +947,51 @@ impl DirectoryScanner {
             let child_is_link = SymlinkGuard::is_symlink(&path);
             let metadata = match fs::symlink_metadata(&path) {
                 Ok(_) if child_is_link => {
-                    items.push(Self::unavailable_aged_item(
-                        signature,
-                        &path,
-                        Self::item_id_for(signature, path_index, root_key, Some(&name)),
-                        name,
-                        FileSize::default(),
-                        0,
-                        None,
-                        1,
-                        format!(
+                    items.push(
+                        Self::unavailable_aged_item(
+                            signature,
+                            &path,
+                            Self::item_id_for(signature, path_index, root_key, Some(&name)),
+                            name,
+                            FileSize::default(),
+                            0,
+                            None,
+                            1,
+                            format!(
                             "Candidate {} is a link, junction, or mount point; cleanup is blocked",
                             path.display()
                         ),
-                        gate,
-                        false,
-                    ));
+                            gate,
+                            false,
+                        )
+                        .with_inspection_issue(Some(ScanGapKind::SafetyProtected)),
+                    );
                     continue;
                 }
                 Ok(metadata) => metadata,
                 Err(err) => {
-                    items.push(Self::unavailable_aged_item(
-                        signature,
-                        &path,
-                        Self::item_id_for(signature, path_index, root_key, Some(&name)),
-                        name,
-                        FileSize::default(),
-                        0,
-                        None,
-                        1,
-                        format!(
-                            "Could not inspect {}: {}",
-                            path.display(),
-                            neati_platform::environment::describe_access_refusal(
-                                environment,
-                                &path,
-                                &err.to_string(),
-                            )
-                        ),
-                        gate,
-                        false,
-                    ));
+                    items.push(
+                        Self::unavailable_aged_item(
+                            signature,
+                            &path,
+                            Self::item_id_for(signature, path_index, root_key, Some(&name)),
+                            name,
+                            FileSize::default(),
+                            0,
+                            None,
+                            1,
+                            format!(
+                                "Could not inspect {}: {}",
+                                path.display(),
+                                describe_inspection_error(environment, &path, &err)
+                            ),
+                            gate,
+                            false,
+                        )
+                        .with_inspection_issue(Some(
+                            inspection_issue_for_io(environment, &path, &err),
+                        )),
+                    );
                     continue;
                 }
             };
@@ -1018,21 +1041,24 @@ impl DirectoryScanner {
                     .newest_mtime
                     .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok())
                     .map(|duration| duration.as_secs());
-                items.push(Self::unavailable_aged_item(
-                    signature,
-                    &path,
-                    Self::item_id_for(signature, path_index, root_key, Some(&name)),
-                    name,
-                    size,
-                    stats.file_count,
-                    last_modified,
-                    stats.skipped_entries,
-                    stats.incomplete_reason.unwrap_or_else(|| {
-                        format!("Could not completely inspect {}", path.display())
-                    }),
-                    gate,
-                    false,
-                ));
+                items.push(
+                    Self::unavailable_aged_item(
+                        signature,
+                        &path,
+                        Self::item_id_for(signature, path_index, root_key, Some(&name)),
+                        name,
+                        size,
+                        stats.file_count,
+                        last_modified,
+                        stats.skipped_entries,
+                        stats.incomplete_reason.unwrap_or_else(|| {
+                            format!("Could not completely inspect {}", path.display())
+                        }),
+                        gate,
+                        false,
+                    )
+                    .with_inspection_issue(stats.inspection_issue),
+                );
                 continue;
             }
 
@@ -1126,31 +1152,35 @@ impl DirectoryScanner {
                 last_modified: newest_modified,
                 exists: true,
                 quality: ObservationQuality::Fresh,
+                inspection_issue: None,
                 incomplete_reason: None,
                 skipped_entry_count: stats.skipped_entries,
             });
         }
 
         if let Some(reason) = entry_failure {
-            items.push(Self::unavailable_aged_item(
-                signature,
-                root,
-                format!(
-                    "{}.unavailable",
-                    Self::item_id_for(signature, path_index, root_key, None)
-                ),
-                format!(
-                    "{} (scan incomplete)",
-                    Self::display_name_for(signature, root, root_key)
-                ),
-                FileSize::default(),
-                0,
-                None,
-                1,
-                reason,
-                gate,
-                false,
-            ));
+            items.push(
+                Self::unavailable_aged_item(
+                    signature,
+                    root,
+                    format!(
+                        "{}.unavailable",
+                        Self::item_id_for(signature, path_index, root_key, None)
+                    ),
+                    format!(
+                        "{} (scan incomplete)",
+                        Self::display_name_for(signature, root, root_key)
+                    ),
+                    FileSize::default(),
+                    0,
+                    None,
+                    1,
+                    reason,
+                    gate,
+                    false,
+                )
+                .with_inspection_issue(entry_issue),
+            );
         }
 
         items
@@ -1230,6 +1260,7 @@ impl DirectoryScanner {
             last_modified: None,
             exists: true,
             quality: ObservationQuality::Unavailable,
+            inspection_issue: None,
             incomplete_reason: Some(reason),
             skipped_entry_count: 1,
         }
@@ -1295,6 +1326,7 @@ impl DirectoryScanner {
             last_modified,
             exists: true,
             quality: ObservationQuality::Unavailable,
+            inspection_issue: None,
             incomplete_reason: Some(reason),
             skipped_entry_count,
         }
@@ -1321,6 +1353,7 @@ impl DirectoryScanner {
             newest_mtime: None,
             complete: true,
             incomplete_reason: None,
+            inspection_issue: None,
             skipped_entries: 0,
         };
 
@@ -1329,6 +1362,7 @@ impl DirectoryScanner {
             stats.skipped_entries = 1;
             stats.incomplete_reason =
                 Some(format!("Scan cancelled while measuring {}", path.display()));
+            stats.inspection_issue = Some(ScanGapKind::Cancelled);
             return stats;
         }
 
@@ -1341,6 +1375,7 @@ impl DirectoryScanner {
                 max_depth,
                 path.display()
             ));
+            stats.inspection_issue = Some(ScanGapKind::DepthLimit);
             return stats;
         }
 
@@ -1356,6 +1391,7 @@ impl DirectoryScanner {
                     path.display(),
                     err
                 ));
+                stats.inspection_issue = Some(inspection_issue_for_io(environment, path, &err));
                 return stats;
             }
         };
@@ -1376,6 +1412,7 @@ impl DirectoryScanner {
                 "Protected application bundle encountered in {}",
                 path.display()
             ));
+            stats.inspection_issue = Some(ScanGapKind::SafetyProtected);
             return stats;
         }
 
@@ -1447,12 +1484,9 @@ impl DirectoryScanner {
                 stats.incomplete_reason = Some(format!(
                     "Failed to read directory {}: {}",
                     path.display(),
-                    neati_platform::environment::describe_access_refusal(
-                        environment,
-                        path,
-                        &err.to_string(),
-                    )
+                    describe_inspection_error(environment, path, &err)
                 ));
+                stats.inspection_issue = Some(inspection_issue_for_io(environment, path, &err));
                 return stats;
             }
         };
@@ -1464,6 +1498,7 @@ impl DirectoryScanner {
                 if stats.incomplete_reason.is_none() {
                     stats.incomplete_reason =
                         Some(format!("Scan cancelled while measuring {}", path.display()));
+                    stats.inspection_issue = Some(ScanGapKind::Cancelled);
                 }
                 break;
             }
@@ -1476,12 +1511,10 @@ impl DirectoryScanner {
                         stats.incomplete_reason = Some(format!(
                             "Failed to read entry in {}: {}",
                             path.display(),
-                            neati_platform::environment::describe_access_refusal(
-                                environment,
-                                path,
-                                &err.to_string(),
-                            )
+                            describe_inspection_error(environment, path, &err)
                         ));
+                        stats.inspection_issue =
+                            Some(inspection_issue_for_io(environment, path, &err));
                     }
                     continue;
                 }
@@ -1509,6 +1542,7 @@ impl DirectoryScanner {
                 stats.complete = false;
                 if stats.incomplete_reason.is_none() {
                     stats.incomplete_reason = sub_stats.incomplete_reason;
+                    stats.inspection_issue = sub_stats.inspection_issue;
                 }
             }
             stats.logical += sub_stats.logical;
@@ -1542,6 +1576,7 @@ pub struct TreeStats {
     pub newest_mtime: Option<SystemTime>,
     pub complete: bool,
     pub incomplete_reason: Option<String>,
+    pub inspection_issue: Option<ScanGapKind>,
     /// Entries the walk did not account for: excluded, blacklisted, protected,
     /// unreadable, or beyond the depth limit.
     pub skipped_entries: u64,
@@ -2032,6 +2067,10 @@ mod tests {
         let stats = DirectoryScanner::measure_tree_stats(&context, &file, &[], 0, None);
 
         assert!(!stats.complete);
+        assert_eq!(
+            stats.inspection_issue,
+            Some(crate::models::ScanGapKind::Cancelled)
+        );
         assert_eq!(stats.logical, 0);
         assert_eq!(stats.file_count, 0);
         assert!(stats

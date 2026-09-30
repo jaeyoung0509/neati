@@ -294,6 +294,7 @@ impl LifecycleProviderRegistry {
             last_modified: None,
             exists: true,
             quality,
+            inspection_issue: None,
             incomplete_reason,
             skipped_entry_count: 0,
         }

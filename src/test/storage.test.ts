@@ -767,6 +767,26 @@ describe('StorageView scan remediation', () => {
     scanStore.updateFreshness();
   });
 
+  it.each([
+    ['tool_missing', 'Required tool is unavailable'],
+    ['unsupported_adapter', 'unsupported by the current adapter'],
+    ['unknown', 'cause is unknown'],
+    ['permission_denied', 'check file ownership and permissions'],
+  ] as const)('shows the typed %s cause without privacy guidance', (kind, label) => {
+    const now = Math.floor(Date.now() / 1000);
+    scanStore.lastScan = { scan_id: 'typed-gap', valid_for_seconds: 300,
+      started_at: now - 1, finished_at: now, categories: [],
+      total_bytes: 0, safe_bytes: 0, rebuild_bytes: 0, manual_bytes: 0,
+      quality: 'unavailable', gaps: [{ kind, count: 2 }],
+      incomplete_reasons: ['Operation not permitted; Full Disk Access'],
+    };
+    scanStore.updateFreshness();
+    const body = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(body).toContain(label);
+    expect(body).not.toContain('Open System Settings');
+    expect(body).not.toContain('Check Access');
+  });
+
   it('surfaces Full Disk Access guidance on the main cleanup view', () => {
     const nowSeconds = Math.floor(Date.now() / 1000);
     scanStore.lastScan = {

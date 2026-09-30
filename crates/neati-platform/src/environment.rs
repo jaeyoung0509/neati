@@ -104,18 +104,10 @@ pub fn describe_access_refusal(
 
 pub const FULL_DISK_ACCESS_REMEDY: &str = "This location may require macOS Full Disk Access. In System Settings > Privacy & Security > Full Disk Access, add and enable the neati.app you use, then return and scan again. File ownership or permissions may also deny access; Full Disk Access does not grant administrator privileges. Unreadable locations remain unknown rather than empty.";
 
-/// Whether an access refusal on `path` should be attributed to Full Disk
-/// Access on macOS.
-///
-/// macOS grants a process access to its own profile and to its own containers,
-/// and refuses the rest of the protected set (other applications' containers,
-/// Mail, Messages, Safari, the device-backup store) until the user grants Full
-/// Disk Access. The paths are matched by shape rather than by asking the
-/// system, because the whole point is that the system is refusing to answer.
-///
-/// The refusal is *stated*, never worked around: a root this function claims
-/// stays unreadable, and the scan reports it with this reason instead of
-/// silently reporting a smaller total.
+/// Whether a protected macOS path makes Full Disk Access a possible remedy.
+/// Call only after an actual OS access refusal. Path shape does not establish
+/// the cause: TCC, ownership and ACL restrictions can share the same errno.
+/// This hint never proves a permission grant or authorizes deletion.
 pub fn refusal_may_be_full_disk_access(environment: &PlatformEnvironment, path: &Path) -> bool {
     use crate::path_algebra;
 

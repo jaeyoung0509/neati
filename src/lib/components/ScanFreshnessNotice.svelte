@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scanStore } from '../stores/scan.svelte';
   import Button from './Button.svelte';
+  import { scanInspectionDetails } from '../utils/scanInspectionDetails';
   import StorageAccessSetup from './StorageAccessSetup.svelte';
 
   let { compact = false }: { compact?: boolean } = $props();
@@ -10,13 +11,14 @@
       ?.filter((gap) => gap.kind === 'full_disk_access')
       .reduce((total, gap) => total + gap.count, 0) ?? 0
   );
+  let inspectionDetails = $derived(scanStore.lastScan ? scanInspectionDetails(scanStore.lastScan) : []);
   let hasFullDiskAccessGap = $derived(fullDiskAccessGapCount > 0);
 
 </script>
 
 {#if scanStore.freshness !== 'fresh' || scanStore.discovery.status !== 'exhausted'}
   <div class="flex flex-wrap items-center justify-between gap-3 text-meta {compact ? 'border-b border-border py-2' : 'rounded-xl border border-border bg-secondary p-3'}" role="status">
-    <span class="min-w-0 flex-1">
+    <div class="min-w-0 flex-1">
       {#if scanStore.freshness === 'refreshing'}
         Checking storage…
       {:else if scanStore.discovery.status === 'paused'}
@@ -42,7 +44,14 @@
       {:else}
         Scan storage to find current cleanup candidates.
       {/if}
-    </span>
+      {#if (scanStore.freshness === 'partial' || scanStore.freshness === 'unavailable') && !scanStore.isScanning && inspectionDetails.length > 0}
+        <ul class="mt-2 space-y-1">
+          {#each inspectionDetails as detail (detail.kind)}
+            <li>{detail.label} · {detail.count}</li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
     <span class="flex shrink-0 flex-wrap items-center gap-2">
       {#if !scanStore.canContinue && !hasFullDiskAccessGap}
         <Button size="sm" variant="outline" disabled={scanStore.isScanning || scanStore.isCleaning} onclick={() => scanStore.runScan()}>

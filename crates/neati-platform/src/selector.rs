@@ -44,6 +44,19 @@ pub struct SelectionPage {
 }
 
 impl SelectionPage {
+    pub fn record_io_failure(&mut self, path: PathBuf, error: &std::io::Error) {
+        if self.failures.iter().any(|failure| failure.path == path) {
+            return;
+        }
+        self.failures.push(SelectionFailure {
+            path,
+            error: error.to_string(),
+            error_kind: Some(error.kind()),
+        });
+        self.failures
+            .sort_by(|left, right| left.path.cmp(&right.path));
+    }
+
     /// Records an access or I/O failure once per path, ordered by path.
     ///
     /// The events arrive in filesystem order, which is not stable. The recorded
@@ -54,7 +67,11 @@ impl SelectionPage {
         if self.failures.iter().any(|failure| failure.path == path) {
             return;
         }
-        self.failures.push(SelectionFailure { path, error });
+        self.failures.push(SelectionFailure {
+            path,
+            error,
+            error_kind: None,
+        });
         self.failures
             .sort_by(|left, right| left.path.cmp(&right.path));
     }
@@ -193,6 +210,7 @@ pub struct PathSelector {
 pub struct SelectionFailure {
     pub path: PathBuf,
     pub error: String,
+    pub error_kind: Option<std::io::ErrorKind>,
 }
 
 /// What an expansion found, and whether it stopped early.
@@ -217,7 +235,11 @@ impl SelectionOutcome {
         if self.failures.iter().any(|failure| failure.path == path) {
             return;
         }
-        self.failures.push(SelectionFailure { path, error });
+        self.failures.push(SelectionFailure {
+            path,
+            error,
+            error_kind: None,
+        });
         self.failures
             .sort_by(|left, right| left.path.cmp(&right.path));
     }
@@ -456,7 +478,7 @@ impl PathSelector {
                 return Ok(page);
             }
             Err(err) => {
-                page.record_failure(static_path_buf, err.to_string());
+                page.record_io_failure(static_path_buf, &err);
                 return Ok(page);
             }
         }
@@ -560,7 +582,7 @@ impl PathSelector {
                             EntryAcceptance::Accepted => next.push(extended),
                             EntryAcceptance::Rejected => {}
                             EntryAcceptance::Failed(err) => {
-                                page.record_failure(candidate_path.to_path_buf(), err);
+                                page.record_io_failure(candidate_path.to_path_buf(), &err);
                             }
                         }
                     }
@@ -571,7 +593,7 @@ impl PathSelector {
                             Ok(entries) => entries,
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => continue,
                             Err(err) => {
-                                page.record_failure(base_path.to_path_buf(), err.to_string());
+                                page.record_io_failure(base_path.to_path_buf(), &err);
                                 continue;
                             }
                         };
@@ -581,7 +603,7 @@ impl PathSelector {
                                 Ok(entry) => entry,
                                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => continue,
                                 Err(err) => {
-                                    page.record_failure(base_path.to_path_buf(), err.to_string());
+                                    page.record_io_failure(base_path.to_path_buf(), &err);
                                     continue;
                                 }
                             };
@@ -594,7 +616,7 @@ impl PathSelector {
                                 EntryAcceptance::Accepted => names.push(name),
                                 EntryAcceptance::Rejected => {}
                                 EntryAcceptance::Failed(err) => {
-                                    page.record_failure(entry_path, err);
+                                    page.record_io_failure(entry_path, &err);
                                 }
                             }
                         }
@@ -643,7 +665,7 @@ impl PathSelector {
                 // not a position: there is nothing to continue *from*, and the
                 // scan reports what it could not inspect. Restarting is the
                 // answer to a permission, and the interface says so.
-                page.record_failure(parent.to_path_buf(), err.to_string());
+                page.record_io_failure(parent.to_path_buf(), &err);
                 return Ok(SortedNames {
                     names: Vec::new(),
                     names_digest: digest_names(std::iter::empty::<&str>()),
@@ -660,7 +682,7 @@ impl PathSelector {
             match evaluate_entry(&path, false) {
                 EntryAcceptance::Accepted => names.push(name),
                 EntryAcceptance::Rejected => {}
-                EntryAcceptance::Failed(err) => page.record_failure(path, err),
+                EntryAcceptance::Failed(err) => page.record_io_failure(path, &err),
             }
         }
         names.sort_by(|left, right| Self::compare_names(left, right, flavor));
@@ -716,7 +738,7 @@ fn mask_placeholders(value: &str) -> String {
 enum EntryAcceptance {
     Accepted,
     Rejected,
-    Failed(String),
+    Failed(std::io::Error),
 }
 
 /// Evaluates whether an entry may appear at this position of an expansion.
@@ -733,7 +755,7 @@ fn evaluate_entry(path: &Path, is_last: bool) -> EntryAcceptance {
         Ok(metadata) if is_traversable_directory(&metadata) => EntryAcceptance::Accepted,
         Ok(_) => EntryAcceptance::Rejected,
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => EntryAcceptance::Rejected,
-        Err(err) => EntryAcceptance::Failed(err.to_string()),
+        Err(err) => EntryAcceptance::Failed(err),
     }
 }
 

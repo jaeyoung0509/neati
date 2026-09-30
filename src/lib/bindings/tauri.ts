@@ -3105,7 +3105,7 @@ export type ScanGap = ScanGap_Serialize | ScanGap_Deserialize;
  *  a remediation such as Full Disk Access. Counts are aggregated after
  *  overlap resolution, so one retained observation contributes at most once.
  */
-export type ScanGapKind = "permission_denied" | "full_disk_access" | "depth_limit" | "cancelled" | "io_error";
+export type ScanGapKind = "permission_denied" | "full_disk_access" | "depth_limit" | "cancelled" | "io_error" | "tool_missing" | "unsupported_adapter" | "safety_protected" | "owner_state_unknown" | "unknown";
 
 export type ScanGap_Deserialize = {
 	kind: ScanGapKind,
@@ -3203,6 +3203,8 @@ export type ScanItem_Deserialize = {
 	exists: boolean,
 	quality?: ObservationQuality,
 	incomplete_reason?: string | null,
+	/**  Source-reported diagnostic only; never cleanup authorization. */
+	inspection_issue?: ScanGapKind | null,
 	/**
 	 *  Entries the measurement did not account for (excluded, blacklisted,
 	 *  protected, unreadable, or beyond the depth limit). Reported so a
@@ -3295,6 +3297,8 @@ export type ScanItem_Serialize = {
 	exists: boolean,
 	quality: ObservationQuality,
 	incomplete_reason: string | null,
+	/**  Source-reported diagnostic only; never cleanup authorization. */
+	inspection_issue?: ScanGapKind | null,
 	/**
 	 *  Entries the measurement did not account for (excluded, blacklisted,
 	 *  protected, unreadable, or beyond the depth limit). Reported so a

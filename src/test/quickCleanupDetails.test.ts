@@ -35,7 +35,7 @@ describe('Quick cleanup explanations', () => {
     expect(details.blockedCount).toBe(1);
     expect(details.recentCount).toBe(1);
     expect(details.gaps).toEqual([{ kind: 'permission_denied', count: 2,
-      label: 'Locations could not be read with the current permissions' }]);
+      label: 'Access was denied; check file ownership and permissions' }]);
   });
   it('counts only positive automatic candidates excluded from Quick Clean', () => {
     const inventory = scan([item('auto_cleanable'), item('auto_cleanable'), item('auto_cleanable', 0)]);
@@ -47,7 +47,7 @@ describe('Quick cleanup explanations', () => {
     } }).body;
     expect(body).toContain('No items currently qualify for Quick Clean');
     expect(body).toContain('1 item needs review in Storage');
-    expect(body).toContain('current permissions (2)');
+    expect(body).toContain('file ownership and permissions (2)');
     expect(body).toContain('Open Storage');
     expect(body).toContain('Scan Again');
     expect(body).toContain('disabled');

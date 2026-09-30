@@ -1,7 +1,7 @@
 {
   "name": "neati",
   "private": true,
-  "version": "0.3.83",
+  "version": "0.3.84",
   "license": "MIT",
   "repository": "https://github.com/jaeyoung0509/neati",
   "type": "module",

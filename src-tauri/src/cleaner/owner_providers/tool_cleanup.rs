@@ -58,6 +58,14 @@ impl ToolPreview {
     }
 }
 trait ToolCommandRunner: Send + Sync {
+    /// Actual discovery evidence, separate from human command diagnostics.
+    fn inspection_prerequisite(
+        &self,
+        _environment: &PlatformEnvironment,
+    ) -> Result<(), crate::models::ScanGapKind> {
+        Ok(())
+    }
+
     fn preview(&self, environment: &PlatformEnvironment) -> Result<ToolPreview, String>;
     fn cleanup(
         &self,
@@ -264,6 +272,29 @@ impl NativeToolCommandRunner {
     }
 }
 impl ToolCommandRunner for NativeToolCommandRunner {
+    fn inspection_prerequisite(
+        &self,
+        environment: &PlatformEnvironment,
+    ) -> Result<(), crate::models::ScanGapKind> {
+        if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            if let Some(tool) = environment.tool("swift-package") {
+                return tool
+                    .path()
+                    .map(|_| ())
+                    .ok_or(crate::models::ScanGapKind::ToolMissing);
+            }
+            return swiftpm_executable(environment)
+                .map(|_| ())
+                .map_err(|_| crate::models::ScanGapKind::Unknown);
+        }
+        let available = crate::tooling::resolve_with(self.kind.executable(), environment).is_some();
+        if available {
+            Ok(())
+        } else {
+            Err(crate::models::ScanGapKind::ToolMissing)
+        }
+    }
+
     fn preview(&self, environment: &PlatformEnvironment) -> Result<ToolPreview, String> {
         let (executable, output) = self.run(environment, true, None)?;
         let candidates = match self.kind {
@@ -631,6 +662,14 @@ impl ToolCleanupProvider {
         {
             return OwnerStoreObservation::ready(None, Vec::new());
         }
+        if let Err(issue) = self.runner.inspection_prerequisite(environment) {
+            return OwnerStoreObservation::refused(
+                ProviderStatus::Blocked,
+                None,
+                "The required tool or selected developer toolchain is unavailable",
+            )
+            .with_inspection_issue(issue);
+        }
         match self.process.running(guard) {
             None => {
                 return OwnerStoreObservation::refused(
@@ -638,6 +677,7 @@ impl ToolCleanupProvider {
                     None,
                     "The process table could not prove the tool is idle",
                 )
+                .with_inspection_issue(crate::models::ScanGapKind::OwnerStateUnknown)
             }
             Some(running) if !running.is_empty() => {
                 return OwnerStoreObservation::refused(
@@ -991,6 +1031,34 @@ fn parse_mise_roots(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn missing_cocoapods_retains_a_blocked_cache_with_a_typed_tool_reason() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("Library/Caches/CocoaPods");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("archive.zip"), vec![0u8; 8192]).unwrap();
+        let environment =
+            PlatformEnvironment::simulated(neati_platform::path_algebra::PathFlavor::Posix)
+                .with_roots(Arc::new(
+                    neati_platform::paths::SimulatedPaths::new()
+                        .with_flavor(neati_platform::path_algebra::PathFlavor::Posix)
+                        .with_home(temp.path()),
+                ))
+                .with_missing_tool("pod");
+        let provider = ToolCleanupProvider::native(ToolCacheKind::Cocoapods, Arc::new(Idle));
+        let observation = provider.scan(&environment, &RunningProcessPolicy::none());
+        assert_eq!(observation.units.len(), 1);
+        let unit = &observation.units[0];
+        assert_eq!(unit.path, root);
+        assert_eq!(unit.state, OwnerUnitState::Blocked);
+        assert_eq!(
+            unit.inspection_issue,
+            Some(crate::models::ScanGapKind::ToolMissing)
+        );
+        assert!(unit.allocated_bytes > 0);
+        assert!(!unit.is_ready());
+    }
+
     #[test]
     fn swiftpm_scope_refuses_unknown_versions_journals_and_covers_every_handle() {
         let root = tempfile::tempdir().unwrap();

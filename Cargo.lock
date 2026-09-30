@@ -2293,7 +2293,7 @@ dependencies = [
 
 [[package]]
 name = "neati-core"
-version = "0.3.83"
+version = "0.3.84"
 dependencies = [
  "serde",
  "serde_json",
@@ -2304,7 +2304,7 @@ dependencies = [
 
 [[package]]
 name = "neati-desktop"
-version = "0.3.83"
+version = "0.3.84"
 dependencies = [
  "base64 0.23.1",
  "libc",
@@ -2341,7 +2341,7 @@ dependencies = [
 
 [[package]]
 name = "neati-platform"
-version = "0.3.83"
+version = "0.3.84"
 dependencies = [
  "libc",
  "neati-core",

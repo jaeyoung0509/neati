@@ -180,7 +180,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .flat_map(|category| &category.items)
     {
-        if let Some(kind) = scan_gap_kind(&environment, item) {
+        if let Some(kind) = scan_gap_kind(item) {
             let source_id = item.signature_id.clone();
             let owner = registry
                 .get(&source_id)

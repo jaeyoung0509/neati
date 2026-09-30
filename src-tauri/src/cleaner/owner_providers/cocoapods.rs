@@ -259,6 +259,11 @@ pub(super) fn blocked_observation(
             measured.allocated_bytes,
             1,
             detail,
+        )
+        .with_inspection_issue(
+            refused
+                .inspection_issue
+                .unwrap_or(crate::models::ScanGapKind::Unknown),
         )],
     )
 }

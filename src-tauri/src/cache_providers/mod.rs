@@ -343,7 +343,7 @@ impl CacheProviderRegistry {
             }
             ProviderCommandResult::Failed(reason) => {
                 return Err(CacheProviderFailure::new(
-                    classify_provider_failure(&reason),
+                    ScanGapKind::Unknown,
                     format!(
                         "{} cache inspection failed: {reason}",
                         provider.executable()
@@ -358,7 +358,7 @@ impl CacheProviderRegistry {
                 if !success {
                     let reason = bounded_message(&stderr);
                     return Err(CacheProviderFailure::new(
-                        classify_provider_failure(&reason),
+                        ScanGapKind::Unknown,
                         format!(
                             "{} cache discovery failed: {}",
                             provider.executable(),
@@ -397,7 +397,7 @@ impl CacheProviderRegistry {
                 }
                 validate_cache_path(parsed, environment).map_err(|reason| {
                     CacheProviderFailure::new(
-                        classify_provider_failure(&reason),
+                        ScanGapKind::Unknown,
                         format!("{}: {reason}", provider.executable()),
                     )
                 })?
@@ -477,6 +477,7 @@ impl CacheProviderRegistry {
             last_modified,
             exists: true,
             quality,
+            inspection_issue: measurement.inspection_issue,
             incomplete_reason: measurement.incomplete_reason,
             skipped_entry_count: measurement.skipped_entries,
         }))
@@ -590,20 +591,6 @@ impl CacheProviderScanner for CacheProviderRegistry {
             counters,
             progress,
         )
-    }
-}
-
-fn classify_provider_failure(reason: &str) -> ScanGapKind {
-    let reason = reason.to_ascii_lowercase();
-    if reason.contains("cancel") {
-        ScanGapKind::Cancelled
-    } else if reason.contains("permission denied")
-        || reason.contains("operation not permitted")
-        || reason.contains("access denied")
-    {
-        ScanGapKind::PermissionDenied
-    } else {
-        ScanGapKind::IoError
     }
 }
 
@@ -2284,7 +2271,7 @@ esac
             )
             .with(
                 ProviderKind::GoModule,
-                ProviderCommandResult::Failed("command timed out".to_string()),
+                ProviderCommandResult::Failed("command timed out; permission denied".to_string()),
             );
         let counters = TraversalCounters::default();
         let result = super::CacheProviderRegistry::scan_items_with(
@@ -2301,10 +2288,14 @@ esac
 
         assert!(result.items.is_empty());
         assert_eq!(result.failures.len(), 2);
-        assert!(result
-            .failures
-            .iter()
-            .all(|failure| failure.kind == ScanGapKind::IoError));
+        assert_eq!(
+            result
+                .failures
+                .iter()
+                .map(|failure| failure.kind)
+                .collect::<Vec<_>>(),
+            vec![ScanGapKind::IoError, ScanGapKind::Unknown]
+        );
     }
 
     #[test]

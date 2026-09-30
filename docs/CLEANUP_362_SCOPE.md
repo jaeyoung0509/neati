@@ -126,3 +126,23 @@ fixtures execute the upstream removal method in an isolated Ruby process.
 [Validation details](validation/cocoapods-0.3.83/README.md) distinguish this
 exercise from an installed-distribution validation, which is still pending.
 Other #362 work remains open.
+
+## Follow-up: typed inspection diagnostics
+
+The 0.3.83 → 0.3.84 follow-up carries source-reported inspection kinds through
+filesystem measurements, selector failures, owner observations and retained
+scan rows. Scan gap aggregation no longer classifies diagnostic prose. Owner
+prerequisite discovery distinguishes an absent tool, an unsupported provider
+status and an unverified process snapshot; untyped command failures stay unknown.
+A missing CocoaPods owner retains observed cache bytes in its blocked row.
+
+A PermissionDenied OS verdict on a protected macOS path offers Full Disk Access
+as a possible remedy. That verdict cannot distinguish TCC from ownership or
+ACL restrictions. Ordinary access denials offer file permission guidance; an
+unrelated I/O failure, missing tool or unknown cause never becomes a privacy
+setting suggestion because of its message or path. Storage and Quick Panel
+share the typed reason labels. These facts are diagnostics, never authorization.
+
+This implements reason routing, not the native unsigned-bundle grant/revoke/
+upgrade validation matrix. Signing, privileged-helper cleanup, compatibility
+expansion and the rest of #362 remain open.

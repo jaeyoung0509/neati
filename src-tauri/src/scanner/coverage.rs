@@ -25,6 +25,7 @@ pub(crate) fn observe(
     let mut gap = SymlinkGuard::validate_anchored_path(path, context.environment)
         .err()
         .map(|error| format!("Could not inspect excluded namespace: {error}"));
+    let mut issue = gap.as_ref().map(|_| crate::models::ScanGapKind::Unknown);
     if gap.is_some() {
         pending.clear();
     }
@@ -33,9 +34,17 @@ pub(crate) fn observe(
             || started.elapsed() >= Duration::from_millis(50)
             || context.cancellation.is_cancelled()
         {
-            gap = Some(
-                "Coverage observation reached its entry/time limit or was cancelled".to_string(),
-            );
+            gap = {
+                issue = Some(if context.cancellation.is_cancelled() {
+                    crate::models::ScanGapKind::Cancelled
+                } else {
+                    crate::models::ScanGapKind::Unknown
+                });
+                Some(
+                    "Coverage observation reached its entry/time limit or was cancelled"
+                        .to_string(),
+                )
+            };
             break;
         }
         visited += 1;
@@ -43,13 +52,22 @@ pub(crate) fn observe(
         let metadata = match std::fs::symlink_metadata(&current) {
             Ok(metadata) => metadata,
             Err(error) => {
-                gap = Some(format!("Could not inspect excluded namespace: {error}"));
+                gap = {
+                    issue = Some(super::size::inspection_issue_for_io(
+                        context.environment,
+                        &current,
+                        &error,
+                    ));
+                    Some(format!("Could not inspect excluded namespace: {error}"))
+                };
                 continue;
             }
         };
         if SymlinkGuard::is_symlink(&current) {
-            gap =
-                Some("Links and mount points are not traversed during coverage observation".into());
+            gap = {
+                issue = Some(crate::models::ScanGapKind::SafetyProtected);
+                Some("Links and mount points are not traversed during coverage observation".into())
+            };
             continue;
         }
         if metadata.is_file() {
@@ -65,7 +83,10 @@ pub(crate) fn observe(
             files += 1;
         } else if metadata.is_dir() {
             if depth >= context.limits.max_depth.min(16) {
-                gap = Some("Coverage observation reached its depth limit".into());
+                gap = {
+                    issue = Some(crate::models::ScanGapKind::DepthLimit);
+                    Some("Coverage observation reached its depth limit".into())
+                };
                 continue;
             }
             context.counters.directory_read();
@@ -73,18 +94,37 @@ pub(crate) fn observe(
                 Ok(entries) => {
                     for entry in entries {
                         if pending.len() + visited >= 4096 {
-                            gap = Some("Coverage observation reached its entry limit".into());
+                            gap = {
+                                issue = Some(crate::models::ScanGapKind::Unknown);
+                                Some("Coverage observation reached its entry limit".into())
+                            };
                             break;
                         }
                         match entry {
                             Ok(entry) => pending.push((entry.path(), depth + 1)),
                             Err(error) => {
-                                gap = Some(format!("Could not read excluded namespace: {error}"))
+                                gap = {
+                                    issue = Some(super::size::inspection_issue_for_io(
+                                        context.environment,
+                                        &current,
+                                        &error,
+                                    ));
+                                    Some(format!("Could not read excluded namespace: {error}"))
+                                }
                             }
                         }
                     }
                 }
-                Err(error) => gap = Some(format!("Could not read excluded namespace: {error}")),
+                Err(error) => {
+                    gap = {
+                        issue = Some(super::size::inspection_issue_for_io(
+                            context.environment,
+                            &current,
+                            &error,
+                        ));
+                        Some(format!("Could not read excluded namespace: {error}"))
+                    }
+                }
             }
         }
     }
@@ -105,6 +145,7 @@ pub(crate) fn observe(
     if let Some(reason) = gap {
         item.quality = ObservationQuality::Partial;
         item.incomplete_reason = Some(reason);
+        item.inspection_issue = issue;
         item.skipped_entry_count = 1;
     }
     item.rederive_disposition();

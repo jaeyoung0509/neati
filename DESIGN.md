@@ -703,3 +703,11 @@ locations remain visible without contributing an invented zero or cleanup author
 Results show permanent removal and Trash movement separately even for a single
 provider outcome. Disk free-space change is a separate signed reading, including
 zero and negative changes; other activity can affect it.
+
+## Inspection diagnostics
+
+Storage and Quick Panel show the backend's typed inspection reasons. Tool
+unavailability, unsupported adapters, safety exclusions and unknown causes do
+not open privacy setup. Only an actual access refusal at a protected macOS
+location offers contextual Full Disk Access guidance; ownership or ACLs may
+still be responsible. Diagnostics never change cleanup eligibility.

@@ -4,7 +4,6 @@ use neati_core::domain::cleanup::temporary_cache::*;
 use neati_platform::PlatformEnvironment;
 use std::{
     fs,
-    io::Read,
     path::{Path, PathBuf},
     time::{Duration, SystemTime},
 };
@@ -56,6 +55,7 @@ pub(super) fn discover(
 
 #[cfg(unix)]
 pub(super) fn inspect(env: &PlatformEnvironment, path: &Path) -> Result<SystemTime, String> {
+    use std::io::Read;
     use std::os::unix::{
         ffi::OsStrExt,
         fs::{MetadataExt, OpenOptionsExt},

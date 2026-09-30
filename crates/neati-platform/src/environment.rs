@@ -102,7 +102,7 @@ pub fn describe_access_refusal(
     error.to_string()
 }
 
-pub const FULL_DISK_ACCESS_REMEDY: &str = "macOS protects this location from other applications. Grant neati Full Disk Access in System Settings > Privacy & Security > Full Disk Access, then scan again. Until then the location is reported as unreadable rather than as empty.";
+pub const FULL_DISK_ACCESS_REMEDY: &str = "This location may require macOS Full Disk Access. In System Settings > Privacy & Security > Full Disk Access, add and enable the neati.app you use, then return and scan again. File ownership or permissions may also deny access; Full Disk Access does not grant administrator privileges. Unreadable locations remain unknown rather than empty.";
 
 /// Whether an access refusal on `path` should be attributed to Full Disk
 /// Access on macOS.
@@ -688,6 +688,10 @@ mod tests {
             "/Users/tester/Library/Caches/com.example.app",
             "/Users/tester/Library/Application Support/Slack/Cache",
             "/var/folders/ab/cdefgh/C/com.example.app",
+            "/Library/Caches",
+            "/Library/Logs/DiagnosticReports",
+            "/private/var/log/DiagnosticMessages",
+            "/Users/tester/Library/Containers-extra/com.example.app",
         ] {
             assert!(!refusal_may_be_full_disk_access(
                 &environment,

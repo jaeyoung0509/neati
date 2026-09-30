@@ -33,6 +33,7 @@
   import ReorderControls from '../../lib/components/ReorderControls.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
+  import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import {
@@ -618,6 +619,12 @@
       {/if}
     </Card>
   </div>
+
+  {#if platformContextStore.context?.platform === 'macos'}
+    <Card class="p-4 bg-card/70">
+      <StorageAccessSetup />
+    </Card>
+  {/if}
 
   {#if scanStore.lastScan}
     <CleanupGuidanceList scan={scanStore.lastScan} {onCategory} {onNavigate} current={scanStore.canClean} />

@@ -3,8 +3,11 @@
 Implementation ledger for the 0.3.80 → 0.3.81 PR. The items below describe
 available operations and deliberate scope limits, not a claim that every
 observed byte is removable. Accounting and retained-scope navigation belong to
-[#363](https://github.com/jaeyoung0509/neati/issues/363). Keep #362 open for the
-privileged operation blocked by the owner's September 29 decision.
+[#363](https://github.com/jaeyoung0509/neati/issues/363), now closed after merged
+PR #365. The September 30 owner decision
+supersedes the original privileged-work blocker: paid signing and privileged
+mutation are deferred outside the current issue completion criteria. #362
+remains open for permission validation and additional owner adapters.
 
 ## Application and runtime operations
 
@@ -43,8 +46,8 @@ No system daemon is stopped by any operation.
 | Issue item | Implementation and limits |
 | --- | --- |
 | Home Trash | Separate Review Trash action, never preselected or added to cache candidates. A private, five-minute, one-shot snapshot authorizes only reviewed home-Trash entries. Native directory descriptors prevent ancestor/link traversal; the root is retained. Limits: 20,000 entries, depth 32 and 30 seconds per traversal/execution. Stop preserves remaining entries. Per-entry outcomes distinguish failures and removal; removed file data is not a free-space measurement. Other volumes' Trash is unsupported. |
-| Privileged cleanup ADR | [Accepted design and distribution blocker](PRIVILEGED_CLEANUP_ADR.md). |
-| System cache/diagnostic/log mutation | **Blocked, owner-approved.** No authenticated signed helper is shipped. `/Library/Caches`, DiagnosticReports, `/private/var/log`, DiagnosticPipeline and powerlog are not enabled through a shell fallback. Software Update and system databases remain protected. |
+| Privileged cleanup ADR | [Future signed-helper design, owner-deferred](PRIVILEGED_CLEANUP_ADR.md). |
+| System cache/diagnostic/log mutation | **Deferred, owner-approved (September 30).** No authenticated signed helper is shipped. Full Disk Access does not grant root authority. `/Library/Caches`, DiagnosticReports, `/private/var/log`, DiagnosticPipeline and powerlog are not enabled through a shell fallback. Software Update and system databases remain protected. |
 | Mail Downloads | Reviewed attachment copies in the two named Mail Downloads folders, after 30 days of whole-tree inactivity and idle Mail/handles. User edits in these copies are explicitly mentioned before confirmation. Mail message databases and original attachment stores are excluded. |
 | Messages previews/stickers | Reviewed image files under the three named Mole preview/sticker-cache scopes. Only recognized image extensions within bounded traversal are offered. Databases, original `Messages/Attachments`, conversations and links remain. Messages/shared owners and handles must be idle. |
 | Abandoned downloads | Reviewed direct `.download`, `.crdownload` and `.part` children of the platform's Downloads folder. Seven days is necessary but insufficient: browser/downloader owners and handles must also be idle at execution. Completed downloads remain. |
@@ -90,3 +93,24 @@ Reviewed September 29, 2026:
 
 Actual commands, test results and visual evidence are recorded in
 [the validation report](validation/cleanup-0.3.81/README.md).
+
+## Follow-up: storage access setup
+
+The 0.3.81 → 0.3.82 follow-up adds the same user-controlled macOS access setup
+in Settings and beside Storage scan gaps. It reuses settings navigation and
+checks actual access through a fresh trusted scan on an explicit Settings round
+trip, or Check Access. Checks are coalesced and wait for active storage work;
+hidden consumers do not dispatch queued checks and the last unmounted consumer
+removes the listeners. Browser preview cannot claim a
+native access check. The platform refusal copy describes Full Disk Access as a
+possible cause and retains filesystem ownership/permission limitations.
+
+This first follow-up implements the guidance/recovery portion of section A of
+#362 and updates its owner-decision documents. It does not close #362: native
+unsigned-bundle grant/deny/revoke/update validation remains unverified; section
+B's additional owner adapters and compatibility expansion are still pending.
+The [system access assessment](SYSTEM_CLEANUP_ACCESS.md) records section C's
+current decision boundaries. No new system deletion operation is enabled.
+
+Checks, screenshots and native validation limits are in the
+[permission setup validation report](validation/permissions-362/README.md).

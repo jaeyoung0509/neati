@@ -793,8 +793,12 @@ describe('StorageView scan remediation', () => {
       },
     });
 
-    expect(rendered.body).toContain('248 locations');
-    expect(rendered.body).toContain('Allow Full Disk Access');
+    const text = rendered.body.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ');
+    expect(text).toContain('248 protected locations');
+    expect(text).toContain('select the neati.app you use');
+    expect(text).toContain('does not grant administrator access');
+    expect(text).toContain('Check Access');
+    expect(text).not.toContain('Access granted');
     expect(rendered.body).toContain('Open System Settings');
     expect(rendered.body).not.toContain('Partial scan completed');
   });

@@ -350,8 +350,11 @@ safety conventions below when changing neati.
 - Home Trash emptying uses its separate private one-shot snapshot and bounded
   descriptor-based native adapter. Never add Trash bytes to cache candidates,
   preselect permanent removal, or extend this action to volume Trash.
-- Privileged system cleanup remains unavailable until the signed-helper
-  prerequisites in `docs/PRIVILEGED_CLEANUP_ADR.md` are satisfied.
+- Paid macOS signing and privileged-helper cleanup are deferred by the owner
+  (September 30, 2026). User-level cleanup and permission guidance proceed
+  independently. Full Disk Access never implies administrator authority or
+  deletion eligibility. Privileged system cleanup remains unavailable until the
+  signed-helper prerequisites in `docs/PRIVILEGED_CLEANUP_ADR.md` are satisfied.
 
 ## Scan accounting and coverage
 

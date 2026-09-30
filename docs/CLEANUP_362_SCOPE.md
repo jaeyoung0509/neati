@@ -9,6 +9,30 @@ supersedes the original privileged-work blocker: paid signing and privileged
 mutation are deferred outside the current issue completion criteria. #362
 remains open for permission validation and additional owner adapters.
 
+## Current remaining scope — September 30, 2026
+
+Merged follow-ups are delivered work: [#366](https://github.com/jaeyoung0509/neati/pull/366)
+provides permission guidance/recovery, [#367](https://github.com/jaeyoung0509/neati/pull/367)
+provides the initial CocoaPods adapter, [#368](https://github.com/jaeyoung0509/neati/pull/368)
+provides typed inspection routing, and [#371](https://github.com/jaeyoung0509/neati/pull/371)
+provides the exact Node temporary-cache owner and clearer Cleanup states.
+The completed implementation does not establish broader tool compatibility or
+native permission behavior. Keep #362 open for the following work.
+
+| Remaining item | Completion evidence still needed |
+| --- | --- |
+| Native permission transitions | Recorded unsigned-bundle grant, deny, revoke, relaunch and replacement/upgrade runs, including application version, OS build and date. Opening Settings or installing a bundle is not proof of a grant or its persistence. |
+| CocoaPods compatibility | An installed CocoaPods 1.16.2 distribution and supported launcher layout exercised in a disposable home/cache. Existing source-contract subprocess fixtures do not establish installed-distribution compatibility. Other launchers/versions require their own evidence. |
+| Additional owner operations | Android SDK staging/packages, OrbStack resources and browser/Corepack distributions need exact lifecycle and complete mutation-scope contracts. Existing advisory inventory and Docker operations do not implement those additional actions. |
+| Existing provider compatibility | Expand SwiftPM beyond its recorded banner and Conda/mise beyond their four tested releases only with tool/schema/scope evidence and fixtures. |
+| Database/index and unmatched scopes | Resolve each remaining scope as a tested exact adapter or an evidence-backed protected/unavailable decision. Account, sync, offline state, arbitrary workspaces and executable distributions retain their protections. |
+| Current-user system operations | The existing system matrix is an assessment. Actual access, owner/lifecycle, retention and privilege requirements still need per-operation evidence; current-user write access alone never proves disposable semantics. |
+
+Xcode #350 remains open and is held pending the owner's Xcode setup, as requested
+on September 30. Do not include its artifacts or simulator actions in this batch.
+CLI #335, paid signing and privileged-helper mutation remain owner-deferred.
+The manual native permission matrix has not been executed by this reconciliation.
+
 ## Application and runtime operations
 
 | Issue item | Implementation and limits |
@@ -62,7 +86,7 @@ temporary cleanup, new privileged operation or Windows owner adapter is implied.
 | --- | --- |
 | Home Trash | Separate Review Trash action, never preselected or added to cache candidates. A private, five-minute, one-shot snapshot authorizes only reviewed home-Trash entries. Native directory descriptors prevent ancestor/link traversal; the root is retained. Limits: 20,000 entries, depth 32 and 30 seconds per traversal/execution. Stop preserves remaining entries. Per-entry outcomes distinguish failures and removal; removed file data is not a free-space measurement. Other volumes' Trash is unsupported. |
 | Privileged cleanup ADR | [Future signed-helper design, owner-deferred](PRIVILEGED_CLEANUP_ADR.md). |
-| System cache/diagnostic/log mutation | **Deferred, owner-approved (September 30).** No authenticated signed helper is shipped. Full Disk Access does not grant root authority. `/Library/Caches`, DiagnosticReports, `/private/var/log`, DiagnosticPipeline and powerlog are not enabled through a shell fallback. Software Update and system databases remain protected. |
+| System cache/diagnostic/log mutation | Current-user access/lifecycle assessment remains active; **privileged mutation is owner-deferred (September 30)**. No new system deletion adapter or authenticated signed helper is shipped. Full Disk Access does not grant root authority. `/Library/Caches`, DiagnosticReports, `/private/var/log`, DiagnosticPipeline and powerlog are not enabled through a shell fallback. Software Update and system databases remain protected. |
 | Mail Downloads | Reviewed attachment copies in the two named Mail Downloads folders, after 30 days of whole-tree inactivity and idle Mail/handles. User edits in these copies are explicitly mentioned before confirmation. Mail message databases and original attachment stores are excluded. |
 | Messages previews/stickers | Reviewed image files under the three named Mole preview/sticker-cache scopes. Only recognized image extensions within bounded traversal are offered. Databases, original `Messages/Attachments`, conversations and links remain. Messages/shared owners and handles must be idle. |
 | Abandoned downloads | Reviewed direct `.download`, `.crdownload` and `.part` children of the platform's Downloads folder. Seven days is necessary but insufficient: browser/downloader owners and handles must also be idle at execution. Completed downloads remain. |

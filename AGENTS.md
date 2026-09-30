@@ -10,6 +10,10 @@ safety conventions below when changing neati.
 - Package manager: pnpm. Task runner: `just`.
 - Use `pnpm install` for dependencies, `just dev` for the desktop dev loop, and
   `just dev-web` for browser-only UI work with mocked IPC.
+- macOS `just release` and `just distribute` check the project-local Tauri CLI
+  before stopping neati or removing build artifacts. Preserve that prerequisite
+  ordering; missing dependencies require `pnpm install --frozen-lockfile`, never
+  an automatic install or a global CLI fallback.
 - `just build-fast` creates a debug `.app` bundle and `just run-fast` opens that
   bundle. Do not switch it back to launching the bare Mach-O binary; macOS only
   applies the configured Dock/Finder icon reliably to the application bundle.

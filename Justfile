@@ -51,9 +51,14 @@ run-fast:
 # 📦 Production Build & Distribution
 # ------------------------------------------------------------------------------
 
+# Check local build dependencies before stopping neati or removing artifacts.
+[macos]
+release-preflight:
+    @node scripts/check_release_dependencies.cjs
+
 # Package-only build: clean existing artifacts and create fresh .app and .dmg outputs.
 [macos]
-distribute: stop clean-bin
+distribute: release-preflight stop clean-bin
     ./scripts/tauri_release_build.sh
     @echo ""
     @echo "📦 Fresh release packages built successfully:"
@@ -79,7 +84,7 @@ release-and-run: release
 
 # Clean existing binaries and build fresh standalone release macOS App bundle
 [macos]
-release-app: stop clean-bin
+release-app: release-preflight stop clean-bin
     ./scripts/tauri_release_build.sh --bundles app
     @echo ""
     @echo "✅ Standalone release App built at: target/release/bundle/macos/neati.app"

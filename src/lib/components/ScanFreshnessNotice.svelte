@@ -4,7 +4,7 @@
   import { scanInspectionDetails } from '../utils/scanInspectionDetails';
   import StorageAccessSetup from './StorageAccessSetup.svelte';
 
-  let { compact = false }: { compact?: boolean } = $props();
+  let { compact = false, showRetry = true }: { compact?: boolean; showRetry?: boolean } = $props();
 
   let fullDiskAccessGapCount = $derived(
     scanStore.lastScan?.gaps
@@ -53,7 +53,7 @@
       {/if}
     </div>
     <span class="flex shrink-0 flex-wrap items-center gap-2">
-      {#if !scanStore.canContinue && !hasFullDiskAccessGap}
+      {#if showRetry && !scanStore.canContinue && !hasFullDiskAccessGap}
         <Button size="sm" variant="outline" disabled={scanStore.isScanning || scanStore.isCleaning} onclick={() => scanStore.runScan()}>
           {scanStore.isScanning ? 'Scanning…' : 'Scan Again'}
         </Button>

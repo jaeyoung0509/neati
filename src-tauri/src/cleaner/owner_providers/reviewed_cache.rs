@@ -16,6 +16,9 @@ use std::{
 
 const MAX_ENTRIES: usize = 50_000;
 const MAX_DEPTH: usize = 48;
+#[cfg(all(test, unix))]
+#[path = "node_temp_tests.rs"]
+mod node_temp_tests;
 const EDITORS: &[(&str, &[&str])] = &[
     (
         "Code",
@@ -172,6 +175,18 @@ impl NativePort<'_> {
             retained_reason: None,
         };
         match kind {
+            ReviewedCacheKind::NodeCompileCache => {
+                for (path, retained_reason) in super::node_temp::discover(self.environment)? {
+                    let mut unit = candidate(
+                        path,
+                        &["node", "nodejs", "npm", "npx", "pnpm", "yarn", "corepack"],
+                        neati_core::domain::cleanup::temporary_cache::NODE_CACHE_MIN_DAYS,
+                        "Node compilation cache",
+                    );
+                    unit.retained_reason = retained_reason;
+                    result.push(unit);
+                }
+            }
             ReviewedCacheKind::CodexStaging => {
                 let root = home.join(".cache/codex-runtimes");
                 match fs::symlink_metadata(&root) {
@@ -538,6 +553,9 @@ impl NativePort<'_> {
         Ok(result)
     }
     fn inspect(&self, candidate: &Candidate) -> Result<SystemTime, String> {
+        if self.provider.kind == ReviewedCacheKind::NodeCompileCache {
+            return super::node_temp::inspect(self.environment, &candidate.path);
+        }
         SymlinkGuard::validate_anchored_path(&candidate.path, self.environment)
             .map_err(|e| e.to_string())?;
         if self.provider.kind == ReviewedCacheKind::NodeHeaders {
@@ -622,10 +640,34 @@ impl NativePort<'_> {
     fn observe(&self, candidate: &Candidate) -> OwnerUnitObservation {
         let path = candidate.path.clone();
         let key = path.to_string_lossy().into_owned();
+        if self.provider.kind == ReviewedCacheKind::NodeCompileCache
+            && candidate.retained_reason.is_some()
+        {
+            let measurement = self.provider.measuring.measure(&path);
+            let mut unit = OwnerUnitObservation::advisory(
+                key,
+                path,
+                measurement.logical_bytes,
+                measurement.allocated_bytes,
+                measurement.entry_count,
+                candidate.retained_reason.clone().unwrap(),
+            );
+            if !measurement.complete {
+                unit.state = OwnerUnitState::Blocked;
+                unit.detail = measurement.detail;
+            }
+            return unit;
+        }
         let latest = match self.inspect(candidate) {
             Ok(latest) => latest,
             Err(detail) => {
                 let mut unit = OwnerUnitObservation::ready(key, path, 0, 0, 0);
+                if self.provider.kind == ReviewedCacheKind::NodeCompileCache {
+                    let measurement = self.provider.measuring.measure(&unit.path);
+                    unit.logical_bytes = measurement.logical_bytes;
+                    unit.allocated_bytes = measurement.allocated_bytes;
+                    unit.entry_count = measurement.entry_count;
+                }
                 unit.state = OwnerUnitState::Blocked;
                 unit.detail = Some(detail);
                 return unit;
@@ -748,6 +790,28 @@ impl ReviewedCachePort for NativePort<'_> {
             }
         }
         ToctouGuard::verify(&unit.path, &unit.identity).map_err(|error| error.to_string())?;
+        if kind == ReviewedCacheKind::NodeCompileCache {
+            // Recheck the positive flat-file contract after the owner/handle
+            // probe; worktree, link and recent writes revoke this exact move.
+            let latest = super::node_temp::inspect(self.environment, &unit.path)?;
+            if !self.now.duration_since(latest).is_ok_and(|age| {
+                age >= Duration::from_secs(
+                    neati_core::domain::cleanup::temporary_cache::NODE_CACHE_MIN_DAYS * 86400,
+                )
+            }) {
+                return Err("Node cache changed immediately before its Trash move".into());
+            }
+            ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
+            // Payload validation can read up to the bounded byte budget.
+            // Observe owner/handles once more after that work, immediately
+            // before the identity check and recoverable move.
+            if !matches!(self.provider.process.running(&guard), Some(names) if names.is_empty()) {
+                return Err(
+                    "The Node owner restarted or opened a handle during final validation".into(),
+                );
+            }
+            ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
+        }
         self.provider.trash.move_to_trash(&unit.path)
     }
     fn is_absent(&self, path: &Path) -> bool {
@@ -906,7 +970,7 @@ mod tests {
     use super::*;
     use crate::scanner::SizeCalculatorMeasurement;
     use std::sync::atomic::{AtomicUsize, Ordering};
-    struct UseState(Option<Vec<String>>);
+    pub(super) struct UseState(pub(super) Option<Vec<String>>);
     impl RunningProcessProbe for UseState {
         fn running(&self, _: &RunningProcessPolicy) -> Option<Vec<String>> {
             self.0.clone()
@@ -929,7 +993,7 @@ mod tests {
             fs::rename(path, self.0.join("moved")).map_err(|e| e.to_string())
         }
     }
-    fn fixture(
+    pub(super) fn fixture(
         kind: ReviewedCacheKind,
         processes: Arc<dyn RunningProcessProbe>,
     ) -> (
@@ -958,11 +1022,11 @@ mod tests {
         );
         (dir, env, provider)
     }
-    fn file(path: &Path) {
+    pub(super) fn file(path: &Path) {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, vec![42; 8192]).unwrap();
     }
-    fn selection(unit: &OwnerUnitObservation) -> OwnerProviderSelection {
+    pub(super) fn selection(unit: &OwnerUnitObservation) -> OwnerProviderSelection {
         OwnerProviderSelection {
             item_id: "reviewed".into(),
             name: "reviewed".into(),

@@ -369,6 +369,12 @@ inventory is still valid.
   use `--success` with a white check; never a plain white track.
 - **EmptyState**: separate states for empty search results, no inventory,
   missing platform capability, and failed loading.
+  Cleanup distinguishes a verified empty scan from an unread/partial result,
+  stale previous results and retained-only inventory. Unknown totals use a dash;
+  known partial totals are labeled as checked locations. Empty or retained-only
+  lists do not show an unusable bulk selector or cleanup toolbar. The header's
+  Scan Storage action remains available, with reason-specific recovery nearby.
+  Permission setup uses an accessible disclosure for the detailed instructions.
 - **InlineNotice**: `role="status"` for information, `role="alert"` for errors,
   with the concrete reason and, when the action can be retried, one retry.
 

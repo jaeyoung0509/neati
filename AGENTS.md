@@ -368,3 +368,13 @@ safety conventions below when changing neati.
 - Browser unit observations may use the shared scan pool, capped at four workers.
   Every unit still gets its own use verdict; planning and execution obtain fresh
   observations, including the final pre-mutation check.
+
+- Developer temporary observations cover allowlisted direct children of the
+  platform-stated user and shared temporary roots. The exact default
+  `node-compile-cache` namespace routes to its dedicated owner, without counting
+  it again in the prefix observer. Only the recorded Node 26.7.0 arm64/V8-tag
+  format under the current user's version group is actionable: bounded flat
+  regular files, positive headers/checksums, ownership, permissions, three-day
+  whole-unit inactivity and fresh owner/handle checks. Unknown versions/layouts,
+  worktrees, upload/recovery artifacts and other temporary folders remain
+  advisory or protected. No arbitrary `neati-*` or `codex-*` deletion is implied.

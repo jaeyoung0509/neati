@@ -373,6 +373,7 @@ impl SignatureRegistry {
             || p.starts_with("/Volumes")
             || p.starts_with("/private/")
             || p.contains("${DARWIN_USER_CACHE}")
+            || p.contains("${SHARED_TEMP}")
         {
             Some(PlatformKind::Macos)
         } else if p.contains("${SYSTEM_ROOT}")
@@ -1436,7 +1437,7 @@ mod tests {
             "agent-browser-chrome-",
             "metro-cache",
             "metro-file-map-",
-            "node-compile-cache",
+            "node-compile-cache-",
             "openai-docs-cache",
             "pytest-of-",
             "v8-compile-cache-",
@@ -1454,6 +1455,20 @@ mod tests {
         assert_eq!(signature.risk, RiskTier::Manual);
         assert_eq!(signature.strategy, CleanStrategy::Manual);
         assert_eq!(signature.unit_kind(), CleanupUnitKind::ChildNamespace);
+        assert_eq!(signature.platforms, vec![PlatformKind::Macos]);
+        assert!(signature.paths.iter().any(|path| path == "${SHARED_TEMP}"));
+        assert!(signature
+            .include_prefixes
+            .iter()
+            .any(|prefix| prefix == "neati-"));
+        let node = registry.get("system.node_compile_temp").unwrap();
+        assert_eq!(node.strategy, CleanStrategy::OwnerProvider);
+        assert_eq!(
+            node.provider_id.as_deref(),
+            Some("node.temporary_compile_cache")
+        );
+        assert_eq!(node.min_age_days, None); // The owner adapter owns unit inactivity.
+        assert_eq!(node.platforms, vec![PlatformKind::Macos]);
     }
 
     #[test]

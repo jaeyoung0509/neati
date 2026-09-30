@@ -20,6 +20,8 @@
   import CategoryCard from '../../lib/components/CategoryCard.svelte';
   import Checkbox from '../../lib/components/Checkbox.svelte';
   import StorageSummary from '../../lib/components/StorageSummary.svelte';
+  import EmptyState from '../../lib/components/EmptyState.svelte';
+  import { cleanupView } from '../../lib/utils/cleanupView';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import DeletingDots from '../../lib/components/DeletingDots.svelte';
   import SelectionToolbar from '../../lib/components/SelectionToolbar.svelte';
@@ -77,6 +79,7 @@
     }
   });
   let scan = $derived(scanStore.lastScan);
+  let presentation = $derived(cleanupView(scan, scanStore.freshness, !!scanStore.error));
   let orderedCategories = $derived(
     [...(scan?.categories ?? [])].sort((a, b) =>
       summarizeCategory(b.items).cleanable_bytes - summarizeCategory(a.items).cleanable_bytes
@@ -384,14 +387,12 @@
         variant="error"
         title="Storage check needs attention"
         message={scanStore.error}
-        actionLabel={!scanStore.isScanning && !scanStore.isCleaning ? 'Scan Again' : undefined}
-        onAction={() => void scanStore.runScan()}
       />
     {/if}
 
     <!-- Scan freshness / remediation notice -->
     {#if !scanStore.isScanning && !scanStore.isCleaning && scan && scanStore.freshness !== 'fresh' && scanStore.freshness !== 'failed'}
-      <ScanFreshnessNotice compact />
+      <ScanFreshnessNotice compact showRetry={false} />
     {/if}
 
     <!-- Categories Section -->
@@ -404,8 +405,12 @@
         {/if}
       </div>
 
-      {#if scan}
+      {#if scan && presentation.items.length > 0}
+        {#if presentation.kind === 'retained'}
+          <p class="text-body text-muted-foreground">{presentation.description}</p>
+        {/if}
         <div class="category-list rounded-xl border border-border bg-card">
+          {#if scanStore.canClean && scanStore.bulkSelection.count > 0}
           <div class="flex flex-wrap items-center gap-x-2 border-b border-border px-1 py-2">
             <Checkbox
               class="min-h-8 gap-3 px-2"
@@ -418,6 +423,7 @@
             />
             <span class="text-meta text-muted-foreground">{scanStore.bulkSelection.count} available · running apps excluded</span>
           </div>
+          {/if}
           {#each orderedCategories as categoryResult (categoryResult.category)}
             <CategoryCard
               {categoryResult}
@@ -426,16 +432,12 @@
           {/each}
         </div>
       {:else}
-        <div class="rounded-xl border border-border bg-card px-6 py-8 text-center space-y-2">
-          <HardDrive size={24} class="mx-auto mb-3 text-muted-foreground" aria-hidden="true" />
-          <p class="text-sm font-medium text-foreground">Start with a storage scan</p>
-          <p class="text-body text-muted-foreground">Application and development caches.</p>
-        </div>
+        <EmptyState icon={HardDrive} title={presentation.title} description={presentation.description} class="border-solid bg-card py-6" />
       {/if}
     </div>
     {/if}
     <!-- Review follows the list in both visual and keyboard order. -->
-      {#if scan && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
+      {#if scan && presentation.items.some(isActionable) && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
       <div class="storage-selection">
       <SelectionToolbar
         selectedCount={scanStore.selectedCount}

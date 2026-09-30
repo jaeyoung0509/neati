@@ -24,7 +24,7 @@
       You choose whether to allow it. Scanning never deletes anything.
     </p>
   </div>
-  <details class="rounded-lg border border-border p-3" open={contextual}>
+  <details class="rounded-lg border border-border p-3">
     <summary class="cursor-pointer font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">How to allow access</summary>
     <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
       <li>Open System Settings → Privacy &amp; Security → Full Disk Access.</li>

@@ -5,37 +5,45 @@
   import { scanStore } from '../stores/scan.svelte';
   import { cleanupAvailability, observedByteRange, retainedByteGroups, summarizeCategory } from '../utils/cleanup';
   import { formatBytes } from '../utils/format';
+  import { cleanupView } from '../utils/cleanupView';
 
   let scan = $derived(scanStore.lastScan);
+  let presentation = $derived(cleanupView(scan, scanStore.freshness, !!scanStore.error));
   let summary = $derived(summarizeCategory(scan?.categories.flatMap(category => category.items) ?? []));
   let availability = $derived(cleanupAvailability(scan?.categories.flatMap(category => category.items) ?? []));
   let retained = $derived(retainedByteGroups(scan?.categories.flatMap(category => category.items) ?? []));
   let observed = $derived(observedByteRange(scan?.total_bytes ?? 0, scan?.ambiguous_overlap_bytes));
   let isCurrent = $derived(scanStore.freshness === 'fresh' || scanStore.freshness === 'partial');
-  let estimateLabel = $derived(isCurrent ? 'Ready to clean now' : 'Last ready-to-clean estimate');
+  let estimateLabel = $derived(scanStore.freshness === 'unavailable' ? 'Cleanup estimate unavailable'
+    : scanStore.freshness === 'partial' ? 'Ready in checked locations'
+    : isCurrent ? 'Ready to clean now' : 'Last ready-to-clean estimate');
 </script>
 
 <section class="storage-summary" aria-label="Storage scan summary">
   <div class="summary-primary">
     <p class="text-meta font-medium text-muted-foreground">{scan ? estimateLabel : 'Available to clean'}</p>
     <p class="mt-1 text-metric-lg font-mono font-semibold tracking-tight tabular-nums text-foreground">
-      {scan ? formatBytes(availability.ready) : '—'}
+      {scan && presentation.hasMeasuredResults ? formatBytes(availability.ready) : '—'}
     </p>
     <p class="mt-1 text-meta text-muted-foreground">
       {#if !scan}
         Scan caches to see what can be cleaned.
+      {:else if !presentation.hasMeasuredResults}
+        Unread locations remain unknown. Review the inspection reasons below.
       {:else if !isCurrent}
         Scan again to verify these results.
+      {:else if scanStore.freshness === 'partial'}
+        Verified items only. Unread locations are excluded from this estimate.
       {:else if summary.cleanable_count > 0}
         Apps may download or rebuild these caches later.
       {:else}
-        No cleanup candidates in this scan.
+        Nothing is ready to clean in checked locations.
       {/if}
     </p>
     {#if isCurrent && summary.unestimated_count > 0}
       <p class="mt-1 text-meta text-muted-foreground">{summary.unestimated_count} tool-managed {summary.unestimated_count === 1 ? 'cleanup has' : 'cleanups have'} no size estimate. The tool decides what is unused.</p>
     {/if}
-    {#if isCurrent}
+    {#if isCurrent && presentation.hasMeasuredResults}
       <p class="mt-2 text-meta text-muted-foreground">
         <span class="font-medium text-foreground">{formatBytes(availability.ready)} ready now</span>
         {#if availability.running > 0} · {formatBytes(availability.running)} requires idle apps{/if}
@@ -46,11 +54,11 @@
   <div class="summary-context">
     <p class="text-meta text-muted-foreground">Found in scanned locations</p>
     <p class="mt-1 text-sm font-medium font-mono tabular-nums text-foreground">
-      {#if !scan}—
+      {#if !scan || !presentation.hasMeasuredResults}—
       {:else if observed.isAmbiguous}{formatBytes(observed.lower)}–{formatBytes(observed.upper)}
       {:else}{formatBytes(observed.upper)}{/if}
     </p>
-    <p class="mt-1 text-meta text-muted-foreground">Includes items that must be kept.</p>
+    <p class="mt-1 text-meta text-muted-foreground">{scan && !presentation.hasMeasuredResults ? 'No complete measurement is available.' : 'Includes items that must be kept.'}</p>
     {#if scan && retained.length > 0}
       <details class="mt-2 text-meta text-muted-foreground">
         <summary class="cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Why some bytes stay</summary>

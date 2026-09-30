@@ -15,6 +15,7 @@ pub mod provider;
 pub mod reviewed_cache;
 pub mod strategy;
 pub mod structured;
+pub mod temporary_cache;
 
 pub use family::CleanerFamily;
 pub use operation::{

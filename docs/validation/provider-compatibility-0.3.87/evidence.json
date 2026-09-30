@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-30",
+  "os": "macOS 27.0.1 (26A434)",
+  "architecture": "arm64",
+  "functional_validation_build": "0.3.86 plus this PR source changes",
+  "target_version": "0.3.87",
+  "real_user_cleanup": false,
+  "process_probe": "idle fixture for disposable installations",
+  "cocoapods": {
+    "version": "1.16.2",
+    "ruby": "2.6.10p210",
+    "rubygems": "3.0.3.1",
+    "bundler": "2.4.22",
+    "gem_sha256": "0ff1c860f32df3db8b16df09b58da1a6bb2a12fe55f6d5e8be994a74fadd1e5e",
+    "gem_metadata_url": "https://rubygems.org/api/v2/rubygems/cocoapods/versions/1.16.2.json",
+    "scope": "~/Library/Caches/CocoaPods/Pods",
+    "observed_allocated_bytes": 20480,
+    "removed_allocated_bytes": 20480,
+    "remaining_bytes": 0
+  },
+  "downloads": [
+    {
+      "tool": "miniforge",
+      "url": "https://github.com/conda-forge/miniforge/releases/download/26.3.2-3/Miniforge3-26.3.2-3-MacOSX-arm64.sh",
+      "sha256": "59168f1e24d0a4ad9932021170809fca836cd240e183eeeb331d5bcfc0098168"
+    },
+    {
+      "tool": "mise",
+      "url": "https://github.com/jdx/mise/releases/download/v2026.9.17/mise-v2026.9.17-macos-arm64",
+      "sha256": "b2dab031288ddd760878bfaefb1f403d2c5d99ca5c478a81c9e7baf07b5f7b84"
+    },
+    {
+      "url": "https://github.com/conda-forge/miniforge/releases/download/26.7.2-0/Miniforge3-26.7.2-0-MacOSX-arm64.sh",
+      "sha256": "d70bfa2e97afcda96927c9b9ca0e2316cb7750e4ce651c94388267cbe9588711"
+    },
+    {
+      "url": "https://github.com/jdx/mise/releases/download/v2026.9.14/mise-v2026.9.14-macos-arm64",
+      "sha256": "04e7938f37506ce3a78d452b57d05c0590ad1c193d9ed2c937774a07c6b4c4f4"
+    }
+  ],
+  "conda_26_7_3_package": {
+    "name": "conda",
+    "version": "26.7.3",
+    "build": "py314hcec6336_0",
+    "url": "https://conda.anaconda.org/conda-forge/osx-arm64/conda-26.7.3-py314hcec6336_0.conda",
+    "sha256": "e5cd385e0e88668feb7afdee31a948d3894d0d2a7bdfbe601387218898278143"
+  }
+}

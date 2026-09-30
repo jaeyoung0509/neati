@@ -16,15 +16,16 @@ provides permission guidance/recovery, [#367](https://github.com/jaeyoung0509/ne
 provides the initial CocoaPods adapter, [#368](https://github.com/jaeyoung0509/neati/pull/368)
 provides typed inspection routing, and [#371](https://github.com/jaeyoung0509/neati/pull/371)
 provides the exact Node temporary-cache owner and clearer Cleanup states.
-The completed implementation does not establish broader tool compatibility or
-native permission behavior. Keep #362 open for the following work.
+The [0.3.87 compatibility follow-up](validation/provider-compatibility-0.3.87/README.md)
+validates an installed CocoaPods distribution and additional Conda/mise releases.
+It does not establish native permission behavior. Keep #362 open for the following work.
 
 | Remaining item | Completion evidence still needed |
 | --- | --- |
 | Native permission transitions | Recorded unsigned-bundle grant, deny, revoke, relaunch and replacement/upgrade runs, including application version, OS build and date. Opening Settings or installing a bundle is not proof of a grant or its persistence. |
-| CocoaPods compatibility | An installed CocoaPods 1.16.2 distribution and supported launcher layout exercised in a disposable home/cache. Existing source-contract subprocess fixtures do not establish installed-distribution compatibility. Other launchers/versions require their own evidence. |
+| CocoaPods compatibility | Installed 1.16.2 with system Ruby 2.6.10 and a standard absolute user RubyGems launcher is validated. Homebrew/env wrappers, custom gem homes and other Ruby/CocoaPods versions require their own evidence. |
 | Additional owner operations | Android SDK staging/packages, OrbStack resources and browser/Corepack distributions need exact lifecycle and complete mutation-scope contracts. Existing advisory inventory and Docker operations do not implement those additional actions. |
-| Existing provider compatibility | Expand SwiftPM beyond its recorded banner and Conda/mise beyond their four tested releases only with tool/schema/scope evidence and fixtures. |
+| Existing provider compatibility | Conda 26.3.2/26.5.3/26.7.2/26.7.3 and mise 2026.9.14/15/16/17 are recorded tested releases, not every future or intervening release. SwiftPM remains limited to its recorded banner; other toolchains require actual command/scope evidence. |
 | Database/index and unmatched scopes | Resolve each remaining scope as a tested exact adapter or an evidence-backed protected/unavailable decision. Account, sync, offline state, arbitrary workspaces and executable distributions retain their protections. |
 | Current-user system operations | The existing system matrix is an assessment. Actual access, owner/lifecycle, retention and privilege requirements still need per-operation evidence; current-user write access alone never proves disposable semantics. |
 
@@ -70,11 +71,11 @@ temporary cleanup, new privileged operation or Windows owner adapter is implied.
 
 | Issue item | Implementation and limits |
 | --- | --- |
-| Conda/mise compatibility | Verified set: Conda 26.5.3 and 26.7.2; mise 2026.9.15 and 2026.9.16. Actual commands ran in disposable homes. Support is constrained by the complete response schema and scope checks; this is not a claim that every intervening or future release has been tested. Existing timeout, executable replacement, inventory change and partial-result tests remain. |
+| Conda/mise compatibility | Verified set: Conda 26.3.2, 26.5.3, 26.7.2 and 26.7.3; mise 2026.9.14, 2026.9.15, 2026.9.16 and 2026.9.17. Actual commands ran in disposable homes. Support is constrained by the complete response schema and scope checks; this is not a claim that every intervening or future release has been tested. Existing timeout, executable replacement, inventory change and partial-result tests remain. |
 | Gradle notifications | Exact versioned `release-features.rendered` files only, with typed Gradle process guards and exact handles. Gradle normally creates an empty marker: zero-byte markers are omitted, not advertised as disk savings. Removing a nonempty marker can show release highlights again. |
 | IDE indexes | Complete regenerable index units as above; installed plugins, configuration, LocalHistory and old Application Support installations are preserved. |
 | SwiftPM | Reviewed fixed `swift-package … purge-cache` operation. Complete preview includes `repositories`, `registry/downloads` and `manifests/manifest.db` below the standard macOS cache root. Command config/security/build paths are isolated in a disposable directory. Only the actually validated `Swift 6.4.0-dev` banner is accepted. Manifest WAL/SHM/journal companions block the command because the owner does not purge them together. Executable and recursive inventory identities plus every scope's open handles are rechecked. Artifacts, prebuilts, project `.build` trees and installed toolchains remain. |
-| CocoaPods | Reviewed CocoaPods 1.16.2 `cache clean --all` owner command for the complete default download root (`Pods`, `Specs`, `VERSION`). Preview observes files without constructing CocoaPods downloader caches. An isolated RubyGems launcher disables plugins and redirects home/configuration/repositories; recursive cache and loaded Ruby-file identities plus idle owners/handles are rechecked. Custom cache/home overrides, unknown layouts, locks and links block cleanup. Missing/incompatible tools retain observed bytes as blocked. Only standard absolute RubyGems launchers are supported; installed-distribution compatibility remains unverified locally. Repositories, project Pods and installed tools remain. |
+| CocoaPods | Reviewed CocoaPods 1.16.2 `cache clean --all` owner command for the complete default download root `~/Library/Caches/CocoaPods/Pods` (`Release`, `External`, `Specs`, `VERSION`). The parent cache directory and its siblings remain. Preview observes files without constructing downloader caches. An isolated RubyGems launcher disables plugins and redirects home/configuration/repositories; recursive cache, Ruby-file and gemspec identities plus idle owners/handles are rechecked. Standard user gem repositories are bound to the reviewed absolute launcher and matching Ruby ABI. Custom cache/home overrides, unknown layouts, locks and links block cleanup. Missing/incompatible tools retain observed download-root bytes as blocked. Installed 1.16.2/system Ruby 2.6.10 compatibility is validated; other runtime/launcher layouts remain unverified. Repositories, project Pods and installed tools remain. |
 | Android SDK | Advisory installation. SDK Manager owns package selection and uninstall; timestamps and `.temp` names do not authorize removal of installed SDK packages or system images. |
 | OrbStack | Advisory exact known group-container data root, using bounded standard discovery and path checks. VM disks are not cache payloads. Supported Docker resource operations remain in Containers; machine removal needs a separate lifecycle adapter. No partial-component wildcard is introduced. |
 | node-gyp/Electron | Complete versioned Node header SDK units and exact macOS Electron ZIP archives use ordinary Trash operations. Custom cache-root overrides are refused rather than guessed. Installed runtimes and apps remain. |
@@ -162,8 +163,10 @@ section B of #362. It uses the existing confirmation and permanent-deletion
 contracts. The preview covers the entire root that the owner command removes;
 there is no generic filesystem-delete fallback. CocoaPods 1.16.2 source-contract
 fixtures execute the upstream removal method in an isolated Ruby process.
-[Validation details](validation/cocoapods-0.3.83/README.md) distinguish this
-exercise from an installed-distribution validation, which is still pending.
+[Validation details](validation/cocoapods-0.3.83/README.md) describe that historical
+source-contract exercise. The installed-distribution run in 0.3.87 corrected
+its parent-root assumption: the command removes `CocoaPods/Pods`, with Specs
+and VERSION inside that unit. It also validates standard user RubyGems loading.
 Other #362 work remains open.
 
 ## Follow-up: typed inspection diagnostics

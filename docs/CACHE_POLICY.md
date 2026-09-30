@@ -233,8 +233,10 @@ cleanup or the blacklist. Private plans remain in the backend.
 
 CocoaPods download-cache removal is an explicit reviewed permanent owner action,
 not ordinary cache-to-Trash deletion. The complete default
-`~/Library/Caches/CocoaPods` root is previewed, including cached sources,
-specifications and `VERSION`. Repositories, project `Pods`, configuration,
+`~/Library/Caches/CocoaPods/Pods` root is previewed, including `Release`,
+`External`, `Specs` and `VERSION`. CocoaPods adds `Pods` to its configured
+cache directory; sibling entries in `CocoaPods` are not command targets.
+Repositories, project `Pods`, configuration,
 credentials and installed tools are outside its scope. Only CocoaPods 1.16.2
 with a standard absolute RubyGems launcher is accepted. Unknown versions,
 custom cache/home roots, unknown root entries, links, locks or busy/unknown
@@ -243,4 +245,8 @@ with observed bytes and cannot be preselected. Preview does not instantiate the
 CocoaPods downloader cache, whose version reconciliation can delete an existing
 root. Execution uses isolated configuration/repositories and disables plugins,
 with fresh runtime and recursive candidate identities checked before mutation.
+Standard user RubyGems installations resolve only the repository owning the
+reviewed `~/.gem/ruby/<ABI>/bin/pod` launcher. The ABI must match its Ruby;
+inherited gem/Bundler paths remain disabled. Loaded gem specifications are
+included in the runtime identity alongside libraries and the interpreter.
 See [the scope ledger](CLEANUP_362_SCOPE.md) for compatibility validation limits.

@@ -21,7 +21,8 @@ use std::{
 };
 
 use super::cocoapods::{
-    cocoapods_cache_root, cocoapods_candidates, cocoapods_command, fingerprint_cocoapods_runtime,
+    cocoapods_cache_root, cocoapods_candidates, cocoapods_command, cocoapods_download_root,
+    fingerprint_cocoapods_runtime,
 };
 
 const CLEAN_ARGS: &[&str] = &[
@@ -239,6 +240,7 @@ impl NativeToolCommandRunner {
                     .ok_or("Isolated workspace unavailable")?
                     .path(),
                 dry_run,
+                environment,
             )?
         } else if let Some(scratch) = &scratch {
             if dry_run {
@@ -349,7 +351,7 @@ impl ToolCommandRunner for NativeToolCommandRunner {
         }
         Ok(ToolPreview {
             prefix: if matches!(self.kind, ToolCacheKind::Cocoapods) {
-                cocoapods_cache_root(environment)?
+                cocoapods_download_root(environment)?
             } else {
                 executable
                     .parent()
@@ -1034,7 +1036,7 @@ mod tests {
     #[test]
     fn missing_cocoapods_retains_a_blocked_cache_with_a_typed_tool_reason() {
         let temp = tempfile::tempdir().unwrap();
-        let root = temp.path().join("Library/Caches/CocoaPods");
+        let root = temp.path().join("Library/Caches/CocoaPods/Pods");
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(root.join("archive.zip"), vec![0u8; 8192]).unwrap();
         let environment =
@@ -1432,7 +1434,7 @@ mod tests {
             }
         }
         let temp = tempfile::tempdir().unwrap();
-        let cache = temp.path().join("Library/Caches/CocoaPods");
+        let cache = temp.path().join("Library/Caches/CocoaPods/Pods");
         std::fs::create_dir_all(&cache).unwrap();
         std::fs::write(cache.join("VERSION"), "1.16.2").unwrap();
         let executable = temp.path().join("pod");

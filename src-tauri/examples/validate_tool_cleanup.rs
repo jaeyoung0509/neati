@@ -29,6 +29,7 @@ fn main() {
     let mise = home.join(".local/bin/mise");
     let environment = PlatformEnvironment::simulated(PathFlavor::current())
         .with_home(&home)
+        .with_temp_dir(&root)
         .with_tool("conda", &conda)
         .with_tool("mise", &mise);
     let guard = RunningProcessPolicy::none();
@@ -51,6 +52,7 @@ fn main() {
         let result = provider.execute(&environment, &plan);
         println!("{kind:?} result {result:?}");
         assert_eq!(result.units[0].status, ProviderStatus::Cleaned);
+        assert!(provider.scan(&environment, &guard).units.is_empty());
     }
     for preserved in [
         "miniforge3/bin/python",

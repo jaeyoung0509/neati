@@ -1,5 +1,10 @@
 # CocoaPods owner cleanup validation
 
+Historical report. The [0.3.87 installed-distribution validation](../provider-compatibility-0.3.87/README.md)
+supersedes its scope assumption: CocoaPods binds its downloader to
+`Config.cache_root + 'Pods'`, so the command target is `CocoaPods/Pods`, with
+Specs and VERSION inside it. The older test facade omitted that constructor.
+
 September 30, 2026 · neati 0.3.82 → 0.3.83 · macOS 27.0.1 (26A434), arm64.
 
 This follow-up addresses the CocoaPods item in section B of #362. Other issue

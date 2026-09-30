@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { render } from 'svelte/server';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import StorageView from '../routes/dashboard/StorageView.svelte';
 import CategoryCard from '../lib/components/CategoryCard.svelte';
 import StorageSummary from '../lib/components/StorageSummary.svelte';
@@ -11,6 +12,14 @@ import { scanStore } from '../lib/stores/scan.svelte';
 import { platformCapabilitiesStore } from '../lib/stores/platformCapabilities.svelte';
 import { mockApi } from '../lib/api/mock';
 import type { CategoryResult, CleanResult, ScanItem } from '../lib/models/types';
+
+// Keep Svelte's server-rendering environment; use jsdom only as an HTML parser.
+const { JSDOM } = createRequire(import.meta.url)('jsdom') as {
+  JSDOM: new (html: string) => { window: { document: Document } };
+};
+function markupDocument(body: string): Document {
+  return new JSDOM(body).window.document;
+}
 
 afterEach(() => {
   platformCapabilitiesStore.reset();
@@ -137,7 +146,8 @@ describe('Storage scan summary', () => {
     scanStore.lastScan!.quality = 'partial';
     const body = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
     expect(body).toContain('Ready in checked locations');
-    expect(body).toContain('Verified items only');
+    expect(body).toContain('Unknown bytes excluded');
+    expect(body).toContain('Partial scan');
     expect(body).toContain('1 KB');
     expect(body).toContain('Select all available cleanup items');
   });
@@ -158,10 +168,11 @@ describe('Storage scan summary', () => {
 
     const { body } = render(StorageSummary);
     expect(body).toContain('Ready to clean now');
-    expect(body).toContain('ready now');
     expect(body).toContain('1 KB');
     expect(body).toContain('8 KB–10 KB');
-    expect(body).toContain('Includes items that must be kept.');
+    expect(body).toContain('Overlapping observations');
+    const page = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(page).toContain('Includes items that must be kept.');
   });
 
   it('puts ready bytes first when a much larger cache requires app exit', () => {
@@ -188,6 +199,46 @@ describe('Storage scan summary', () => {
     expect(body).not.toContain('Available to clean');
   });
 
+  it('keeps selection before the complete grouped diagnostic inventory', () => {
+    publishScan([
+      scanItem({ id: 'ready', disposition: { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: 1024 } }),
+      scanItem({ id: 'review', disposition: { eligibility: 'reviewable', reason: 'Reviewed owner action', cleanable_bytes: 1024 } }),
+      scanItem({ id: 'kept', risk: 'manual', disposition: { eligibility: 'advisory', reason: 'Keep this state', cleanable_bytes: 0 } }),
+      scanItem({ id: 'unknown', quality: 'unavailable', size: { logical: 0, allocated: 0 }, disposition: { eligibility: 'blocked', reason: 'Could not inspect', cleanable_bytes: 0 } }),
+    ], 'grouped-details');
+    const body = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    const document = markupDocument(body);
+    const details = document.querySelector('[data-cleanup-item-details]')!;
+    const selection = document.querySelector('.category-list')!;
+    const toolbar = document.querySelector('[aria-label="Cleanup selection and actions"]')!;
+    expect(selection.compareDocumentPosition(details) & 4).toBe(4);
+    expect(details.compareDocumentPosition(toolbar) & 4).toBe(4);
+    expect(details.hasAttribute('open')).toBe(false);
+    expect(details.querySelector('summary')?.textContent).toBe('Item details (3)');
+    expect(details.querySelectorAll('li')).toHaveLength(3);
+    expect(details.textContent).toContain('Review and owner actions (1)');
+    expect(details.textContent).toContain('Kept and unverified observations (2)');
+    expect(details.textContent).toContain('Keep this state');
+    expect(details.textContent).toContain('Could not inspect');
+    expect(scanStore.selectedMap.kept).toBe(false);
+    expect(scanStore.selectedMap.unknown).toBe(false);
+  });
+
+  it('shows an unestimated action count without expanding provider explanations', () => {
+    publishScan([scanItem({ id: 'owner', risk: 'rebuild', cache_metadata: {
+      provider: 'pnpm', management_mode: 'tool_managed', artifact_kind: 'package_store',
+      consequence: 'Packages may be downloaded again.', size_semantics: 'informational', last_used_confidence: 'unknown',
+    }, disposition: { eligibility: 'reviewable', reason: 'The tool decides what is unused', cleanable_bytes: null } })], 'unestimated-details');
+    const document = markupDocument(render(StorageView, { props: { onSelectCategory: vi.fn() } }).body);
+    const summary = document.querySelector('[aria-label="Storage scan summary"]')!;
+    expect(summary.textContent).toContain('1 action · Not estimated');
+    expect(summary.textContent).toContain('Review items');
+    expect(summary.textContent).not.toContain('The tool decides');
+    const details = document.querySelector('[data-storage-scan-details]')!;
+    expect(details.hasAttribute('open')).toBe(false);
+    expect(details.textContent).toContain('Not estimated does not mean zero bytes');
+  });
+
   it('shows a scan prompt without implying that an idle empty scan is still running', () => {
     const { body } = render(StorageView, { props: { onSelectCategory: vi.fn() } });
     expect(body).toContain('Start with a storage scan');
@@ -198,12 +249,17 @@ describe('Storage scan summary', () => {
 
 describe('StorageView CTA and responsive toolbar layout', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
     scanStore.lastScan = null;
     scanStore.selectedMap = {};
     scanStore.isScanning = false;
     scanStore.isCleaning = false;
     scanStore.error = null;
+    scanStore.updateFreshness();
   });
+
+  afterEach(() => vi.useRealTimers());
 
   it('renders one clean action for safe-only selections without duplicating bytes in CTA text', () => {
     const mockCategory: CategoryResult = {
@@ -457,6 +513,8 @@ describe('StorageView CTA and responsive toolbar layout', () => {
   });
 
   it('reads a stopped scan as a stop rather than a completed or failed one', () => {
+    // The result can finish after the store's most recent clock observation.
+    vi.setSystemTime(Date.now() + 2_000);
     platformCapabilitiesStore.reset();
     scanStore.error = null;
     const nowSeconds = Math.floor(Date.now() / 1000);
@@ -474,6 +532,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
       incomplete_reasons: ['Scan was cancelled before completion'],
       cancelled: true,
     };
+    scanStore.updateFreshness();
 
     const rendered = render(StorageView, { props: { onSelectCategory: vi.fn() } });
 
@@ -487,6 +546,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
   });
 
   it('reads a stopped scan as a stop in the category detail notice too', () => {
+    vi.setSystemTime(Date.now() + 2_000);
     const nowSeconds = Math.floor(Date.now() / 1000);
     const category: CategoryResult = {
       category: 'developer',
@@ -512,6 +572,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
       cancelled: true,
     };
     scanStore.lastScan = stopped;
+    scanStore.updateFreshness();
 
     const rendered = render(CategoryDetailView, {
       props: { categoryResult: category, onBack: vi.fn(), onNavigateTab: vi.fn() },
@@ -866,13 +927,21 @@ describe('StorageView scan remediation', () => {
     });
 
     const text = rendered.body.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ');
-    expect(text).toContain('248 protected locations');
+    expect(text).toContain('248 checks');
     expect(text).toContain('select the neati.app you use');
     expect(text).toContain('does not grant administrator access');
     expect(text).toContain('Check Access');
     expect(text).not.toContain('Access granted');
     expect(rendered.body).toContain('Open System Settings');
     expect(rendered.body).not.toContain('Partial scan completed');
+    const document = markupDocument(rendered.body);
+    const accessHelp = document.querySelector('[data-storage-access-setup] details')!;
+    expect(accessHelp.hasAttribute('open')).toBe(false);
+    expect(accessHelp.querySelector('summary')?.textContent).toBe('Manage access');
+    expect(accessHelp.textContent).toContain('does not grant administrator access');
+    const reasons = document.querySelector('[data-storage-scan-details]')!;
+    expect(reasons.hasAttribute('open')).toBe(false);
+    expect(reasons.textContent).toContain('file permissions can also deny access');
   });
 });
 

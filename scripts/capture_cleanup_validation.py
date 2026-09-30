@@ -2,10 +2,10 @@
 """Capture generated Svelte fixtures in an isolated agent-browser session.
 Requires agent-browser and generated HTML; never runs native IPC or cleanup.
 """
-import subprocess,json,pathlib,os,uuid,tempfile,shutil
+import subprocess,json,pathlib,os,uuid,tempfile,shutil,sys
 root=pathlib.Path(__file__).resolve().parent.parent
 version=json.loads((root/'package.json').read_text())['version']
-out=root/'docs'/'validation'/f'temp-cleanup-{version}'
+out=pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else root/'docs'/'validation'/f'temp-cleanup-{version}'
 session='neati-cleanup-validation-'+uuid.uuid4().hex[:8]
 profile=tempfile.mkdtemp(prefix='neati-validation-browser-')
 base=['agent-browser','--session',session]

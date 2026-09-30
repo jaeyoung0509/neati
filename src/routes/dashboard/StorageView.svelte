@@ -20,6 +20,8 @@
   import CategoryCard from '../../lib/components/CategoryCard.svelte';
   import Checkbox from '../../lib/components/Checkbox.svelte';
   import StorageSummary from '../../lib/components/StorageSummary.svelte';
+  import StorageScanDetails from '../../lib/components/StorageScanDetails.svelte';
+  import CleanupGuidanceList from '../../lib/components/CleanupGuidanceList.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
   import { cleanupView } from '../../lib/utils/cleanupView';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
@@ -97,6 +99,7 @@
   let quitBusy = $state(false);
   let quitProgress = $state('');
   let quitCancelled = false;
+  let itemDetailsOpen = $state(false);
   let runningItems = $derived(scan?.categories.flatMap(category => category.items)
     .filter(item => item.owner_running && isActionable(item)) ?? []);
 
@@ -148,6 +151,14 @@
   }
 
   const storagePanelId = $props.id();
+  function openItemDetails() {
+    itemDetailsOpen = true;
+    void tick().then(() => {
+      const control = document.getElementById(`${storagePanelId}-item-details`);
+      control?.scrollIntoView({ block: 'center' });
+      control?.focus({ preventScroll: true });
+    });
+  }
   const baseStorageTabs = [
     { id: 'cleanup', label: 'Cleanup' },
     { id: 'developer-artifacts', label: 'Developer Artifacts' },
@@ -304,17 +315,7 @@
     />
   {:else}
     {#if !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
-      <StorageSummary onCategory={onSelectCategory} onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onNavigate={onNavigateTab} />
-      {#if runningItems.length > 0}
-        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-meta text-muted-foreground">
-          <span>Some caches still require their app to be idle.</span>
-          {#if platformContextStore.context?.platform === 'macos'}
-            <Button variant="outline" size="sm" disabled={!scanStore.canClean || isPreparingReview || quitBusy} onclick={previewQuit}>Review apps to quit…</Button>
-          {:else}
-            <span>Quit the apps yourself, then scan again.</span>
-          {/if}
-        </div>
-      {/if}
+      <StorageSummary onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onReview={openItemDetails} actionsDisabled={isPreparingReview || quitBusy} />
     {/if}
 
     <!-- Scan Progress -->
@@ -391,8 +392,13 @@
     {/if}
 
     <!-- Scan freshness / remediation notice -->
-    {#if !scanStore.isScanning && !scanStore.isCleaning && scan && scanStore.freshness !== 'fresh' && scanStore.freshness !== 'failed'}
+    {#if scan && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
+    <div class="space-y-2">
+    {#if scanStore.freshness !== 'fresh' && scanStore.freshness !== 'failed'}
       <ScanFreshnessNotice compact showRetry={false} />
+    {/if}
+      <StorageScanDetails {scan} />
+    </div>
     {/if}
 
     <!-- Categories Section -->
@@ -435,6 +441,9 @@
         <EmptyState icon={HardDrive} title={presentation.title} description={presentation.description} class="border-solid bg-card py-6" />
       {/if}
     </div>
+    {/if}
+    {#if scan && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
+      <CleanupGuidanceList {scan} bind:open={itemDetailsOpen} summaryId={`${storagePanelId}-item-details`} onCategory={onSelectCategory} onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onNavigate={onNavigateTab} current={scanStore.canClean} />
     {/if}
     <!-- Review follows the list in both visual and keyboard order. -->
       {#if scan && presentation.items.some(isActionable) && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}

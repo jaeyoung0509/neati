@@ -16,7 +16,8 @@ provides permission guidance/recovery, [#367](https://github.com/jaeyoung0509/ne
 provides the initial CocoaPods adapter, [#368](https://github.com/jaeyoung0509/neati/pull/368)
 provides typed inspection routing, and [#371](https://github.com/jaeyoung0509/neati/pull/371)
 provides the exact Node temporary-cache owner and clearer Cleanup states.
-The [0.3.87 compatibility follow-up](validation/provider-compatibility-0.3.87/README.md)
+Merged [#374](https://github.com/jaeyoung0509/neati/pull/374), the
+[0.3.87 compatibility follow-up](validation/provider-compatibility-0.3.87/README.md),
 validates an installed CocoaPods distribution and additional Conda/mise releases.
 It does not establish native permission behavior. Keep #362 open for the following work.
 
@@ -33,6 +34,10 @@ Xcode #350 remains open and is held pending the owner's Xcode setup, as requeste
 on September 30. Do not include its artifacts or simulator actions in this batch.
 CLI #335, paid signing and privileged-helper mutation remain owner-deferred.
 The manual native permission matrix has not been executed by this reconciliation.
+The 0.3.88 follow-up consolidates Cleanup explanations into closed scan/access
+details and moves the complete grouped item inventory after category selection. It changes
+presentation and recovery discoverability, not cleanup eligibility or adapter scope.
+Browser visual/interaction checks do not replace native permission-transition evidence.
 
 ## Application and runtime operations
 

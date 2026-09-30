@@ -1,0 +1,225 @@
+{
+  "version": "0.3.88",
+  "fixture": "Synthetic partial scan with 790 detail rows; browser IPC mocks only",
+  "layouts": [
+    {
+      "theme": "light",
+      "action": {
+        "bottom": 539,
+        "left": 640.390625,
+        "right": 765,
+        "top": 507
+      },
+      "amount": {
+        "bottom": 494.5,
+        "left": 633,
+        "right": 729,
+        "top": 458.5
+      },
+      "category": {
+        "bottom": 505.5,
+        "left": 349,
+        "right": 621,
+        "top": 447.5
+      },
+      "closed": true,
+      "dark": false,
+      "height": 560,
+      "label": "Ready in checked locations\n\nPartial scan\n\n1.8 GB\n\nFound in scanned locations\n\n33.2 MB\u201334.4 GB\n\nOverlapping observations\n\n2.6 GB requires idle apps\nReview apps\u2026\n443.8 MB needs review\nReview items\n1 action \u00b7 Not estimated",
+      "reducedMotion": true,
+      "scrollWidth": 800,
+      "toolbar": {
+        "bottom": 552,
+        "left": 240,
+        "right": 778,
+        "top": 494
+      },
+      "width": 800
+    },
+    {
+      "theme": "light",
+      "action": {
+        "bottom": 615.5,
+        "left": 792.390625,
+        "right": 917,
+        "top": 583.5
+      },
+      "amount": {
+        "bottom": 480.5,
+        "left": 769,
+        "right": 881,
+        "top": 444.5
+      },
+      "category": {
+        "bottom": 491.5,
+        "left": 357,
+        "right": 757,
+        "top": 433.5
+      },
+      "closed": true,
+      "dark": false,
+      "height": 660,
+      "label": "Ready in checked locations\n\nPartial scan\n\n1.8 GB\n\nFound in scanned locations\n\n33.2 MB\u201334.4 GB\n\nOverlapping observations\n\n2.6 GB requires idle apps\nReview apps\u2026\n443.8 MB needs review\nReview items\n1 action \u00b7 Not estimated",
+      "reducedMotion": true,
+      "scrollWidth": 960,
+      "toolbar": {
+        "bottom": 628.5,
+        "left": 248,
+        "right": 930,
+        "top": 570.5
+      },
+      "width": 960
+    },
+    {
+      "theme": "light",
+      "action": {
+        "bottom": 597.5,
+        "left": 1112.390625,
+        "right": 1237,
+        "top": 565.5
+      },
+      "amount": {
+        "bottom": 471.5,
+        "left": 1089,
+        "right": 1201,
+        "top": 435.5
+      },
+      "category": {
+        "bottom": 473.5,
+        "left": 357,
+        "right": 1077,
+        "top": 433.5
+      },
+      "closed": true,
+      "dark": false,
+      "height": 800,
+      "label": "Ready in checked locations\n\nPartial scan\n\n1.8 GB\n\nFound in scanned locations\n\n33.2 MB\u201334.4 GB\n\nOverlapping observations\n\n2.6 GB requires idle apps\nReview apps\u2026\n443.8 MB needs review\nReview items\n1 action \u00b7 Not estimated",
+      "reducedMotion": true,
+      "scrollWidth": 1280,
+      "toolbar": {
+        "bottom": 610.5,
+        "left": 248,
+        "right": 1250,
+        "top": 552.5
+      },
+      "width": 1280
+    },
+    {
+      "theme": "dark",
+      "action": {
+        "bottom": 539,
+        "left": 640.390625,
+        "right": 765,
+        "top": 507
+      },
+      "amount": {
+        "bottom": 494.5,
+        "left": 633,
+        "right": 729,
+        "top": 458.5
+      },
+      "category": {
+        "bottom": 505.5,
+        "left": 349,
+        "right": 621,
+        "top": 447.5
+      },
+      "closed": true,
+      "dark": true,
+      "height": 560,
+      "label": "Ready in checked locations\n\nPartial scan\n\n1.8 GB\n\nFound in scanned locations\n\n33.2 MB\u201334.4 GB\n\nOverlapping observations\n\n2.6 GB requires idle apps\nReview apps\u2026\n443.8 MB needs review\nReview items\n1 action \u00b7 Not estimated",
+      "reducedMotion": true,
+      "scrollWidth": 800,
+      "toolbar": {
+        "bottom": 552,
+        "left": 240,
+        "right": 778,
+        "top": 494
+      },
+      "width": 800
+    },
+    {
+      "theme": "dark",
+      "action": {
+        "bottom": 615.5,
+        "left": 792.390625,
+        "right": 917,
+        "top": 583.5
+      },
+      "amount": {
+        "bottom": 480.5,
+        "left": 769,
+        "right": 881,
+        "top": 444.5
+      },
+      "category": {
+        "bottom": 491.5,
+        "left": 357,
+        "right": 757,
+        "top": 433.5
+      },
+      "closed": true,
+      "dark": true,
+      "height": 660,
+      "label": "Ready in checked locations\n\nPartial scan\n\n1.8 GB\n\nFound in scanned locations\n\n33.2 MB\u201334.4 GB\n\nOverlapping observations\n\n2.6 GB requires idle apps\nReview apps\u2026\n443.8 MB needs review\nReview items\n1 action \u00b7 Not estimated",
+      "reducedMotion": true,
+      "scrollWidth": 960,
+      "toolbar": {
+        "bottom": 628.5,
+        "left": 248,
+        "right": 930,
+        "top": 570.5
+      },
+      "width": 960
+    },
+    {
+      "theme": "dark",
+      "action": {
+        "bottom": 597.5,
+        "left": 1112.390625,
+        "right": 1237,
+        "top": 565.5
+      },
+      "amount": {
+        "bottom": 471.5,
+        "left": 1089,
+        "right": 1201,
+        "top": 435.5
+      },
+      "category": {
+        "bottom": 473.5,
+        "left": 357,
+        "right": 1077,
+        "top": 433.5
+      },
+      "closed": true,
+      "dark": true,
+      "height": 800,
+      "label": "Ready in checked locations\n\nPartial scan\n\n1.8 GB\n\nFound in scanned locations\n\n33.2 MB\u201334.4 GB\n\nOverlapping observations\n\n2.6 GB requires idle apps\nReview apps\u2026\n443.8 MB needs review\nReview items\n1 action \u00b7 Not estimated",
+      "reducedMotion": true,
+      "scrollWidth": 1280,
+      "toolbar": {
+        "bottom": 610.5,
+        "left": 248,
+        "right": 1250,
+        "top": 552.5
+      },
+      "width": 1280
+    }
+  ],
+  "interaction": {
+    "manageAccessEnterOpenSpaceClose": true,
+    "scanDetailsEnterOpenSpaceClose": true,
+    "reviewItemsOpenAndFocus": true,
+    "itemDetailsEnterClose": true,
+    "completeRows": 790,
+    "groups": [
+      "Review and owner actions (3)",
+      "Kept and unverified observations (787)"
+    ],
+    "reviewItemsScrollsIntoView": true,
+    "firstOwnerRowTopAfterReview": 364.5,
+    "toolbarTopAfterReview": 594,
+    "accessActionFocusVisible": true
+  }
+}

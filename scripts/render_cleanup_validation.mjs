@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
-const output = join(root, 'docs', 'validation', `temp-cleanup-${version}`);
+const output = process.argv[2] ?? join(root, 'docs', 'validation', `temp-cleanup-${version}`);
 const assets = join(root, 'dist', 'assets');
 const css = readdirSync(assets).filter(name => name.endsWith('.css'))
   .map(name => readFileSync(join(assets, name), 'utf8')).join('\n');
@@ -40,6 +40,19 @@ try {
     safe_bytes: 0,
     rebuild_bytes: items.filter(entry => entry.risk === 'rebuild').reduce((sum, entry) => sum + entry.size.allocated, 0),
     manual_bytes: items.filter(entry => entry.risk === 'manual').reduce((sum, entry) => sum + entry.size.allocated, 0) });
+  const sized = (entry, id, bytes, disposition, extra = {}) => ({ ...entry, id, name: id,
+    size: { logical: bytes, allocated: bytes }, disposition, ...extra });
+  const ready = sized(item, 'Verified cache', Math.round(1.8 * 1024 ** 3), { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: Math.round(1.8 * 1024 ** 3) });
+  const running = sized(item, 'Cache of an active app', Math.round(2.6 * 1024 ** 3), { eligibility: 'reviewable', reason: 'Quit the owner and scan again.', cleanable_bytes: Math.round(2.6 * 1024 ** 3) }, { owner_running: true });
+  const reviewed = sized(item, 'Reviewed owner cleanup', Math.round(443.8 * 1024 ** 2), { eligibility: 'reviewable', reason: 'This owner action requires review.', cleanable_bytes: Math.round(443.8 * 1024 ** 2) });
+  const unestimated = sized(item, 'Tool-managed store', 1024 ** 3, { eligibility: 'reviewable', reason: 'The tool decides what is unused.', cleanable_bytes: null }, {
+    cache_metadata: { provider: 'pnpm', management_mode: 'tool_managed', artifact_kind: 'package_store', consequence: 'Packages may be downloaded again.', size_semantics: 'informational', last_used_confidence: 'unknown' },
+  });
+  const diagnosticRows = Array.from({ length: 787 }, (_, index) => sized(retained, `Protected observation ${index + 1}`, 0, { eligibility: 'blocked', reason: 'This observation grants no cleanup authority.', cleanable_bytes: 0 }, { quality: 'unavailable', incomplete_reason: 'Could not inspect this fixture.' }));
+  const mixedItems = [ready, running, reviewed, unestimated, ...diagnosticRows];
+  const mixed = { ...base, quality: 'partial', categories: [category(mixedItems)],
+    total_bytes: Math.round(34.4 * 1024 ** 3), ambiguous_overlap_bytes: Math.round(34.4 * 1024 ** 3) - Math.round(33.2 * 1024 ** 2),
+    gaps: [{ kind: 'unknown', count: 8 }, { kind: 'safety_protected', count: 10 }, { kind: 'full_disk_access', count: 459 }, { kind: 'permission_denied', count: 34 }] };
   const scenarios = [
     ['initial', 'Before the first scan', null],
     ['empty', 'Verified empty scan', { ...base }],
@@ -55,8 +68,10 @@ try {
       gaps: [{ kind: 'unknown', count: 1 }] }],
     ['retained', 'Observed workspace; nothing ready to clean', { ...base,
       categories: [category([retained])], total_bytes: 1024 * 1024, manual_bytes: 1024 * 1024 }],
+    ['mixed', 'Partial scan with 790 retained/review observations', mixed],
   ];
   mkdirSync(output, { recursive: true });
+  writeFileSync(join(output, 'mixed-fixture.json'), JSON.stringify(mixed));
   for (const [name, label, scan] of scenarios) {
     scanStore.lastScan = scan;
     scanStore.error = null;

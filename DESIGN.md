@@ -3,7 +3,7 @@
 Cache scope and retained-byte semantics are defined in [Cache cleanup policy](docs/CACHE_POLICY.md).
 Apple and third-party regenerable payloads share the ordinary cleanup flow.
 Settings names the protected state classes; it does not imply a blanket Apple exclusion.
-Storage's “Why some bytes stay” disclosure explains retained observations using
+Storage's “Scan details” disclosure explains retained observations using
 backend eligibility and measurement facts. Keep ready-now, close-app-first and
 review bytes distinct. The primary headline and category metric show ready-now
 bytes; conditional amounts appear in secondary copy. App shutdown is a separate
@@ -522,6 +522,18 @@ must not suggest that the account has exhausted its quota.
   bytes belong to the cleanup toolbar, not the estimate. Regenerable caches are
   preselected; ordinary cleanup prepares and executes its private plan from one
   click. Only dedicated stateful operations retain a confirmation dialog.
+- The summary shows the ready amount once, with a neutral `Partial scan` badge
+  beside checked-location copy when coverage is incomplete. Conditional byte
+  amounts sit beside their review actions; unestimated actions keep a visible
+  `Not estimated` count. Observed ranges retain a short overlap qualifier.
+  One concise coverage notice precedes closed `Manage access` and `Scan details`
+  disclosures. Typed inspection counts, retained reasons, rebuild consequences
+  and detailed permission instructions remain available without repeating full
+  paragraphs above the category list. Access progress and errors remain visible.
+  The complete `Item details` inventory follows category selection and groups review/owner
+  actions before kept/unverified observations; its count is not a count of
+  available cleanup actions. The sticky cleanup toolbar remains last in keyboard
+  order. Native disclosures remain keyboard accessible.
 - Category rows share one bordered surface, with aligned value columns and
   descending cleanable-byte order. Storage tools use one native select in the
   page header instead of five peer tabs. Its selected workflow and return action

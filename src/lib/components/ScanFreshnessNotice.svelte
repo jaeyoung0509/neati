@@ -27,12 +27,16 @@
         {scanStore.discovery.reason}
       {:else if scanStore.freshness === 'partial' && scanStore.cancelledScanNotice}
         {scanStore.cancelledScanNotice}
+      {:else if scanStore.freshness === 'partial' && compact}
+        Some locations weren’t checked. Unknown bytes excluded.
       {:else if scanStore.freshness === 'partial'}
         {#if hasFullDiskAccessGap}
           Some protected locations could not be checked. Unknown bytes are excluded from totals. Only verified items can be cleaned.
         {:else}
           Some locations could not be checked. Unknown bytes are excluded from totals. Only verified items can be cleaned.
         {/if}
+      {:else if scanStore.freshness === 'unavailable' && compact}
+        Storage could not be checked. Unread bytes remain unknown.
       {:else if scanStore.freshness === 'unavailable'}
         {#if hasFullDiskAccessGap}
           Protected locations could not be checked. Unknown bytes are excluded from totals. Review storage access below.
@@ -44,7 +48,7 @@
       {:else}
         Scan storage to find current cleanup candidates.
       {/if}
-      {#if (scanStore.freshness === 'partial' || scanStore.freshness === 'unavailable') && !scanStore.isScanning && inspectionDetails.length > 0}
+      {#if !compact && (scanStore.freshness === 'partial' || scanStore.freshness === 'unavailable') && !scanStore.isScanning && inspectionDetails.length > 0}
         <ul class="mt-2 space-y-1">
           {#each inspectionDetails as detail (detail.kind)}
             <li>{detail.label} · {detail.count}</li>
@@ -52,6 +56,7 @@
         </ul>
       {/if}
     </div>
+    {#if hasFullDiskAccessGap && compact}<StorageAccessSetup contextual compact />{/if}
     <span class="flex shrink-0 flex-wrap items-center gap-2">
       {#if showRetry && !scanStore.canContinue && !hasFullDiskAccessGap}
         <Button size="sm" variant="outline" disabled={scanStore.isScanning || scanStore.isCleaning} onclick={() => scanStore.runScan()}>
@@ -62,7 +67,7 @@
   </div>
 {/if}
 
-{#if hasFullDiskAccessGap}
+{#if hasFullDiskAccessGap && !compact}
   <div class="rounded-xl border border-border bg-secondary p-3">
     <StorageAccessSetup contextual />
   </div>

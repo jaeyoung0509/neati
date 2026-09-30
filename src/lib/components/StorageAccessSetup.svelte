@@ -4,11 +4,13 @@
   import { storageAccessStore } from '../stores/storageAccess.svelte';
   import Button from './Button.svelte';
 
-  let { contextual = false }: { contextual?: boolean } = $props();
+  let { contextual = false, compact = false }: { contextual?: boolean; compact?: boolean } = $props();
   let gapCount = $derived(scanStore.lastScan?.gaps
     ?.filter((gap) => gap.kind === 'full_disk_access')
     .reduce((total, gap) => total + gap.count, 0) ?? 0);
   let busy = $derived(scanStore.isScanning || scanStore.isCleaning);
+  let showStatus = $derived(!compact || !['idle', 'checked'].includes(storageAccessStore.phase));
+  let helpOpen = $state(false);
 
   onMount(() => storageAccessStore.subscribe());
   $effect(() => {
@@ -16,26 +18,39 @@
   });
 </script>
 
-<div class="space-y-3 text-meta leading-relaxed" data-storage-access-setup>
+{#snippet instructions()}
+  {#if compact}<p class="text-muted-foreground">Full Disk Access lets neati inspect protected Mail, Messages and application containers. You choose whether to allow it. Scanning never deletes anything.</p>{/if}
+  <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
+    <li>Open System Settings → Privacy &amp; Security → Full Disk Access.</li>
+    <li>Click + and select the neati.app you use, usually in Applications, then enable it.</li>
+    <li>Return to neati to scan again. If macOS asks you to quit and reopen the app, follow that prompt, then scan again.</li>
+  </ol>
+  <p class="mt-2 text-muted-foreground">This permission does not grant administrator access or make every file removable. After replacing or updating the app, check access again if locations become unreadable.</p>
+  {#if compact && gapCount > 0}<p class="mt-2 text-muted-foreground">The last scan could not finish {gapCount} {gapCount === 1 ? 'check' : 'checks'} in protected locations. Privacy or file permissions may be responsible. Unknown bytes stay outside totals.</p>{/if}
+{/snippet}
+
+{#snippet actions()}
+  <div class="flex flex-wrap gap-2">
+    <Button size="sm" variant="secondary" disabled={storageAccessStore.phase === 'opening' || storageAccessStore.phase === 'checking'} onclick={() => void storageAccessStore.openSettings()}>Open System Settings</Button>
+    <Button size="sm" variant="outline" disabled={busy || storageAccessStore.phase === 'opening' || storageAccessStore.phase === 'checking'} onclick={() => void storageAccessStore.check()}>{storageAccessStore.phase === 'checking' ? 'Checking…' : 'Check Access'}</Button>
+  </div>
+{/snippet}
+
+<div class="space-y-2 text-meta leading-relaxed {compact && helpOpen ? 'w-full' : ''}" data-storage-access-setup>
+  {#if !compact}
   <div>
     <h4 class="font-medium text-foreground">{contextual ? 'Check protected locations' : 'macOS storage access'}</h4>
-    <p class="mt-1 text-muted-foreground">
-      Full Disk Access lets neati inspect protected Mail, Messages and application containers.
-      You choose whether to allow it. Scanning never deletes anything.
-    </p>
+    <p class="mt-1 text-muted-foreground">Full Disk Access lets neati inspect protected Mail, Messages and application containers. You choose whether to allow it. Scanning never deletes anything.</p>
   </div>
-  <details class="rounded-lg border border-border p-3">
-    <summary class="cursor-pointer font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">How to allow access</summary>
-    <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
-      <li>Open System Settings → Privacy &amp; Security → Full Disk Access.</li>
-      <li>Click + and select the neati.app you use, usually in Applications, then enable it.</li>
-      <li>Return to neati to scan again. If macOS asks you to quit and reopen the app, follow that prompt, then scan again.</li>
-    </ol>
-    <p class="mt-2 text-muted-foreground">
-      This permission does not grant administrator access or make every file removable.
-      After replacing or updating the app, check access again if locations become unreadable.
-    </p>
+  {/if}
+  <details bind:open={helpOpen} class={compact ? '' : 'rounded-lg border border-border p-3'}>
+    <summary class="w-fit cursor-pointer rounded-sm py-1 font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{compact ? 'Manage access' : 'How to allow access'}</summary>
+    <div class="mt-2 space-y-3 {compact ? 'rounded-xl border border-border bg-card p-3' : ''}">
+      {@render instructions()}
+      {#if compact}{@render actions()}{/if}
+    </div>
   </details>
+  {#if showStatus}
   <p class="text-muted-foreground" role="status" aria-live="polite">
     {#if storageAccessStore.phase === 'opening'}
       Opening System Settings…
@@ -55,15 +70,9 @@
       A fresh scan checks each location. Opening Settings alone does not confirm access.
     {/if}
   </p>
+  {/if}
   {#if storageAccessStore.error}
     <p class="text-destructive" role="alert">{storageAccessStore.error}</p>
   {/if}
-  <div class="flex flex-wrap gap-2">
-    <Button size="sm" variant="secondary" disabled={storageAccessStore.phase === 'opening' || storageAccessStore.phase === 'checking'} onclick={() => void storageAccessStore.openSettings()}>
-      Open System Settings
-    </Button>
-    <Button size="sm" variant="outline" disabled={busy || storageAccessStore.phase === 'opening' || storageAccessStore.phase === 'checking'} onclick={() => void storageAccessStore.check()}>
-      {storageAccessStore.phase === 'checking' ? 'Checking…' : 'Check Access'}
-    </Button>
-  </div>
+  {#if !compact}{@render actions()}{/if}
 </div>

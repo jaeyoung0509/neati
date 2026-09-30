@@ -335,6 +335,10 @@ safety conventions below when changing neati.
 
 - Treat `DESIGN.md` as the visual contract. Reuse existing tokens and shared
   components before adding new one-off styles.
+- Cleanup leads with ready bytes and a visible partial-scan qualification.
+  Keep inspection reasons and access instructions in closed accessible details;
+  category selection precedes the complete grouped item inventory. Compact guidance must
+  not expand every diagnostic or imply that unknown estimates are zero.
 - Keep copy concise and operational. For partial provider integrations, state
   precisely whether data is live, local, or manual instead of implying a quota
   is available.

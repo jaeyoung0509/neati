@@ -146,6 +146,8 @@ impl PlatformEnvironment {
             // `None` entries mean "resolve through the platform tool search".
             tools: BTreeMap::new(),
             cache_path_overrides: [
+                "CP_CACHE_DIR",
+                "CP_HOME_DIR",
                 "UV_CACHE_DIR",
                 "PIP_CACHE_DIR",
                 "NPM_CONFIG_CACHE",

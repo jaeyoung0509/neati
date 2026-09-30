@@ -35,7 +35,7 @@ No system daemon is stopped by any operation.
 | Gradle notifications | Exact versioned `release-features.rendered` files only, with typed Gradle process guards and exact handles. Gradle normally creates an empty marker: zero-byte markers are omitted, not advertised as disk savings. Removing a nonempty marker can show release highlights again. |
 | IDE indexes | Complete regenerable index units as above; installed plugins, configuration, LocalHistory and old Application Support installations are preserved. |
 | SwiftPM | Reviewed fixed `swift-package … purge-cache` operation. Complete preview includes `repositories`, `registry/downloads` and `manifests/manifest.db` below the standard macOS cache root. Command config/security/build paths are isolated in a disposable directory. Only the actually validated `Swift 6.4.0-dev` banner is accepted. Manifest WAL/SHM/journal companions block the command because the owner does not purge them together. Executable and recursive inventory identities plus every scope's open handles are rechecked. Artifacts, prebuilts, project `.build` trees and installed toolchains remain. |
-| CocoaPods | Advisory downloaded store. A future `pod cache clean` adapter must preview the full command scope and preserve repositories/project Pods; generic removal is unavailable. |
+| CocoaPods | Reviewed CocoaPods 1.16.2 `cache clean --all` owner command for the complete default download root (`Pods`, `Specs`, `VERSION`). Preview observes files without constructing CocoaPods downloader caches. An isolated RubyGems launcher disables plugins and redirects home/configuration/repositories; recursive cache and loaded Ruby-file identities plus idle owners/handles are rechecked. Custom cache/home overrides, unknown layouts, locks and links block cleanup. Missing/incompatible tools retain observed bytes as blocked. Only standard absolute RubyGems launchers are supported; installed-distribution compatibility remains unverified locally. Repositories, project Pods and installed tools remain. |
 | Android SDK | Advisory installation. SDK Manager owns package selection and uninstall; timestamps and `.temp` names do not authorize removal of installed SDK packages or system images. |
 | OrbStack | Advisory exact known group-container data root, using bounded standard discovery and path checks. VM disks are not cache payloads. Supported Docker resource operations remain in Containers; machine removal needs a separate lifecycle adapter. No partial-component wildcard is introduced. |
 | node-gyp/Electron | Complete versioned Node header SDK units and exact macOS Electron ZIP archives use ordinary Trash operations. Custom cache-root overrides are refused rather than guessed. Installed runtimes and apps remain. |
@@ -114,3 +114,15 @@ current decision boundaries. No new system deletion operation is enabled.
 
 Checks, screenshots and native validation limits are in the
 [permission setup validation report](validation/permissions-362/README.md).
+
+
+## Follow-up: CocoaPods download cache
+
+The 0.3.82 → 0.3.83 follow-up implements a private reviewed owner operation for
+section B of #362. It uses the existing confirmation and permanent-deletion
+contracts. The preview covers the entire root that the owner command removes;
+there is no generic filesystem-delete fallback. CocoaPods 1.16.2 source-contract
+fixtures execute the upstream removal method in an isolated Ruby process.
+[Validation details](validation/cocoapods-0.3.83/README.md) distinguish this
+exercise from an installed-distribution validation, which is still pending.
+Other #362 work remains open.

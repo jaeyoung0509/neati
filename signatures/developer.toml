@@ -891,17 +891,20 @@ description = "Exact six-character installer staging directories only, with reco
 
 [[signatures]]
 id = "dev.cocoapods.download_store"
-name = "CocoaPods Download Store"
+name = "CocoaPods Download Cache"
 category = "developer"
 family = "package_managers"
-risk = "manual"
-strategy = "manual"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "cocoapods.download_cache"
 platforms = ["macos"]
-paths = ["~/Library/Caches/CocoaPods"]
+paths = []
+fail_if_running = ["pod", "ruby", "git", "Xcode", "xcodebuild"]
 owner = "CocoaPods"
 provider = "CocoaPods"
 artifact_kind = "package_store"
-description = "Observation only. pod cache clean owns downloaded pod caches; no complete versioned command preview is implemented. Repositories, project Pods, credentials and installed tools are not generic cleanup targets."
+consequence = "Permanently clears the entire default CocoaPods download cache. Pods may need downloading again; repositories, project Pods, configuration and installed tools remain intact."
+description = "Reviewed CocoaPods 1.16.2 owner command with isolated configuration, disabled plugins, complete cache and Ruby runtime identities, and final idle-handle checks. Custom roots, unknown layouts and versions remain blocked."
 
 [[signatures]]
 id = "dev.android.sdk_installation"

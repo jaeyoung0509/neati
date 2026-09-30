@@ -20,6 +20,10 @@ use std::{
     time::Duration,
 };
 
+use super::cocoapods::{
+    cocoapods_cache_root, cocoapods_candidates, cocoapods_command, fingerprint_cocoapods_runtime,
+};
+
 const CLEAN_ARGS: &[&str] = &[
     "clean",
     "--yes",
@@ -42,6 +46,16 @@ impl ToolPreview {
     fn key(&self) -> String {
         self.fingerprint.clone()
     }
+    fn operation_path(&self, kind: ToolCacheKind) -> &Path {
+        if matches!(kind, ToolCacheKind::Cocoapods) {
+            self.candidates
+                .first()
+                .map(PathBuf::as_path)
+                .unwrap_or(&self.executable)
+        } else {
+            &self.executable
+        }
+    }
 }
 trait ToolCommandRunner: Send + Sync {
     fn preview(&self, environment: &PlatformEnvironment) -> Result<ToolPreview, String>;
@@ -58,6 +72,7 @@ pub enum ToolCacheKind {
     Conda,
     Mise,
     Swiftpm,
+    Cocoapods,
 }
 impl ToolCacheKind {
     fn executable(self) -> &'static str {
@@ -65,6 +80,7 @@ impl ToolCacheKind {
             Self::Conda => "conda",
             Self::Mise => "mise",
             Self::Swiftpm => "swift-package",
+            Self::Cocoapods => "pod",
         }
     }
 }
@@ -99,6 +115,12 @@ impl NativeToolCommandRunner {
                 roots.push(home.join(".local/bin"));
             }
         }
+        if matches!(self.kind, ToolCacheKind::Cocoapods) {
+            roots = vec![PathBuf::from("/opt/homebrew"), PathBuf::from("/usr/local")];
+            if let Some(home) = environment.user_home() {
+                roots.push(home.join(".gem"));
+            }
+        }
         if matches!(self.kind, ToolCacheKind::Swiftpm) {
             roots = vec![PathBuf::from("/Library/Developer/CommandLineTools/usr/bin"), PathBuf::from("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin")];
         }
@@ -119,6 +141,9 @@ impl NativeToolCommandRunner {
         let home = environment.user_home().ok_or("No user home for Conda")?;
         let mut command = Command::new(executable);
         match self.kind {
+            ToolCacheKind::Cocoapods => {
+                return Err("CocoaPods requires its isolated launcher".into())
+            }
             ToolCacheKind::Swiftpm => {
                 command.arg("--version");
             }
@@ -187,7 +212,7 @@ impl NativeToolCommandRunner {
             ToctouGuard::verify(&executable, &reviewed.executable_identity)
                 .map_err(|error| error.to_string())?;
         }
-        let scratch = if matches!(self.kind, ToolCacheKind::Swiftpm) {
+        let scratch = if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
             Some(
                 tempfile::Builder::new()
                     .prefix("neati-swiftpm-")
@@ -197,7 +222,17 @@ impl NativeToolCommandRunner {
         } else {
             None
         };
-        let command = if let Some(scratch) = &scratch {
+        let command = if matches!(self.kind, ToolCacheKind::Cocoapods) {
+            cocoapods_command(
+                &executable,
+                &cocoapods_cache_root(environment)?,
+                scratch
+                    .as_ref()
+                    .ok_or("Isolated workspace unavailable")?
+                    .path(),
+                dry_run,
+            )?
+        } else if let Some(scratch) = &scratch {
             if dry_run {
                 let mut command = Command::new(&executable);
                 command
@@ -235,8 +270,12 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             ToolCacheKind::Conda => parse_candidates(&output)?,
             ToolCacheKind::Mise => parse_mise_roots(&output, environment)?,
             ToolCacheKind::Swiftpm => swiftpm_candidates(&output, environment)?,
+            ToolCacheKind::Cocoapods => cocoapods_candidates(&output, environment)?,
         };
         let mut digest = Sha256::new();
+        if matches!(self.kind, ToolCacheKind::Cocoapods) {
+            fingerprint_cocoapods_runtime(&output, &mut digest)?;
+        }
         digest.update(executable.as_os_str().as_encoded_bytes());
         let executable_identity =
             ToctouGuard::capture(&executable).ok_or("Tool executable identity unavailable")?;
@@ -273,15 +312,19 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             digest.update(path.as_os_str().as_encoded_bytes());
             digest.update(format!("{identity:?}"));
             digest.update(measurement.allocated_bytes.to_le_bytes());
-            if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
                 fingerprint_tree(path, &mut digest)?;
             }
         }
         Ok(ToolPreview {
-            prefix: executable
-                .parent()
-                .ok_or("Tool has no installation parent")?
-                .to_path_buf(),
+            prefix: if matches!(self.kind, ToolCacheKind::Cocoapods) {
+                cocoapods_cache_root(environment)?
+            } else {
+                executable
+                    .parent()
+                    .ok_or("Tool has no installation parent")?
+                    .to_path_buf()
+            },
             executable,
             executable_identity,
             candidates,
@@ -311,13 +354,13 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             Some(running) if running.is_empty() => {}
             _ => return Err("The owner is running or its state is unknown".into()),
         }
-        if matches!(self.kind, ToolCacheKind::Swiftpm) {
+        if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
             verify_swiftpm_idle(&current.candidates, processes, guard)?;
         }
         let (_, output) = self.run(environment, false, Some(&current))?;
         match self.kind {
             ToolCacheKind::Conda => parse_candidates(&output).map(|_| ()),
-            ToolCacheKind::Mise | ToolCacheKind::Swiftpm => Ok(()),
+            ToolCacheKind::Mise | ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods => Ok(()),
         }
     }
 }
@@ -335,7 +378,7 @@ fn verify_swiftpm_idle(
         }
         if !matches!(processes.running(&guard.clone().with_open_files(path.clone())), Some(names) if names.is_empty())
         {
-            return Err("SwiftPM cache handles are busy or unknown".into());
+            return Err("Tool cache handles are busy or unknown".into());
         }
     }
     Ok(())
@@ -419,22 +462,22 @@ fn fingerprint_tree(root: &Path, digest: &mut Sha256) -> Result<(), String> {
     while let Some(path) = stack.pop() {
         remaining = remaining
             .checked_sub(1)
-            .ok_or("SwiftPM inventory exceeds its entry limit")?;
+            .ok_or("Tool inventory exceeds its entry limit")?;
         if start.elapsed() > Duration::from_secs(10) {
-            return Err("SwiftPM inventory exceeded its time limit".into());
+            return Err("Tool inventory exceeded its time limit".into());
         }
         let metadata = std::fs::symlink_metadata(&path).map_err(|e| e.to_string())?;
         if metadata.file_type().is_symlink() || (!metadata.is_file() && !metadata.is_dir()) {
-            return Err("SwiftPM inventory contains unsupported entries".into());
+            return Err("Tool inventory contains unsupported entries".into());
         }
-        let identity = ToctouGuard::capture(&path).ok_or("SwiftPM entry identity unavailable")?;
+        let identity = ToctouGuard::capture(&path).ok_or("Tool entry identity unavailable")?;
         digest.update(path.as_os_str().as_encoded_bytes());
         digest.update(format!("{identity:?}"));
         if metadata.is_dir() {
             let mut children = Vec::new();
             for entry in std::fs::read_dir(&path).map_err(|e| e.to_string())? {
                 if children.len() + stack.len() >= remaining {
-                    return Err("SwiftPM inventory exceeds its entry limit".into());
+                    return Err("Tool inventory exceeds its entry limit".into());
                 }
                 children.push(entry.map_err(|e| e.to_string())?.path());
             }
@@ -571,7 +614,19 @@ impl ToolCleanupProvider {
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
-        if !matches!(self.kind, ToolCacheKind::Swiftpm)
+        let observation = self.read_store_checked(environment, guard);
+        if matches!(self.kind, ToolCacheKind::Cocoapods) && !observation.status.is_ready() {
+            return super::cocoapods::blocked_observation(environment, observation);
+        }
+        observation
+    }
+
+    fn read_store_checked(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+    ) -> OwnerStoreObservation {
+        if !matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods)
             && crate::tooling::resolve_with(self.kind.executable(), environment).is_none()
         {
             return OwnerStoreObservation::ready(None, Vec::new());
@@ -602,7 +657,7 @@ impl ToolCleanupProvider {
                 return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error)
             }
         };
-        if matches!(self.kind, ToolCacheKind::Swiftpm) {
+        if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
             if let Err(error) =
                 verify_swiftpm_idle(&preview.candidates, self.process.as_ref(), guard)
             {
@@ -615,7 +670,7 @@ impl ToolCleanupProvider {
         }
         let unit = OwnerUnitObservation::ready(
             preview.key(),
-            preview.executable,
+            preview.operation_path(self.kind).to_path_buf(),
             preview.estimated_bytes,
             preview.estimated_bytes,
             preview.candidates.len() as u64,
@@ -679,7 +734,7 @@ impl ToolCleanupProvider {
                     item_name: selection.name.clone(),
                     status: ProviderStatus::Blocked,
                     reason: CleanFailureReason::ProviderRefused,
-                    detail: "The tool executable identity could not be captured".into(),
+                    detail: "The reviewed operation identity could not be captured".into(),
                 });
                 continue;
             };
@@ -726,14 +781,16 @@ impl ToolCleanupProvider {
             Some(_) => {}
         }
         if let Err(error) = ToctouGuard::verify(&unit.path, &unit.identity) {
-            return refuse(format!("The tool executable changed since review: {error}"));
+            return refuse(format!(
+                "The reviewed operation changed since review: {error}"
+            ));
         }
         let preview = match self.runner.preview(environment) {
             Ok(preview) => preview,
             Err(error) => return refuse(error),
         };
         if preview.key() != unit.unit_key
-            || preview.executable != unit.path
+            || preview.operation_path(self.kind) != unit.path
             || preview.prefix != unit.root
             || preview.estimated_bytes != unit.expected_bytes
             || preview.candidates.len() as u64 != unit.entry_count
@@ -790,6 +847,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
             ToolCacheKind::Conda => "conda.disposable_cache",
             ToolCacheKind::Mise => "mise.cache_clear",
             ToolCacheKind::Swiftpm => "swiftpm.purge_cache",
+            ToolCacheKind::Cocoapods => "cocoapods.download_cache",
         }
     }
 
@@ -799,6 +857,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
 
     fn consequence(&self) -> &'static str {
         match self.kind {
+            ToolCacheKind::Cocoapods => "CocoaPods permanently clears its complete default download cache, including cached pod sources, specifications and its version marker. Dependencies may need downloading again. Repositories, project Pods, credentials, configuration and installed tools remain intact.",
             ToolCacheKind::Swiftpm => "SwiftPM purges global repository downloads, registry downloads and its manifest cache. Dependencies may need downloading again. Project builds, installed toolchains, artifacts, configuration and security state stay intact.",
             ToolCacheKind::Conda => "Conda removes downloaded package archives, index caches and logs. Extracted packages and installed environments remain intact.",
             ToolCacheKind::Mise => "mise clears tool metadata, task output caches and cached environments using its own command. Installed tools, configuration and trust records remain intact; tasks may run again.",
@@ -1287,8 +1346,72 @@ mod tests {
                 ToolCacheKind::Conda => assert_eq!(args, CLEAN_ARGS),
                 ToolCacheKind::Mise => assert_eq!(args, ["cache", "clear"]),
                 ToolCacheKind::Swiftpm => assert_eq!(args, ["--version"]),
+                ToolCacheKind::Cocoapods => panic!("CocoaPods uses a separate isolated command"),
             }
             assert_eq!(command.get_current_dir(), Some(Path::new("/profile")));
         }
+    }
+    #[test]
+    fn cocoapods_unknown_handles_and_changed_review_never_execute_the_owner() {
+        struct UnknownHandles;
+        impl RunningProcessProbe for UnknownHandles {
+            fn running(&self, policy: &RunningProcessPolicy) -> Option<Vec<String>> {
+                if policy.open_file_path().is_some() {
+                    None
+                } else {
+                    Some(vec![])
+                }
+            }
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let cache = temp.path().join("Library/Caches/CocoaPods");
+        std::fs::create_dir_all(&cache).unwrap();
+        std::fs::write(cache.join("VERSION"), "1.16.2").unwrap();
+        let executable = temp.path().join("pod");
+        std::fs::write(&executable, b"fixture").unwrap();
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(temp.path())
+            .with_tool("pod", &executable);
+        let runner = Arc::new(Runner {
+            preview: Mutex::new(ToolPreview {
+                executable: executable.clone(),
+                executable_identity: ToctouGuard::capture(&executable).unwrap(),
+                prefix: temp.path().to_path_buf(),
+                candidates: vec![cache.clone()],
+                estimated_bytes: 4096,
+                fingerprint: "cocoa-1".into(),
+            }),
+            calls: AtomicUsize::new(0),
+        });
+        let guard = RunningProcessPolicy::guarding(vec!["pod".into(), "ruby".into()]);
+        let mut provider = ToolCleanupProvider {
+            process: Arc::new(UnknownHandles),
+            runner: runner.clone(),
+            kind: ToolCacheKind::Cocoapods,
+        };
+        assert!(!provider.scan(&environment, &guard).has_ready_units());
+        assert!(provider.prepare(&environment, &guard, &[]).is_err());
+        provider.process = Arc::new(Idle);
+        let observed = provider.scan(&environment, &guard);
+        let unit = &observed.units[0];
+        let selected = OwnerProviderSelection {
+            item_id: format!("cocoa.{}", unit.unit_key),
+            name: "CocoaPods".into(),
+            path: unit.path.clone(),
+            expected_bytes: unit.allocated_bytes,
+        };
+        let plan = provider.prepare(&environment, &guard, &[selected]).unwrap();
+        assert!(plan.requires_confirmation);
+        assert_eq!(
+            plan.deletion_disposition,
+            neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
+        );
+        runner.preview.lock().unwrap().fingerprint = "cocoa-2".into();
+        assert_eq!(
+            provider.execute(&environment, &plan).units[0].status,
+            ProviderStatus::Blocked
+        );
+        assert_eq!(runner.calls.load(Ordering::SeqCst), 0);
+        assert!(cache.join("VERSION").exists());
     }
 }

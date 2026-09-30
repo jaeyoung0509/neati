@@ -348,6 +348,10 @@ safety conventions below when changing neati.
 - Preserve the owner-operation scopes and compatibility limits in
   `docs/CLEANUP_362_SCOPE.md`. Mail Downloads and incomplete downloads are typed
   reviewed targets, never generic blacklist exceptions.
+- CocoaPods 1.16.2's owner command removes `~/Library/Caches/CocoaPods/Pods`,
+  including its internal Specs and VERSION, rather than the parent cache root.
+  Standard user RubyGems repositories are derived from the reviewed absolute
+  launcher and matched Ruby ABI; never inherit arbitrary gem/Bundler paths.
 - Codex staging may carry internal relative links when the entire verified
   staging directory moves to Trash without dereferencing them. Absolute or
   escaping links are refused; activated runtimes stay observation-only.

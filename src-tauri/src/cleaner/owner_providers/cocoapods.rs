@@ -10,9 +10,12 @@ use std::{
 
 const VERSION: &str = "1.16.2";
 // Use the installed RubyGems runtime, but bypass pod's launcher and CLAide's
-// automatic plugin loading. No inherited RUBYOPT/GEM_HOME/Bundler environment.
+// automatic plugin loading. No inherited RubyGems/RUBYOPT/Bundler environment.
 const LAUNCHER: &str = r#"
 require 'rubygems'
+if ENV['GEM_HOME']
+  abort 'RubyGems ABI does not match the launcher' unless File.basename(ENV['GEM_HOME']) == RbConfig::CONFIG['ruby_version']
+end
 gem 'cocoapods', '= 1.16.2'
 require 'cocoapods'
 require 'cocoapods/command'
@@ -21,7 +24,8 @@ require 'json'
 abort 'Unsupported CocoaPods version' unless Pod::VERSION == '1.16.2'
 Pod::Command.plugin_prefixes = []
 if ARGV == ['--neati-inventory']
-  puts JSON.generate(version: Pod::VERSION, runtime: File.realpath(RbConfig.ruby), files: $LOADED_FEATURES.select { |p| p.start_with?('/') }.map { |p| File.realpath(p) }.uniq.sort)
+  files = $LOADED_FEATURES + Gem.loaded_specs.values.map(&:loaded_from)
+  puts JSON.generate(version: Pod::VERSION, runtime: File.realpath(RbConfig.ruby), files: files.select { |p| p && p.start_with?('/') }.map { |p| File.realpath(p) }.uniq.sort)
 else
   abort 'Unsupported command' unless ARGV == ['cache', 'clean', '--all', '--no-ansi', '--silent']
   Pod::Command.run(ARGV)
@@ -39,6 +43,12 @@ pub(super) fn cocoapods_cache_root(env: &PlatformEnvironment) -> Result<PathBuf,
         return Err("Custom CocoaPods cache/home roots need compatibility validation".into());
     }
     Ok(root)
+}
+
+pub(super) fn cocoapods_download_root(env: &PlatformEnvironment) -> Result<PathBuf, String> {
+    // CocoaPods Command::Cache adds Pods to Config.cache_root before creating
+    // Downloader::Cache. Its Specs and VERSION belong inside that directory.
+    Ok(cocoapods_cache_root(env)?.join("Pods"))
 }
 
 fn ruby_for_pod(pod: &Path) -> Result<PathBuf, String> {
@@ -82,6 +92,7 @@ pub(super) fn cocoapods_command(
     cache: &Path,
     scratch: &Path,
     preview: bool,
+    environment: &PlatformEnvironment,
 ) -> Result<Command, String> {
     let mut command = Command::new(ruby_for_pod(pod)?);
     command.args(["-e", LAUNCHER, "--"]);
@@ -109,7 +120,41 @@ pub(super) fn cocoapods_command(
         .env("COCOA_PODS_ENV", "development")
         .env("COCOAPODS_DISABLE_STATS", "true")
         .current_dir(scratch);
+    if let Some(gems) = user_gem_root(pod, environment)? {
+        // HOME stays isolated. Resolve only the standard gem repository owning
+        // this reviewed launcher, never the caller's GEM_HOME/GEM_PATH.
+        command.env("GEM_HOME", &gems).env("GEM_PATH", &gems);
+    }
     Ok(command)
+}
+
+fn user_gem_root(pod: &Path, environment: &PlatformEnvironment) -> Result<Option<PathBuf>, String> {
+    let home = environment.user_home().ok_or("User home unavailable")?;
+    let user_root = home.join(".gem");
+    if !pod.starts_with(&user_root) {
+        return Ok(None);
+    }
+    let ruby_root = user_root.join("ruby");
+    let relative = pod
+        .strip_prefix(&ruby_root)
+        .map_err(|_| "Custom RubyGems homes need compatibility validation")?;
+    let parts: Vec<_> = relative.components().collect();
+    let abi = parts.first().and_then(|part| part.as_os_str().to_str());
+    if parts.len() != 3
+        || parts[1].as_os_str() != "bin"
+        || parts[2].as_os_str() != "pod"
+        || !abi.is_some_and(|abi| {
+            let numbers: Vec<_> = abi.split('.').collect();
+            numbers.len() == 3
+                && numbers
+                    .iter()
+                    .all(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+        })
+    {
+        return Err("Only the standard user RubyGems launcher layout is supported".into());
+    }
+    SymlinkGuard::validate_anchored_path(pod, environment).map_err(|e| e.to_string())?;
+    Ok(Some(ruby_root.join(parts[0].as_os_str())))
 }
 
 fn runtime_report(output: &[u8]) -> Result<serde_json::Value, String> {
@@ -164,7 +209,7 @@ pub(super) fn cocoapods_candidates(
     env: &PlatformEnvironment,
 ) -> Result<Vec<PathBuf>, String> {
     runtime_report(output)?;
-    let root = cocoapods_cache_root(env)?;
+    let root = cocoapods_download_root(env)?;
     match std::fs::symlink_metadata(&root) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![root]),
         Err(e) => return Err(e.to_string()),
@@ -180,7 +225,8 @@ pub(super) fn cocoapods_candidates(
         let entry = entry.map_err(|e| e.to_string())?;
         let meta = std::fs::symlink_metadata(entry.path()).map_err(|e| e.to_string())?;
         match entry.file_name().to_str() {
-            Some("Pods" | "Specs") if meta.is_dir() && !meta.file_type().is_symlink() => {}
+            Some("Release" | "External" | "Specs")
+                if meta.is_dir() && !meta.file_type().is_symlink() => {}
             Some("VERSION")
                 if meta.is_file() && !meta.file_type().is_symlink() && meta.len() <= 64 => {}
             _ => {
@@ -239,7 +285,7 @@ pub(super) fn blocked_observation(
     let Some(home) = env.user_home() else {
         return refused;
     };
-    let root = home.join("Library/Caches/CocoaPods");
+    let root = home.join("Library/Caches/CocoaPods/Pods");
     if SymlinkGuard::validate_anchored_path(&root, env).is_err() {
         return refused;
     }
@@ -275,11 +321,11 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let env = PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
             .with_home(temp.path());
-        let root = cocoapods_cache_root(&env).unwrap();
-        std::fs::create_dir_all(root.join("Pods/Release/Example")).unwrap();
+        let root = cocoapods_download_root(&env).unwrap();
+        std::fs::create_dir_all(root.join("Release/Example")).unwrap();
         std::fs::create_dir(root.join("Specs")).unwrap();
         std::fs::write(root.join("VERSION"), VERSION).unwrap();
-        std::fs::write(root.join("Pods/Release/Example/source.m"), b"cached source").unwrap();
+        std::fs::write(root.join("Release/Example/source.m"), b"cached source").unwrap();
         (temp, env, root)
     }
     fn report() -> Vec<u8> {
@@ -306,7 +352,7 @@ mod tests {
         .is_err());
         std::fs::write(root.join("VERSION"), "1.15.0").unwrap();
         assert!(cocoapods_candidates(&report(), &env).is_err());
-        assert!(root.join("Pods/Release/Example/source.m").exists());
+        assert!(root.join("Release/Example/source.m").exists());
         std::fs::write(root.join("VERSION"), VERSION).unwrap();
         std::fs::write(root.join("credentials.json"), b"keep").unwrap();
         assert!(cocoapods_candidates(&report(), &env).is_err());
@@ -324,11 +370,11 @@ mod tests {
         let external = temp.path().join("project");
         std::fs::create_dir(&external).unwrap();
         std::fs::write(external.join("Podfile"), "keep").unwrap();
-        let link = root.join("Pods/link");
+        let link = root.join("Release/link");
         std::os::unix::fs::symlink(&external, &link).unwrap();
         assert!(cocoapods_candidates(&report(), &env).is_err());
         std::fs::remove_file(link).unwrap();
-        std::fs::write(root.join("Pods/Release/Example.lock"), "lock").unwrap();
+        std::fs::write(root.join("Release/Example.lock"), "lock").unwrap();
         assert!(cocoapods_candidates(&report(), &env).is_err());
         assert!(external.join("Podfile").exists());
     }
@@ -364,16 +410,30 @@ mod tests {
     }
     #[test]
     fn actual_ruby_command_uses_pinned_owner_code_and_isolates_repositories_projects_and_preview() {
-        let (temp, _env, root) = fixture();
+        let (temp, env, root) = fixture();
         let scratch = temp.path().join("scratch");
         std::fs::create_dir(&scratch).unwrap();
-        let pod = temp.path().join("pod");
+        let mut abi_command = Command::new("/usr/bin/ruby");
+        abi_command.env_clear().args([
+            "-rrbconfig",
+            "-e",
+            "print RbConfig::CONFIG['ruby_version']",
+        ]);
+        let abi_output = neati_platform::subprocess::run_with_timeout(
+            abi_command,
+            std::time::Duration::from_secs(10),
+        )
+        .unwrap();
+        assert!(abi_output.status.success());
+        let abi = String::from_utf8(abi_output.stdout).unwrap();
+        let gems = temp.path().join(".gem/ruby").join(abi);
+        std::fs::create_dir_all(gems.join("bin")).unwrap();
+        let pod = gems.join("bin/pod");
         std::fs::write(
             &pod,
             "#!/usr/bin/ruby\nGem.activate_bin_path('cocoapods', 'pod', version)\n",
         )
         .unwrap();
-        let gems = temp.path().join("fixture-gems");
         let library = gems.join("gems/cocoapods-1.16.2/lib/cocoapods");
         std::fs::create_dir_all(&library).unwrap();
         std::fs::create_dir(gems.join("specifications")).unwrap();
@@ -389,6 +449,14 @@ mod tests {
             "# fixture cache facade is supplied by command.rb",
         )
         .unwrap();
+        std::fs::write(library.join("downloader.rb"), "# fixture downloader facade").unwrap();
+        std::fs::create_dir_all(library.join("command/cache")).unwrap();
+        std::fs::write(library.join("command/cache/list.rb"), "# unused command").unwrap();
+        std::fs::write(
+            library.join("command/cache.rb"),
+            include_str!("../../../tests/fixtures/cocoapods-1.16.2/cache.rb"),
+        )
+        .unwrap();
         let owner = include_str!("../../../tests/fixtures/cocoapods-1.16.2/clean.rb");
         // Small test facade supplies only the owner command's UI/CLAide API.
         // The removal implementation below is the unmodified upstream file.
@@ -398,25 +466,37 @@ require 'pathname'
 module CLAide; class Argument; def initialize(*); end; end; end
 module Pod
   module UI; def self.message(*); yield; end; end
+  module Config; def self.instance; Struct.new(:cache_root).new(Pathname.new(ENV.fetch('CP_CACHE_DIR'))); end; end
+  module Downloader
+    class Cache
+      attr_reader :root
+      def initialize(root); @root = root; end
+    end
+  end
   class Command
-    class << self; attr_accessor :plugin_prefixes, :summary, :description, :arguments; end
+    class << self; attr_accessor :plugin_prefixes, :summary, :description, :arguments, :abstract_command; end
+    def initialize(*); end
     def self.run(argv)
       raise 'Plugins enabled' unless plugin_prefixes == []
       command = Cache::Clean.allocate
-      command.instance_variable_set(:@cache, Struct.new(:root).new(Pathname.new(ENV.fetch('CP_CACHE_DIR'))))
+      Cache.instance_method(:initialize).bind(command).call(nil)
       command.send(:clear_cache)
     end
     class Cache < Command; end
   end
 end
+require 'cocoapods/command/cache'
 "#;
-        std::fs::write(library.join("command.rb"), format!("{facade}\n{owner}")).unwrap();
+        std::fs::write(library.join("command/cache/clean.rb"), owner).unwrap();
+        std::fs::write(library.join("command.rb"), facade).unwrap();
         let sentinels = [
             ".cocoapods/repos/trunk/spec.json",
             "project/Pods/installed.m",
             "project/Podfile.lock",
             ".cocoapods/config.yaml",
             ".netrc",
+            "Library/Caches/CocoaPods/Specs/keep",
+            "Library/Caches/CocoaPods/VERSION",
         ];
         for name in sentinels {
             let path = temp.path().join(name);
@@ -424,9 +504,14 @@ end
             std::fs::write(path, b"keep").unwrap();
         }
         for preview in [true, false] {
-            let mut command = cocoapods_command(&pod, &root, &scratch, preview).unwrap();
-            // Only the test process selects this disposable fixture gem set.
-            command.env("GEM_HOME", &gems).env("GEM_PATH", &gems);
+            let command = cocoapods_command(
+                &pod,
+                &cocoapods_cache_root(&env).unwrap(),
+                &scratch,
+                preview,
+                &env,
+            )
+            .unwrap();
             let output = neati_platform::subprocess::run_with_timeout(
                 command,
                 std::time::Duration::from_secs(10),
@@ -439,8 +524,17 @@ end
             );
             if preview {
                 fingerprint_cocoapods_runtime(&output.stdout, &mut Sha256::new()).unwrap();
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                let gemspec =
+                    std::fs::canonicalize(gems.join("specifications/cocoapods-1.16.2.gemspec"))
+                        .unwrap();
+                assert!(report["files"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|file| file.as_str() == gemspec.to_str()));
                 assert!(root.join("VERSION").exists());
-                assert!(root.join("Pods/Release/Example/source.m").exists());
+                assert!(root.join("Release/Example/source.m").exists());
             } else {
                 assert!(!root.exists());
             }
@@ -448,5 +542,47 @@ end
                 assert_eq!(std::fs::read(temp.path().join(name)).unwrap(), b"keep");
             }
         }
+    }
+
+    #[test]
+    fn user_gem_repository_refuses_custom_layouts_links_and_abi_mismatches() {
+        let (temp, env, root) = fixture();
+        let scratch = temp.path().join("scratch");
+        std::fs::create_dir(&scratch).unwrap();
+        for relative in [
+            ".gem/custom/bin/pod",
+            ".gem/ruby/2.6.0/other/pod",
+            ".gem/ruby/2.6.0/bin/other",
+            ".gem/ruby/invalid/bin/pod",
+        ] {
+            assert!(user_gem_root(&temp.path().join(relative), &env).is_err());
+        }
+        let gems = temp.path().join(".gem/ruby/999.0.0");
+        std::fs::create_dir_all(gems.join("bin")).unwrap();
+        let pod = gems.join("bin/pod");
+        std::fs::write(
+            &pod,
+            "#!/usr/bin/ruby\nGem.activate_bin_path('cocoapods', 'pod', version)\n",
+        )
+        .unwrap();
+        let command = cocoapods_command(&pod, &root, &scratch, true, &env).unwrap();
+        let output = neati_platform::subprocess::run_with_timeout(
+            command,
+            std::time::Duration::from_secs(10),
+        )
+        .unwrap();
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("ABI does not match"));
+        assert!(root.join("Release/Example/source.m").exists());
+        std::fs::remove_file(&pod).unwrap();
+        std::os::unix::fs::symlink("/usr/bin/ruby", &pod).unwrap();
+        assert!(user_gem_root(&pod, &env).is_err());
+        std::fs::remove_file(&pod).unwrap();
+        std::fs::write(
+            &pod,
+            "#!/usr/bin/env ruby\nGem.activate_bin_path('cocoapods', 'pod', version)\n",
+        )
+        .unwrap();
+        assert!(cocoapods_command(&pod, &root, &scratch, true, &env).is_err());
     }
 }

@@ -1,11 +1,9 @@
 <script lang="ts">
   import { scanStore } from '../stores/scan.svelte';
-  import { tauriOpenFullDiskAccessSettings } from '../utils/tauri';
   import Button from './Button.svelte';
+  import StorageAccessSetup from './StorageAccessSetup.svelte';
 
   let { compact = false }: { compact?: boolean } = $props();
-
-  let settingsError = $state<string | null>(null);
 
   let fullDiskAccessGapCount = $derived(
     scanStore.lastScan?.gaps
@@ -13,15 +11,6 @@
       .reduce((total, gap) => total + gap.count, 0) ?? 0
   );
   let hasFullDiskAccessGap = $derived(fullDiskAccessGapCount > 0);
-
-  async function openFullDiskAccessSettings() {
-    settingsError = null;
-    try {
-      await tauriOpenFullDiskAccessSettings();
-    } catch (error) {
-      settingsError = error instanceof Error ? error.message : String(error);
-    }
-  }
 
 </script>
 
@@ -38,13 +27,13 @@
         {scanStore.cancelledScanNotice}
       {:else if scanStore.freshness === 'partial'}
         {#if hasFullDiskAccessGap}
-          macOS could not read {fullDiskAccessGapCount} {fullDiskAccessGapCount === 1 ? 'location' : 'locations'}. Unknown bytes are excluded from totals. Allow Full Disk Access, then scan again.
+          Some protected locations could not be checked. Unknown bytes are excluded from totals. Only verified items can be cleaned.
         {:else}
           Some locations could not be checked. Unknown bytes are excluded from totals. Only verified items can be cleaned.
         {/if}
       {:else if scanStore.freshness === 'unavailable'}
         {#if hasFullDiskAccessGap}
-          macOS blocked access to {fullDiskAccessGapCount} {fullDiskAccessGapCount === 1 ? 'location' : 'locations'}. Unknown bytes are excluded from totals. Allow Full Disk Access, then scan again.
+          Protected locations could not be checked. Unknown bytes are excluded from totals. Review storage access below.
         {:else}
           Storage could not be checked. Unknown bytes are excluded from totals. Try scanning again.
         {/if}
@@ -53,21 +42,19 @@
       {:else}
         Scan storage to find current cleanup candidates.
       {/if}
-      {#if settingsError}
-        <span class="mt-1 block text-meta text-destructive">{settingsError}</span>
-      {/if}
     </span>
     <span class="flex shrink-0 flex-wrap items-center gap-2">
-      {#if hasFullDiskAccessGap && (scanStore.freshness === 'partial' || scanStore.freshness === 'unavailable')}
-        <Button size="sm" variant="secondary" onclick={openFullDiskAccessSettings}>
-          Open System Settings
-        </Button>
-      {/if}
-      {#if !scanStore.canContinue}
+      {#if !scanStore.canContinue && !hasFullDiskAccessGap}
         <Button size="sm" variant="outline" disabled={scanStore.isScanning || scanStore.isCleaning} onclick={() => scanStore.runScan()}>
           {scanStore.isScanning ? 'Scanning…' : 'Scan Again'}
         </Button>
       {/if}
     </span>
+  </div>
+{/if}
+
+{#if hasFullDiskAccessGap}
+  <div class="rounded-xl border border-border bg-secondary p-3">
+    <StorageAccessSetup contextual />
   </div>
 {/if}

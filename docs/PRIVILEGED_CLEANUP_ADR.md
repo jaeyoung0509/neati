@@ -1,13 +1,25 @@
 # Privileged cleanup design
 
-Status: design accepted for implementation planning; distribution blocked.
-Issue: #362. Decision recorded September 29, 2026.
+Status: future design retained; privileged implementation deferred by owner.
+Issue: #362. Initial decision September 29; revised September 30, 2026.
 
-The owner approved proceeding with ordinary user operations and retaining
-privileged system cleanup as a blocked item in #362. No privileged helper is
-installed, registered, launched or advertised as available by this change.
+The owner has no near-term plan to buy an Apple Developer membership or adopt
+Developer ID signing/notarization. User-level cleanup and permission guidance
+proceed independently of that decision. Paid signing and privileged system
+mutation are outside the current #362 completion criteria; they resume only
+on an explicit owner decision. No privileged helper is installed, registered,
+launched or advertised as available.
 
-## Decision
+Full Disk Access is a user-controlled macOS privacy grant. It does not override
+file ownership, ACLs, SIP or application deletion safeguards. The existing
+settings-navigation command is reused; returning to the app triggers a fresh
+scan of actual locations, never an assumed global grant. A privacy access gap
+is a possible cause of denial, not proof that filesystem permissions allow
+mutation. A new user-accessible system owner operation still needs exact scope,
+lifecycle evidence, a reviewed catalog-policy contract and regression tests.
+See [the system access assessment](SYSTEM_CLEANUP_ACCESS.md).
+
+## Future privileged-helper decision
 
 Use a separately signed, bundled LaunchDaemon registered through SMAppService
 on supported macOS releases. Require explicit system approval. Authenticate
@@ -32,7 +44,7 @@ items. Software Update stores, whole databases, models, backups and VM disks
 are not targets. Neither sudo nor AuthorizationExecuteWithPrivileges nor an
 AppleScript shell prompt is a fallback.
 
-## Blocking prerequisites
+## Prerequisites before resuming privileged work
 
 CODE_SIGNING_POLICY.md explicitly records unsigned, unnotarized macOS beta
 artifacts and no Developer ID certificate. Before shipping a helper, establish
@@ -43,7 +55,7 @@ roots and source replacement. Record the macOS build and installed identities.
 None of those prerequisites is implied by the user's Full Disk Access grant.
 
 The system cache/log signatures remain observation-only with an explanation;
-this document does not complete the system-mutation checklist item.
+this document does not claim an implemented system-mutation adapter.
 
 Reference: [Apple SMAppService](https://developer.apple.com/documentation/servicemanagement/smappservice)
 registers bundled helpers subject to user approval on macOS 13 and later.

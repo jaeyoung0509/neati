@@ -630,6 +630,23 @@ Focused sections for appearance, navigation and Quick Panel, cleanup,
 providers, notifications, and diagnostics. No telemetry opt-in, charge limit,
 safety buffer, or other invented setting.
 
+### Storage access setup
+
+Settings offers macOS storage-access guidance before the first scan; Storage
+shows the same setup beside typed privacy-access gaps. Instructions name
+Privacy & Security > Full Disk Access, the actual neati.app bundle and the
+user-controlled enable switch. The user may leave access disabled and continue
+using verified locations. Opening Settings never marks permission granted.
+
+Returning from the explicitly opened Settings flow requests one fresh scan,
+deferred until ongoing storage work finishes. No polling or automatic cleanup
+is introduced. A Check Access action remains available if focus delivery is
+unavailable or macOS requires relaunch. Report actual scan gaps, including
+revocation, without asserting an app-wide permission grant. Explain that Full
+Disk Access does not grant administrator access or make protected stores
+removable; privacy and filesystem permissions may both deny access. Browser
+preview states that permission checks require the desktop application.
+
 ## Data policy for system readings
 
 - One collector per fact, shared by Overview, Performance, and the Quick Panel

@@ -902,10 +902,16 @@ impl DirectoryScanner {
         let mut coverage_count = 0usize;
         // Temp roots are deliberately a prefix-only catalog, even for read-only
         // accounting. Unrelated user/session files are outside this inventory.
-        let observe_include_misses = !["${TEMP}", "$TMPDIR", "/tmp", "/private/tmp"]
-            .iter()
-            .filter_map(|pattern| SignatureLoader::expand_path(pattern, environment))
-            .any(|temp| temp == root);
+        let observe_include_misses = ![
+            "${TEMP}",
+            "$TMPDIR",
+            "${SHARED_TEMP}",
+            "/tmp",
+            "/private/tmp",
+        ]
+        .iter()
+        .filter_map(|pattern| SignatureLoader::expand_path(pattern, environment))
+        .any(|temp| temp == root);
 
         for entry in entries {
             if context.cancellation.is_cancelled() {

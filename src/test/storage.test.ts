@@ -97,6 +97,58 @@ function publishScan(items: ScanItem[], scanId: string): CategoryResult {
 }
 
 describe('Storage scan summary', () => {
+  it('renders an unavailable empty scan without invented zero totals or disabled cleanup chrome', () => {
+    publishScan([], 'unknown-empty');
+    scanStore.lastScan!.categories = [];
+    scanStore.lastScan!.quality = 'unavailable';
+    const body = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(body).toContain('Cleanup estimate unavailable');
+    expect(body).toContain('No verified items to show yet');
+    expect(body).toContain('Unread locations remain unknown');
+    expect(body).not.toContain('0 B');
+    expect(body).not.toContain('Select all available cleanup items');
+    expect(body).not.toContain('Cleanup selection and actions');
+  });
+
+  it('distinguishes a verified empty scan from an unread partial empty scan', () => {
+    publishScan([], 'verified-empty');
+    scanStore.lastScan!.categories = [];
+    const verified = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(verified).toContain('No cache items found in checked locations');
+    expect(verified).toContain('0 B');
+    scanStore.lastScan!.quality = 'partial';
+    const partial = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(partial).toContain('No verified items to show yet');
+    expect(partial).not.toContain('0 B');
+    expect(partial).not.toContain('No cache items found');
+  });
+
+  it('keeps advisory bytes and explains retained items without a disabled bulk row', () => {
+    publishScan([scanItem({ id: 'retained-temp', risk: 'manual', disposition: { eligibility: 'advisory', reason: null, cleanable_bytes: 0 } })], 'advisory-temp');
+    const body = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(body).toContain('1 KB');
+    expect(body).toContain('Open a category to inspect the reasons');
+    expect(body).not.toContain('Select all available cleanup items');
+    expect(body).not.toContain('Cleanup selection and actions');
+  });
+
+  it('keeps verified ready bytes in a mixed partial scan and labels their limited coverage', () => {
+    publishScan([scanItem({ id: 'verified-temp', disposition: { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: 1024 } })], 'partial-temp');
+    scanStore.lastScan!.quality = 'partial';
+    const body = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(body).toContain('Ready in checked locations');
+    expect(body).toContain('Verified items only');
+    expect(body).toContain('1 KB');
+    expect(body).toContain('Select all available cleanup items');
+  });
+
+  it('puts a failed empty scan retry instruction beside its reason', () => {
+    scanStore.error = 'The scan request failed';
+    const body = render(StorageView, { props: { onSelectCategory: vi.fn() } }).body;
+    expect(body).toContain('The storage scan did not finish');
+    expect(body).toContain('Try Scan Storage again');
+    expect(body).not.toContain('No cache items found');
+  });
   it('separates observed bytes from bytes authorized for cleanup, including uncertain overlaps', () => {
     publishScan([
       scanItem({ id: 'cleanable', size: { logical: 2048, allocated: 2048 }, disposition: { eligibility: 'auto_cleanable', reason: null, cleanable_bytes: 1024 } }),

@@ -97,6 +97,8 @@ pub struct PlatformEnvironment {
     roots: Arc<dyn PlatformPathsProvider>,
     /// Stated temporary directory. `None` defers to the roots provider.
     temp_dir: Option<PathBuf>,
+    shared_temp_dir: Option<PathBuf>,
+    current_user_id: Option<u32>,
     known_folders: BTreeMap<KnownFolder, PathBuf>,
     path_entries: Vec<PathBuf>,
     volumes: Option<Vec<VolumeIdentity>>,
@@ -105,6 +107,47 @@ pub struct PlatformEnvironment {
     cache_path_overrides: BTreeMap<String, PathBuf>,
     /// A stated Cargo home. `None` means the default below the user profile.
     cargo_home: Option<PathBuf>,
+}
+
+fn native_user_id() -> Option<u32> {
+    #[cfg(unix)]
+    {
+        Some(unsafe { libc::geteuid() })
+    }
+    #[cfg(not(unix))]
+    {
+        None
+    }
+}
+
+#[cfg(test)]
+mod temporary_root_tests {
+    use super::*;
+    #[test]
+    fn simulated_roots_never_inherit_the_real_shared_temporary_directory() {
+        let env =
+            PlatformEnvironment::simulated(PathFlavor::Posix).with_temp_dir("/fixture/user-temp");
+        assert_eq!(
+            env.temporary_roots(),
+            vec![PathBuf::from("/fixture/user-temp")]
+        );
+        assert_eq!(env.current_user_id(), None);
+        assert_eq!(env.expand_placeholder("${SHARED_TEMP}"), None);
+    }
+    #[test]
+    fn shared_root_expansion_and_alias_deduplication_use_stated_platform_facts() {
+        let env = PlatformEnvironment::simulated(PathFlavor::Posix)
+            .with_platform(PlatformKind::Macos)
+            .with_temp_dir("/tmp")
+            .with_shared_temp_dir("/private/tmp")
+            .with_current_user_id(501);
+        assert_eq!(env.temporary_roots(), vec![PathBuf::from("/private/tmp")]);
+        assert_eq!(env.current_user_id(), Some(501));
+        assert_eq!(
+            env.expand_placeholder("${SHARED_TEMP}/node-compile-cache"),
+            Some(PathBuf::from("/private/tmp/node-compile-cache"))
+        );
+    }
 }
 
 impl std::fmt::Debug for PlatformEnvironment {
@@ -138,6 +181,9 @@ impl PlatformEnvironment {
             platform: PlatformKind::current(),
             roots: Arc::new(native),
             temp_dir: None,
+            shared_temp_dir: (PlatformKind::current() == PlatformKind::Macos)
+                .then(|| PathBuf::from("/private/tmp")),
+            current_user_id: native_user_id(),
             known_folders,
             path_entries: std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default())
                 .collect(),
@@ -196,6 +242,8 @@ impl PlatformEnvironment {
             platform,
             roots: Arc::new(super::paths::SimulatedPaths::new().with_flavor(flavor)),
             temp_dir: None,
+            shared_temp_dir: None,
+            current_user_id: None,
             known_folders: BTreeMap::new(),
             path_entries: Vec::new(),
             volumes: None,
@@ -249,6 +297,37 @@ impl PlatformEnvironment {
     pub fn with_temp_dir(mut self, path: impl Into<PathBuf>) -> Self {
         self.temp_dir = Some(path.into());
         self
+    }
+
+    pub fn with_shared_temp_dir(mut self, path: impl Into<PathBuf>) -> Self {
+        self.shared_temp_dir = Some(path.into());
+        self
+    }
+
+    pub fn with_current_user_id(mut self, id: u32) -> Self {
+        self.current_user_id = Some(id);
+        self
+    }
+
+    pub fn current_user_id(&self) -> Option<u32> {
+        self.current_user_id
+    }
+
+    /// Exact roots, not permission to enumerate or remove their contents.
+    /// Normalize the one platform-owned macOS alias without following arbitrary links.
+    pub fn temporary_roots(&self) -> Vec<PathBuf> {
+        let mut roots = vec![self.temp_dir()];
+        roots.extend(self.shared_temp_dir.clone());
+        if self.platform == PlatformKind::Macos {
+            for root in &mut roots {
+                if root == Path::new("/tmp") {
+                    *root = PathBuf::from("/private/tmp");
+                }
+            }
+        }
+        roots.sort();
+        roots.dedup();
+        roots
     }
 
     pub fn with_path_entry(mut self, entry: impl Into<PathBuf>) -> Self {
@@ -708,6 +787,10 @@ impl PlatformPathsProvider for PlatformEnvironment {
         self.temp_dir
             .clone()
             .unwrap_or_else(|| self.roots.temp_dir())
+    }
+
+    fn shared_temp_dir(&self) -> Option<PathBuf> {
+        self.shared_temp_dir.clone()
     }
 
     fn program_files(&self) -> Option<PathBuf> {

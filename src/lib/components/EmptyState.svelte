@@ -23,7 +23,7 @@
 <div class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-secondary p-8 text-center {className}">
   {#if Icon}
     <div class="h-10 w-10 rounded-full border border-border bg-card flex items-center justify-center text-muted-foreground">
-      <Icon size={20} />
+      <Icon size={20} aria-hidden="true" />
     </div>
   {/if}
   <div class="max-w-sm space-y-1">

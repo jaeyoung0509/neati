@@ -23,6 +23,7 @@ pub enum ReviewedCacheKind {
     MailDownloads,
     MessagesPreviews,
     AbandonedDownloads,
+    NodeCompileCache,
 }
 impl ReviewedCacheKind {
     pub fn id(self) -> &'static str {
@@ -39,6 +40,7 @@ impl ReviewedCacheKind {
             Self::MailDownloads => "mail.download_copies",
             Self::MessagesPreviews => "messages.preview_images",
             Self::AbandonedDownloads => "downloads.abandoned",
+            Self::NodeCompileCache => "node.temporary_compile_cache",
         }
     }
     pub fn requires_confirmation(self) -> bool {
@@ -49,10 +51,12 @@ impl ReviewedCacheKind {
                 | Self::ShellCompletions
                 | Self::GoogleUpdaterLogs
                 | Self::GradleMarkers
+                | Self::NodeCompileCache
         )
     }
     pub fn consequence(self) -> &'static str {
         match self {
+        Self::NodeCompileCache => "Verified Node module compilation caches move to Trash. Node recompiles modules on a later run; source files, projects and installed runtimes stay intact.",
         Self::CodexStaging => "Abandoned runtime installation staging moves to Trash. An interrupted runtime download may restart; the activated runtime stays intact.",
         Self::GradleMarkers => "Gradle may show release highlights again. Build caches, dependencies and installed Gradle versions stay intact.",
         Self::GoogleUpdaterLogs => "User-level Google Updater logs move to Trash. Previous update diagnostics will be unavailable; updater preferences, installed versions and update metadata remain intact.",

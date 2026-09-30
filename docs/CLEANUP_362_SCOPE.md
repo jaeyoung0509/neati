@@ -29,6 +29,21 @@ No system daemon is stopped by any operation.
 
 ## Developer stores
 
+### Temporary cleanup companion #369
+
+The exact default `node-compile-cache` namespace below the environment's user
+and shared temporary roots has a dedicated observed inventory and owner action.
+The supported payload is restricted to the recorded Node 26.7.0 arm64/V8-tag
+format, current-user-owned version groups, positively checked flat cache files,
+three-day whole-unit inactivity and fresh Node/handle verdicts. Verified groups
+move to Trash through private plans; unsupported groups retain measured bytes
+and cannot be selected. The generic prefix observer excludes this exact owned
+namespace to prevent double counting. Other temporary namespaces remain
+advisory, including active neati workspaces and PR recovery/upload artifacts.
+See [the complete contract](CACHE_POLICY.md#developer-temporary-units--369).
+Simulator temporary data remains in #350. No broader Codex/browser/project
+temporary cleanup, new privileged operation or Windows owner adapter is implied.
+
 | Issue item | Implementation and limits |
 | --- | --- |
 | Conda/mise compatibility | Verified set: Conda 26.5.3 and 26.7.2; mise 2026.9.15 and 2026.9.16. Actual commands ran in disposable homes. Support is constrained by the complete response schema and scope checks; this is not a claim that every intervening or future release has been tested. Existing timeout, executable replacement, inventory change and partial-result tests remain. |

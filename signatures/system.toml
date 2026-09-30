@@ -55,7 +55,9 @@ family = "developer"
 risk = "manual"
 strategy = "manual"
 unit = "child_namespace"
-paths = ["$TMPDIR", "${TEMP}"]
+platforms = ["macos"]
+paths = ["$TMPDIR", "${SHARED_TEMP}"]
+exclusions = ["$TMPDIR/node-compile-cache", "${SHARED_TEMP}/node-compile-cache"]
 include_prefixes = [
     "agent-browser-chrome-",
     "antigravity-",
@@ -74,7 +76,9 @@ include_prefixes = [
     "gemini-",
     "metro-cache",
     "metro-file-map-",
-    "node-compile-cache",
+    # The exact node-compile-cache namespace belongs to its owner inventory.
+    "node-compile-cache-",
+    "neati-",
     "opencode-",
     "opencode_",
     "openai-docs-cache",
@@ -945,3 +949,18 @@ owner = "Messages"
 provider = "Messages preview cache"
 consequence = "Selected preview and sticker images move to Trash and may be generated again. Original message attachments and conversations remain intact."
 description = "Reviewed image files inside three named preview/sticker cache scopes only. Databases and unsupported entries are never authorized; app ownership and exact handles are checked again before moving each file."
+
+[[signatures]]
+id = "system.node_compile_temp"
+name = "Node Temporary Compilation Cache"
+category = "system"
+family = "developer"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "node.temporary_compile_cache"
+provider = "Node"
+owner = "Node"
+platforms = ["macos"]
+paths = []
+fail_if_running = ["node", "nodejs", "npm", "npx", "pnpm", "yarn", "corepack"]
+description = "Exact default node-compile-cache namespaces under the stated user and shared temporary roots. The owner adapter requires three-day inactivity. Only verified Node 26.7.0 arm64 cache groups with the validated V8 tag and current-user identity are actionable; other versions and layouts remain advisory. Source projects, runtimes and arbitrary temporary folders stay intact."

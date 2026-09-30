@@ -7,6 +7,9 @@ pub trait PlatformPathsProvider: Send + Sync {
     fn local_app_data(&self) -> Option<PathBuf>;
     fn roaming_app_data(&self) -> Option<PathBuf>;
     fn temp_dir(&self) -> PathBuf;
+    fn shared_temp_dir(&self) -> Option<PathBuf> {
+        None
+    }
     fn program_files(&self) -> Option<PathBuf>;
     fn program_data(&self) -> Option<PathBuf>;
 
@@ -56,6 +59,7 @@ pub trait PlatformPathsProvider: Send + Sync {
     /// - `${LOCAL_APP_DATA}`
     /// - `${ROAMING_APP_DATA}`
     /// - `${TEMP}` or `$TMPDIR`
+    /// - `${SHARED_TEMP}` (only when the environment states a shared root)
     /// - `${PROGRAM_FILES}`
     /// - `${PROGRAM_DATA}`
     /// - `${DARWIN_USER_CACHE}`
@@ -79,7 +83,11 @@ pub trait PlatformPathsProvider: Send + Sync {
         // a POSIX root stays POSIX on a Windows runner.
         let joined = |base: PathBuf, tail: &str| join_with_flavor(base, tail, flavor);
 
-        let raw_path = if pattern == "$TMPDIR" || pattern == "${TEMP}" {
+        let raw_path = if pattern == "${SHARED_TEMP}" {
+            self.shared_temp_dir()?
+        } else if let Some(rest) = pattern.strip_prefix("${SHARED_TEMP}/") {
+            joined(self.shared_temp_dir()?, rest)
+        } else if pattern == "$TMPDIR" || pattern == "${TEMP}" {
             self.temp_dir()
         } else if let Some(rest) = pattern
             .strip_prefix("${TEMP}/")

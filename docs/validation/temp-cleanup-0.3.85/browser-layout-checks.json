@@ -1,0 +1,422 @@
+[
+  {
+    "height": 437,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Before the first scan \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "initial",
+    "theme": "light",
+    "viewportHeight": 560
+  },
+  {
+    "height": 463,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Verified empty scan \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "empty",
+    "theme": "light",
+    "viewportHeight": 560
+  },
+  {
+    "height": 532,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Inspection unavailable; bytes unknown \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "unavailable",
+    "theme": "light",
+    "viewportHeight": 560
+  },
+  {
+    "height": 789,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Protected-path access refusal; bytes unknown \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "privacy",
+    "theme": "light",
+    "viewportHeight": 560
+  },
+  {
+    "height": 506,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Verified Node cache ready for recoverable cleanup \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "available",
+    "theme": "light",
+    "viewportHeight": 560
+  },
+  {
+    "height": 617,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Verified Node cache with incomplete coverage \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "partial",
+    "theme": "light",
+    "viewportHeight": 560
+  },
+  {
+    "height": 433,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Observed workspace; nothing ready to clean \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "retained",
+    "theme": "light",
+    "viewportHeight": 560
+  },
+  {
+    "height": 437,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Before the first scan \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "initial",
+    "theme": "light",
+    "viewportHeight": 660
+  },
+  {
+    "height": 463,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Verified empty scan \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "empty",
+    "theme": "light",
+    "viewportHeight": 660
+  },
+  {
+    "height": 514,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Inspection unavailable; bytes unknown \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "unavailable",
+    "theme": "light",
+    "viewportHeight": 660
+  },
+  {
+    "height": 732,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Protected-path access refusal; bytes unknown \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "privacy",
+    "theme": "light",
+    "viewportHeight": 660
+  },
+  {
+    "height": 506,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Verified Node cache ready for recoverable cleanup \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "available",
+    "theme": "light",
+    "viewportHeight": 660
+  },
+  {
+    "height": 617,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Verified Node cache with incomplete coverage \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "partial",
+    "theme": "light",
+    "viewportHeight": 660
+  },
+  {
+    "height": 433,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Observed workspace; nothing ready to clean \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "retained",
+    "theme": "light",
+    "viewportHeight": 660
+  },
+  {
+    "height": 437,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Before the first scan \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "initial",
+    "theme": "light",
+    "viewportHeight": 800
+  },
+  {
+    "height": 463,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Verified empty scan \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "empty",
+    "theme": "light",
+    "viewportHeight": 800
+  },
+  {
+    "height": 514,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Inspection unavailable; bytes unknown \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "unavailable",
+    "theme": "light",
+    "viewportHeight": 800
+  },
+  {
+    "height": 732,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Protected-path access refusal; bytes unknown \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "privacy",
+    "theme": "light",
+    "viewportHeight": 800
+  },
+  {
+    "height": 506,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Verified Node cache ready for recoverable cleanup \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "available",
+    "theme": "light",
+    "viewportHeight": 800
+  },
+  {
+    "height": 617,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Verified Node cache with incomplete coverage \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "partial",
+    "theme": "light",
+    "viewportHeight": 800
+  },
+  {
+    "height": 433,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Observed workspace; nothing ready to clean \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "retained",
+    "theme": "light",
+    "viewportHeight": 800
+  },
+  {
+    "height": 437,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Before the first scan \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "initial",
+    "theme": "dark",
+    "viewportHeight": 560
+  },
+  {
+    "height": 463,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Verified empty scan \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "empty",
+    "theme": "dark",
+    "viewportHeight": 560
+  },
+  {
+    "height": 532,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Inspection unavailable; bytes unknown \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "unavailable",
+    "theme": "dark",
+    "viewportHeight": 560
+  },
+  {
+    "height": 789,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Protected-path access refusal; bytes unknown \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "privacy",
+    "theme": "dark",
+    "viewportHeight": 560
+  },
+  {
+    "height": 506,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Verified Node cache ready for recoverable cleanup \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "available",
+    "theme": "dark",
+    "viewportHeight": 560
+  },
+  {
+    "height": 617,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Verified Node cache with incomplete coverage \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "partial",
+    "theme": "dark",
+    "viewportHeight": 560
+  },
+  {
+    "height": 433,
+    "reducedMotion": true,
+    "scrollWidth": 800,
+    "title": "Observed workspace; nothing ready to clean \u2014 neati 0.3.85",
+    "width": 800,
+    "scenario": "retained",
+    "theme": "dark",
+    "viewportHeight": 560
+  },
+  {
+    "height": 437,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Before the first scan \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "initial",
+    "theme": "dark",
+    "viewportHeight": 660
+  },
+  {
+    "height": 463,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Verified empty scan \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "empty",
+    "theme": "dark",
+    "viewportHeight": 660
+  },
+  {
+    "height": 514,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Inspection unavailable; bytes unknown \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "unavailable",
+    "theme": "dark",
+    "viewportHeight": 660
+  },
+  {
+    "height": 732,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Protected-path access refusal; bytes unknown \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "privacy",
+    "theme": "dark",
+    "viewportHeight": 660
+  },
+  {
+    "height": 506,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Verified Node cache ready for recoverable cleanup \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "available",
+    "theme": "dark",
+    "viewportHeight": 660
+  },
+  {
+    "height": 617,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Verified Node cache with incomplete coverage \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "partial",
+    "theme": "dark",
+    "viewportHeight": 660
+  },
+  {
+    "height": 433,
+    "reducedMotion": true,
+    "scrollWidth": 960,
+    "title": "Observed workspace; nothing ready to clean \u2014 neati 0.3.85",
+    "width": 960,
+    "scenario": "retained",
+    "theme": "dark",
+    "viewportHeight": 660
+  },
+  {
+    "height": 437,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Before the first scan \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "initial",
+    "theme": "dark",
+    "viewportHeight": 800
+  },
+  {
+    "height": 463,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Verified empty scan \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "empty",
+    "theme": "dark",
+    "viewportHeight": 800
+  },
+  {
+    "height": 514,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Inspection unavailable; bytes unknown \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "unavailable",
+    "theme": "dark",
+    "viewportHeight": 800
+  },
+  {
+    "height": 732,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Protected-path access refusal; bytes unknown \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "privacy",
+    "theme": "dark",
+    "viewportHeight": 800
+  },
+  {
+    "height": 506,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Verified Node cache ready for recoverable cleanup \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "available",
+    "theme": "dark",
+    "viewportHeight": 800
+  },
+  {
+    "height": 617,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Verified Node cache with incomplete coverage \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "partial",
+    "theme": "dark",
+    "viewportHeight": 800
+  },
+  {
+    "height": 433,
+    "reducedMotion": true,
+    "scrollWidth": 1280,
+    "title": "Observed workspace; nothing ready to clean \u2014 neati 0.3.85",
+    "width": 1280,
+    "scenario": "retained",
+    "theme": "dark",
+    "viewportHeight": 800
+  }
+]

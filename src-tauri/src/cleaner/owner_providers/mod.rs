@@ -40,6 +40,7 @@ pub mod dotslash;
 pub mod homebrew;
 #[cfg(target_os = "macos")]
 pub mod homebrew_cleanup;
+mod node_temp;
 pub mod reviewed_cache;
 #[cfg(target_os = "macos")]
 pub mod tool_cleanup;
@@ -221,6 +222,7 @@ impl OwnerProviderRegistry {
             ReviewedCacheKind::MailDownloads,
             ReviewedCacheKind::MessagesPreviews,
             ReviewedCacheKind::AbandonedDownloads,
+            ReviewedCacheKind::NodeCompileCache,
         ] {
             providers.push(Arc::new(reviewed_cache::ReviewedCacheProvider::new(
                 kind,

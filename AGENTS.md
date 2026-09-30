@@ -151,6 +151,9 @@ safety conventions below when changing neati.
 - Hidden quick panels must not poll metrics or invoke provider CLIs. Disk data
   refreshes once per activation, memory may poll only while visible, and AI
   provider snapshots use a bounded backend cache with manual refresh support.
+- Quick Panel bounds follow saved layout and display changes, not streamed
+  readings. Reserve configured provider/gauge slots, measure the shell's border
+  box, serialize size calls and discard measurements from obsolete activations.
 - Never expose arbitrary PID kill commands. Memory actions must resolve a fresh
   process snapshot from an allowlisted user-app group (including executables in
   installed `.app` bundles), protect system/terminal/neati processes, and
@@ -390,3 +393,10 @@ safety conventions below when changing neati.
   whole-unit inactivity and fresh owner/handle checks. Unknown versions/layouts,
   worktrees, upload/recovery artifacts and other temporary folders remain
   advisory or protected. No arbitrary `neati-*` or `codex-*` deletion is implied.
+
+- Google Updater downloads authorize only the current-user `crx_cache` unit:
+  its complete bounded index and matching non-executable CRX3/SHA-256 payloads,
+  with ownership, no-link and fresh owner/handle checks, move together to Trash.
+  Unknown formats retain observed bytes without authority. OpenCode's actual
+  XDG cache and the two registered code-signature clone namespaces remain
+  observation-only; executable/offline dependencies are not generic cache.

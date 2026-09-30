@@ -16,6 +16,7 @@ pub enum ReviewedCacheKind {
     ElectronArchives,
     ShellCompletions,
     GoogleUpdaterLogs,
+    GoogleUpdaterDownloads,
     GradleMarkers,
     CodexStaging,
     UpdaterStaging,
@@ -33,6 +34,7 @@ impl ReviewedCacheKind {
             Self::ElectronArchives => "electron.download_archives",
             Self::ShellCompletions => "shell.completion_cache",
             Self::GoogleUpdaterLogs => "google_updater.logs",
+            Self::GoogleUpdaterDownloads => "google_updater.downloads",
             Self::GradleMarkers => "gradle.notification_markers",
             Self::CodexStaging => "codex.abandoned_staging",
             Self::UpdaterStaging => "updater.unreferenced_staging",
@@ -50,6 +52,7 @@ impl ReviewedCacheKind {
                 | Self::ElectronArchives
                 | Self::ShellCompletions
                 | Self::GoogleUpdaterLogs
+                | Self::GoogleUpdaterDownloads
                 | Self::GradleMarkers
                 | Self::NodeCompileCache
         )
@@ -60,6 +63,7 @@ impl ReviewedCacheKind {
         Self::CodexStaging => "Abandoned runtime installation staging moves to Trash. An interrupted runtime download may restart; the activated runtime stays intact.",
         Self::GradleMarkers => "Gradle may show release highlights again. Build caches, dependencies and installed Gradle versions stay intact.",
         Self::GoogleUpdaterLogs => "User-level Google Updater logs move to Trash. Previous update diagnostics will be unavailable; updater preferences, installed versions and update metadata remain intact.",
+        Self::GoogleUpdaterDownloads => "Verified Google Updater download archives and their cache index move together to Trash. Google Updater may download installers again; installed applications, updater versions and preferences stay intact. Empty Trash to release any recoverable space.",
         Self::NodeHeaders => "Downloaded Node development headers move to Trash and may be downloaded again during native addon builds. Installed Node runtimes stay intact.",
         Self::ElectronArchives => "Downloaded Electron ZIP archives move to Trash and may be downloaded again. Installed Electron apps and browser bundles stay intact.",
         Self::ShellCompletions => "Shell completion dump files move to Trash. Zsh rebuilds completion metadata on a later startup; shell settings stay intact.",

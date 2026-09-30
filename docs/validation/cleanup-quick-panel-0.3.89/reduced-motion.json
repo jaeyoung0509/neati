@@ -1,0 +1,18 @@
+{
+  "contentHeight": 499,
+  "footerBottom": 620,
+  "gaugeSlots": 2,
+  "height": 621,
+  "meters": 2,
+  "requests": [
+    {
+      "height": 621,
+      "type": "Logical",
+      "width": 360
+    }
+  ],
+  "scrollable": false,
+  "subscribers": 1,
+  "visible": true,
+  "width": 400
+}

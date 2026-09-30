@@ -158,6 +158,10 @@ describe('compact AI summary', () => {
     expect(quickProviderUsageWindow(provider, false, true)).toBeNull();
     expect(quickProviderUsageWindow({ ...provider, connected: false }, false)).toBeNull();
     expect(quickProviderUsageWindow({ ...provider, installed: false }, false)).toBeNull();
+    // A failed refresh may retain earlier window values; they are not a live quota.
+    for (const collection_status of ['timeout', 'protocol_error', 'unavailable'] as const) {
+      expect(quickProviderUsageWindow({ ...provider, collection_status }, false)).toBeNull();
+    }
     expect(quickProviderUsageWindow({ ...provider, windows: [] }, false)).toBeNull();
     for (const [input, expected] of [[0, 0], [-10, 0], [150, 100], [17.4, 17]]) {
       const measured = { ...provider, windows: [{ ...provider.windows[0], used_percent: input }] };
@@ -248,9 +252,11 @@ describe('quick panel AI provider projection', () => {
     expect(result.map((p) => p.id)).toEqual(['openrouter', 'codex']);
   });
 
-  it('handles configured provider ids that do not exist in snapshot safely', () => {
+  it('keeps configured provider slots when a partial snapshot omits a provider', () => {
     const result = projectAiProviders(['antigravity', 'claude'], mockSnapshot.providers);
-    expect(result.map((p) => p.id)).toEqual(['claude']);
+    expect(result.map((p) => p.id)).toEqual(['antigravity', 'claude']);
+    expect(formatQuickProviderUsage(result[0], false)).toBe('Usage not loaded');
+    expect(quickProviderUsageWindow(result[0], false)).toBeNull();
   });
 
   it('shows every configured provider even with no observed agent session', () => {

@@ -447,6 +447,30 @@ impl PlatformEnvironment {
         PlatformPathsProvider::user_cache_dir(self)
     }
 
+    /// Observation-only macOS X namespace beside the OS-resolved user cache.
+    /// Its executable clones are not ordinary cache deletion targets.
+    pub fn user_translocation_dir(&self) -> Option<PathBuf> {
+        if self.platform != PlatformKind::Macos || self.flavor != PathFlavor::Posix {
+            return None;
+        }
+        let cache = self.user_cache_dir()?;
+        let path = cache.to_str()?;
+        if !super::path_algebra::is_absolute(path, self.flavor)
+            || super::path_algebra::has_parent_traversal(path, self.flavor)
+        {
+            return None;
+        }
+        let mut parts = super::path_algebra::split_path(path, self.flavor);
+        if parts.components.last()? != "C" {
+            return None;
+        }
+        *parts.components.last_mut()? = "X".into();
+        Some(PathBuf::from(super::path_algebra::join_parts(
+            &parts,
+            self.flavor,
+        )))
+    }
+
     /// The platform installation root, where the platform has one.
     pub fn system_root(&self) -> Option<PathBuf> {
         PlatformPathsProvider::system_root(self)
@@ -465,6 +489,16 @@ impl PlatformEnvironment {
     }
 
     pub fn expand_placeholder(&self, pattern: &str) -> Option<PathBuf> {
+        if let Some(suffix) = pattern.strip_prefix("${DARWIN_USER_TRANSLOCATION}") {
+            if !suffix.is_empty() && !suffix.starts_with('/') {
+                return None;
+            }
+            return Some(super::paths::join_with_flavor(
+                self.user_translocation_dir()?,
+                suffix.trim_start_matches('/'),
+                self.flavor,
+            ));
+        }
         for (token, variable, default) in [
             ("${GRADLE_USER_HOME}", "GRADLE_USER_HOME", ".gradle"),
             ("${XDG_CACHE_HOME}", "XDG_CACHE_HOME", ".cache"),
@@ -822,6 +856,54 @@ impl PlatformPathsProvider for PlatformEnvironment {
 mod tests {
     use super::*;
     use crate::path_algebra::{protected_root, PathFlavor, ProtectedRoot};
+
+    #[test]
+    fn translocation_observation_resolves_only_from_a_stated_macos_cache_root() {
+        let roots = Arc::new(
+            crate::paths::SimulatedPaths::new().with_user_cache_dir("/var/folders/ab/user/C"),
+        );
+        let env = PlatformEnvironment::simulated(PathFlavor::Posix)
+            .with_platform(PlatformKind::Macos)
+            .with_roots(roots);
+        assert_eq!(
+            env.expand_placeholder(
+                "${DARWIN_USER_TRANSLOCATION}/com.google.Chrome.code_sign_clone"
+            ),
+            Some(PathBuf::from(
+                "/var/folders/ab/user/X/com.google.Chrome.code_sign_clone"
+            ))
+        );
+        assert_eq!(
+            env.expand_placeholder("${DARWIN_USER_TRANSLOCATION}suffix"),
+            None
+        );
+        assert_eq!(
+            env.clone()
+                .with_platform(PlatformKind::Windows)
+                .user_translocation_dir(),
+            None
+        );
+        assert_eq!(
+            PlatformEnvironment::simulated(PathFlavor::Windows)
+                .with_platform(PlatformKind::Macos)
+                .user_translocation_dir(),
+            None
+        );
+        for root in [
+            "relative/C",
+            "/var/folders/ab/user/T",
+            "/var/folders/ab/user/T/../C",
+        ] {
+            let described = env.clone().with_roots(Arc::new(
+                crate::paths::SimulatedPaths::new().with_user_cache_dir(root),
+            ));
+            assert_eq!(described.user_translocation_dir(), None, "{root}");
+        }
+        assert_eq!(
+            PlatformEnvironment::simulated(PathFlavor::Posix).user_translocation_dir(),
+            None
+        );
+    }
 
     /// The Cargo home is either stated by the environment or the profile's
     /// default, and a relative statement is refused rather than resolved

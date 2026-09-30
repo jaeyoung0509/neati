@@ -443,9 +443,11 @@ Overview subscribes to the shared memory collector only while visible.
 - At 320–400 px, use compact full-width reading rows. A label, current value,
   and one supporting fact should fit in roughly 48 px; details stay in the
   main window. The header and footer stay fixed while the body scrolls.
-- The panel height follows its visible content between a 300 px minimum and a
-  740 px maximum, capped by the active display work area. Recompute only when
-  section content changes, not on telemetry value updates; preserve tray
+- The panel fits once after saved settings and platform capabilities are ready,
+  between a 300 px minimum and a 740 px maximum, capped by the active display
+  work area. Keep those bounds across streaming readings, provider states and
+  repeated openings. Refit for saved section/provider preferences, capability
+  availability, width or display work-area changes; preserve tray
   alignment when reopening the persistent window.
 - Cleanup is the lead actionable summary. A missing or stale scan shows an
   explicit scan-needed state and `Scan Again`; it never presents stale bytes
@@ -502,6 +504,9 @@ Quick Panel text uses zero tracking and tabular numerals; metric values use
 medium weight. None of these accents changes native glass tint or opacity.
 
 Quick Panel AI rows add a compact usage gauge beneath their usage/reset text.
+Configured providers keep their row and gauge slot when absent from a partial
+response. Reserve the gauge space while data loads; render a meter only for a
+verified finite usage window. Longer status copy can use the body scroller.
 The gauge and text refer to the same first finite percentage window. Loading,
 stale, disconnected, unavailable, and session-only rows never imply a quota.
 Freshness follows each streamed provider independently until the aggregate

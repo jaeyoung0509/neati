@@ -23,12 +23,12 @@
     isAcceleratorPressed,
     isQuickPanelDismissShortcut,
     platformAccelerator,
-    quickPanelHeight,
     projectAiProviders,
     projectQuickAiRows,
     formatQuickProviderUsage,
     quickProviderUsageWindow,
   } from '../../lib/utils/quickPanel';
+  import { createQuickPanelSizer } from '../../lib/utils/quickPanelSizing';
   import {
     isTauri,
     tauriHideCurrentWindow,
@@ -59,7 +59,8 @@
   /** Keep the panel useful without turning it into an agent inventory. */
   const AI_ROW_LIMIT = 5;
 
-  let panelActive = false;
+  let panelActive = $state(false);
+  let activation = 0;
   let showResultModal = $state(false);
   let showCleanupDetails = $state(false);
   let usageNow = $state(Date.now());
@@ -74,7 +75,7 @@
   let awakeState = $derived(awakeStore.state);
   let selectedProviders = $derived(
     projectAiProviders(
-      settingsStore.hasLoaded && !settingsStore.isLoading ? settings.quick_panel_ai_providers : [],
+      settingsStore.hasLoaded ? settings.quick_panel_ai_providers : [],
       usageStore.snapshot?.providers,
       usageStore.isLoading,
       settings.ai_accounts_quota_providers
@@ -168,11 +169,25 @@
   let panelHeader: HTMLDivElement;
   let panelFooter: HTMLDivElement;
   let panelContent: HTMLDivElement;
-  let resizePanelToContent: (() => void) | undefined;
+  let panelSizer = $state<ReturnType<typeof createQuickPanelSizer>>();
+
+  $effect(() => {
+    const ready = settingsStore.hasLoaded && !settingsStore.isLoading
+      && (platformCapabilitiesStore.capabilities !== null || capabilitiesFailed);
+    const layout = JSON.stringify([
+      settings.quick_panel_sections,
+      settings.quick_panel_ai_providers,
+      settings.ai_accounts_quota_providers,
+      platformCapabilitiesStore.capabilities,
+      capabilitiesFailed,
+    ]);
+    panelSizer?.configure(panelActive && ready, layout);
+  });
 
   async function activatePanel() {
     if (panelActive) return;
     panelActive = true;
+    activation += 1;
     usageNow = Date.now();
     usageClock = setInterval(() => (usageNow = Date.now()), 30_000);
     await refreshPanelData();
@@ -180,11 +195,14 @@
 
   /** Runs (or re-runs, after a capability failure) the panel's data loads. */
   async function refreshPanelData() {
+    const currentActivation = activation;
+    const stillActive = () => panelActive && currentActivation === activation;
     await settingsStore.load(true);
-    if (!settingsStore.hasLoaded || !panelActive) return;
+    if (!settingsStore.hasLoaded || !stillActive()) return;
     await platformCapabilitiesStore.load(true);
+    if (!stillActive()) return;
     await platformContextStore.load(true);
-    if (!panelActive) return;
+    if (!stillActive()) return;
     stopUsageRefresh?.();
     stopUsageRefresh = undefined;
     if (awakeAvailable) void awakeStore.refresh();
@@ -204,21 +222,22 @@
     }
     if (hasSection('agent_activity') && aiAvailable) {
       void tauriGetAgentQuickSummary().then((summary) => {
-        if (panelActive) agentSummary = summary;
+        if (stillActive()) agentSummary = summary;
       });
     }
     if ((hasSection('cleanup') || hasSection('categories')) && cleanupAvailable) {
       stopFreshness?.();
       stopFreshness = scanStore.observeFreshness();
       await scanStore.init();
-      if (panelActive && scanStore.isStale()) void scanStore.runScan();
+      if (stillActive() && scanStore.isStale()) void scanStore.runScan();
     }
-    resizePanelToContent?.();
   }
 
   function deactivatePanel() {
     if (!panelActive) return;
     panelActive = false;
+    activation += 1;
+    panelSizer?.configure(false, '');
     if (usageClock !== undefined) clearInterval(usageClock);
     usageClock = undefined;
     stopUsageRefresh?.();
@@ -266,46 +285,36 @@
       ]).then(async ([{ getCurrentWebviewWindow }, { LogicalSize }, { currentMonitor }]) => {
         if (disposed) return;
         const currentWindow = getCurrentWebviewWindow();
-        let resizeTimer: number | undefined;
-        const resizeToContent = () => {
-          if (resizeTimer !== undefined) window.clearTimeout(resizeTimer);
-          resizeTimer = window.setTimeout(() => {
-            if (!panelActive || !panelShell || !panelHeader || !panelFooter || !panelContent) return;
-            void (async () => {
-              let maximumHeight = 740;
-              try {
-                const monitor = await currentMonitor();
-                if (monitor) {
-                  maximumHeight = Math.min(
-                    maximumHeight,
-                    Math.floor(monitor.workArea.size.height / monitor.scaleFactor - 24)
-                  );
-                }
-              } catch {
-                // Keep the configured maximum when the active monitor is unavailable.
-              }
-              const chromeHeight = panelHeader.offsetHeight + panelFooter.offsetHeight + 20;
-              const nextHeight = quickPanelHeight(
-                panelContent.scrollHeight,
-                chromeHeight,
-                maximumHeight
-              );
-              if (Math.abs(panelShell.clientHeight - nextHeight) >= 16) {
-                await currentWindow
-                  .setSize(new LogicalSize(panelShell.clientWidth, nextHeight))
-                  .catch(() => undefined);
-              }
-            })();
-          }, 180);
-        };
-        const observer = new ResizeObserver(resizeToContent);
-        if (panelContent) observer.observe(panelContent);
-        resizePanelToContent = resizeToContent;
+        const sizer = createQuickPanelSizer({
+          measure: () => panelShell && panelHeader && panelFooter && panelContent ? {
+            width: panelShell.getBoundingClientRect().width,
+            height: panelShell.getBoundingClientRect().height,
+            contentHeight: panelContent.scrollHeight,
+            chromeHeight: panelHeader.offsetHeight + panelFooter.offsetHeight + 20,
+          } : null,
+          maximumHeight: async () => {
+            const monitor = await currentMonitor();
+            return monitor ? Math.floor(monitor.workArea.size.height / monitor.scaleFactor - 24) : 740;
+          },
+          resize: (width, height) => currentWindow.setSize(new LogicalSize(width, height)),
+        });
+        panelSizer = sizer;
+        // Observe the shell for width/display changes, never telemetry content.
+        const observer = new ResizeObserver(() => sizer.viewportChanged());
+        if (panelShell) observer.observe(panelShell);
+        let unlistenMove = () => {};
+        let unlistenScale = () => {};
         cleanupResize = () => {
           observer.disconnect();
-          if (resizeTimer !== undefined) window.clearTimeout(resizeTimer);
-          if (resizePanelToContent === resizeToContent) resizePanelToContent = undefined;
+          unlistenMove();
+          unlistenScale();
+          sizer.dispose();
+          panelSizer = undefined;
         };
+        unlistenMove = await currentWindow.onMoved(() => sizer.viewportChanged());
+        if (disposed) { cleanupResize(); return; }
+        unlistenScale = await currentWindow.onScaleChanged(() => sizer.viewportChanged());
+        if (disposed) { cleanupResize(); return; }
 
         const unlisten = await currentWindow.onFocusChanged(({ payload: focused }) => {
           handleQuickPanelFocusChanged(focused, {
@@ -319,7 +328,8 @@
           return;
         }
         unlistenFocus = unlisten;
-        if (!disposed && await currentWindow.isVisible()) void activatePanel();
+        const visible = await currentWindow.isVisible();
+        if (!disposed && visible) void activatePanel();
       });
     }
 
@@ -621,7 +631,7 @@
 
       {#if !aiAvailable}
         <p class="px-1 text-caption text-muted-foreground">{aiCapability?.reason ?? 'AI integrations are unavailable on this platform.'}</p>
-      {:else if settingsStore.isLoading}
+      {:else if settingsStore.isLoading && !settingsStore.hasLoaded}
         <p class="px-1 text-caption text-muted-foreground" role="status">Loading your provider preferences…</p>
       {:else if !settingsStore.hasLoaded}
         <p class="px-1 text-caption text-muted-foreground" role="status">Provider preferences could not be loaded. Reopen the panel to retry.</p>
@@ -641,7 +651,7 @@
                     <span class="shrink-0 text-caption font-medium text-primary">{row.sessions.length} active</span>
                   {/if}
                 </div>
-                <p class="text-caption leading-snug text-muted-foreground">
+                <p class="flex min-h-5 items-center text-caption leading-snug text-muted-foreground">
                   {#if row.provider}
                     <span class="inline-flex items-center gap-1.5">
                       {#if loading}<DeletingDots size="xs" class="text-primary" />{/if}
@@ -661,20 +671,21 @@
                     {row.sessions.length} observed session{row.sessions.length === 1 ? '' : 's'}
                   {/if}
                 </p>
-                {#if usageWindow}
-                  <div
-                    class="mt-1.5 mb-1"
-                    role="meter"
-                    aria-label={`${row.name} ${usageWindow.label} usage`}
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    aria-valuenow={usageWindow.used_percent}
-                    aria-valuetext={`${usageWindow.used_percent}% used`}
-                    title={`${usageWindow.label} · ${usageWindow.used_percent}% used`}
-                  >
-                    <ProgressBar value={usageWindow.used_percent} height="h-1" />
-                  </div>
-                {/if}
+                <div class="quick-ai-gauge-slot mt-1.5 mb-1 min-h-1">
+                  {#if usageWindow}
+                    <div
+                      role="meter"
+                      aria-label={`${row.name} ${usageWindow.label} usage`}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-valuenow={usageWindow.used_percent}
+                      aria-valuetext={`${usageWindow.used_percent}% used`}
+                      title={`${usageWindow.label} · ${usageWindow.used_percent}% used`}
+                    >
+                      <ProgressBar value={usageWindow.used_percent} height="h-1" />
+                    </div>
+                  {/if}
+                </div>
               </div>
             </li>
           {/each}

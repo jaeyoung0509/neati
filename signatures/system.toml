@@ -935,6 +935,38 @@ consequence = "Previous updater diagnostics move to Trash; updater preferences, 
 description = "Only updater.log and updater.log.old in the user-level updater directory, with idle owner and exact open-handle checks. System installations remain outside scope."
 
 [[signatures]]
+id = "system.google_updater.downloads"
+name = "Google Updater Downloads"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "google_updater.downloads"
+platforms = ["macos"]
+paths = []
+fail_if_running = ["GoogleUpdater", "GoogleUpdater Helper"]
+owner = "Google Updater"
+provider = "Google Updater"
+consequence = "Update archives and their download-cache index move together to Trash and may be downloaded again. Installed applications, updater versions and preferences remain."
+description = "Only the exact current-user GoogleUpdater/crx_cache unit. Bounded flat CRX3 payloads must match their indexed SHA-256 names and known metadata schema, current-user ownership and fresh owner/handle checks. Unknown layouts remain visible and unavailable."
+
+[[signatures]]
+id = "system.code_sign_clones.observation"
+name = "Application Code-Signature Clones"
+category = "system"
+family = "applications"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = [
+    "${DARWIN_USER_TRANSLOCATION}/com.google.Chrome.code_sign_clone",
+    "${DARWIN_USER_TRANSLOCATION}/com.jetbrains.intellij.code_sign_clone",
+]
+owner = "Application"
+consequence = "Executable application snapshots remain intact. Live update and signature dependencies require an owner-specific operation; shared APFS blocks can make observed bytes an upper bound on potential recovery."
+description = "Observation only of the two exact code-signature clone namespaces found in the Mole comparison, below the current user's OS-resolved X directory. Live update/signature dependencies, executable bundles and APFS sharing prevent generic cleanup. Other users, applications and the rest of X are outside this scope."
+
+[[signatures]]
 id = "system.messages.preview_images"
 name = "Messages Preview and Sticker Images"
 category = "system"

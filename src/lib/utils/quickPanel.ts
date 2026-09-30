@@ -118,40 +118,33 @@ export function projectAiProviders(
 ): AiProviderUsage[] {
   configuredIds = configuredIds.filter(id => collectedIds.includes(id));
   if (!configuredIds.length) return [];
-  if (!providers && !isLoading) return [];
-
-  if (isLoading) {
-    return configuredIds.map((id) => {
-      const canonicalId: ProviderId = ((id === 'grok' ? 'grok-build' : id) as ProviderId);
-      const existing = providers?.find((provider) => provider.id === canonicalId || (provider.id as string) === id);
-      if (existing) return existing;
-      return {
-        id: canonicalId,
-        name: KNOWN_PROVIDER_NAMES[id] || id,
-        installed: false,
-        connected: false,
-        auth_label: '',
-        status_message: 'Loading live usage...',
-        support: 'live',
-        windows: [],
-        summary: {
-          lifetime_tokens: null,
-          last_7d_tokens: null,
-          peak_daily_tokens: null,
-          current_streak_days: null,
-          local_sessions: null,
-          local_cost_usd: null,
-          usage_usd: null,
-          limit_remaining_usd: null,
-        },
-        action_url: null,
-      };
-    });
-  }
-
-  return configuredIds
-    .map((id) => providers?.find((provider) => provider.id === id))
-    .filter((provider): provider is AiProviderUsage => Boolean(provider));
+  return configuredIds.map((id) => {
+    const canonicalId: ProviderId = ((id === 'grok' ? 'grok-build' : id) as ProviderId);
+    const existing = providers?.find((provider) => provider.id === canonicalId || (provider.id as string) === id);
+    if (existing) return existing;
+    return {
+      id: canonicalId,
+      name: KNOWN_PROVIDER_NAMES[id] || id,
+      installed: false,
+      connected: false,
+      auth_label: '',
+      status_message: isLoading ? 'Loading live usage...' : 'Usage not loaded',
+      collection_status: isLoading ? null : 'unavailable',
+      support: 'live',
+      windows: [],
+      summary: {
+        lifetime_tokens: null,
+        last_7d_tokens: null,
+        peak_daily_tokens: null,
+        current_streak_days: null,
+        local_sessions: null,
+        local_cost_usd: null,
+        usage_usd: null,
+        limit_remaining_usd: null,
+      },
+      action_url: null,
+    };
+  });
 }
 
 export function formatQuickReset(resetsAt: number | null | undefined, now = Math.floor(Date.now() / 1000)): string {
@@ -172,6 +165,7 @@ export function formatQuickReset(resetsAt: number | null | undefined, now = Math
 
 export function quickProviderUsageWindow(provider: AiProviderUsage, loading: boolean, stale = false) {
   if (loading || stale || !provider.installed || !provider.connected) return null;
+  if (provider.collection_status && provider.collection_status !== 'fresh') return null;
   const window = provider.windows.find(entry => entry.used_percent != null && Number.isFinite(entry.used_percent));
   if (window?.used_percent == null) return null;
   return { ...window, used_percent: Math.round(Math.min(100, Math.max(0, window.used_percent))) };

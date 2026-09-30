@@ -51,6 +51,42 @@ fn scan(
     .collect()
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn opencode_xdg_packages_and_exact_code_clones_are_observed_without_delete_authority() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().canonicalize().unwrap();
+    let home = root.join("home");
+    let cache = root.join("user/C");
+    std::fs::create_dir_all(&cache).unwrap();
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_platform(PlatformKind::Macos)
+        .with_roots(std::sync::Arc::new(
+            neati_platform::paths::SimulatedPaths::new()
+                .with_home(&home)
+                .with_user_cache_dir(&cache),
+        ))
+        .with_cache_path_override("XDG_CACHE_HOME", root.join("xdg-cache"));
+    let opencode = root.join("xdg-cache/opencode/packages/sdk/node_modules/tool/index.js");
+    let clone = root.join("user/X/com.google.Chrome.code_sign_clone/code_sign_clone.fixture/Google Chrome.app.bundle/Contents/MacOS/Google Chrome");
+    write(&opencode);
+    write(&clone);
+    write(&home.join(".config/opencode/auth.json"));
+    write(&root.join("user/X/unrelated/keep"));
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    for id in ["ai.opencode.cache", "system.code_sign_clones.observation"] {
+        let items = scan(&registry, id, &environment, &idle());
+        assert!(!items.is_empty(), "{id}");
+        assert!(items.iter().any(|item| item.observed_bytes() > 0), "{id}");
+        assert!(items.iter().all(|item| !item.allows_cleanup()), "{id}");
+        assert!(items.iter().all(|item| !item.is_selected), "{id}");
+        assert!(items.iter().all(|item| item.cleanable_bytes() == 0), "{id}");
+    }
+    assert!(opencode.exists() && clone.exists());
+    assert!(home.join(".config/opencode/auth.json").exists());
+    assert!(root.join("user/X/unrelated/keep").exists());
+}
+
 #[test]
 fn apple_payloads_are_immediately_eligible_but_nested_models_are_not_reclaimable() {
     let fixture = tempfile::tempdir().unwrap();

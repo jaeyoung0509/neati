@@ -249,12 +249,17 @@ describe('Storage scan summary', () => {
 
 describe('StorageView CTA and responsive toolbar layout', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
     scanStore.lastScan = null;
     scanStore.selectedMap = {};
     scanStore.isScanning = false;
     scanStore.isCleaning = false;
     scanStore.error = null;
+    scanStore.updateFreshness();
   });
+
+  afterEach(() => vi.useRealTimers());
 
   it('renders one clean action for safe-only selections without duplicating bytes in CTA text', () => {
     const mockCategory: CategoryResult = {
@@ -508,6 +513,8 @@ describe('StorageView CTA and responsive toolbar layout', () => {
   });
 
   it('reads a stopped scan as a stop rather than a completed or failed one', () => {
+    // The result can finish after the store's most recent clock observation.
+    vi.setSystemTime(Date.now() + 2_000);
     platformCapabilitiesStore.reset();
     scanStore.error = null;
     const nowSeconds = Math.floor(Date.now() / 1000);
@@ -525,6 +532,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
       incomplete_reasons: ['Scan was cancelled before completion'],
       cancelled: true,
     };
+    scanStore.updateFreshness();
 
     const rendered = render(StorageView, { props: { onSelectCategory: vi.fn() } });
 
@@ -538,6 +546,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
   });
 
   it('reads a stopped scan as a stop in the category detail notice too', () => {
+    vi.setSystemTime(Date.now() + 2_000);
     const nowSeconds = Math.floor(Date.now() / 1000);
     const category: CategoryResult = {
       category: 'developer',
@@ -563,6 +572,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
       cancelled: true,
     };
     scanStore.lastScan = stopped;
+    scanStore.updateFreshness();
 
     const rendered = render(CategoryDetailView, {
       props: { categoryResult: category, onBack: vi.fn(), onNavigateTab: vi.fn() },

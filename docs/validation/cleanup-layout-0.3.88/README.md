@@ -77,6 +77,12 @@ ran against the mounted application.
 - `pnpm check`: zero errors/warnings.
 - `pnpm test -- --run`: 467 passed in 48 files. After the final review-scroll
   adjustment, the affected Storage suite passed again: 39 tests.
+- CI follow-up: the two stopped-scan fixtures could finish after the store's
+  last clock observation on a slower runner. A fixed test clock and an explicit
+  two-second advance reproduced both failures (37 passed / two failed). Updating
+  freshness after publishing each stopped result fixes the fixtures; the full
+  frontend suite passes again (467 tests), as do typechecking and the production
+  build. Shipped code and the existing patch version are unchanged by this fix.
 - `pnpm build` and final `just build-fast`: passed after the patch bump and
   frontend changes; the bundle contains the current frontend.
 - Bundle short/build versions are both 0.3.88; the packaged ICNS matches the

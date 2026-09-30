@@ -191,3 +191,20 @@ snapshot and per-entry outcomes. It never joins the cache candidate selection.
 Mail Downloads and incomplete Downloads are typed reviewed scopes, analogous to
 the existing reviewed storage workflows; neither broadens generic filesystem
 cleanup or the blacklist. Private plans remain in the backend.
+
+
+### CocoaPods owner cleanup
+
+CocoaPods download-cache removal is an explicit reviewed permanent owner action,
+not ordinary cache-to-Trash deletion. The complete default
+`~/Library/Caches/CocoaPods` root is previewed, including cached sources,
+specifications and `VERSION`. Repositories, project `Pods`, configuration,
+credentials and installed tools are outside its scope. Only CocoaPods 1.16.2
+with a standard absolute RubyGems launcher is accepted. Unknown versions,
+custom cache/home roots, unknown root entries, links, locks or busy/unknown
+owners and handles block the operation. Blocked default stores remain visible
+with observed bytes and cannot be preselected. Preview does not instantiate the
+CocoaPods downloader cache, whose version reconciliation can delete an existing
+root. Execution uses isolated configuration/repositories and disables plugins,
+with fresh runtime and recursive candidate identities checked before mutation.
+See [the scope ledger](CLEANUP_362_SCOPE.md) for compatibility validation limits.

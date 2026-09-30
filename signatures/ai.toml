@@ -156,10 +156,11 @@ family = "developer"
 risk = "manual"
 strategy = "manual"
 paths = [
+    "${XDG_CACHE_HOME}/opencode",
     "~/.opencode/cache",
     "~/.opencode/logs"
 ]
-description = "Mixed assistant cache and log storage reported for review; generic cleanup cannot prove it excludes session and authentication state."
+description = "The actual XDG OpenCode cache plus legacy cache/log scopes are observed for review. Downloaded packages contain executable plugins and SDKs needed for offline use; models.json is model-catalog metadata, not model weights. A versioned complete owner operation is not yet verified. Sessions, authentication, configuration, installed tools and arbitrary package deletion remain outside generic cleanup."
 
 [[signatures]]
 id = "ai.gpu.directx_shader"

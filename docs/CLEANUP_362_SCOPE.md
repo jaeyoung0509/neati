@@ -39,6 +39,16 @@ details and moves the complete grouped item inventory after category selection. 
 presentation and recovery discoverability, not cleanup eligibility or adapter scope.
 Browser visual/interaction checks do not replace native permission-transition evidence.
 
+The 0.3.89 follow-up adds the exact current-user Google Updater CRX download
+owner and observes the real OpenCode XDG cache plus the two code-signature clone
+namespaces found in the owner's Mole run. OpenCode executable/offline package
+purging and clone removal remain unavailable with explicit lifecycle reasons.
+Chrome Service Worker units were already observed and routed to owner review;
+their absence from Quick Clean is an eligibility distinction, not missing discovery.
+Mole's tracked-cleanup counter and global free-space delta are different measures.
+See [the scope and validation evidence](validation/cleanup-quick-panel-0.3.89/README.md).
+Keep #362 open for the remaining work above.
+
 ## Application and runtime operations
 
 | Issue item | Implementation and limits |

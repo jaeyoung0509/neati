@@ -373,6 +373,7 @@ impl SignatureRegistry {
             || p.starts_with("/Volumes")
             || p.starts_with("/private/")
             || p.contains("${DARWIN_USER_CACHE}")
+            || p.contains("${DARWIN_USER_TRANSLOCATION}")
             || p.contains("${SHARED_TEMP}")
         {
             Some(PlatformKind::Macos)

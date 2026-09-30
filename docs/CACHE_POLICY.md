@@ -1,5 +1,42 @@
 # Cache cleanup policy
 
+## Google Updater downloads and retained Mole scopes — 0.3.89
+
+The exact current-user `~/Library/Application Support/Google/GoogleUpdater/crx_cache`
+is one coupled owner unit. Its `metadata.json` and indexed downloads move together
+to Trash. Installed versions, updater preferences and parent installation state
+remain outside that unit. Fully measured idle units use zero-day retention and
+ordinary Rebuild cleanup; no administrator command is used.
+
+The supported index contains only `hashes`, with lowercase SHA-256 keys and an
+`appid` string per record. Positive validation requires flat regular files,
+current-user ownership, no group/world write bits, no executable bits,
+no links, a CRX3 header and complete content hashes matching the index. Bounds
+are 1 MiB of metadata, 128 archives, 2 GiB of payload and 20 seconds of payload
+verification. These checks identify the disposable download-store format; they
+do not validate CRX signatures or authorize arbitrary archives. Unknown layouts,
+missing index entries and budget failures remain blocked with measured bytes.
+Fresh GoogleUpdater owner and exact handle checks apply during scan, planning
+and execution. Final validation checks every entry identity after the last use
+probe before the whole-unit Trash move. Fixture tests never touch user caches.
+
+OpenCode's `${XDG_CACHE_HOME}/opencode` is now observed alongside the legacy
+cache/log roots. The inspected upstream package cache supplies executable plugins
+and SDKs directly, including offline use. Its model JSON is a provider catalog,
+not downloaded model weights. No installed-version purge contract was verified;
+these bytes remain advisory and sessions, credentials and configuration stay out
+of scope.
+
+Code-signature clones are observed only at the two registered Chrome/IntelliJ
+namespaces below the current user's OS-resolved `X` directory, derived from its
+stated `C` cache root. They contain executable application snapshots with live
+update/signature dependencies. No clone deletion is added. APFS shared blocks
+are not resolved by inode accounting, so their observed footprint qualifies the
+physical observed range rather than promising that amount of disk recovery.
+
+Source contracts, the Mole accounting explanation and runtime limitations are
+recorded in [the validation report](validation/cleanup-quick-panel-0.3.89/README.md).
+
 ## Developer temporary units — #369
 
 The platform environment states user and shared temporary roots separately.

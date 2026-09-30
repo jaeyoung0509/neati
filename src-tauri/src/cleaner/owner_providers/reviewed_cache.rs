@@ -16,6 +16,9 @@ use std::{
 
 const MAX_ENTRIES: usize = 50_000;
 const MAX_DEPTH: usize = 48;
+#[cfg(all(test, target_os = "macos"))]
+#[path = "google_updater_tests.rs"]
+mod google_updater_tests;
 #[cfg(all(test, unix))]
 #[path = "node_temp_tests.rs"]
 mod node_temp_tests;
@@ -175,6 +178,23 @@ impl NativePort<'_> {
             retained_reason: None,
         };
         match kind {
+            ReviewedCacheKind::GoogleUpdaterDownloads => {
+                let path = home.join("Library/Application Support/Google/GoogleUpdater/crx_cache");
+                match fs::symlink_metadata(&path) {
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e.to_string()),
+                    Ok(m)
+                        if m.is_dir()
+                            && !m.file_type().is_symlink()
+                            && children(&path)?.is_empty() => {}
+                    Ok(_) => result.push(candidate(
+                        path,
+                        &["GoogleUpdater", "GoogleUpdater Helper"],
+                        0,
+                        "Google Updater downloads",
+                    )),
+                }
+            }
             ReviewedCacheKind::NodeCompileCache => {
                 for (path, retained_reason) in super::node_temp::discover(self.environment)? {
                     let mut unit = candidate(
@@ -553,6 +573,12 @@ impl NativePort<'_> {
         Ok(result)
     }
     fn inspect(&self, candidate: &Candidate) -> Result<SystemTime, String> {
+        if self.provider.kind == ReviewedCacheKind::GoogleUpdaterDownloads {
+            #[cfg(target_os = "macos")]
+            super::google_updater::inspect(self.environment, &candidate.path)?;
+            #[cfg(not(target_os = "macos"))]
+            return Err("Google Updater download cleanup is available on macOS only".into());
+        }
         if self.provider.kind == ReviewedCacheKind::NodeCompileCache {
             return super::node_temp::inspect(self.environment, &candidate.path);
         }
@@ -662,7 +688,10 @@ impl NativePort<'_> {
             Ok(latest) => latest,
             Err(detail) => {
                 let mut unit = OwnerUnitObservation::ready(key, path, 0, 0, 0);
-                if self.provider.kind == ReviewedCacheKind::NodeCompileCache {
+                if matches!(
+                    self.provider.kind,
+                    ReviewedCacheKind::NodeCompileCache | ReviewedCacheKind::GoogleUpdaterDownloads
+                ) {
                     let measurement = self.provider.measuring.measure(&unit.path);
                     unit.logical_bytes = measurement.logical_bytes;
                     unit.allocated_bytes = measurement.allocated_bytes;
@@ -790,25 +819,43 @@ impl ReviewedCachePort for NativePort<'_> {
             }
         }
         ToctouGuard::verify(&unit.path, &unit.identity).map_err(|error| error.to_string())?;
-        if kind == ReviewedCacheKind::NodeCompileCache {
+        if matches!(
+            kind,
+            ReviewedCacheKind::NodeCompileCache | ReviewedCacheKind::GoogleUpdaterDownloads
+        ) {
             // Recheck the positive flat-file contract after the owner/handle
             // probe; worktree, link and recent writes revoke this exact move.
-            let latest = super::node_temp::inspect(self.environment, &unit.path)?;
-            if !self.now.duration_since(latest).is_ok_and(|age| {
-                age >= Duration::from_secs(
-                    neati_core::domain::cleanup::temporary_cache::NODE_CACHE_MIN_DAYS * 86400,
-                )
-            }) {
-                return Err("Node cache changed immediately before its Trash move".into());
+            if kind == ReviewedCacheKind::NodeCompileCache {
+                let latest = super::node_temp::inspect(self.environment, &unit.path)?;
+                if !self.now.duration_since(latest).is_ok_and(|age| {
+                    age >= Duration::from_secs(
+                        neati_core::domain::cleanup::temporary_cache::NODE_CACHE_MIN_DAYS * 86400,
+                    )
+                }) {
+                    return Err("Node cache changed immediately before its Trash move".into());
+                }
             }
+            #[cfg(target_os = "macos")]
+            let download_snapshot = if kind == ReviewedCacheKind::GoogleUpdaterDownloads {
+                Some(super::google_updater::inspect(
+                    self.environment,
+                    &unit.path,
+                )?)
+            } else {
+                None
+            };
             ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
             // Payload validation can read up to the bounded byte budget.
             // Observe owner/handles once more after that work, immediately
             // before the identity check and recoverable move.
             if !matches!(self.provider.process.running(&guard), Some(names) if names.is_empty()) {
                 return Err(
-                    "The Node owner restarted or opened a handle during final validation".into(),
+                    "The cache owner restarted or opened a handle during final validation".into(),
                 );
+            }
+            #[cfg(target_os = "macos")]
+            if let Some(snapshot) = download_snapshot {
+                snapshot.verify()?;
             }
             ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
         }

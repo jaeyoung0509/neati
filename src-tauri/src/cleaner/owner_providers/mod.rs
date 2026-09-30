@@ -37,6 +37,8 @@ mod cocoapods;
 #[cfg(target_os = "macos")]
 pub mod dotslash;
 #[cfg(target_os = "macos")]
+mod google_updater;
+#[cfg(target_os = "macos")]
 pub mod homebrew;
 #[cfg(target_os = "macos")]
 pub mod homebrew_cleanup;
@@ -215,6 +217,7 @@ impl OwnerProviderRegistry {
             ReviewedCacheKind::ElectronArchives,
             ReviewedCacheKind::ShellCompletions,
             ReviewedCacheKind::GoogleUpdaterLogs,
+            ReviewedCacheKind::GoogleUpdaterDownloads,
             ReviewedCacheKind::GradleMarkers,
             ReviewedCacheKind::CodexStaging,
             ReviewedCacheKind::UpdaterStaging,

@@ -109,7 +109,10 @@ fn audit_bounded(
             }
             // Measurement may prune entries the identity audit sees. State a range,
             // never subtract an unproven contribution from a measured item/plan.
-            let uncertain = if unknown {
+            // These explicitly observed application snapshots use APFS cloning.
+            // Inode/link counts cannot establish their private physical blocks.
+            let cloned_snapshot = item.signature_id == "system.code_sign_clones.observation";
+            let uncertain = if unknown || cloned_snapshot {
                 item.observed_bytes()
             } else {
                 possible_duplicate.min(item.observed_bytes())
@@ -126,7 +129,7 @@ fn audit_bounded(
                 report.count += 1;
                 report.bytes = report.bytes.saturating_add(uncertain);
             }
-            report.incomplete |= unknown;
+            report.incomplete |= unknown || cloned_snapshot;
         }
     }
     report
@@ -136,6 +139,33 @@ fn audit_bounded(
 mod tests {
     use super::*;
     use crate::models::{Category, FileSize, ObservationQuality, RiskTier, ScanItem};
+
+    #[test]
+    fn application_clone_footprint_never_implies_unique_physical_recovery() {
+        let fixture = tempfile::tempdir().unwrap();
+        let root = fixture.path().join("clone");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("payload"), vec![1; 8192]).unwrap();
+        let mut categories = vec![category(&root, "snapshot")];
+        let item = &mut categories[0].items[0];
+        item.signature_id = "system.code_sign_clones.observation".into();
+        item.risk = RiskTier::Manual;
+        item.rederive_disposition();
+        let report = audit_bounded(
+            &mut categories,
+            100,
+            Duration::from_secs(5),
+            &neati_platform::PlatformEnvironment::simulated(
+                neati_platform::path_algebra::PathFlavor::current(),
+            )
+            .with_home(fixture.path()),
+        );
+        assert_eq!(report.bytes, 8192);
+        assert!(report.incomplete);
+        assert_eq!(categories[0].ambiguous_overlap_bytes, 8192);
+        assert!(!categories[0].items[0].allows_cleanup());
+        assert!(root.exists());
+    }
 
     fn category(path: &std::path::Path, name: &str) -> CategoryResult {
         let item = ScanItem::mock(

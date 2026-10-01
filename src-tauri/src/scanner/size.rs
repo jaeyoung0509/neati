@@ -370,6 +370,25 @@ impl MeasurementState<'_> {
 
 pub struct SizeCalculator;
 
+/// Prepare only the stated path vocabulary for one measurement. Candidate
+/// metadata, links, Windows aliases and cancellation remain fresh at every entry.
+struct MeasurementPolicy {
+    blacklist: crate::safety::blacklist::PreparedBlacklist,
+    exclusions: crate::signatures::exclusions::PreparedExclusions,
+}
+
+impl MeasurementPolicy {
+    fn new(exclusions: &[String], environment: &PlatformEnvironment) -> Self {
+        Self {
+            blacklist: Blacklist::prepare(environment),
+            exclusions: crate::signatures::exclusions::PreparedExclusions::new(
+                exclusions,
+                environment,
+            ),
+        }
+    }
+}
+
 impl SizeCalculator {
     /// Measures a file or directory, reporting how complete the observation is.
     ///
@@ -474,8 +493,9 @@ impl SizeCalculator {
     ) -> PathMeasurement {
         let path = path.as_ref();
         counters.visit_entry();
+        let policy = MeasurementPolicy::new(exclusions, environment);
         // Check if path is in blacklist
-        if Blacklist::is_blacklisted_with(path, environment) {
+        if policy.blacklist.is_blacklisted(path) {
             return PathMeasurement::incomplete(
                 FileSize::default(),
                 0,
@@ -514,7 +534,7 @@ impl SizeCalculator {
             if let Some(pool) = pool {
                 return Self::measure_dir_parallel(
                     path,
-                    exclusions,
+                    &policy,
                     pool,
                     environment,
                     cancellation,
@@ -524,7 +544,7 @@ impl SizeCalculator {
             }
             return Self::measure_dir_recursive(
                 path,
-                exclusions,
+                &policy,
                 0,
                 limits.max_depth,
                 environment,
@@ -547,7 +567,7 @@ impl SizeCalculator {
     #[allow(clippy::too_many_arguments)]
     fn measure_dir_parallel(
         path: &Path,
-        exclusions: &[String],
+        policy: &MeasurementPolicy,
         pool: &ThreadPool,
         environment: &PlatformEnvironment,
         cancellation: &dyn CancellationProbe,
@@ -578,7 +598,7 @@ impl SizeCalculator {
                 scope,
                 path.to_path_buf(),
                 0,
-                exclusions,
+                policy,
                 limits,
                 &state,
                 environment,
@@ -616,7 +636,7 @@ impl SizeCalculator {
         scope: &Scope<'scope>,
         dir: PathBuf,
         depth: usize,
-        exclusions: &'scope [String],
+        policy: &'scope MeasurementPolicy,
         limits: ScanLimits,
         state: &'scope MeasurementState<'scope>,
         environment: &'scope PlatformEnvironment,
@@ -635,7 +655,7 @@ impl SizeCalculator {
                     scope,
                     &dir,
                     depth,
-                    exclusions,
+                    policy,
                     limits,
                     state,
                     environment,
@@ -653,7 +673,7 @@ impl SizeCalculator {
             scope,
             &dir,
             depth,
-            exclusions,
+            policy,
             limits,
             state,
             environment,
@@ -667,7 +687,7 @@ impl SizeCalculator {
         scope: &Scope<'scope>,
         dir: &Path,
         depth: usize,
-        exclusions: &'scope [String],
+        policy: &'scope MeasurementPolicy,
         limits: ScanLimits,
         state: &'scope MeasurementState<'scope>,
         environment: &'scope PlatformEnvironment,
@@ -748,8 +768,8 @@ impl SizeCalculator {
                 }
             };
             let child_path = ent.path();
-            if Self::is_excluded(&child_path, exclusions, environment)
-                || Blacklist::is_blacklisted_with(&child_path, environment)
+            if policy.exclusions.is_excluded(&child_path)
+                || policy.blacklist.is_blacklisted(&child_path)
             {
                 local_skipped += 1;
                 continue;
@@ -803,7 +823,7 @@ impl SizeCalculator {
                                 scope,
                                 child_path,
                                 depth + 1,
-                                exclusions,
+                                policy,
                                 limits,
                                 state,
                                 environment,
@@ -849,17 +869,14 @@ impl SizeCalculator {
         state.skipped.fetch_add(local_skipped, Ordering::Relaxed);
     }
 
-    fn is_excluded(
-        child_path: &Path,
-        exclusions: &[String],
-        environment: &PlatformEnvironment,
-    ) -> bool {
-        crate::signatures::exclusions::is_excluded(child_path, exclusions, environment)
+    #[cfg(test)]
+    fn is_excluded(path: &Path, exclusions: &[String], environment: &PlatformEnvironment) -> bool {
+        crate::signatures::exclusions::is_excluded(path, exclusions, environment)
     }
 
     fn measure_dir_recursive(
         dir: &Path,
-        exclusions: &[String],
+        policy: &MeasurementPolicy,
         current_depth: usize,
         max_depth: usize,
         environment: &PlatformEnvironment,
@@ -946,13 +963,13 @@ impl SizeCalculator {
             };
             let child_path = ent.path();
 
-            if Self::is_excluded(&child_path, exclusions, environment) {
+            if policy.exclusions.is_excluded(&child_path) {
                 skipped_entries += 1;
                 continue;
             }
 
             // Check blacklist
-            if Blacklist::is_blacklisted_with(&child_path, environment) {
+            if policy.blacklist.is_blacklisted(&child_path) {
                 skipped_entries += 1;
                 continue;
             }
@@ -1000,7 +1017,7 @@ impl SizeCalculator {
                     } else if meta.is_dir() {
                         let sub = Self::measure_dir_recursive(
                             &child_path,
-                            exclusions,
+                            policy,
                             current_depth + 1,
                             max_depth,
                             environment,
@@ -1274,6 +1291,56 @@ mod tests {
             parallel.skipped_entries, 2,
             "the named exclusion and the `.git` tree are deliberately not measured"
         );
+    }
+
+    #[test]
+    fn each_measurement_prepares_its_own_environment_and_reads_fresh_metadata() {
+        let fixture = tempfile::tempdir().unwrap();
+        let cache = fixture.path().join("cache");
+        std::fs::create_dir_all(cache.join("keep")).unwrap();
+        std::fs::write(cache.join("payload.bin"), vec![1u8; 1_024]).unwrap();
+        std::fs::write(cache.join("keep/sentinel.bin"), vec![2u8; 2_048]).unwrap();
+        let environment =
+            PlatformEnvironment::simulated(PathFlavor::current()).with_home(if cfg!(windows) {
+                r"Z:\NeatiFixtureHome"
+            } else {
+                "/neati-fixture-home"
+            });
+        let excluded_environment = environment
+            .clone()
+            .with_cache_path_override("XDG_CACHE_HOME", &cache);
+        let included_environment =
+            environment.with_cache_path_override("XDG_CACHE_HOME", fixture.path().join("other"));
+        let exclusions = vec!["${XDG_CACHE_HOME}/keep".into()];
+        let pool = ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+        for workers in [None, Some(&pool)] {
+            std::fs::write(cache.join("payload.bin"), vec![1u8; 1_024]).unwrap();
+            let measure = |environment: &PlatformEnvironment| {
+                SizeCalculator::measure_path_with_pool(
+                    &cache,
+                    &exclusions,
+                    workers,
+                    environment,
+                    &NeverCancelled,
+                    crate::scanner::ScanLimits::default(),
+                    &crate::scanner::TraversalCounters::default(),
+                )
+            };
+            let before = measure(&excluded_environment);
+            assert!(before.complete);
+            assert_eq!(before.size.logical, 1_024);
+            assert_eq!(before.file_count, 1);
+            assert_eq!(before.skipped_entries, 1);
+            std::fs::write(cache.join("payload.bin"), vec![3u8; 4_096]).unwrap();
+            let changed = measure(&excluded_environment);
+            assert!(changed.complete);
+            assert_eq!(changed.size.logical, 4_096);
+            let included = measure(&included_environment);
+            assert!(included.complete);
+            assert_eq!(included.size.logical, 6_144);
+            assert_eq!(included.file_count, 2);
+            assert_eq!(included.skipped_entries, 0);
+        }
     }
 
     /// The prune and model-inventory paths measure a cache around a mutation; a

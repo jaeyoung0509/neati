@@ -128,6 +128,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         OwnerProviderRegistry::new(Vec::new())
     };
+    let scan_started = Instant::now();
+    let mut event_counts = BTreeMap::<&str, usize>::new();
+    let mut first_root_us = None;
+    let mut first_item_us = None;
+    let mut serialized_event_bytes = 0usize;
+    let mut event_serialization_us = 0u128;
     let result = ScanEngine::scan(
         &registry,
         &lifecycle_providers,
@@ -137,7 +143,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         true,
         &environment,
         &Deadline(Instant::now()),
-        |_| {},
+        |event| {
+            let kind = match &event {
+                ScanEvent::Started { .. } => "started",
+                ScanEvent::CategoryStarted { .. } => "category_started",
+                ScanEvent::RootStarted { .. } => {
+                    first_root_us.get_or_insert_with(|| scan_started.elapsed().as_micros());
+                    "root_started"
+                }
+                ScanEvent::ItemFound { .. } => {
+                    first_item_us.get_or_insert_with(|| scan_started.elapsed().as_micros());
+                    "item_found"
+                }
+                ScanEvent::CategoryFinished { .. } => "category_finished",
+                ScanEvent::Finished { .. } => "finished",
+            };
+            *event_counts.entry(kind).or_default() += 1;
+            // Measure the actual serialized event shapes without retaining
+            // their paths or payloads. This is encoding cost, not IPC latency.
+            let encoding_started = Instant::now();
+            let encoded = serde_json::to_vec(&event).expect("scan events serialize");
+            serialized_event_bytes += encoded.len();
+            event_serialization_us += encoding_started.elapsed().as_micros();
+        },
     );
     // Only aggregate counts and catalog IDs are serialized. Paths, names,
     // free-form errors, tokens, and provider output never enter this report.
@@ -217,6 +245,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let report = serde_json::json!({
         "schema": 3,
         "version": env!("CARGO_PKG_VERSION"),
+        "progress_observation": {
+            "first_root_us": first_root_us,
+            "first_item_us": first_item_us,
+            "event_counts": event_counts,
+            "serialized_event_bytes": serialized_event_bytes,
+            "event_serialization_us": event_serialization_us,
+        },
         "platform": environment.platform(),
         "started_at": result.started_at,
         "scope": if full_catalog { "full embedded catalog and native providers; intensive cleanup enabled; no cleanup" } else { "selected filesystem signatures; intensive observation enabled; no cleanup" },

@@ -48,7 +48,7 @@ impl ToolPreview {
         self.fingerprint.clone()
     }
     fn operation_path(&self, kind: ToolCacheKind) -> &Path {
-        if matches!(kind, ToolCacheKind::Cocoapods) {
+        if matches!(kind, ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli) {
             self.candidates
                 .first()
                 .map(PathBuf::as_path)
@@ -74,7 +74,28 @@ trait ToolCommandRunner: Send + Sync {
         preview: &ToolPreview,
         processes: &dyn RunningProcessProbe,
         guard: &RunningProcessPolicy,
-    ) -> Result<(), String>;
+    ) -> Result<(), ToolCommandError>;
+}
+enum ToolCommandError {
+    NotLaunched(String),
+    CommandFailed(String),
+}
+impl ToolCommandError {
+    fn into_detail(self) -> String {
+        match self {
+            Self::NotLaunched(detail) | Self::CommandFailed(detail) => detail,
+        }
+    }
+}
+impl From<String> for ToolCommandError {
+    fn from(detail: String) -> Self {
+        Self::NotLaunched(detail)
+    }
+}
+impl From<&str> for ToolCommandError {
+    fn from(detail: &str) -> Self {
+        Self::NotLaunched(detail.into())
+    }
 }
 #[derive(Clone, Copy, Debug)]
 pub enum ToolCacheKind {
@@ -82,6 +103,7 @@ pub enum ToolCacheKind {
     Mise,
     Swiftpm,
     Cocoapods,
+    GithubCli,
 }
 impl ToolCacheKind {
     fn executable(self) -> &'static str {
@@ -90,6 +112,7 @@ impl ToolCacheKind {
             Self::Mise => "mise",
             Self::Swiftpm => "swift-package",
             Self::Cocoapods => "pod",
+            Self::GithubCli => "gh",
         }
     }
 }
@@ -124,6 +147,9 @@ impl NativeToolCommandRunner {
                 roots.push(home.join(".local/bin"));
             }
         }
+        if matches!(self.kind, ToolCacheKind::GithubCli) {
+            roots = vec![PathBuf::from("/opt/homebrew"), PathBuf::from("/usr/local")];
+        }
         if matches!(self.kind, ToolCacheKind::Cocoapods) {
             roots = vec![PathBuf::from("/opt/homebrew"), PathBuf::from("/usr/local")];
             if let Some(home) = environment.user_home() {
@@ -150,6 +176,9 @@ impl NativeToolCommandRunner {
         let home = environment.user_home().ok_or("No user home for Conda")?;
         let mut command = Command::new(executable);
         match self.kind {
+            ToolCacheKind::GithubCli => {
+                return Err("GitHub CLI requires its isolated command".into())
+            }
             ToolCacheKind::Cocoapods => {
                 return Err("CocoaPods requires its isolated launcher".into())
             }
@@ -207,107 +236,22 @@ impl NativeToolCommandRunner {
         }
         Ok(command)
     }
-    fn run(
+    fn scope_snapshot(
         &self,
         environment: &PlatformEnvironment,
-        dry_run: bool,
-        reviewed: Option<&ToolPreview>,
-    ) -> Result<(PathBuf, Vec<u8>), String> {
-        let executable = self.executable(environment)?;
-        if let Some(reviewed) = reviewed {
-            if executable != reviewed.executable {
-                return Err("The provider executable changed".into());
-            }
-            ToctouGuard::verify(&executable, &reviewed.executable_identity)
-                .map_err(|error| error.to_string())?;
-        }
-        let scratch = if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
-            Some(
-                tempfile::Builder::new()
-                    .prefix("neati-swiftpm-")
-                    .tempdir_in(environment.temp_dir())
-                    .map_err(|e| e.to_string())?,
-            )
-        } else {
-            None
-        };
-        let command = if matches!(self.kind, ToolCacheKind::Cocoapods) {
-            cocoapods_command(
-                &executable,
-                &cocoapods_cache_root(environment)?,
-                scratch
-                    .as_ref()
-                    .ok_or("Isolated workspace unavailable")?
-                    .path(),
-                dry_run,
-                environment,
-            )?
-        } else if let Some(scratch) = &scratch {
-            if dry_run {
-                let mut command = Command::new(&executable);
-                command
-                    .arg("--version")
-                    .current_dir(scratch.path())
-                    .env_clear()
-                    .env("HOME", scratch.path())
-                    .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin");
-                command
-            } else {
-                swiftpm_command(
-                    &executable,
-                    &swiftpm_cache_root(environment)?,
-                    scratch.path(),
-                )
-            }
-        } else {
-            self.command(environment, &executable, dry_run)?
-        };
-        let output = neati_platform::subprocess::run_with_timeout(
-            command,
-            Duration::from_secs(if dry_run { 30 } else { 120 }),
-        )
-        .map_err(|error| error.to_string())?;
-        if !output.status.success() || (dry_run && !output.stderr.is_empty()) {
-            return Err("Tool returned an error or warning; no cleanup result was verified".into());
-        }
-        Ok((executable, output.stdout))
-    }
-}
-impl ToolCommandRunner for NativeToolCommandRunner {
-    fn inspection_prerequisite(
-        &self,
-        environment: &PlatformEnvironment,
-    ) -> Result<(), crate::models::ScanGapKind> {
-        if matches!(self.kind, ToolCacheKind::Swiftpm) {
-            if let Some(tool) = environment.tool("swift-package") {
-                return tool
-                    .path()
-                    .map(|_| ())
-                    .ok_or(crate::models::ScanGapKind::ToolMissing);
-            }
-            return swiftpm_executable(environment)
-                .map(|_| ())
-                .map_err(|_| crate::models::ScanGapKind::Unknown);
-        }
-        let available = crate::tooling::resolve_with(self.kind.executable(), environment).is_some();
-        if available {
-            Ok(())
-        } else {
-            Err(crate::models::ScanGapKind::ToolMissing)
-        }
-    }
-
-    fn preview(&self, environment: &PlatformEnvironment) -> Result<ToolPreview, String> {
-        let (executable, output) = self.run(environment, true, None)?;
+        executable: PathBuf,
+        output: &[u8],
+    ) -> Result<ToolPreview, String> {
         let candidates = match self.kind {
-            ToolCacheKind::Conda => parse_candidates(&output)?,
-            ToolCacheKind::Mise => parse_mise_roots(&output, environment)?,
-            ToolCacheKind::Swiftpm => swiftpm_candidates(&output, environment)?,
-            ToolCacheKind::Cocoapods => cocoapods_candidates(&output, environment)?,
+            ToolCacheKind::Conda => parse_candidates(output)?,
+            ToolCacheKind::Mise => parse_mise_roots(output, environment)?,
+            ToolCacheKind::Swiftpm => swiftpm_candidates(output, environment)?,
+            ToolCacheKind::Cocoapods => cocoapods_candidates(output, environment)?,
+            ToolCacheKind::GithubCli => super::github_cli::candidates(output, environment)?,
         };
         let mut digest = Sha256::new();
         if matches!(self.kind, ToolCacheKind::Cocoapods) {
-            fingerprint_cocoapods_runtime(&output, &mut digest)?;
+            fingerprint_cocoapods_runtime(output, &mut digest)?;
         }
         digest.update(executable.as_os_str().as_encoded_bytes());
         let executable_identity =
@@ -345,13 +289,18 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             digest.update(path.as_os_str().as_encoded_bytes());
             digest.update(format!("{identity:?}"));
             digest.update(measurement.allocated_bytes.to_le_bytes());
-            if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
+            if matches!(
+                self.kind,
+                ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ) {
                 fingerprint_tree(path, &mut digest)?;
             }
         }
         Ok(ToolPreview {
             prefix: if matches!(self.kind, ToolCacheKind::Cocoapods) {
                 cocoapods_download_root(environment)?
+            } else if matches!(self.kind, ToolCacheKind::GithubCli) {
+                super::github_cli::cache_root(environment)?
             } else {
                 executable
                     .parent()
@@ -372,13 +321,147 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             ),
         })
     }
+    fn revalidate_github_launch(
+        &self,
+        environment: &PlatformEnvironment,
+        executable: &Path,
+        reviewed: &ToolPreview,
+    ) -> Result<(), String> {
+        let current = self.scope_snapshot(
+            environment,
+            executable.to_path_buf(),
+            super::github_cli::VERSION_OUTPUT,
+        )?;
+        if current.key() != reviewed.key() {
+            return Err("GitHub CLI cache scope changed after the final use check; no owner command was launched".into());
+        }
+        Ok(())
+    }
+    fn run(
+        &self,
+        environment: &PlatformEnvironment,
+        dry_run: bool,
+        reviewed: Option<&ToolPreview>,
+    ) -> Result<(PathBuf, Vec<u8>), ToolCommandError> {
+        let executable = self.executable(environment)?;
+        if let Some(reviewed) = reviewed {
+            if executable != reviewed.executable {
+                return Err("The provider executable changed".into());
+            }
+            ToctouGuard::verify(&executable, &reviewed.executable_identity)
+                .map_err(|error| error.to_string())?;
+        }
+        let scratch = if matches!(
+            self.kind,
+            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+        ) {
+            Some(
+                tempfile::Builder::new()
+                    .prefix("neati-swiftpm-")
+                    .tempdir_in(environment.temp_dir())
+                    .map_err(|e| e.to_string())?,
+            )
+        } else {
+            None
+        };
+        let command = if matches!(self.kind, ToolCacheKind::Cocoapods) {
+            cocoapods_command(
+                &executable,
+                &cocoapods_cache_root(environment)?,
+                scratch
+                    .as_ref()
+                    .ok_or("Isolated workspace unavailable")?
+                    .path(),
+                dry_run,
+                environment,
+            )?
+        } else if matches!(self.kind, ToolCacheKind::GithubCli) {
+            super::github_cli::command(
+                &executable,
+                environment,
+                scratch
+                    .as_ref()
+                    .ok_or("Isolated workspace unavailable")?
+                    .path(),
+                dry_run,
+            )?
+        } else if let Some(scratch) = &scratch {
+            if dry_run {
+                let mut command = Command::new(&executable);
+                command
+                    .arg("--version")
+                    .current_dir(scratch.path())
+                    .env_clear()
+                    .env("HOME", scratch.path())
+                    .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin");
+                command
+            } else {
+                swiftpm_command(
+                    &executable,
+                    &swiftpm_cache_root(environment)?,
+                    scratch.path(),
+                )
+            }
+        } else {
+            self.command(environment, &executable, dry_run)?
+        };
+        if !dry_run && matches!(self.kind, ToolCacheKind::GithubCli) {
+            self.revalidate_github_launch(
+                environment,
+                &executable,
+                reviewed.ok_or("GitHub CLI requires a reviewed scope")?,
+            )?;
+        }
+        let output = neati_platform::subprocess::run_with_timeout(
+            command,
+            Duration::from_secs(if dry_run { 30 } else { 120 }),
+        )
+        .map_err(|error| ToolCommandError::CommandFailed(error.to_string()))?;
+        if !output.status.success() || (dry_run && !output.stderr.is_empty()) {
+            return Err(ToolCommandError::CommandFailed(
+                "Tool returned an error or warning; no cleanup result was verified".into(),
+            ));
+        }
+        Ok((executable, output.stdout))
+    }
+}
+impl ToolCommandRunner for NativeToolCommandRunner {
+    fn inspection_prerequisite(
+        &self,
+        environment: &PlatformEnvironment,
+    ) -> Result<(), crate::models::ScanGapKind> {
+        if matches!(self.kind, ToolCacheKind::Swiftpm) {
+            if let Some(tool) = environment.tool("swift-package") {
+                return tool
+                    .path()
+                    .map(|_| ())
+                    .ok_or(crate::models::ScanGapKind::ToolMissing);
+            }
+            return swiftpm_executable(environment)
+                .map(|_| ())
+                .map_err(|_| crate::models::ScanGapKind::Unknown);
+        }
+        let available = crate::tooling::resolve_with(self.kind.executable(), environment).is_some();
+        if available {
+            Ok(())
+        } else {
+            Err(crate::models::ScanGapKind::ToolMissing)
+        }
+    }
+
+    fn preview(&self, environment: &PlatformEnvironment) -> Result<ToolPreview, String> {
+        let (executable, output) = self
+            .run(environment, true, None)
+            .map_err(ToolCommandError::into_detail)?;
+        self.scope_snapshot(environment, executable, &output)
+    }
     fn cleanup(
         &self,
         environment: &PlatformEnvironment,
         preview: &ToolPreview,
         processes: &dyn RunningProcessProbe,
         guard: &RunningProcessPolicy,
-    ) -> Result<(), String> {
+    ) -> Result<(), ToolCommandError> {
         let current = self.preview(environment)?;
         if current.key() != preview.key() {
             return Err("The tool or cache inventory changed before execution".into());
@@ -387,13 +470,21 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             Some(running) if running.is_empty() => {}
             _ => return Err("The owner is running or its state is unknown".into()),
         }
-        if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
+        if matches!(
+            self.kind,
+            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+        ) {
             verify_swiftpm_idle(&current.candidates, processes, guard)?;
         }
         let (_, output) = self.run(environment, false, Some(&current))?;
         match self.kind {
-            ToolCacheKind::Conda => parse_candidates(&output).map(|_| ()),
-            ToolCacheKind::Mise | ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods => Ok(()),
+            ToolCacheKind::Conda => parse_candidates(&output)
+                .map(|_| ())
+                .map_err(ToolCommandError::CommandFailed),
+            ToolCacheKind::Mise
+            | ToolCacheKind::Swiftpm
+            | ToolCacheKind::Cocoapods
+            | ToolCacheKind::GithubCli => Ok(()),
         }
     }
 }
@@ -659,8 +750,10 @@ impl ToolCleanupProvider {
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
-        if !matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods)
-            && crate::tooling::resolve_with(self.kind.executable(), environment).is_none()
+        if !matches!(
+            self.kind,
+            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+        ) && crate::tooling::resolve_with(self.kind.executable(), environment).is_none()
         {
             return OwnerStoreObservation::ready(None, Vec::new());
         }
@@ -699,7 +792,10 @@ impl ToolCleanupProvider {
                 return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error)
             }
         };
-        if matches!(self.kind, ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods) {
+        if matches!(
+            self.kind,
+            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+        ) {
             if let Err(error) =
                 verify_swiftpm_idle(&preview.candidates, self.process.as_ref(), guard)
             {
@@ -847,6 +943,9 @@ impl ToolCleanupProvider {
             self.process.as_ref(),
             &authorization.process_guard,
         );
+        if let Err(ToolCommandError::NotLaunched(detail)) = &command_result {
+            return refuse(detail.clone());
+        }
         let remaining = match self.runner.preview(environment) {
             Ok(preview) => preview.estimated_bytes.min(unit.expected_bytes),
             Err(error) => {
@@ -855,7 +954,7 @@ impl ToolCleanupProvider {
                     unit.unit_key.clone(),
                     0,
                     None,
-                    format!("Tool ran, but its post-cleanup state could not be verified: {error}"),
+                    format!("The attempted owner command's result could not be verified: {error}"),
                 )
             }
         };
@@ -871,14 +970,18 @@ impl ToolCleanupProvider {
                 None,
                 "Tool completed but still reports reviewed cleanup candidates",
             ),
-            Err(error) if removed > 0 => OwnerUnitOutcome::partially_cleaned(
-                unit.item_id.clone(),
-                unit.unit_key.clone(),
-                removed,
-                Some(remaining),
-                error,
-            ),
-            Err(error) => refuse(error),
+            Err(ToolCommandError::CommandFailed(error)) if removed > 0 => {
+                OwnerUnitOutcome::partially_cleaned(
+                    unit.item_id.clone(),
+                    unit.unit_key.clone(),
+                    removed,
+                    Some(remaining),
+                    error,
+                )
+            }
+            Err(ToolCommandError::CommandFailed(error) | ToolCommandError::NotLaunched(error)) => {
+                refuse(error)
+            }
         }
     }
 }
@@ -890,6 +993,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
             ToolCacheKind::Mise => "mise.cache_clear",
             ToolCacheKind::Swiftpm => "swiftpm.purge_cache",
             ToolCacheKind::Cocoapods => "cocoapods.download_cache",
+            ToolCacheKind::GithubCli => "github_cli.local_cache_clear",
         }
     }
 
@@ -903,6 +1007,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
             ToolCacheKind::Swiftpm => "SwiftPM purges global repository downloads, registry downloads and its manifest cache. Dependencies may need downloading again. Project builds, installed toolchains, artifacts, configuration and security state stay intact.",
             ToolCacheKind::Conda => "Conda removes downloaded package archives, index caches and logs. Extracted packages and installed environments remain intact.",
             ToolCacheKind::Mise => "mise clears tool metadata, task output caches and cached environments using its own command. Installed tools, configuration and trust records remain intact; tasks may run again.",
+            ToolCacheKind::GithubCli => "GitHub CLI permanently clears its complete verified default local HTTP cache. Requests may need the network again. Authentication, configuration, extension installations and remote GitHub Actions caches remain intact.",
         }
     }
 
@@ -1144,7 +1249,7 @@ mod tests {
             _: &ToolPreview,
             _: &dyn RunningProcessProbe,
             _: &RunningProcessPolicy,
-        ) -> Result<(), String> {
+        ) -> Result<(), ToolCommandError> {
             self.calls.fetch_add(1, Ordering::SeqCst);
             self.preview.lock().unwrap().estimated_bytes = 0;
             Ok(())
@@ -1417,12 +1522,13 @@ mod tests {
                 ToolCacheKind::Mise => assert_eq!(args, ["cache", "clear"]),
                 ToolCacheKind::Swiftpm => assert_eq!(args, ["--version"]),
                 ToolCacheKind::Cocoapods => panic!("CocoaPods uses a separate isolated command"),
+                ToolCacheKind::GithubCli => panic!("GitHub CLI uses a separate isolated command"),
             }
             assert_eq!(command.get_current_dir(), Some(Path::new("/profile")));
         }
     }
     #[test]
-    fn cocoapods_unknown_handles_and_changed_review_never_execute_the_owner() {
+    fn whole_root_owners_refuse_unknown_handles_restart_and_changed_review() {
         struct UnknownHandles;
         impl RunningProcessProbe for UnknownHandles {
             fn running(&self, policy: &RunningProcessPolicy) -> Option<Vec<String>> {
@@ -1434,54 +1540,151 @@ mod tests {
             }
         }
         let temp = tempfile::tempdir().unwrap();
-        let cache = temp.path().join("Library/Caches/CocoaPods/Pods");
-        std::fs::create_dir_all(&cache).unwrap();
-        std::fs::write(cache.join("VERSION"), "1.16.2").unwrap();
-        let executable = temp.path().join("pod");
-        std::fs::write(&executable, b"fixture").unwrap();
-        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
-            .with_home(temp.path())
-            .with_tool("pod", &executable);
-        let runner = Arc::new(Runner {
-            preview: Mutex::new(ToolPreview {
-                executable: executable.clone(),
-                executable_identity: ToctouGuard::capture(&executable).unwrap(),
-                prefix: temp.path().to_path_buf(),
-                candidates: vec![cache.clone()],
-                estimated_bytes: 4096,
-                fingerprint: "cocoa-1".into(),
-            }),
-            calls: AtomicUsize::new(0),
-        });
-        let guard = RunningProcessPolicy::guarding(vec!["pod".into(), "ruby".into()]);
-        let mut provider = ToolCleanupProvider {
-            process: Arc::new(UnknownHandles),
-            runner: runner.clone(),
-            kind: ToolCacheKind::Cocoapods,
-        };
-        assert!(!provider.scan(&environment, &guard).has_ready_units());
-        assert!(provider.prepare(&environment, &guard, &[]).is_err());
-        provider.process = Arc::new(Idle);
-        let observed = provider.scan(&environment, &guard);
-        let unit = &observed.units[0];
-        let selected = OwnerProviderSelection {
-            item_id: format!("cocoa.{}", unit.unit_key),
-            name: "CocoaPods".into(),
-            path: unit.path.clone(),
-            expected_bytes: unit.allocated_bytes,
-        };
-        let plan = provider.prepare(&environment, &guard, &[selected]).unwrap();
-        assert!(plan.requires_confirmation);
-        assert_eq!(
-            plan.deletion_disposition,
-            neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
-        );
-        runner.preview.lock().unwrap().fingerprint = "cocoa-2".into();
-        assert_eq!(
-            provider.execute(&environment, &plan).units[0].status,
-            ProviderStatus::Blocked
-        );
-        assert_eq!(runner.calls.load(Ordering::SeqCst), 0);
-        assert!(cache.join("VERSION").exists());
+        for (kind, tool, relative) in [
+            (
+                ToolCacheKind::Cocoapods,
+                "pod",
+                "Library/Caches/CocoaPods/Pods",
+            ),
+            (ToolCacheKind::GithubCli, "gh", ".cache/gh"),
+        ] {
+            let cache = temp.path().join(relative);
+            std::fs::create_dir_all(&cache).unwrap();
+            std::fs::write(cache.join("VERSION"), "1.16.2").unwrap();
+            let executable = temp.path().join(tool);
+            std::fs::write(&executable, b"fixture").unwrap();
+            let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+                .with_home(temp.path())
+                .with_tool(tool, &executable);
+            let runner = Arc::new(Runner {
+                preview: Mutex::new(ToolPreview {
+                    executable: executable.clone(),
+                    executable_identity: ToctouGuard::capture(&executable).unwrap(),
+                    prefix: temp.path().to_path_buf(),
+                    candidates: vec![cache.clone()],
+                    estimated_bytes: 4096,
+                    fingerprint: "cocoa-1".into(),
+                }),
+                calls: AtomicUsize::new(0),
+            });
+            let guard = RunningProcessPolicy::guarding(vec![tool.into()]);
+            let mut provider = ToolCleanupProvider {
+                process: Arc::new(UnknownHandles),
+                runner: runner.clone(),
+                kind,
+            };
+            assert!(!provider.scan(&environment, &guard).has_ready_units());
+            assert!(provider.prepare(&environment, &guard, &[]).is_err());
+            provider.process = Arc::new(Idle);
+            let observed = provider.scan(&environment, &guard);
+            let unit = &observed.units[0];
+            let selected = OwnerProviderSelection {
+                item_id: format!("cocoa.{}", unit.unit_key),
+                name: "CocoaPods".into(),
+                path: unit.path.clone(),
+                expected_bytes: unit.allocated_bytes,
+            };
+            let plan = provider.prepare(&environment, &guard, &[selected]).unwrap();
+            assert!(plan.requires_confirmation);
+            assert_eq!(
+                plan.deletion_disposition,
+                neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
+            );
+            struct Busy;
+            impl RunningProcessProbe for Busy {
+                fn running(&self, _: &RunningProcessPolicy) -> Option<Vec<String>> {
+                    Some(vec!["restarted owner".into()])
+                }
+            }
+            provider.process = Arc::new(Busy);
+            assert_eq!(
+                provider.execute(&environment, &plan).units[0].status,
+                ProviderStatus::Blocked
+            );
+            provider.process = Arc::new(Idle);
+            runner.preview.lock().unwrap().fingerprint = "changed-review".into();
+            assert_eq!(
+                provider.execute(&environment, &plan).units[0].status,
+                ProviderStatus::Blocked
+            );
+            assert_eq!(runner.calls.load(Ordering::SeqCst), 0);
+            assert!(cache.join("VERSION").exists());
+        }
+    }
+    #[test]
+    fn github_final_handle_probe_cannot_redirect_or_replace_the_reviewed_scope() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        struct ChangeAfterIdle {
+            home: PathBuf,
+            ancestor_link: bool,
+            changed: AtomicUsize,
+        }
+        impl RunningProcessProbe for ChangeAfterIdle {
+            fn running(&self, policy: &RunningProcessPolicy) -> Option<Vec<String>> {
+                if policy.open_file_path().is_some()
+                    && self.changed.fetch_add(1, Ordering::SeqCst) == 0
+                {
+                    if self.ancestor_link {
+                        std::fs::rename(self.home.join(".cache"), self.home.join("reviewed-cache"))
+                            .unwrap();
+                        std::os::unix::fs::symlink(
+                            self.home.join("unrelated"),
+                            self.home.join(".cache"),
+                        )
+                        .unwrap();
+                    } else {
+                        let file = self.home.join(".cache/gh/ab/cd").join("0".repeat(60));
+                        std::fs::rename(&file, self.home.join("reviewed-payload")).unwrap();
+                        std::fs::write(&file, b"private payload").unwrap();
+                        std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600))
+                            .unwrap();
+                    }
+                }
+                Some(vec![])
+            }
+        }
+        for ancestor_link in [false, true] {
+            let temp = tempfile::tempdir().unwrap();
+            let home = temp.path().canonicalize().unwrap();
+            let root = home.join(".cache/gh");
+            let file = root.join("ab/cd").join("0".repeat(60));
+            std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+            std::fs::write(&file, b"private payload").unwrap();
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600)).unwrap();
+            let outside = home.join("unrelated/gh/private-state");
+            std::fs::create_dir_all(outside.parent().unwrap()).unwrap();
+            std::fs::write(&outside, b"outside scope").unwrap();
+            let executable = home.join("fixture-executable");
+            std::fs::write(&executable, b"fixture only; never executed").unwrap();
+            let env = PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
+                .with_home(&home)
+                .with_current_user_id(std::fs::metadata(&home).unwrap().uid());
+            let runner = NativeToolCommandRunner {
+                kind: ToolCacheKind::GithubCli,
+            };
+            let review = runner
+                .scope_snapshot(
+                    &env,
+                    executable.clone(),
+                    super::super::github_cli::VERSION_OUTPUT,
+                )
+                .unwrap();
+            let process = ChangeAfterIdle {
+                home: home.clone(),
+                ancestor_link,
+                changed: AtomicUsize::new(0),
+            };
+            verify_swiftpm_idle(
+                std::slice::from_ref(&root),
+                &process,
+                &RunningProcessPolicy::guarding(vec!["gh".into()]),
+            )
+            .unwrap();
+            assert!(runner
+                .revalidate_github_launch(&env, &executable, &review)
+                .is_err());
+            assert_eq!(process.changed.load(Ordering::SeqCst), 1);
+            assert_eq!(std::fs::read(outside).unwrap(), b"outside scope");
+        }
     }
 }

@@ -29,6 +29,7 @@ import type {
   DiskVolume,
   DockerStatus,
   InstalledApp,
+  AppLeftoverInventory,
   InstalledAppInventory,
   LargeFileScanEvent,
   LargeFileScanRequest,
@@ -422,6 +423,10 @@ export function tauriPrepareDeveloperArtifactCleanup(
 
 export function tauriGetInstalledApps(): Promise<InstalledAppInventory> {
   return storageApi.getInstalledApps();
+}
+
+export function tauriGetAppLeftovers(): Promise<AppLeftoverInventory> {
+  return storageApi.getAppLeftovers();
 }
 
 export function tauriInspectAppUninstall(appId: string): Promise<AppUninstallInspection> {

@@ -996,3 +996,35 @@ platforms = ["macos"]
 paths = []
 fail_if_running = ["node", "nodejs", "npm", "npx", "pnpm", "yarn", "corepack"]
 description = "Exact default node-compile-cache namespaces under the stated user and shared temporary roots. The owner adapter requires three-day inactivity. Only verified Node 26.7.0 arm64 cache groups with the validated V8 tag and current-user identity are actionable; other versions and layouts remain advisory. Source projects, runtimes and arbitrary temporary folders stay intact."
+
+[[signatures]]
+id = "system.arc.profile_cache_observations"
+name = "Arc Named Profile Cache Leaves"
+category = "system"
+family = "applications"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = [
+    "~/Library/Application Support/Arc/User Data/*/{Cache,Code Cache,GPUCache}",
+    "~/Library/Application Support/Arc/*/{Cache,Code Cache,GPUCache}",
+    "~/Library/Application Support/company.thebrowser.Browser/*/{Cache,Code Cache,GPUCache}"
+]
+owner = "Arc"
+provider = "Arc"
+# Observation does not inherit a verified renderer-cache removal policy.
+description = "Read-only metadata observation of exact cache-named leaves in known Arc root spellings. Root presence is not installed-version or active-profile evidence; profile state, cookies, history, registrations, databases and offline data are not targets. Cleanup remains unavailable until the version/root/use contract is independently verified."
+
+[[signatures]]
+id = "system.chrome_devtools.profile_cache_observations"
+name = "Chrome DevTools MCP Profile Cache Leaves"
+category = "system"
+family = "applications"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.cache/chrome-devtools-mcp/{chrome-profile,chrome-profile-canary,chrome-profile-beta,chrome-profile-dev}/*/{Cache,Code Cache,GPUCache}"]
+owner = "Chrome DevTools MCP"
+provider = "Chrome DevTools MCP"
+# Observation does not inherit a verified renderer-cache removal policy.
+description = "Read-only observation of named leaves under the owner's documented persistent channel profiles. The profile is reused between runs, so it is never treated as an abandoned temporary folder. Custom/isolated profiles and all profile state remain outside this observation; no browser termination or cleanup is offered."

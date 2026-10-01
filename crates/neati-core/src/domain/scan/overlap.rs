@@ -14,8 +14,9 @@
 //! rule imposed that verdict and how many bytes are accounted for this way.
 
 use super::{
-    CacheManagementMode, CategoryResult, CleanupEligibility, CleanupUnitIdentity, CleanupUnitKind,
-    EligibilityGate, PathIdentity, ScanItem,
+    CacheManagementMode, CacheSizeSemantics, CategoryResult, CleanupEligibility,
+    CleanupUnitIdentity, CleanupUnitKind, EligibilityGate, OwnershipConfidence, PathIdentity,
+    ScanItem,
 };
 use crate::domain::RiskTier;
 use serde::{Deserialize, Serialize};
@@ -102,6 +103,127 @@ pub struct OverlapReport {
     /// `total_bytes`.
     pub ambiguous_count: u64,
     pub ambiguous_bytes: u64,
+}
+
+/// Route a completely covered observation-only namespace to its existing owner
+/// action before the conservative overlap pass. This changes accounting only:
+/// the owner's facts, opaque item ID, confirmation and selection stay intact.
+/// The caller must verify the registered Manual/OwnerProvider contracts and
+/// establish exact directory-entry equivalence, never mere containment or
+/// shared physical storage. Ambiguous competing owners are not routed.
+pub fn route_exact_observations_to_owners_with<F>(
+    categories: &mut [CategoryResult],
+    exact_registered_owner: F,
+) -> usize
+where
+    F: Fn(&ScanItem, &ScanItem) -> bool,
+{
+    let owners: Vec<_> = categories
+        .iter()
+        .enumerate()
+        .flat_map(|(category, result)| {
+            result
+                .items
+                .iter()
+                .enumerate()
+                .filter_map(move |(index, item)| {
+                    ready_owner_for_routing(item).then_some((category, index))
+                })
+        })
+        .collect();
+    if owners.is_empty() {
+        return 0;
+    }
+    let mut routes = Vec::new();
+    for (category, result) in categories.iter().enumerate() {
+        for (index, observation) in result.items.iter().enumerate() {
+            if !observation_only_for_routing(observation) {
+                continue;
+            }
+            let mut matching = owners
+                .iter()
+                .copied()
+                .filter(|&(owner_category, owner_index)| {
+                    let owner = &categories[owner_category].items[owner_index];
+                    owner.ownership == observation.ownership
+                        && owner.cache_metadata.provider == observation.cache_metadata.provider
+                        && owner.cache_metadata.artifact_kind
+                            == observation.cache_metadata.artifact_kind
+                        && owner.observed_bytes() >= observation.observed_bytes()
+                        && exact_registered_owner(observation, owner)
+                });
+            if let Some((owner_category, owner_index)) = matching.next() {
+                if matching.next().is_none() {
+                    routes.push((category, index, owner_category, owner_index));
+                }
+            }
+        }
+    }
+    let mut removed: HashMap<usize, Vec<usize>> = HashMap::new();
+    for &(category, index, owner_category, _) in &routes {
+        let bytes = categories[category].items[index].observed_bytes();
+        categories[owner_category].suppressed_duplicate_count += 1;
+        categories[owner_category].suppressed_duplicate_bytes += bytes;
+        removed.entry(category).or_default().push(index);
+    }
+    for (category, mut indices) in removed {
+        indices.sort_unstable_by(|left, right| right.cmp(left));
+        for index in indices {
+            categories[category].items.remove(index);
+        }
+        categories[category].recompute_accounting();
+    }
+    routes.len()
+}
+
+fn ready_owner_for_routing(item: &ScanItem) -> bool {
+    let bytes = item.observed_bytes();
+    let ready = item.exists
+        && item.unit.is_declared()
+        && item.unit.kind == CleanupUnitKind::ProviderAction
+        && item.lifecycle_provider_action
+        && item.cache_metadata.management_mode == CacheManagementMode::ToolManaged
+        && item.cache_metadata.size_semantics != CacheSizeSemantics::Informational
+        && item.size.allocated.is_some()
+        && item.ownership.confidence == OwnershipConfidence::Declared
+        && !item.ownership.owner.is_empty()
+        && item.gate.is_open()
+        && !item.owner_running
+        && item.structured_state.is_none()
+        && item.provider_restriction.is_none()
+        && item.age.is_none()
+        && item.stale.is_none()
+        && item.overlaps.is_empty()
+        && completely_observed(item)
+        && bytes > 0;
+    if !ready {
+        return false;
+    }
+    let disposition = item.derive_disposition();
+    disposition.is_cleanable()
+        && disposition.cleanable_bytes == Some(bytes)
+        && item.disposition == disposition
+}
+
+fn observation_only_for_routing(item: &ScanItem) -> bool {
+    item.exists
+        && item.unit.is_declared()
+        && item.unit.kind.is_filesystem()
+        && !item.lifecycle_provider_action
+        && item.risk == RiskTier::Manual
+        && item.cache_metadata.management_mode == CacheManagementMode::Advisory
+        && item.cache_metadata.size_semantics == CacheSizeSemantics::Informational
+        && item.size.allocated.is_some()
+        && item.ownership.confidence == OwnershipConfidence::Declared
+        && item.gate.is_open()
+        && !item.owner_running
+        && item.structured_state.is_none()
+        && item.provider_restriction.is_none()
+        && item.age.is_none()
+        && item.stale.is_none()
+        && item.overlaps.is_empty()
+        && completely_observed(item)
+        && item.disposition.eligibility == CleanupEligibility::Advisory
 }
 
 /// The relationship established by the filesystem for two scanned units.
@@ -533,6 +655,157 @@ mod tests {
         };
         result.recompute_accounting();
         result
+    }
+
+    fn owner_and_observation() -> (ScanItem, ScanItem) {
+        let path = "/Users/tester/.cache/gh";
+        let mut observation = item("dev.observation", path, 1_000, RiskTier::Manual);
+        observation.cache_metadata.management_mode = CacheManagementMode::Advisory;
+        observation.cache_metadata.size_semantics = CacheSizeSemantics::Informational;
+        observation.cache_metadata.provider = "GitHub CLI".into();
+        observation.ownership = super::super::CleanupOwnership::declared("GitHub CLI");
+        observation.rederive_disposition();
+        let mut owner = item("dev.owner", path, 1_000, RiskTier::Rebuild);
+        owner.unit.kind = CleanupUnitKind::ProviderAction;
+        owner.lifecycle_provider_action = true;
+        owner.requires_confirmation = true;
+        owner.cache_metadata.management_mode = CacheManagementMode::ToolManaged;
+        owner.cache_metadata.size_semantics = CacheSizeSemantics::ConservativeLowerBound;
+        owner.cache_metadata.provider = "GitHub CLI".into();
+        owner.ownership = observation.ownership.clone();
+        owner.rederive_disposition();
+        (owner, observation)
+    }
+
+    #[test]
+    fn exact_observation_routing_preserves_the_complete_owner_action_and_counts_once() {
+        let (owner, observation) = owner_and_observation();
+        for items in [
+            vec![owner.clone(), observation.clone()],
+            vec![observation.clone(), owner.clone()],
+        ] {
+            let mut categories = vec![category(items)];
+            assert_eq!(
+                route_exact_observations_to_owners_with(&mut categories, |left, right| {
+                    left.unit_identity(SENSITIVE) == right.unit_identity(SENSITIVE)
+                }),
+                1
+            );
+            resolve_unit_overlaps(&mut categories, &[], SENSITIVE);
+            assert_eq!(categories[0].items.as_slice(), std::slice::from_ref(&owner));
+            assert_eq!(categories[0].total_bytes, 1_000);
+            assert_eq!(categories[0].cleanable_bytes, 1_000);
+            assert_eq!(categories[0].suppressed_duplicate_count, 1);
+            assert_eq!(categories[0].suppressed_duplicate_bytes, 1_000);
+            assert_eq!(categories[0].ambiguous_overlap_bytes, 0);
+        }
+    }
+
+    #[test]
+    fn incomplete_busy_protected_or_unverified_facts_cannot_route_an_observation() {
+        for boundary in [
+            "partial owner",
+            "partial observation",
+            "missing owner",
+            "blocked owner",
+            "busy owner",
+            "busy observation",
+            "unknown amount",
+            "unknown allocation",
+            "uncovered bytes",
+            "generic filesystem",
+            "unverified provider",
+            "different owner",
+            "protected state",
+            "closed gate",
+            "existing overlap",
+        ] {
+            let (mut owner, mut observation) = owner_and_observation();
+            match boundary {
+                "partial owner" => owner.quality = crate::domain::ObservationQuality::Partial,
+                "partial observation" => observation.skipped_entry_count = 1,
+                "missing owner" => owner.exists = false,
+                "blocked owner" => owner.quality = crate::domain::ObservationQuality::Unavailable,
+                "busy owner" => owner.owner_running = true,
+                "busy observation" => observation.owner_running = true,
+                "unknown amount" => {
+                    owner.cache_metadata.size_semantics = CacheSizeSemantics::Informational
+                }
+                "unknown allocation" => owner.size.allocated = None,
+                "uncovered bytes" => owner.size = FileSize::new(500, Some(500)),
+                "generic filesystem" => owner.unit.kind = CleanupUnitKind::FixedPath,
+                "unverified provider" => owner.lifecycle_provider_action = false,
+                "different owner" => {
+                    owner.ownership = super::super::CleanupOwnership::declared("Other tool")
+                }
+                "protected state" => {
+                    observation.structured_state =
+                        Some(crate::domain::cleanup::StructuredStateKind::Credential)
+                }
+                "closed gate" => owner.gate = EligibilityGate::IntensiveCleanupDisabled,
+                "existing overlap" => owner.overlaps.push(CleanupOverlap::of(&observation)),
+                _ => unreachable!(),
+            }
+            owner.rederive_disposition();
+            observation.rederive_disposition();
+            let mut categories = vec![category(vec![owner, observation])];
+            let original = categories[0].items.clone();
+            assert_eq!(
+                route_exact_observations_to_owners_with(&mut categories, |_, _| true),
+                0,
+                "{boundary}"
+            );
+            assert_eq!(categories[0].items, original, "{boundary}");
+            assert_eq!(
+                categories[0].total_bytes,
+                original.iter().map(ScanItem::observed_bytes).sum::<u64>()
+            );
+            assert_eq!(categories[0].suppressed_duplicate_count, 0, "{boundary}");
+        }
+    }
+
+    #[test]
+    fn a_riskier_generic_filesystem_rule_cannot_override_an_advisory_namespace() {
+        let (mut generic, observation) = owner_and_observation();
+        generic.unit.kind = CleanupUnitKind::FixedPath;
+        generic.lifecycle_provider_action = false;
+        generic.requires_confirmation = false;
+        generic.cache_metadata.management_mode = CacheManagementMode::Neati;
+        generic.rederive_disposition();
+        let mut categories = vec![category(vec![generic, observation.clone()])];
+        assert_eq!(
+            route_exact_observations_to_owners_with(&mut categories, |_, _| true),
+            0
+        );
+        resolve_unit_overlaps(&mut categories, &[], SENSITIVE);
+        assert_eq!(categories[0].items.len(), 1);
+        assert_eq!(
+            categories[0].items[0].signature_id,
+            observation.signature_id
+        );
+        assert_eq!(categories[0].cleanable_bytes, 0);
+        assert!(!categories[0].items[0].is_selected);
+    }
+
+    #[test]
+    fn distinct_entries_and_competing_owner_actions_are_not_routed() {
+        let (owner, observation) = owner_and_observation();
+        let mut distinct = vec![category(vec![owner.clone(), observation.clone()])];
+        assert_eq!(
+            route_exact_observations_to_owners_with(&mut distinct, |_, _| false),
+            0
+        );
+        assert_eq!(distinct[0].items.len(), 2);
+        let mut competing = owner.clone();
+        competing.id = "other-operation".into();
+        competing.signature_id = "dev.other_owner".into();
+        let mut ambiguous = vec![category(vec![owner, competing, observation])];
+        assert_eq!(
+            route_exact_observations_to_owners_with(&mut ambiguous, |_, _| true),
+            0
+        );
+        assert_eq!(ambiguous[0].items.len(), 3);
+        assert_eq!(ambiguous[0].suppressed_duplicate_count, 0);
     }
 
     #[test]

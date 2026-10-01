@@ -154,3 +154,71 @@ SHA-256 matches the source, and the current index asset names are embedded in
 
 Xcode #350 remains open/deferred and CLI #335 remains closed/not planned.
 No release, tag or app installation is part of this change.
+
+
+## October 1 coverage follow-up (0.3.98)
+
+The prior sections describe the historical first slice. This follow-up adds:
+
+- A separate reviewed macOS owner operation for installed **gh 2.83.1** only.
+  [Its command](https://github.com/cli/cli/blob/v2.83.1/pkg/cmd/config/clear-cache/clear_cache.go)
+  removes the entire effective cache root. The pinned [go-gh v2.13.0 cache layout](https://github.com/cli/go-gh/blob/v2.13.0/pkg/api/cache.go)
+  names SHA-256-derived 2/2/60 hexadecimal HTTP objects. neati accepts only the
+  default `~/.cache/gh` layout with current ownership, no links, no executable
+  files, no hardlinks and no entries writable by others. Custom roots/versions
+  remain advisory. Credentials/config/extensions and remote Actions caches
+  are outside the isolated fixed-argument command environment.
+- Absolute, bounded current-user `ZSH`/`ZSH_CACHE_DIR` values captured by the
+  macOS composition snapshot extend advisory OMZ observations. Shell-local
+  configuration is never executed or inferred.
+- Default named Kubernetes, pyenv, pre-commit and PyInstaller observations.
+  [Kubernetes cli-runtime at 16d14b1](https://github.com/kubernetes/cli-runtime/blob/16d14b1ae2188112e291bb04cdf46f34bc8c021d/pkg/genericclioptions/config_flags.go)
+  separates HTTP/discovery stores under `.kube/cache`, with overrides;
+  [pyenv at 42c75f3](https://github.com/pyenv/pyenv/blob/42c75f3c53f7fb3cd265cd844f2f8e193f96a628/plugins/python-build/bin/pyenv-install)
+  names its retained-download cache;
+  [pre-commit at 368bf47](https://github.com/pre-commit/pre-commit/blob/368bf4761eb2edc71b73a92e5537505df2b8a84c/pre_commit/store.py)
+  owns installed hook environments/database and supports a separate override;
+  [PyInstaller at cea3915](https://github.com/pyinstaller/pyinstaller/blob/cea3915d00801b4f45c9f89636ee0ff0d4eaa988/PyInstaller/configure.py)
+  uses the macOS Application Support root. These are metadata-only observations,
+  not tested installed-version cleanup support. Custom overrides remain unknown.
+- Read-only cache-named Arc leaves under the three recorded root spellings.
+  This machine has `Arc/User Data`; root presence does not identify an installed
+  Arc version or active profile. Cookies, history, offline stores and whole
+  profiles remain outside the new scope. Dia, other Firefox profiles and
+  Antigravity variants need exact version/root evidence before any new target.
+- Read-only Chrome DevTools MCP cache-named leaves under its channel-specific
+  persistent profile roots. The [vendor contract at 952268f](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/952268f89b7c40d2ec6b81c10ba8580b7cee4475/docs/advanced-usage.md)
+  identifies a persistent automation profile; it is not a disposable whole unit.
+  Unknown automation/user profile overrides gain no authority.
+
+The bounded browser matrix is: Arc's three recorded root spellings and the
+MCP default/canary/beta/dev persistent profile roots get named metadata-only
+observations. Dia, additional Firefox user-profile cache roots, Antigravity
+variants and custom automation roots remain unsupported pending exact
+installed-version/root evidence. None of these observations enable profile,
+offline-store, executable-distribution or browser-process mutation; versioned
+distribution/lifecycle work stays with #362.
+
+Cloud-provider credential stores (including AWS) and Prometheus WAL remain
+protected. No exact disposable user-cloud-log layout or installed owner scope
+was verified, so no speculative cloud namespace or command was added.
+
+On October 1, macOS 27.0.1 (26A434), the real `/opt/homebrew/bin/gh` 2.83.1
+production provider completed scan/prepare/execute/post-check inside a fresh
+fixture home: 8,192 allocated fixture bytes removed and five config/auth,
+extension/state/unrelated-cache sentinels preserved. Process/handle idleness
+was an injected fixture port, not a claim about real user processes. The
+final use-check callback also replaced the cache ancestor with a symlink or
+an equal-size descendant: both operations were blocked before command launch,
+with zero reclaimed bytes and fixture/cache sentinels preserved. The
+example is `src-tauri/examples/validate_github_cli_cleanup.rs`; no user cache
+or installed software was changed. Additional checks and UI evidence belong
+to the final handoff; this section does not claim CI or native TCC success.
+
+A read-only 0.3.98 rerun on the same host measured 180,224 bytes in the named
+GitHub CLI/Oh My Zsh observations. Kubernetes was partial with unknown bytes;
+the other named roots produced no rows, which does not establish tool absence.
+ScanEngine's separate excluded-namespace observer is not new cleanup yield.
+Application review returned 128 rows within its bounded inventory and reported
+partial coverage. This run removed zero user bytes and did not measure free-space
+change; `src-tauri/examples/observe_mac_coverage.rs` records de-identified totals.

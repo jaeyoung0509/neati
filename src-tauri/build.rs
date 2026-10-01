@@ -76,6 +76,7 @@ fn main() {
         "cancel_developer_artifact_scan",
         "prepare_developer_artifact_cleanup",
         "get_installed_apps",
+        "get_app_leftovers",
         "inspect_app_uninstall",
         "prepare_app_uninstall",
         "execute_trash_plan",

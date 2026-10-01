@@ -219,6 +219,8 @@ impl PlatformEnvironment {
                 "XDG_DATA_HOME",
                 "XDG_CONFIG_HOME",
                 "XDG_CACHE_HOME",
+                "ZSH",
+                "ZSH_CACHE_DIR",
             ]
             .into_iter()
             .filter_map(|name| {
@@ -495,6 +497,50 @@ impl PlatformEnvironment {
     }
 
     pub fn expand_placeholder(&self, pattern: &str) -> Option<PathBuf> {
+        // Shell-local settings are not guessed or executed. Only an absolute,
+        // bounded current-user override present in the composition snapshot is
+        // observed, and it never supplies cleanup authority.
+        if self.platform == PlatformKind::Macos {
+            for (token, variable) in [("${ZSH_CACHE_DIR}", "ZSH_CACHE_DIR"), ("${ZSH}", "ZSH")] {
+                if let Some(suffix) = pattern.strip_prefix(token) {
+                    if !suffix.is_empty() && !suffix.starts_with('/') {
+                        return None;
+                    }
+                    let root = self.cache_path_override(variable)?;
+                    let home = self.user_home()?;
+                    let relative = root.strip_prefix(&home).ok()?;
+                    if !root.is_absolute()
+                        || relative.components().count() < if variable == "ZSH" { 1 } else { 2 }
+                        || root.components().any(|part| {
+                            matches!(
+                                part,
+                                std::path::Component::ParentDir | std::path::Component::CurDir
+                            )
+                        })
+                        || [
+                            "Documents",
+                            "Desktop",
+                            "Downloads",
+                            ".ssh",
+                            ".aws",
+                            ".config",
+                        ]
+                        .iter()
+                        .any(|name| root.starts_with(home.join(name)))
+                    {
+                        return None;
+                    }
+                    if suffix.is_empty() {
+                        return Some(root.to_path_buf());
+                    }
+                    return Some(super::paths::join_with_flavor(
+                        root.to_path_buf(),
+                        suffix.trim_start_matches('/'),
+                        self.flavor,
+                    ));
+                }
+            }
+        }
         if let Some(suffix) = pattern.strip_prefix("${DARWIN_USER_TRANSLOCATION}") {
             if !suffix.is_empty() && !suffix.starts_with('/') {
                 return None;

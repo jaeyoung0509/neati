@@ -11,6 +11,7 @@
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
+  import AppLeftoverReview from '../../lib/components/AppLeftoverReview.svelte';
   import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
   import { getVirtualWindow } from '../../lib/utils/virtualList';
   import {
@@ -333,6 +334,10 @@
       <p class="font-medium text-foreground">Uninstallation unavailable</p>
       <p>{uninstallReason}</p>
     </div>
+  {/if}
+
+  {#if isInstalledAppsInspectable}
+    <AppLeftoverReview />
   {/if}
 
   {#if inventoryQuality === 'unavailable'}

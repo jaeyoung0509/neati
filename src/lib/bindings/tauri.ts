@@ -176,6 +176,7 @@ export const commands = {
 	cancelDeveloperArtifactScan: (scanId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_developer_artifact_scan", { scanId })),
 	prepareDeveloperArtifactCleanup: (scanId: string, selectedItemIds: string[]) => typedError<TrashPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_developer_artifact_cleanup", { scanId, selectedItemIds })),
 	getInstalledApps: () => typedError<InstalledAppInventory_Serialize, string>(__TAURI_INVOKE("get_installed_apps")),
+	getAppLeftovers: () => typedError<AppLeftoverInventory_Serialize, string>(__TAURI_INVOKE("get_app_leftovers")),
 	inspectAppUninstall: (appId: string) => typedError<AppUninstallInspection_Serialize, string>(__TAURI_INVOKE("inspect_app_uninstall", { appId })),
 	prepareAppUninstall: (inspectionId: string, selectedRelatedIds: string[]) => typedError<TrashPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_app_uninstall", { inspectionId, selectedRelatedIds })),
 	executeTrashPlan: (planId: string) => typedError<TrashResult_Serialize, string>(__TAURI_INVOKE("execute_trash_plan", { planId })),
@@ -488,6 +489,62 @@ export type AiUsageSnapshot_Serialize = {
 
 /**  How an installed application was discovered. */
 export type AppInstallSource = "application_bundle" | "homebrew_cask" | "installer_package" | "unknown";
+
+/**
+ *  An observation about a Library resource's possible owner, never removal
+ *  authorization. Absence from bounded app roots is not proof of uninstall.
+ */
+export type AppLeftoverClassification = "installed_owner" | "possible_removed_owner" | "ambiguous_shared_owner" | "incomplete_inventory" | "protected_state";
+
+export type AppLeftoverInventory = AppLeftoverInventory_Serialize | AppLeftoverInventory_Deserialize;
+
+export type AppLeftoverInventory_Deserialize = {
+	items: AppLeftoverItem_Deserialize[],
+	quality: ObservationQuality,
+	observed_roots: number,
+	skipped_entry_count: number,
+	incomplete_reasons: string[],
+	limitation: string,
+};
+
+export type AppLeftoverInventory_Serialize = {
+	items: AppLeftoverItem_Serialize[],
+	quality: ObservationQuality,
+	observed_roots: number,
+	skipped_entry_count: number,
+	incomplete_reasons: string[],
+	limitation: string,
+};
+
+export type AppLeftoverItem = AppLeftoverItem_Serialize | AppLeftoverItem_Deserialize;
+
+export type AppLeftoverItem_Deserialize = {
+	id: string,
+	name: string,
+	display_path: string,
+	kind: AppRelatedKind,
+	classification: AppLeftoverClassification,
+	owner_names: string[],
+	evidence: string,
+	logical_size: number,
+	allocated_size: number,
+	quality: ObservationQuality,
+	incomplete_reason: string | null,
+};
+
+export type AppLeftoverItem_Serialize = {
+	id: string,
+	name: string,
+	display_path: string,
+	kind: AppRelatedKind,
+	classification: AppLeftoverClassification,
+	owner_names: string[],
+	evidence: string,
+	logical_size: number,
+	allocated_size: number,
+	quality: ObservationQuality,
+	incomplete_reason: string | null,
+};
 
 /**  How strongly a path is tied to the application being uninstalled. */
 export type AppRelatedConfidence = "high" | "medium" | "shared";

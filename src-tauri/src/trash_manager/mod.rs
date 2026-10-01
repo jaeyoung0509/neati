@@ -855,8 +855,13 @@ mod tests {
                 &["add", "--", "Cargo.toml"],
             );
             let ids = [record.artifact.id.clone()];
-            let plan =
-                TrashPlanner::from_developer_artifacts(&environment, &inventory, &ids).unwrap();
+            let plan = TrashPlanner::from_developer_artifacts(&environment, &inventory, &ids)
+                .unwrap_or_else(|error| {
+                    panic!(
+                        "{mutation}: initial generated plan refused: {error}; fresh ownership: {:?}",
+                        probe_ownership(&environment, &record.project_root, &record.path)
+                    )
+                });
             let root_identity = identity_from_path(&record.path).unwrap();
             match mutation {
                 "tracked" => fixture_git(

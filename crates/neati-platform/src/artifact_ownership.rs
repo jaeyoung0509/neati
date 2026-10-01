@@ -336,7 +336,7 @@ fn probe_with(
             )?);
             let snapshot = snapshots.last().ok_or(Uncertainty::UnreadableMetadata)?;
             snapshot.verify_configuration(&git, environment, &mut budget, run)?;
-            let command = index_command(&git, snapshot, environment);
+            let command = index_command(&git, snapshot, environment)?;
             budget.check()?;
             budget.unchanged()?;
             let timeout = GIT_TIMEOUT.min(PROBE_TIMEOUT.saturating_sub(budget.started.elapsed()));
@@ -504,10 +504,10 @@ impl GitIndexSnapshot {
         for path in &self.configurations {
             budget.unchanged()?;
             let mut command = Command::new(git);
-            configure_git_command(&mut command, &self.route, environment);
+            configure_git_command(&mut command, &self.route, environment)?;
             command
                 .args(["config", "--no-includes", "--file"])
-                .arg(path)
+                .arg(git_command_path(path, environment.flavor())?)
                 .args(["--null", "--list"]);
             let timeout = GIT_TIMEOUT.min(PROBE_TIMEOUT.saturating_sub(budget.started.elapsed()));
             let output = run(command, timeout, budget.cancel).map_err(|error| match error {
@@ -904,18 +904,18 @@ fn index_command(
     git: &Path,
     snapshot: &GitIndexSnapshot,
     environment: &PlatformEnvironment,
-) -> Command {
+) -> Result<Command, Uncertainty> {
     let mut command = Command::new(git);
-    configure_index_command(&mut command, &snapshot.route, environment);
-    command
+    configure_index_command(&mut command, &snapshot.route, environment)?;
+    Ok(command)
 }
 
 fn configure_index_command(
     command: &mut Command,
     route: &RepositoryRoute,
     environment: &PlatformEnvironment,
-) {
-    configure_git_command(command, route, environment);
+) -> Result<(), Uncertainty> {
+    configure_git_command(command, route, environment)?;
     command.args([
         "ls-files",
         "--cached",
@@ -924,13 +924,47 @@ fn configure_index_command(
         "--sparse",
         "-z",
     ]);
+    Ok(())
+}
+
+// Git for Windows validates operands before converting them to native long
+// paths. Its NTFS protection rejects the '?' in a Rust canonical prefix.
+// Adapt only child operands; the bound native paths keep their identities.
+fn git_command_path(path: &Path, flavor: crate::PathFlavor) -> Result<PathBuf, Uncertainty> {
+    if !flavor.is_windows() {
+        return Ok(path.to_path_buf());
+    }
+    use crate::path_algebra as paths;
+    let text = path.to_str().ok_or(Uncertainty::MalformedMetadata)?;
+    if !paths::is_absolute(text, flavor)
+        || paths::has_parent_traversal(text, flavor)
+        || paths::contains_short_name(text, flavor)
+        || paths::has_alternate_data_stream(text, flavor)
+        || paths::has_trailing_dot_or_space(text, flavor)
+        || paths::split_path(text, flavor)
+            .components
+            .iter()
+            .any(|component| paths::is_reserved_device_name(component))
+    {
+        return Err(Uncertainty::MalformedMetadata);
+    }
+    let mut operand = paths::normalize(text, flavor);
+    // Comparison normalization trims a drive root to `C:`. A child operand
+    // must keep its rooted spelling rather than depend on a drive's cwd.
+    if paths::is_root(&operand, flavor) && !operand.ends_with(flavor.separator()) {
+        operand.push(flavor.separator());
+    }
+    if !paths::is_absolute(&operand, flavor) {
+        return Err(Uncertainty::MalformedMetadata);
+    }
+    Ok(PathBuf::from(operand))
 }
 
 fn configure_git_command(
     command: &mut Command,
     route: &RepositoryRoute,
     environment: &PlatformEnvironment,
-) {
+) -> Result<(), Uncertainty> {
     command
         .env_clear()
         .env("GIT_CONFIG_NOSYSTEM", "1")
@@ -938,8 +972,14 @@ fn configure_git_command(
         .env("GIT_CONFIG_GLOBAL", INERT_PATH)
         .env("GIT_ATTR_NOSYSTEM", "1")
         .env("GIT_OPTIONAL_LOCKS", "0")
-        .env("GIT_COMMON_DIR", &route.common_dir)
-        .env("GIT_INDEX_FILE", route.git_dir.join("index"))
+        .env(
+            "GIT_COMMON_DIR",
+            git_command_path(&route.common_dir, environment.flavor())?,
+        )
+        .env(
+            "GIT_INDEX_FILE",
+            git_command_path(&route.git_dir.join("index"), environment.flavor())?,
+        )
         .env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_NO_LAZY_FETCH", "1")
         .env("GIT_ALLOW_PROTOCOL", "")
@@ -951,9 +991,9 @@ fn configure_git_command(
         .arg("--no-optional-locks")
         .arg("--literal-pathspecs")
         .arg("--git-dir")
-        .arg(&route.git_dir)
+        .arg(git_command_path(&route.git_dir, environment.flavor())?)
         .arg("--work-tree")
-        .arg(&route.root);
+        .arg(git_command_path(&route.root, environment.flavor())?);
     #[cfg(windows)]
     if let Some(root) = environment.system_root() {
         command.env("SystemRoot", root);
@@ -973,6 +1013,7 @@ fn configure_git_command(
     command
         .arg("-c")
         .arg(format!("core.hooksPath={INERT_PATH}"));
+    Ok(())
 }
 
 fn index_intersects_artifact(
@@ -1606,7 +1647,7 @@ mod tests {
         ] {
             command.env(key, &global);
         }
-        configure_index_command(&mut command, &route, &env);
+        configure_index_command(&mut command, &route, &env).unwrap();
         let arguments = command
             .get_args()
             .map(|arg| arg.to_string_lossy().to_string())
@@ -1658,6 +1699,116 @@ mod tests {
         );
         assert_eq!(fs::read(sentinel).unwrap(), b"unchanged");
         assert_eq!(probe(&root, &artifact), Evidence::VerifiedGenerated);
+    }
+
+    #[test]
+    fn git_path_operands_use_plain_windows_spelling_without_changing_bound_routes() {
+        let native = tempfile::tempdir().unwrap();
+        let env = environment(native.path());
+        let git = env.tool("git").unwrap().path().unwrap();
+        let status = Command::new(git).arg("--version").output().unwrap().status;
+        assert!(status.success());
+        for (root, metadata, expected_root, expected_metadata) in [
+            (
+                r"\\?\D:\Users\홍 길동\project",
+                r"\\?\D:\scratch\private-index",
+                r"D:\Users\홍 길동\project",
+                r"D:\scratch\private-index",
+            ),
+            (
+                r"\\?\UNC\server\share\project",
+                r"\\?\UNC\server\share\private-index",
+                r"\\server\share\project",
+                r"\\server\share\private-index",
+            ),
+            (
+                r"\\?\D:\",
+                r"\\?\D:\scratch\private-index",
+                r"D:\",
+                r"D:\scratch\private-index",
+            ),
+        ] {
+            let route = RepositoryRoute {
+                root: root.into(),
+                git_dir: metadata.into(),
+                common_dir: metadata.into(),
+                configurations: Vec::new(),
+            };
+            let windows = PlatformEnvironment::simulated(crate::PathFlavor::Windows);
+            let mut command = Command::new(git);
+            configure_index_command(&mut command, &route, &windows).unwrap();
+            let args = command.get_args().collect::<Vec<_>>();
+            for (flag, expected) in [
+                ("--git-dir", expected_metadata),
+                ("--work-tree", expected_root),
+            ] {
+                let index = args.iter().position(|arg| *arg == flag).unwrap();
+                assert_eq!(args[index + 1], std::ffi::OsStr::new(expected));
+            }
+            for (name, expected) in [
+                ("GIT_COMMON_DIR", expected_metadata.to_string()),
+                ("GIT_INDEX_FILE", format!(r"{expected_metadata}\index")),
+            ] {
+                assert_eq!(
+                    command.get_envs().find(|(key, _)| *key == name).unwrap().1,
+                    Some(std::ffi::OsStr::new(&expected))
+                );
+            }
+            assert_eq!(command.get_current_dir(), Some(Path::new(root)));
+            assert!(!args.iter().any(|arg| *arg == "core.protectNTFS=false"));
+            let snapshot = GitIndexSnapshot {
+                _directory: tempfile::tempdir().unwrap(),
+                configurations: vec![route.git_dir.join("reviewed-config-0")],
+                route,
+            };
+            let cancel = AtomicBool::new(false);
+            let mut budget = Budget {
+                cancel: &cancel,
+                started: Instant::now(),
+                entries: 0,
+                max_entries: MAX_ENTRIES,
+                stamps: Vec::new(),
+                component_entities: Vec::new(),
+                repository_absences: Vec::new(),
+                metadata_absences: Vec::new(),
+                configurations: Vec::new(),
+            };
+            snapshot
+                .verify_configuration(git, &windows, &mut budget, &|command, _, _| {
+                    let args = command.get_args().collect::<Vec<_>>();
+                    let index = args.iter().position(|arg| *arg == "--file").unwrap();
+                    assert_eq!(
+                        args[index + 1],
+                        std::ffi::OsStr::new(&format!(r"{expected_metadata}\reviewed-config-0"))
+                    );
+                    Ok(Output {
+                        status,
+                        stdout: Vec::new(),
+                        stderr: Vec::new(),
+                    })
+                })
+                .unwrap();
+            assert_eq!(snapshot.route.root, Path::new(root));
+            assert_eq!(snapshot.route.git_dir, Path::new(metadata));
+            assert_eq!(snapshot.route.common_dir, Path::new(metadata));
+        }
+        for ambiguous in [
+            r"C:relative\index",
+            r"\\?\C:\private\index:stream",
+            r"\\?\C:\PRIVAT~1\index",
+            r"\\?\C:\private.\index",
+            r"\\?\C:\private \index",
+            r"\\?\C:\private\NUL",
+        ] {
+            assert_eq!(
+                git_command_path(Path::new(ambiguous), crate::PathFlavor::Windows),
+                Err(Uncertainty::MalformedMetadata)
+            );
+        }
+        assert_eq!(
+            git_command_path(Path::new("/tmp/private-index"), crate::PathFlavor::Posix),
+            Ok(PathBuf::from("/tmp/private-index"))
+        );
     }
 
     #[test]

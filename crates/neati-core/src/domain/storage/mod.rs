@@ -11,6 +11,13 @@ use serde::{Deserialize, Serialize};
 
 mod artifact_ownership;
 pub use artifact_ownership::{ArtifactOwnershipEvidence, ArtifactOwnershipUncertainty};
+mod framework_output;
+mod temporary_review;
+pub use framework_output::{supported_webpack_pack, FrameworkGeneratedKind};
+pub use temporary_review::{
+    require_temporary_consent, TemporaryContentKind, TemporaryRemovalMode, TemporaryReviewConsent,
+    TemporaryUsageState,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]

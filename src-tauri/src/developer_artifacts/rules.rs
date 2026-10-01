@@ -21,11 +21,23 @@ enum Recognition {
         dependency: &'static str,
         hint: &'static str,
     },
+    FrameworkGenerated {
+        dependency: &'static str,
+        hint: &'static str,
+    },
     // Go's shared cache is discovered only by the separately scoped home adapter.
     GlobalGo,
 }
 
 const RULES: &[Rule] = &[
+    Rule {
+        discovery_name: None, relative: ".svelte-kit/types", kind: DeveloperArtifactKind::SvelteKitTypes,
+        recognition: Recognition::FrameworkGenerated { dependency: "@sveltejs/kit", hint: "Only verified generated route types move to Trash. SvelteKit sync/dev/build regenerates them; output, deployment and offline assets stay." },
+    },
+    Rule {
+        discovery_name: None, relative: ".next/cache/webpack", kind: DeveloperArtifactKind::NextWebpackCache,
+        recognition: Recognition::FrameworkGenerated { dependency: "next", hint: "Only verified uncompressed Webpack v1 build-cache packs move to Trash. The next build recreates them; deployment output, image/offline caches and other compiler formats stay." },
+    },
     Rule {
         discovery_name: Some(".svelte-kit"),
         relative: ".svelte-kit",
@@ -339,7 +351,7 @@ pub(super) fn recognize(root: &Path, name: &str) -> Option<ArtifactMatch> {
                     }
                 }
                 Recognition::Custom(recognize) => recognize(root, name)?,
-                Recognition::Framework { dependency, hint } => {
+                Recognition::Framework { dependency, hint } | Recognition::FrameworkGenerated { dependency, hint } => {
                     let marker = root.join("package.json");
                     let manifest = read_framework_manifest(&marker)?;
                     let direct_dependency = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]
@@ -353,7 +365,7 @@ pub(super) fn recognize(root: &Path, name: &str) -> Option<ArtifactMatch> {
                         project_root: root.to_path_buf(),
                         artifact_relative: PathBuf::from(rule.relative),
                         marker_paths: vec![marker],
-                        evidence: vec![format!("Direct package.json dependency: {dependency}"), "Default output name; custom configuration was not evaluated. Cleanup is unavailable.".into()],
+                        evidence: vec![format!("Direct package.json dependency: {dependency}"), "Exact default scope; custom JavaScript configuration was not evaluated.".into()],
                         rebuild_hint: Some((*hint).into()),
                     }
                 }
@@ -363,6 +375,57 @@ pub(super) fn recognize(root: &Path, name: &str) -> Option<ArtifactMatch> {
             (found.kind == rule.kind && found.artifact_relative == Path::new(rule.relative))
                 .then_some(found)
         })
+}
+
+pub(super) fn framework_generated_matches(project: &Path) -> Vec<ArtifactMatch> {
+    RULES.iter().filter_map(|rule| {
+        let Recognition::FrameworkGenerated { dependency, hint } = rule.recognition else { return None; };
+        let marker = project.join("package.json");
+        let manifest = read_framework_manifest(&marker)?;
+        let dependency_found = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"].iter()
+            .filter_map(|section| manifest.get(section)?.as_object()?.get(dependency)?.as_str())
+            .any(|version| !version.trim().is_empty() && !version.trim().starts_with("npm:"));
+        dependency_found.then(|| ArtifactMatch { ecosystem: DeveloperEcosystem::Node, kind: rule.kind,
+            project_root: project.into(), artifact_relative: PathBuf::from(rule.relative), marker_paths: vec![marker],
+            evidence: vec![format!("Direct package.json dependency: {dependency}"), "Generated child only; parent output, deployment/offline state and custom configured paths are not authorized.".into()], rebuild_hint: Some(hint.into()) })
+    }).collect()
+}
+
+pub(crate) fn framework_generated_kind(
+    kind: DeveloperArtifactKind,
+) -> Option<neati_core::domain::storage::FrameworkGeneratedKind> {
+    use neati_core::domain::storage::FrameworkGeneratedKind;
+    match kind {
+        DeveloperArtifactKind::SvelteKitTypes => Some(FrameworkGeneratedKind::SvelteKitTypes),
+        DeveloperArtifactKind::NextWebpackCache => Some(FrameworkGeneratedKind::NextWebpackCache),
+        _ => None,
+    }
+}
+
+pub(crate) fn verify_framework_generated_contract(
+    environment: &PlatformEnvironment,
+    project: &Path,
+    path: &Path,
+    kind: DeveloperArtifactKind,
+    cancel: &AtomicBool,
+) -> Result<Option<String>, String> {
+    let Some(format) = framework_generated_kind(kind) else {
+        return Ok(None);
+    };
+    let found = framework_generated_matches(project)
+        .into_iter()
+        .find(|found| found.kind == kind)
+        .ok_or("The direct framework dependency changed or could not be verified")?;
+    if path != project.join(found.artifact_relative) {
+        return Err("The generated subtree is outside its exact default scope.".into());
+    }
+    neati_platform::temporary_storage::verify_framework_generated_tree(
+        environment,
+        path,
+        format,
+        cancel,
+    )
+    .map(Some)
 }
 
 pub(super) fn is_artifact_directory(name: &str) -> bool {

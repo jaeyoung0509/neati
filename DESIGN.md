@@ -615,6 +615,20 @@ must not suggest that the account has exhausted its quota.
   unavailable`; their build/dev use and deployment/offline removal contracts
   remain unverified. Do not suggest that configured custom output paths were
   evaluated or that those observations contribute to ordinary cleanup totals.
+  Separately selectable default `.svelte-kit/types` and `.next/cache/webpack`
+  units require positive generated-format, ownership and completed macOS use
+  checks. Only supported route declarations and uncompressed Webpack v1 packs
+  qualify; unknown/proxy/compiler formats retain bytes with a blocked reason.
+  Parent output and deployment/offline assets remain observed.
+- `Temporary folders`, reached from Developer Artifacts: a size-sorted bounded
+  inventory with nothing selected, exact whole-folder/generated-subtree scopes,
+  timestamps and three use states. `No use detected` never means abandoned.
+  Keep unknown sizes, partial coverage and shared physical storage visible;
+  these bytes stay separate from ready cache totals. One dialog confirms the
+  exact paths and required unknown-use/source-loss acknowledgements. New active
+  use or changed identity blocks the unit. Explain that descriptor staging moves
+  to Trash without establishing free space; restoration to the original listed
+  path is manual, and Git worktree registrations may need repair.
 - `Large Files`, `Applications`, `Disks`: searchable size-sorted files,
   installed-app rows with related data, and volume capacity. No invented
   disk-map engine.

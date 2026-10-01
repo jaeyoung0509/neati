@@ -61,6 +61,10 @@ pub use neati_core::application::dto::storage::{
     InstalledAppInventory, LargeFileItem, LargeFileScanEvent, LargeFileScanRequest,
     LargeFileScanResult, TrashItemResult, TrashPlanPreview, TrashResult,
 };
+pub use neati_core::application::dto::temporary_storage::{
+    TemporaryRemovalOption, TemporaryReviewPreview, TemporaryStorageEvent,
+    TemporaryStorageInventory, TemporaryStorageItem, TemporaryUsageObservation,
+};
 pub use neati_core::domain::category::Category;
 pub use neati_core::domain::cleanup::{
     classify_structured_state, CleanStrategy, CleanerFamily, CleanupMode, CleanupOperation,
@@ -95,4 +99,7 @@ pub use neati_core::domain::scan::{
 pub use neati_core::domain::storage::{
     AppInstallSource, AppLeftoverClassification, AppRelatedConfidence, AppRelatedKind,
     ArtifactOwnershipEvidence, ArtifactOwnershipUncertainty, LargeFileFilter, LargeFileKind,
+};
+pub use neati_core::domain::storage::{
+    TemporaryContentKind, TemporaryRemovalMode, TemporaryReviewConsent, TemporaryUsageState,
 };

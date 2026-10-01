@@ -80,6 +80,11 @@ fn main() {
         "inspect_app_uninstall",
         "prepare_app_uninstall",
         "execute_trash_plan",
+        "start_temporary_storage_scan",
+        "cancel_temporary_storage_scan",
+        "prepare_temporary_storage_review",
+        "execute_temporary_storage_review",
+        "cancel_temporary_storage_review",
     ];
 
     let attributes = tauri_build::Attributes::new()

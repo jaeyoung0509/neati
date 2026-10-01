@@ -44,6 +44,7 @@ pub enum TrashScope {
         artifact_relative: PathBuf,
         marker_identities: Vec<(PathBuf, ReviewedFileIdentity)>,
         kind: DeveloperArtifactKind,
+        framework_fingerprint: Option<String>,
     },
 }
 
@@ -247,6 +248,14 @@ impl TrashPlanner {
                     artifact_relative: record.artifact_relative.clone(),
                     marker_identities: record.marker_identities.clone(),
                     kind: record.artifact.kind,
+                    framework_fingerprint:
+                        crate::developer_artifacts::verify_framework_generated_contract(
+                            environment,
+                            &record.project_root,
+                            &record.path,
+                            record.artifact.kind,
+                            &AtomicBool::new(false),
+                        )?,
                 },
             };
             // Preparation re-derives ownership and scope rather than trusting
@@ -485,6 +494,7 @@ fn validate_target_with_probe<'a>(
             artifact_relative,
             marker_identities,
             kind,
+            framework_fingerprint,
         } => {
             validate_developer_artifact_target(
                 environment,
@@ -496,6 +506,7 @@ fn validate_target_with_probe<'a>(
                 artifact_relative,
                 marker_identities,
                 *kind,
+                framework_fingerprint.as_deref(),
                 ownership_probe,
             )?;
         }
@@ -558,6 +569,7 @@ fn validate_developer_artifact_target(
     artifact_relative: &Path,
     marker_identities: &[(PathBuf, ReviewedFileIdentity)],
     kind: DeveloperArtifactKind,
+    framework_fingerprint: Option<&str>,
     ownership_probe: &OwnershipProbe<'_>,
 ) -> Result<(), String> {
     validate_developer_artifact_scope(
@@ -574,6 +586,27 @@ fn validate_developer_artifact_target(
     let ownership = ownership_probe(environment, project_root, &target.path);
     if let Some(reason) = ownership.refusal_message() {
         return Err(reason.into());
+    }
+    if crate::developer_artifacts::framework_generated_kind(kind).is_some() {
+        let expected =
+            framework_fingerprint.ok_or("Generated framework evidence is missing; scan again.")?;
+        let usage =
+            neati_platform::temporary_storage::observe_temporary_use(environment, project_root);
+        if usage.state != neati_core::domain::storage::TemporaryUsageState::NoUseDetected {
+            return Err(
+                "Framework project use is active or unknown; stop the owner and scan again.".into(),
+            );
+        }
+        let current = crate::developer_artifacts::verify_framework_generated_contract(
+            environment,
+            project_root,
+            &target.path,
+            kind,
+            &AtomicBool::new(false),
+        )?;
+        if current.as_deref() != Some(expected) {
+            return Err("Generated framework contents changed after review; scan again.".into());
+        }
     }
     // The probe can take several seconds. Rebind the reviewed roots and
     // markers after it, immediately before issuing the move authority.
@@ -1018,6 +1051,78 @@ mod tests {
         assert_eq!(
             std::fs::read(framework.join("generated.bin")).unwrap(),
             b"generated"
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn verified_framework_subtree_binds_fingerprint_and_preserves_deployment_parent() {
+        let (temp, environment, mut inventory) = ownership_fixture();
+        let environment = environment
+            .with_platform(crate::models::PlatformKind::Macos)
+            .with_current_user_id(unsafe { libc::geteuid() });
+        let record = inventory.records.values_mut().next().unwrap();
+        let project = record.project_root.clone();
+        let parent = project.join(".next");
+        let cache = parent.join("cache/webpack");
+        let writer = cache.join("client-development");
+        std::fs::create_dir_all(&writer).unwrap();
+        std::fs::write(
+            parent.join("deployment-offline.html"),
+            b"preserved deployment output",
+        )
+        .unwrap();
+        let mut pack = 0x0163_7077u32.to_le_bytes().to_vec();
+        pack.extend(1u32.to_le_bytes());
+        pack.extend(4i32.to_le_bytes());
+        pack.extend([1, 2, 3, 4]);
+        std::fs::write(writer.join("index.pack"), &pack).unwrap();
+        let manifest = project.join("package.json");
+        std::fs::write(&manifest, r#"{"dependencies":{"next":"16"}}"#).unwrap();
+        record.path = cache.clone();
+        record.identity = identity_from_path(&cache).unwrap();
+        record.artifact_relative = PathBuf::from(".next/cache/webpack");
+        record.marker_identities = vec![(manifest.clone(), identity_from_path(&manifest).unwrap())];
+        record.artifact.kind = DeveloperArtifactKind::NextWebpackCache;
+        record.artifact.status = DeveloperArtifactStatus::Complete;
+        let id = record.artifact.id.clone();
+        let plan = TrashPlanner::from_developer_artifacts(
+            &environment,
+            &inventory,
+            std::slice::from_ref(&id),
+        )
+        .unwrap();
+        let mut forged = plan.clone();
+        if let TrashScope::DeveloperArtifact {
+            framework_fingerprint,
+            ..
+        } = &mut forged.targets[0].scope
+        {
+            *framework_fingerprint = None;
+        }
+        let backend = Arc::new(neati_platform::MockTrashBackend::new());
+        let refused = TrashExecutor::new(backend.clone()).execute(&environment, forged);
+        assert_eq!(refused.moved_count, 0);
+        assert!(backend.moved().is_empty());
+        pack[15] = 9;
+        std::fs::write(writer.join("index.pack"), &pack).unwrap();
+        let changed = TrashExecutor::new(backend.clone()).execute(&environment, plan);
+        assert_eq!(changed.moved_count, 0);
+        assert!(changed.items[0].message.contains("changed"));
+        assert!(backend.moved().is_empty());
+        assert!(cache.exists());
+        let fresh =
+            TrashPlanner::from_developer_artifacts(&environment, &inventory, &[id]).unwrap();
+        let result = TrashExecutor::execute_with(&environment, fresh, |approved| {
+            assert_eq!(approved.path(), cache);
+            std::fs::rename(approved.path(), temp.path().join("fixture-reviewed-cache"))
+                .map_err(|error| error.to_string())
+        });
+        assert_eq!(result.moved_count, 1);
+        assert!(!cache.exists());
+        assert_eq!(
+            std::fs::read(parent.join("deployment-offline.html")).unwrap(),
+            b"preserved deployment output"
         );
     }
     use std::sync::Arc;
@@ -1711,6 +1816,7 @@ mod tests {
                 artifact_relative: PathBuf::from("target"),
                 marker_identities: vec![(marker, marker_identity)],
                 kind: DeveloperArtifactKind::CargoTarget,
+                framework_fingerprint: None,
             },
         };
         let environment = PlatformEnvironment::simulated(PathFlavor::current())

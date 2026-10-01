@@ -8,6 +8,16 @@
 //! knows the transport is a Tauri `Channel`.
 
 use crate::models::{AiProviderUsage, DeveloperArtifactScanEvent, LargeFileScanEvent};
+use neati_core::application::dto::temporary_storage::TemporaryStorageEvent;
+
+pub trait TemporaryStorageSink: Send + Sync {
+    fn emit(&self, event: TemporaryStorageEvent);
+}
+impl<F: Fn(TemporaryStorageEvent) + Send + Sync> TemporaryStorageSink for F {
+    fn emit(&self, event: TemporaryStorageEvent) {
+        self(event);
+    }
+}
 
 pub trait LargeFileScanSink: Send + Sync {
     fn emit(&self, event: LargeFileScanEvent);

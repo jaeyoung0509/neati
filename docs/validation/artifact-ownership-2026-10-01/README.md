@@ -2,18 +2,19 @@
 
 Validation date: October 1, 2026. Version: **0.3.94 → 0.3.95**, using one
 `just bump-patch` after scope settled. Host: macOS 27.0.1 (26A434), arm64.
-The final source checkpoint is
+The initial validated source checkpoint is
 `e333f75d55fef8ddcc8dd26fc621ad5517fe05c1`; the initial browser interaction
 checkpoint was `e0ff207`, before binding export and test-only Clippy fixes.
 The shipped UI remained frozen between those checkpoints.
 
 The latest Rust-only source checkpoint is
-`e6d7a9a5d531deb16566c2ce02b4865848a12ee1`. The
-[Windows Git operand correction](git-operands/README.md) records its final
-1,335-test local verification and rebuilt bundle. The earlier
-[Windows CI follow-up](ci-followup/README.md) records the lint and canonical
-linked-worktree corrections. Version **0.3.95** is retained for this same-PR
-follow-up; the initial evidence below records its earlier checkpoints.
+`26ef04d4db9d0f22fa56163388d79331cd730c8b`. The
+[directory identity follow-up](directory-entities/README.md) records its
+1,337-test local verification and rebuilt bundle. The earlier
+[Git operand correction](git-operands/README.md) and
+[Windows CI follow-up](ci-followup/README.md) retain their own checkpoints and
+results. Version **0.3.95** is retained within this PR; the evidence below
+records its initial checkpoints.
 
 This batch implements [#390](https://github.com/jaeyoung0509/neati/issues/390)
 and the observation slice of

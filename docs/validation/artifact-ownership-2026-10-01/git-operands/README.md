@@ -57,3 +57,8 @@ reports the latest native Windows Rust and packaging CI result separately.
 Interactive Windows/Linux use and native tray/glass behavior remain unverified.
 The local bundle was not installed or launched as a GUI, and no real-user
 cleanup ran. Full logs and complete Git bundles remain outside temporary storage.
+
+The Git operand CI run subsequently passed the desktop planning and native
+file-ID fixtures, but failed three platform fixtures and skipped Windows
+packaging. The [directory identity follow-up](../directory-entities/README.md)
+records their correction and the newer local verification checkpoint.

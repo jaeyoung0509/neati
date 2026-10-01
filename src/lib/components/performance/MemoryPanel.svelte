@@ -12,6 +12,7 @@
   import Badge from '../Badge.svelte';
   import ProgressBar from '../ProgressBar.svelte';
   import ByteValue from '../ByteValue.svelte';
+  import AnimatedValue from '../AnimatedValue.svelte';
   import InlineNotice from '../InlineNotice.svelte';
   import {
     RotateCw,
@@ -182,7 +183,7 @@
             <Cpu size={15} aria-hidden="true" />
           </div>
           <div class="min-h-16 text-metric font-semibold text-foreground">
-            <ByteValue bytes={memory.used_bytes} />
+            <AnimatedValue value={formatBytes(memory.used_bytes)} class="font-mono min-w-[7ch]" />
             <div class="whitespace-nowrap text-meta font-normal text-muted-foreground">of <ByteValue bytes={memory.total_bytes} /> used</div>
           </div>
           <ProgressBar
@@ -202,7 +203,7 @@
             <Database size={15} aria-hidden="true" />
           </div>
           <div class="min-h-16 text-metric font-semibold text-foreground">
-            <ByteValue bytes={memory.swap_used_bytes} />
+            <AnimatedValue value={formatBytes(memory.swap_used_bytes)} class="font-mono min-w-[7ch]" />
             {#if memory.swap_total_bytes > 0}
               <div class="whitespace-nowrap text-meta font-normal text-muted-foreground">of <ByteValue bytes={memory.swap_total_bytes} /> total</div>
             {/if}
@@ -222,7 +223,7 @@
             <Layers size={15} aria-hidden="true" />
           </div>
           <div class="min-h-16 text-metric font-semibold text-foreground">
-            <ByteValue bytes={memory.compressed_bytes} />
+            <AnimatedValue value={formatBytes(memory.compressed_bytes)} class="font-mono min-w-[7ch]" />
           </div>
           <p class="text-caption text-muted-foreground">
             In-memory compression can reduce slower disk swap activity.

@@ -614,6 +614,7 @@ describe('scan progress and cancellation', () => {
     const first = scanUnderTest();
 
     const running = store.runScan();
+    expect(store.scanStartedAt).toBe(Date.now());
     first.emit({ type: 'Started', scan_id: 'scan-7' });
     expect(store.scanId).toBe('scan-7');
 
@@ -634,6 +635,8 @@ describe('scan progress and cancellation', () => {
     first.emit({ type: 'ItemFound', item: fixture().categories[0].items[0] });
     expect(store.currentScanningItem).toBe('Fixture');
     expect(store.foundItemCount).toBe(1);
+    first.emit({ type: 'CategoryStarted', category: 'system' });
+    expect(store.currentRoot).toBeNull();
 
     first.emit({ type: 'Finished', result: fixture('scan-7') });
     expect(store.currentRoot).toBeNull();
@@ -641,6 +644,7 @@ describe('scan progress and cancellation', () => {
     first.completion.resolve(fixture('scan-7'));
     await running;
     expect(store.scanId).toBeNull();
+    expect(store.scanStartedAt).toBeNull();
 
     // The next scan starts from nothing: the finished scan's id and count are
     // never carried into it.

@@ -26,7 +26,8 @@
   import MetricSparkline from '../../lib/components/metrics/MetricSparkline.svelte';
   import MemoryPanel from '../../lib/components/performance/MemoryPanel.svelte';
   import ResourceRow from '../../lib/components/metrics/ResourceRow.svelte';
-  import CelestialScene from '../../lib/components/CelestialScene.svelte';
+  import RippleScene from '../../lib/components/RippleScene.svelte';
+  import AnimatedValue from '../../lib/components/AnimatedValue.svelte';
   import {
     ChartNoAxesCombined,
     Boxes,
@@ -226,7 +227,7 @@
 
   <!-- The next action, first. -->
   <section class="overview-hero flex flex-col items-start gap-3" aria-label="Cleanup summary">
-    <div class="overview-celestial"><CelestialScene /></div>
+    <div class="overview-ripples"><RippleScene /></div>
     <div class="min-w-0 space-y-1">
       <div class="flex items-center gap-2">
         <HardDrive size={16} class="text-primary shrink-0" aria-hidden="true" />
@@ -241,7 +242,7 @@
           <span>{cleanupState === 'cleaning' ? 'Cleaning safe caches…' : scanStore.isRefreshingAfterClean ? 'Checking storage after cleanup…' : 'Checking storage…'}</span>
         </p>
       {:else}
-        <p class="{cleanupState === 'ready' || cleanupState === 'clean' || (cleanupState === 'partial' && quickCleanableBytes > 0) ? 'overview-hero-value font-medium' : 'text-body font-semibold'} tabular-nums text-foreground">{cleanupValue}</p>
+        <p class="{cleanupState === 'ready' || cleanupState === 'clean' || (cleanupState === 'partial' && quickCleanableBytes > 0) ? 'overview-hero-value font-medium' : 'text-body font-semibold'} tabular-nums text-foreground"><AnimatedValue value={cleanupValue} /></p>
         <p class="text-meta text-muted-foreground break-words">{cleanupDetail}</p>
       {/if}
     </div>

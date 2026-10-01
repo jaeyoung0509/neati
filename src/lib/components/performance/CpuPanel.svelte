@@ -5,6 +5,7 @@
   import { formatTimeAgo } from '../../utils/format';
   import MetricSparkline from '../metrics/MetricSparkline.svelte';
   import Card from '../Card.svelte';
+  import AnimatedValue from '../AnimatedValue.svelte';
   import InlineNotice from '../InlineNotice.svelte';
   import { Cpu } from '@lucide/svelte';
 
@@ -15,12 +16,12 @@
    * A missing reading with a failed probe is a failure, not a warm-up; every
    * other absent value is the backend's own warm-up state.
    */
-  let state = $derived<CpuSampleState>(
+  let readingState = $derived<CpuSampleState>(
     cpu?.state ?? (systemMetricsStore.cpuError ? 'failed' : 'warmup')
   );
   let percent = $derived(cpu?.usage_percent ?? null);
-  let stateLabel = $derived(cpuStateLabel(state));
-  let stateNote = $derived(cpuStateDescription(state, cpu?.reason ?? null));
+  let stateLabel = $derived(cpuStateLabel(readingState));
+  let stateNote = $derived(cpuStateDescription(readingState, cpu?.reason ?? null));
   let sampledAgo = $derived(
     cpu?.sampled_at != null ? formatTimeAgo(Math.floor(cpu.sampled_at / 1000)) : null
   );
@@ -49,7 +50,7 @@
       {#if percent != null}
         <!-- The value is only ever a measured pair of readings; the state stays beside it. -->
         <span class="text-metric font-mono font-semibold tabular-nums text-foreground">
-          {percent.toFixed(1)}<span class="text-body font-normal text-muted-foreground">%</span>
+          <AnimatedValue value={percent.toFixed(1)} class="min-w-[4ch]" /><span class="text-body font-normal text-muted-foreground">%</span>
         </span>
         <span class="rounded-full border border-border px-2 py-0.5 text-caption text-muted-foreground">{stateLabel}</span>
       {:else}
@@ -57,7 +58,7 @@
       {/if}
     </div>
 
-    {#if state !== 'fresh'}
+    {#if readingState !== 'fresh'}
       <div class="rounded-lg border border-border bg-secondary/60 px-3 py-2.5 text-meta leading-relaxed text-muted-foreground">
         <span class="font-semibold text-foreground">{stateLabel}.</span>
         <span class="ml-1.5">{stateNote}</span>

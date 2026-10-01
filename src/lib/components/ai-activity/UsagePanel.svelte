@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import AiUsageCards from '../AiUsageCards.svelte';
   import Card from '../Card.svelte';
+  import DeletingDots from '../DeletingDots.svelte';
   import { usageStore } from '../../stores/usage.svelte';
 
   // Revalidate the TTL cache while this tab stays open; hidden panels never poll.
@@ -21,9 +22,9 @@
 >
   <div class="flex items-center justify-between gap-3">
     <div>
-      <h3 class="text-sm font-semibold">AI Accounts &amp; Quota</h3>
-      <p class="text-caption text-muted-foreground">
-        Official-client usage metadata and local coding-agent activity. OAuth token files never reach the UI.
+      <h3 class="text-sm font-semibold">Accounts &amp; usage</h3>
+      <p class="mt-1 text-meta text-muted-foreground">
+        Usage from supported clients, with local activity labeled separately.
       </p>
     </div>
     {#if usageSnapshot}
@@ -47,13 +48,13 @@
     />
   {:else if usageStore.isLoading}
     <div role="status" aria-label="Loading usage metadata">
-      <Card class="p-8 text-center bg-card/60">
-        <div class="mx-auto h-6 w-32 animate-pulse rounded bg-secondary" aria-hidden="true"></div>
+      <Card class="p-8 text-center">
+        <DeletingDots size="sm" class="text-primary" />
         <p class="mt-3 text-xs text-muted-foreground">Loading usage metadata…</p>
       </Card>
     </div>
   {:else}
-    <Card class="p-4 bg-card/60 text-xs text-muted-foreground">
+    <Card class="p-4 text-meta text-muted-foreground">
       No AI account usage metadata is available yet.
     </Card>
   {/if}

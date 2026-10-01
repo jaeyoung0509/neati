@@ -1,6 +1,8 @@
 <script lang="ts">
   import Badge from './Badge.svelte';
   import Button from './Button.svelte';
+  import AnimatedValue from './AnimatedValue.svelte';
+  import RippleScene from './RippleScene.svelte';
   import { scanStore } from '../stores/scan.svelte';
   import { cleanupAvailability, observedByteRange, summarizeCategory } from '../utils/cleanup';
   import { formatBytes } from '../utils/format';
@@ -24,13 +26,14 @@
 </script>
 
 <section class="storage-summary" aria-label="Storage scan summary">
+  <div class="summary-ripples"><RippleScene /></div>
   <div class="summary-primary">
     <div class="flex flex-wrap items-center gap-2">
       <p class="text-meta font-medium text-muted-foreground">{scan ? estimateLabel : 'Available to clean'}</p>
       {#if scanStore.freshness === 'partial'}<Badge variant="outline">Partial scan</Badge>{/if}
     </div>
     <p class="mt-1 text-metric-lg font-mono font-semibold tracking-tight tabular-nums text-foreground">
-      {scan && presentation.hasMeasuredResults ? formatBytes(availability.ready) : '—'}
+      <AnimatedValue value={scan && presentation.hasMeasuredResults ? formatBytes(availability.ready) : '—'} />
     </p>
     {#if !scan || !presentation.hasMeasuredResults || !isCurrent}
       <p class="mt-1 text-meta text-muted-foreground">
@@ -76,17 +79,27 @@
 
 <style>
   .storage-summary {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 188px;
+    padding: 20px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 16px;
+    background: hsl(var(--card));
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     align-items: center;
     column-gap: 24px;
-    row-gap: 8px;
+    row-gap: 12px;
   }
-  .summary-primary { padding-left: 16px; border-left: 3px solid hsl(var(--primary)); }
-  .summary-actions { grid-column: 1 / -1; padding-left: 19px; }
+  .summary-ripples { position: absolute; width: 320px; right: -48px; top: -8px; opacity: 0.28; z-index: -1; }
+  .summary-primary { min-width: 0; }
+  .summary-actions { grid-column: 1 / -1; border-top: 1px solid hsl(var(--border)); padding-top: 8px; }
   .summary-context { border-left: 1px solid hsl(var(--border)); padding-left: 24px; }
   @container (max-width: 460px) {
     .storage-summary { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .summary-context { border: 0; padding-left: 19px; }
+    .summary-context { border: 0; padding-left: 0; }
+    .summary-ripples { display: none; }
   }
 </style>

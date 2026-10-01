@@ -40,6 +40,7 @@
   import Button from '../../lib/components/Button.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
   import BrandIcon from '../../lib/components/BrandIcon.svelte';
+  import AnimatedValue from '../../lib/components/AnimatedValue.svelte';
   import QuickMetricRow from '../../lib/components/metrics/QuickMetricRow.svelte';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import QuickCleanupDetailsDialog from '../../lib/components/QuickCleanupDetailsDialog.svelte';
@@ -509,11 +510,11 @@
             <p class="text-meta font-semibold text-foreground">Cleanup</p>
             {#if cleanupBusy}
               <p class="quick-cleanup-status mt-1 flex items-center gap-2 text-caption text-muted-foreground" role="status">
-                <DeletingDots size="sm" class="shrink-0 text-primary" />
+                <DeletingDots active={panelActive} size="sm" class="shrink-0 text-primary" />
                 <span>{cleanupState === 'cleaning' ? 'Cleaning caches' : scanStore.isRefreshingAfterClean ? 'Checking the result' : 'Checking storage'}</span>
               </p>
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
-              <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground">{cleanupValue}</span> available{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
+              <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
             {:else}
               <p class="mt-0.5 text-caption text-muted-foreground">{cleanupState === 'clean' ? 'No caches to clean' : cleanupState === 'failed' ? 'Scan failed' : cleanupState === 'unavailable' ? 'Unavailable' : cleanupState === 'partial' ? 'Partial scan · No eligible caches' : 'Scan needed'}</p>
             {/if}
@@ -546,6 +547,7 @@
     </section>
   {:else if section === 'cpu'}
     <QuickMetricRow
+      active={panelActive}
       label="CPU"
       value={cpu?.usage_percent != null ? `${Math.round(cpu.usage_percent)}%` : cpuAvailable ? 'Warming up' : 'Unavailable'}
       detail={cpu && cpu.state !== 'fresh'
@@ -562,6 +564,7 @@
     />
   {:else if section === 'memory'}
     <QuickMetricRow
+      active={panelActive}
       label="Memory"
       value={memory ? formatBytes(memory.used_bytes) : memoryAvailable ? 'Reading…' : 'Unavailable'}
       tone={memory?.pressure === 'critical' ? 'critical' : memory?.pressure === 'warning' ? 'warning' : 'default'}
@@ -575,6 +578,7 @@
     {@const batteryPresent = battery?.presence === 'present'}
     {#if !battery || batteryPresent || battery.presence === 'unavailable'}
       <QuickMetricRow
+      active={panelActive}
         label="Battery"
         batteryState={battery?.charge_state}
         batteryPercent={batteryPresent ? battery?.percent ?? null : null}
@@ -588,6 +592,7 @@
     {/if}
   {:else if section === 'storage'}
     <QuickMetricRow
+      active={panelActive}
       label="Disk"
       value={disk ? `${Math.round(disk.percent_used ?? 0)}% used` : 'Reading…'}
       meter={disk?.percent_used}
@@ -654,7 +659,7 @@
                 <p class="flex min-h-5 items-center text-caption leading-snug text-muted-foreground">
                   {#if row.provider}
                     <span class="inline-flex items-center gap-1.5">
-                      {#if loading}<DeletingDots size="xs" class="text-primary" />{/if}
+                      {#if loading}<DeletingDots active={panelActive} size="xs" class="text-primary" />{/if}
                       <span>{formatQuickProviderUsage(row.provider, loading, stale)}</span>
                       {#if (stale || (row.provider.collection_status && row.provider.collection_status !== 'fresh')) && !loading}
                         <button

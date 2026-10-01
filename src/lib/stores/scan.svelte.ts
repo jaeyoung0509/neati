@@ -30,6 +30,8 @@ export type ScanTrigger = 'auto' | 'manual';
 
 export class ScanStore {
   isScanning = $state(false);
+  /** Request start time for truthful elapsed feedback, including native setup. */
+  scanStartedAt = $state<number | null>(null);
   isCleaning = $state(false);
   /** A completed cleanup is being measured again before the next review. */
   isRefreshingAfterClean = $state(false);
@@ -523,6 +525,9 @@ export class ScanStore {
     this.lastScanTrigger = trigger;
     this.invalidate();
     this.isScanning = true;
+    this.scanStartedAt = Date.now();
+    this.currentCategory = null;
+    this.currentScanningItem = null;
     this.error = null;
     // A scan is only cancellable through the id it reports, so the previous
     // scan's id must never survive into the next one.
@@ -542,6 +547,7 @@ export class ScanStore {
             break;
           case 'CategoryStarted':
             this.currentCategory = event.category;
+            this.currentRoot = null;
             break;
           case 'RootStarted':
             this.currentRoot = { name: event.name, path: event.root };
@@ -567,6 +573,7 @@ export class ScanStore {
       return null;
     } finally {
       this.isScanning = false;
+      this.scanStartedAt = null;
       this.isCancelling = false;
       this.scanId = null;
       this.currentCategory = null;
@@ -593,6 +600,9 @@ export class ScanStore {
   ): Promise<ScanResult | null> {
     this.generation++;
     this.isScanning = true;
+    this.scanStartedAt = Date.now();
+    this.currentCategory = null;
+    this.currentScanningItem = null;
     this.error = null;
     this.discovery = { status: 'stopped', reason: 'Continuation is in progress.' };
     this.scanId = null;
@@ -610,6 +620,7 @@ export class ScanStore {
             break;
           case 'CategoryStarted':
             this.currentCategory = event.category;
+            this.currentRoot = null;
             break;
           case 'RootStarted':
             this.currentRoot = { name: event.name, path: event.root };
@@ -638,6 +649,7 @@ export class ScanStore {
       return null;
     } finally {
       this.isScanning = false;
+      this.scanStartedAt = null;
       this.isCancelling = false;
       this.scanId = null;
       this.currentCategory = null;

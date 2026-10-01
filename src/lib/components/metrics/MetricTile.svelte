@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { ChevronRight } from '@lucide/svelte';
+  import AnimatedValue from '../AnimatedValue.svelte';
 
   interface Props {
     label: string;
@@ -46,7 +47,7 @@
   role={onclick ? 'button' : undefined}
   onclick={onclick}
   aria-label={onclick ? actionLabel ?? label : undefined}
-  class="metric-tile group flex flex-col min-w-0 w-full text-left rounded-xl border border-border bg-card p-3.5 space-y-1.5 {onclick
+  class="metric-tile group flex flex-col min-w-0 w-full text-left rounded-xl border border-border bg-card p-4 space-y-2 {onclick
     ? 'transition-[background-color,border-color] duration-140 hover:border-border-strong hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
     : ''} {toneClass[tone]} {className}"
 >
@@ -61,7 +62,7 @@
       {/if}
     </span>
   </span>
-  <span class="block text-metric font-sans tabular-nums font-medium tracking-tight whitespace-nowrap {valueClass}">{value}</span>
+  <span class="block min-h-9 text-metric font-sans tabular-nums font-medium tracking-tight whitespace-nowrap {valueClass}"><AnimatedValue {value} /></span>
   {#if visual}
     <span class="flex h-8 shrink-0 items-center">
       {@render visual()}

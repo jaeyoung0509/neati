@@ -283,12 +283,61 @@
     />
   {/if}
 
+  <!-- Appearance -->
+  <div class="space-y-3">
+    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      Appearance
+    </h3>
+    <Card class="p-4 bg-card">
+      <div class="grid grid-cols-3 gap-3">
+        <button
+          type="button"
+          onclick={() => handleTheme('system')}
+          aria-pressed={settings.theme === 'system'}
+          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
+          'system'
+            ? 'border-primary bg-secondary/80 text-foreground font-semibold'
+            : 'border-border text-muted-foreground hover:text-foreground'}"
+        >
+          <Monitor size={18} aria-hidden="true" />
+          <span>System</span>
+        </button>
+
+        <button
+          type="button"
+          onclick={() => handleTheme('dark')}
+          aria-pressed={settings.theme === 'dark'}
+          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
+          'dark'
+            ? 'border-primary bg-secondary/80 text-foreground font-semibold'
+            : 'border-border text-muted-foreground hover:text-foreground'}"
+        >
+          <Moon size={18} aria-hidden="true" />
+          <span>Dark</span>
+        </button>
+
+        <button
+          type="button"
+          onclick={() => handleTheme('light')}
+          aria-pressed={settings.theme === 'light'}
+          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
+          'light'
+            ? 'border-primary bg-secondary/80 text-foreground font-semibold'
+            : 'border-border text-muted-foreground hover:text-foreground'}"
+        >
+          <Sun size={18} aria-hidden="true" />
+          <span>Light</span>
+        </button>
+      </div>
+    </Card>
+  </div>
+
   <!-- General Preferences -->
   <div class="space-y-3">
     <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
       General
     </h3>
-    <Card class="p-4 space-y-4 bg-card/70">
+    <Card class="p-4 space-y-4 bg-card">
       <div class="flex items-center justify-between text-xs">
         <div>
           <div class="flex items-center gap-2 font-medium text-foreground">Launch neati at login <Badge variant="outline">Planned</Badge></div>
@@ -313,7 +362,7 @@
         Choose sidebar destinations. Drag or use arrows to reorder within each task group.
       </p>
     </div>
-    <Card class="p-4 bg-card/70 space-y-3">
+    <Card class="p-4 bg-card space-y-3">
       <div class="flex items-center gap-2 text-xs font-medium text-foreground pb-1">
         <LayoutList size={14} /> Sidebar order
       </div>
@@ -384,7 +433,7 @@
         Choose which account providers neati checks and displays. Disabled providers are not queried.
       </p>
     </div>
-    <Card class="p-4 bg-card/70 space-y-3">
+    <Card class="p-4 bg-card space-y-3">
       <div class="flex items-center gap-2 text-xs font-medium text-foreground pb-1">
         <Users size={14} /> Provider order
       </div>
@@ -456,7 +505,7 @@
         Choose what appears below the {platformContextStore.quickPanelSurfaceLabel ?? 'quick panel'} icon. Drag or use the arrow buttons to set priority.
       </p>
     </div>
-    <Card class="p-4 bg-card/70 space-y-5">
+    <Card class="p-4 bg-card space-y-5">
       <div class="space-y-2">
         <div class="flex items-center gap-2 text-xs font-medium text-foreground">
           <PanelTop size={14} /> Sections
@@ -585,7 +634,7 @@
         Verified cache and log locations are included in every storage scan.
       </p>
     </div>
-    <Card class="p-4 bg-card/70">
+    <Card class="p-4 bg-card">
       {#if platformCapabilitiesStore.error && !platformCapabilitiesStore.capabilities}
         <InlineNotice
           variant="error"
@@ -621,7 +670,7 @@
   </div>
 
   {#if platformContextStore.context?.platform === 'macos'}
-    <Card class="p-4 bg-card/70">
+    <Card class="p-4 bg-card">
       <StorageAccessSetup />
     </Card>
   {/if}
@@ -635,7 +684,7 @@
     <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
       Quick Clean categories
     </h3>
-    <Card class="p-4 space-y-4 bg-card/70 divide-y divide-border/60">
+    <Card class="p-4 space-y-4 bg-card divide-y divide-border/60">
       <!-- AI Tools -->
       <div class="flex items-center justify-between text-xs pt-3 first:pt-0">
         <div>
@@ -686,7 +735,7 @@
       </h3>
       <Badge variant="outline">Privacy Safe</Badge>
     </div>
-    <Card class="p-4 space-y-4 bg-card/70 divide-y divide-border/60">
+    <Card class="p-4 space-y-4 bg-card divide-y divide-border/60">
       <!-- Master toggle -->
       <div class="flex items-center justify-between text-xs pt-3 first:pt-0">
         <div>
@@ -773,59 +822,13 @@
     </Card>
   </div>
 
-  <!-- Appearance -->
-  <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
-      Appearance
-    </h3>
-    <Card class="p-4 bg-card/70">
-      <div class="grid grid-cols-3 gap-3">
-        <button
-          type="button"
-          onclick={() => handleTheme('system')}
-          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] {settings.theme ===
-          'system'
-            ? 'border-primary bg-secondary/80 text-foreground font-semibold'
-            : 'border-border text-muted-foreground hover:text-foreground'}"
-        >
-          <Monitor size={18} />
-          <span>System</span>
-        </button>
-
-        <button
-          type="button"
-          onclick={() => handleTheme('dark')}
-          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] {settings.theme ===
-          'dark'
-            ? 'border-primary bg-secondary/80 text-foreground font-semibold'
-            : 'border-border text-muted-foreground hover:text-foreground'}"
-        >
-          <Moon size={18} />
-          <span>Dark</span>
-        </button>
-
-        <button
-          type="button"
-          onclick={() => handleTheme('light')}
-          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] {settings.theme ===
-          'light'
-            ? 'border-primary bg-secondary/80 text-foreground font-semibold'
-            : 'border-border text-muted-foreground hover:text-foreground'}"
-        >
-          <Sun size={18} />
-          <span>Light</span>
-        </button>
-      </div>
-    </Card>
-  </div>
-
   <!-- Diagnostics & Logs -->
   <div class="space-y-3">
     <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
       Diagnostics and logs
     </h3>
     <ToolDetectionDisclosure />
-    <Card class="p-4 bg-card/70 space-y-4">
+    <Card class="p-4 bg-card space-y-4">
       <div class="space-y-1">
         <div class="text-xs font-medium text-foreground">Local System & Error Logs</div>
         <p class="text-meta text-muted-foreground leading-relaxed">
@@ -989,7 +992,7 @@
     <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
       About neati
     </h3>
-    <Card class="p-4 bg-card/70 text-xs space-y-2">
+    <Card class="p-4 bg-card text-xs space-y-2">
       <div class="flex items-center justify-between gap-3">
         <span class="font-medium text-foreground">neati Developer System Manager</span>
         <Badge variant="outline" class="font-mono">{formatVersion(APP_VERSION)}</Badge>

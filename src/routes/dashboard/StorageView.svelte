@@ -20,6 +20,7 @@
   import CategoryCard from '../../lib/components/CategoryCard.svelte';
   import Checkbox from '../../lib/components/Checkbox.svelte';
   import StorageSummary from '../../lib/components/StorageSummary.svelte';
+  import StorageScanProgress from '../../lib/components/StorageScanProgress.svelte';
   import StorageScanDetails from '../../lib/components/StorageScanDetails.svelte';
   import CleanupGuidanceList from '../../lib/components/CleanupGuidanceList.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
@@ -318,50 +319,9 @@
       <StorageSummary onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onReview={openItemDetails} actionsDisabled={isPreparingReview || quitBusy} />
     {/if}
 
-    <!-- Scan Progress -->
+    <!-- No old inventory or selection is exposed while the new scan runs. -->
     {#if scanStore.isScanning}
-      <Card class="p-5 bg-card border-border transition-colors duration-200">
-        <div class="space-y-4" role="status" aria-live="polite" aria-busy="true">
-        <div class="flex items-start justify-between gap-4">
-          <div class="min-w-0 flex items-start gap-3">
-            <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-primary" aria-hidden="true">
-              <DeletingDots size="sm" />
-            </span>
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-foreground">
-                {scanStore.isRefreshingAfterClean ? 'Checking storage after cleanup' : 'Checking storage'}
-              </p>
-              <p class="mt-1 text-body text-muted-foreground">
-                {scanStore.isRefreshingAfterClean
-                  ? 'Cleanup finished. A new scan is checking what remains before results appear.'
-                  : 'Scanning application and development caches.'}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={scanStore.isCancelling}
-            onclick={() => void scanStore.cancelScan()}
-            ariaLabel={scanStore.isCancelling ? 'Stopping scan' : 'Stop scan'}
-            class="gap-1.5 shrink-0"
-          >
-            <Square size={12} />
-            <span>{scanStore.isCancelling ? 'Stopping…' : 'Stop scan'}</span>
-          </Button>
-        </div>
-        <div class="grid gap-3 rounded-lg bg-secondary/55 px-3 py-2 text-meta text-muted-foreground sm:grid-cols-2">
-          <p class="min-w-0">Current area <span class="ml-1 font-medium text-foreground">{scanStore.currentRoot?.name ?? 'Preparing scan…'}</span></p>
-          <p class="font-mono tabular-nums">{scanStore.foundItemCount} {scanStore.foundItemCount === 1 ? 'item' : 'items'} found so far</p>
-        </div>
-        {#if scanStore.currentRoot}
-          <details class="text-caption text-muted-foreground">
-            <summary class="w-fit cursor-pointer rounded-sm underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Show current path</summary>
-            <code class="mt-1 block break-all font-mono">{scanStore.currentRoot.path}</code>
-          </details>
-        {/if}
-        </div>
-      </Card>
+      <StorageScanProgress />
     {/if}
 
     <!-- Cleaning In Progress Bar -->

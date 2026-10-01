@@ -579,11 +579,12 @@ html.native-material-window #app {
     radial-gradient(ellipse 30% 80% at 76% 100%, hsl(var(--cosmic-coral) / 0.08), transparent 72%);
 }
 
-.overview-celestial {
+.overview-ripples {
   position: absolute;
   pointer-events: none;
-  width: 220px;
-  right: 0;
+  width: 290px;
+  right: -32px;
+  opacity: 0.7;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -596,12 +597,12 @@ html.native-material-window #app {
 
 @container (max-width: 600px) {
   .overview-hero { padding-right: 155px; }
-  .overview-celestial { width: 160px; right: -8px; }
+  .overview-ripples { width: 210px; right: -32px; }
 }
 
 @container (max-width: 430px) {
   .overview-hero { padding-right: 24px; }
-  .overview-celestial { display: none; }
+  .overview-ripples { display: none; }
 }
 
 .memory-pressure {
@@ -629,7 +630,7 @@ html.native-material-window #app {
     background-image: none;
   }
 
-  .overview-celestial {
+  .overview-ripples {
     display: none;
   }
 

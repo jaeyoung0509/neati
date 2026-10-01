@@ -154,7 +154,7 @@ describe('Project Cockpit', () => {
     expect(rendered.body).toContain('not installable plugins');
     expect(rendered.body).not.toContain('Process Only');
     expect(rendered.body).not.toContain('role="tabpanel"');
-    expect(rendered.body).not.toContain('AI Accounts &amp; Quota');
+    expect(rendered.body).not.toContain('Accounts &amp; usage');
     expect(rendered.body).not.toContain('Canonical projects');
   });
 
@@ -285,7 +285,7 @@ describe('Project Cockpit', () => {
       ],
     };
     const rendered = render(ProjectCockpitView);
-    expect(rendered.body).toContain('AI Accounts');
+    expect(rendered.body).toContain('Accounts &amp; usage');
     expect(rendered.body).toContain('Codex CLI');
     expect(rendered.body).toContain('45% used');
     expect(rendered.body).toContain('Weekly');

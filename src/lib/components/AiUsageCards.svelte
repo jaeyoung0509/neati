@@ -4,6 +4,8 @@
   import Button from './Button.svelte';
   import Card from './Card.svelte';
   import ProgressBar from './ProgressBar.svelte';
+  import AnimatedValue from './AnimatedValue.svelte';
+  import DeletingDots from './DeletingDots.svelte';
 
   interface Props {
     providers: readonly AiProviderUsage[];
@@ -31,7 +33,7 @@
   }
 </script>
 
-<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+<div class="grid grid-cols-1 gap-4 @2xl:grid-cols-2">
   {#each providers as provider (provider.id)}
     {@const loading = isProviderLoading(provider.id)}
     <Card class="flex min-h-[190px] flex-col p-4">
@@ -45,7 +47,7 @@
           </div>
         </div>
         {#if loading}
-          <span class="h-5 w-16 shrink-0 animate-pulse rounded-full bg-secondary" aria-hidden="true"></span>
+          <span class="inline-flex h-5 shrink-0 items-center gap-1.5 text-caption text-muted-foreground"><DeletingDots size="xs" class="text-primary" />Loading</span>
         {:else}
           <span class="shrink-0 text-caption px-2 py-0.5 rounded-md border {provider.connected ? 'border-success/25 bg-success/10 text-success' : provider.support === 'local' ? 'border-ai/25 bg-ai/10 text-ai' : 'border-border text-muted-foreground'}">
             {provider.collection_status && provider.collection_status !== 'fresh'
@@ -57,7 +59,7 @@
 
       {#if loading}
         <div
-          class="mt-4 flex-1 space-y-4 animate-pulse"
+          class="mt-4 flex-1 space-y-4"
           role="status"
           aria-label={`Loading ${provider.name} usage`}
         >
@@ -82,14 +84,19 @@
       {:else if provider.windows.length}
         <div class="mt-4 space-y-3">
           {#each provider.windows as usageWindow}
+            {@const hasReading = usageWindow.used_percent != null && Number.isFinite(usageWindow.used_percent)}
             <div class="space-y-1.5">
               <div class="flex justify-between gap-3 text-meta">
                 <span class="truncate text-muted-foreground">{usageWindow.label}</span>
-                <span class="shrink-0 font-mono">
-                  {usageWindow.used_percent != null ? `${Math.round(usageWindow.used_percent)}% used` : '—'}
+                <span class="shrink-0 font-mono tabular-nums">
+                  <AnimatedValue value={hasReading ? `${Math.round(usageWindow.used_percent!)}% used` : '—'} />
                 </span>
               </div>
-              <ProgressBar value={usageWindow.used_percent ?? 0} height="h-1.5" />
+              {#if hasReading}
+                <ProgressBar value={usageWindow.used_percent!} height="h-1.5" />
+              {:else}
+                <div class="meter-track h-1.5 rounded-full" aria-hidden="true"></div>
+              {/if}
               {#if usageWindow.resets_at}
                 <p class="text-right text-caption text-muted-foreground" title={formatResetDate(usageWindow.resets_at)}>
                   Resets {formatResetDate(usageWindow.resets_at)}
@@ -104,24 +111,24 @@
       {:else if provider.summary.local_sessions != null}
         <div class="mt-4 grid grid-cols-2 gap-2">
           <div class="rounded-lg bg-secondary p-2.5">
-            <p class="text-caption text-muted-foreground uppercase">7d sessions</p>
-            <p class="text-title font-mono font-semibold tabular-nums">{provider.summary.local_sessions}</p>
+            <p class="text-caption text-muted-foreground">7d sessions</p>
+            <p class="text-title font-mono font-semibold tabular-nums"><AnimatedValue value={String(provider.summary.local_sessions ?? '—')} /></p>
           </div>
           <div class="rounded-lg bg-secondary p-2.5">
-            <p class="text-caption text-muted-foreground uppercase">Local cost</p>
-            <p class="text-title font-mono font-semibold tabular-nums">${(provider.summary.local_cost_usd ?? 0).toFixed(2)}</p>
+            <p class="text-caption text-muted-foreground">Local cost</p>
+            <p class="text-title font-mono font-semibold tabular-nums"><AnimatedValue value={provider.summary.local_cost_usd == null ? '—' : `$${provider.summary.local_cost_usd.toFixed(2)}`} /></p>
           </div>
         </div>
       {:else if provider.id === 'openrouter' && provider.connected}
         <div class="mt-4 grid grid-cols-2 gap-2">
           <div class="rounded-lg bg-secondary p-2.5">
-            <p class="text-caption text-muted-foreground uppercase">Total usage</p>
-            <p class="text-title font-mono font-semibold tabular-nums">${(provider.summary.usage_usd ?? 0).toFixed(2)}</p>
+            <p class="text-caption text-muted-foreground">Total usage</p>
+            <p class="text-title font-mono font-semibold tabular-nums"><AnimatedValue value={provider.summary.usage_usd == null ? '—' : `$${provider.summary.usage_usd.toFixed(2)}`} /></p>
           </div>
           <div class="rounded-lg bg-secondary p-2.5">
-            <p class="text-caption text-muted-foreground uppercase">Limit remaining</p>
+            <p class="text-caption text-muted-foreground">Limit remaining</p>
             <p class="text-title font-mono font-semibold tabular-nums">
-              {provider.summary.limit_remaining_usd == null ? '—' : `$${provider.summary.limit_remaining_usd.toFixed(2)}`}
+              <AnimatedValue value={provider.summary.limit_remaining_usd == null ? '—' : `$${provider.summary.limit_remaining_usd.toFixed(2)}`} />
             </p>
           </div>
         </div>

@@ -42,12 +42,15 @@ describe('browser preview scan cancellation', () => {
       await vi.advanceTimersByTimeAsync(150);
       expect(events.some((event) => event.type === 'ItemFound')).toBe(true);
 
-      // The progress the UI reads: the root being read is named before the
-      // category reports what it holds.
+      // Match the native engine: category begins, then the walk names each
+      // root before reporting its items. The UI clears the previous root at
+      // the category boundary.
       const root = events.findIndex((event) => event.type === 'RootStarted');
       const category = events.findIndex((event) => event.type === 'CategoryStarted');
       expect(root).toBeGreaterThanOrEqual(0);
-      expect(root).toBeLessThan(category);
+      expect(category).toBeGreaterThanOrEqual(0);
+      expect(category).toBeLessThan(root);
+      expect(root).toBeLessThan(events.findIndex(event => event.type === 'ItemFound'));
 
       await mockApi.cancelScan(await startedScanId(events));
       await vi.advanceTimersByTimeAsync(450);

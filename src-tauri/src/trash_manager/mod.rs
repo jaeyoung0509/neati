@@ -12,6 +12,7 @@ use crate::safety::{Blacklist, SymlinkGuard};
 use neati_platform::description::PlatformEnvironment;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::{ProcessesToUpdate, System};
@@ -180,6 +181,7 @@ impl TrashPlanner {
     }
 
     pub fn from_developer_artifacts(
+        environment: &PlatformEnvironment,
         inventory: &DeveloperArtifactInventory,
         selected_ids: &[String],
     ) -> Result<TrashPlan, String> {
@@ -215,8 +217,21 @@ impl TrashPlanner {
                         record.artifact.project_name
                     ));
                 }
+                DeveloperArtifactStatus::ObservationOnly => {
+                    return Err(
+                        "Framework output is observation-only; cleanup is unavailable.".into(),
+                    );
+                }
             }
-            targets.push(TrashTarget {
+            if !record.artifact.ownership.allows_cleanup() {
+                return Err(record
+                    .artifact
+                    .ownership
+                    .refusal_message()
+                    .unwrap_or("Artifact ownership is unverified.")
+                    .into());
+            }
+            let target = TrashTarget {
                 item_id: id.clone(),
                 path: record.path.clone(),
                 identity: record.identity.clone(),
@@ -233,7 +248,11 @@ impl TrashPlanner {
                     marker_identities: record.marker_identities.clone(),
                     kind: record.artifact.kind,
                 },
-            });
+            };
+            // Preparation re-derives ownership and scope rather than trusting
+            // a discovery verdict or a complete byte measurement.
+            validate_target(environment, &target)?;
+            targets.push(target);
         }
         if targets.is_empty() {
             return Err("Select at least one developer artifact to move to Trash.".to_string());
@@ -303,7 +322,19 @@ impl TrashExecutor {
     fn execute_with<F>(
         environment: &PlatformEnvironment,
         plan: TrashPlan,
+        move_to_trash: F,
+    ) -> TrashResult
+    where
+        F: FnMut(&ApprovedTrashTarget<'_>) -> Result<(), String>,
+    {
+        Self::execute_with_probe(environment, plan, move_to_trash, &probe_ownership)
+    }
+
+    fn execute_with_probe<F>(
+        environment: &PlatformEnvironment,
+        plan: TrashPlan,
         mut move_to_trash: F,
+        ownership_probe: &OwnershipProbe<'_>,
     ) -> TrashResult
     where
         F: FnMut(&ApprovedTrashTarget<'_>) -> Result<(), String>,
@@ -334,7 +365,7 @@ impl TrashExecutor {
                 });
                 continue;
             }
-            match validate_target(environment, &target) {
+            match validate_target_with_probe(environment, &target, ownership_probe) {
                 Ok(approved) => match move_to_trash(&approved) {
                     Ok(()) => {
                         if matches!(target.scope, TrashScope::AppBundle) {
@@ -384,12 +415,36 @@ impl TrashExecutor {
 
 /// Revalidates one reviewed target immediately before it moves.
 ///
+type OwnershipProbe<'a> =
+    dyn Fn(&PlatformEnvironment, &Path, &Path) -> crate::models::ArtifactOwnershipEvidence + 'a;
+
+fn probe_ownership(
+    environment: &PlatformEnvironment,
+    project: &Path,
+    artifact: &Path,
+) -> crate::models::ArtifactOwnershipEvidence {
+    neati_platform::artifact_ownership::probe_artifact_ownership(
+        environment,
+        project,
+        artifact,
+        &AtomicBool::new(false),
+    )
+}
+
 /// Scope, symlink components, identity, developer-artifact evidence, and the
 /// app-related checks all run here, and the return value is the authority the
 /// Trash port accepts, so a target that failed a check cannot reach the port.
 fn validate_target<'a>(
     environment: &PlatformEnvironment,
     target: &'a TrashTarget,
+) -> Result<ApprovedTrashTarget<'a>, String> {
+    validate_target_with_probe(environment, target, &probe_ownership)
+}
+
+fn validate_target_with_probe<'a>(
+    environment: &PlatformEnvironment,
+    target: &'a TrashTarget,
+    ownership_probe: &OwnershipProbe<'_>,
 ) -> Result<ApprovedTrashTarget<'a>, String> {
     match &target.scope {
         TrashScope::LargeFile { .. } => {
@@ -441,6 +496,7 @@ fn validate_target<'a>(
                 artifact_relative,
                 marker_identities,
                 *kind,
+                ownership_probe,
             )?;
         }
     }
@@ -493,6 +549,49 @@ fn validate_target<'a>(
 
 #[allow(clippy::too_many_arguments)]
 fn validate_developer_artifact_target(
+    environment: &PlatformEnvironment,
+    target: &TrashTarget,
+    workspace_root: &Path,
+    workspace_identity: &ReviewedFileIdentity,
+    project_root: &Path,
+    project_identity: &ReviewedFileIdentity,
+    artifact_relative: &Path,
+    marker_identities: &[(PathBuf, ReviewedFileIdentity)],
+    kind: DeveloperArtifactKind,
+    ownership_probe: &OwnershipProbe<'_>,
+) -> Result<(), String> {
+    validate_developer_artifact_scope(
+        environment,
+        target,
+        workspace_root,
+        workspace_identity,
+        project_root,
+        project_identity,
+        artifact_relative,
+        marker_identities,
+        kind,
+    )?;
+    let ownership = ownership_probe(environment, project_root, &target.path);
+    if let Some(reason) = ownership.refusal_message() {
+        return Err(reason.into());
+    }
+    // The probe can take several seconds. Rebind the reviewed roots and
+    // markers after it, immediately before issuing the move authority.
+    validate_developer_artifact_scope(
+        environment,
+        target,
+        workspace_root,
+        workspace_identity,
+        project_root,
+        project_identity,
+        artifact_relative,
+        marker_identities,
+        kind,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn validate_developer_artifact_scope(
     environment: &PlatformEnvironment,
     target: &TrashTarget,
     workspace_root: &Path,
@@ -672,6 +771,250 @@ mod tests {
     use neati_platform::path_algebra::PathFlavor;
     use neati_platform::paths::SimulatedPaths;
     use std::collections::HashMap;
+
+    fn ownership_fixture() -> (
+        tempfile::TempDir,
+        PlatformEnvironment,
+        DeveloperArtifactInventory,
+    ) {
+        let temp = tempfile::tempdir().unwrap();
+        let root = std::fs::canonicalize(temp.path())
+            .unwrap()
+            .join("workspace");
+        let project = root.join("project");
+        std::fs::create_dir_all(project.join("target/assets")).unwrap();
+        std::fs::write(project.join("Cargo.toml"), "[package]\nname='fixture'\n").unwrap();
+        std::fs::write(project.join("target/assets/output.bin"), b"generated").unwrap();
+        std::fs::write(temp.path().join("outside-sentinel"), b"authored outside").unwrap();
+        let git = if cfg!(windows) {
+            PathBuf::from(r"C:\Program Files\Git\cmd\git.exe")
+        } else {
+            PathBuf::from("/usr/bin/git")
+        };
+        let environment = PlatformEnvironment::simulated(PathFlavor::current())
+            .with_home(temp.path())
+            .with_temp_dir(temp.path())
+            .with_tool("git", git);
+        let workspace = crate::developer_artifacts::DeveloperWorkspaceRecord {
+            workspace: crate::models::DeveloperWorkspace {
+                id: "fixture-workspace".into(),
+                name: "Fixture".into(),
+                display_path: root.to_string_lossy().into_owned(),
+            },
+            path: root.clone(),
+            identity: identity_from_path(&root).unwrap(),
+            created_at: unix_timestamp(),
+            whole_home: false,
+        };
+        let inventory = crate::developer_artifacts::DeveloperArtifactScanner::scan_workspaces(
+            &environment,
+            &[workspace],
+            crate::developer_artifacts::FolderAccess::NotGated,
+            Arc::new(AtomicBool::new(false)),
+            |_| {},
+        )
+        .unwrap();
+        assert_eq!(inventory.records.len(), 1);
+        assert_eq!(
+            inventory.records.values().next().unwrap().artifact.status,
+            DeveloperArtifactStatus::Complete
+        );
+        (temp, environment, inventory)
+    }
+
+    fn fixture_git(environment: &PlatformEnvironment, root: &Path, args: &[&str]) {
+        let git = environment.tool("git").unwrap().path().unwrap();
+        let output = std::process::Command::new(git)
+            .current_dir(root)
+            .args(["-c", "core.fsmonitor="])
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn fresh_authored_content_at_planning_and_final_boundary_never_reaches_trash() {
+        for mutation in [
+            "tracked",
+            "keypair",
+            "git-directory",
+            "git-file",
+            "corrupt-repository",
+        ] {
+            let (temp, environment, inventory) = ownership_fixture();
+            let record = inventory.records.values().next().unwrap();
+            fixture_git(&environment, &record.project_root, &["init", "-q"]);
+            fixture_git(
+                &environment,
+                &record.project_root,
+                &["add", "--", "Cargo.toml"],
+            );
+            let ids = [record.artifact.id.clone()];
+            let plan =
+                TrashPlanner::from_developer_artifacts(&environment, &inventory, &ids).unwrap();
+            let root_identity = identity_from_path(&record.path).unwrap();
+            match mutation {
+                "tracked" => fixture_git(
+                    &environment,
+                    &record.project_root,
+                    &["add", "--", "target/assets/output.bin"],
+                ),
+                "keypair" => {
+                    std::fs::write(record.path.join("assets/example-keypair.json"), b"not read")
+                        .unwrap()
+                }
+                "git-directory" => std::fs::create_dir(record.path.join("assets/.git")).unwrap(),
+                "git-file" => {
+                    std::fs::write(record.path.join("assets/.git"), "gitdir: /outside\n").unwrap()
+                }
+                "corrupt-repository" => std::fs::write(
+                    record.project_root.join(".git/index"),
+                    "malformed index metadata",
+                )
+                .unwrap(),
+                _ => unreachable!(),
+            }
+            assert_eq!(
+                identity_from_path(&record.path).unwrap(),
+                root_identity,
+                "descendant changes leave the root identity unchanged"
+            );
+            assert!(
+                TrashPlanner::from_developer_artifacts(&environment, &inventory, &ids).is_err(),
+                "{mutation} must revoke planning authority"
+            );
+            let backend = Arc::new(neati_platform::MockTrashBackend::new());
+            let result = TrashExecutor::new(backend.clone()).execute(&environment, plan);
+            assert_eq!(result.moved_count, 0, "{mutation}");
+            assert_eq!(result.skipped_count, 1, "{mutation}");
+            assert!(
+                backend.moved().is_empty(),
+                "{mutation} must not reach the Trash port"
+            );
+            assert_eq!(
+                std::fs::read(temp.path().join("outside-sentinel")).unwrap(),
+                b"authored outside"
+            );
+            assert!(record.path.join("assets/output.bin").is_file());
+        }
+    }
+
+    #[test]
+    fn ordinary_verified_generated_fixture_still_reaches_the_recording_trash_port() {
+        let (_temp, environment, inventory) = ownership_fixture();
+        let record = inventory.records.values().next().unwrap();
+        let plan = TrashPlanner::from_developer_artifacts(
+            &environment,
+            &inventory,
+            &[record.artifact.id.clone()],
+        )
+        .unwrap();
+        let backend = Arc::new(neati_platform::MockTrashBackend::new());
+        let result = TrashExecutor::new(backend.clone()).execute(&environment, plan);
+        assert_eq!(result.moved_count, 1);
+        assert_eq!(backend.moved(), vec![record.path.clone()]);
+    }
+
+    #[test]
+    fn replaced_project_during_probe_cannot_gain_the_old_plan_authority() {
+        use neati_platform::TrashBackend;
+        let (temp, environment, inventory) = ownership_fixture();
+        let record = inventory.records.values().next().unwrap();
+        let plan = TrashPlanner::from_developer_artifacts(
+            &environment,
+            &inventory,
+            &[record.artifact.id.clone()],
+        )
+        .unwrap();
+        let backend = neati_platform::MockTrashBackend::new();
+        let old_project = temp.path().join("original-project");
+        let result = TrashExecutor::execute_with_probe(
+            &environment,
+            plan,
+            |approved| backend.move_to_trash(approved.path()),
+            &|_, project, _| {
+                std::fs::rename(project, &old_project).unwrap();
+                std::fs::create_dir_all(project.join("target/assets")).unwrap();
+                std::fs::write(
+                    project.join("Cargo.toml"),
+                    "[package]\nname='replacement'\n",
+                )
+                .unwrap();
+                std::fs::write(
+                    project.join("target/assets/output.bin"),
+                    b"replacement content",
+                )
+                .unwrap();
+                crate::models::ArtifactOwnershipEvidence::VerifiedGenerated
+            },
+        );
+        assert_eq!(result.moved_count, 0);
+        assert!(backend.moved().is_empty());
+        assert!(result.items[0]
+            .message
+            .contains("project marker scope changed"));
+        assert_eq!(
+            std::fs::read(old_project.join("target/assets/output.bin")).unwrap(),
+            b"generated"
+        );
+    }
+
+    #[test]
+    fn framework_observations_cannot_be_forged_into_plans_or_final_move_authority() {
+        let (_temp, environment, mut inventory) = ownership_fixture();
+        let record = inventory.records.values().next().unwrap();
+        let mut plan = TrashPlanner::from_developer_artifacts(
+            &environment,
+            &inventory,
+            &[record.artifact.id.clone()],
+        )
+        .unwrap();
+        let project = record.project_root.clone();
+        let framework = project.join(".next");
+        std::fs::create_dir(&framework).unwrap();
+        std::fs::write(framework.join("generated.bin"), b"generated").unwrap();
+        std::fs::write(
+            project.join("package.json"),
+            r#"{"dependencies":{"next":"16"}}"#,
+        )
+        .unwrap();
+        let record = inventory.records.values_mut().next().unwrap();
+        record.artifact.kind = DeveloperArtifactKind::NextOutput;
+        record.artifact.status = DeveloperArtifactStatus::Complete; // deliberately forged
+        record.path = framework.clone();
+        record.identity = identity_from_path(&framework).unwrap();
+        record.artifact_relative = PathBuf::from(".next");
+        let selected_id = record.artifact.id.clone();
+        assert!(
+            TrashPlanner::from_developer_artifacts(&environment, &inventory, &[selected_id])
+                .is_err()
+        );
+        let target = &mut plan.targets[0];
+        target.path = framework.clone();
+        target.identity = identity_from_path(&framework).unwrap();
+        if let TrashScope::DeveloperArtifact {
+            kind,
+            artifact_relative,
+            ..
+        } = &mut target.scope
+        {
+            *kind = DeveloperArtifactKind::NextOutput;
+            *artifact_relative = PathBuf::from(".next");
+        }
+        let backend = Arc::new(neati_platform::MockTrashBackend::new());
+        let result = TrashExecutor::new(backend.clone()).execute(&environment, plan);
+        assert_eq!(result.moved_count, 0);
+        assert!(backend.moved().is_empty());
+        assert_eq!(
+            std::fs::read(framework.join("generated.bin")).unwrap(),
+            b"generated"
+        );
+    }
     use std::sync::Arc;
 
     /// A POSIX environment stating exactly the profile the test means.
@@ -912,6 +1255,9 @@ mod tests {
     #[test]
     fn developer_artifact_planner_accepts_complete_and_partial_opaque_candidates() {
         let temp = tempfile::tempdir().unwrap();
+        let environment = PlatformEnvironment::simulated(PathFlavor::current())
+            .with_home(temp.path())
+            .with_temp_dir(temp.path());
         let workspace = temp.path().join("workspace");
         let project = workspace.join("project");
         let target = project.join("target");
@@ -935,6 +1281,7 @@ mod tests {
             newest_mtime: None,
             rebuild_hint: Some("cargo build".to_string()),
             evidence: vec!["Cargo.toml".to_string()],
+            ownership: crate::models::ArtifactOwnershipEvidence::VerifiedGenerated,
             status: crate::models::DeveloperArtifactStatus::Complete,
             incomplete_reason: None,
             selected_by_default: false,
@@ -963,14 +1310,18 @@ mod tests {
             uninspected: Vec::new(),
         };
         let plan = TrashPlanner::from_developer_artifacts(
+            &environment,
             &inventory,
             &["artifact".to_string(), "artifact".to_string()],
         )
         .unwrap();
         assert_eq!(plan.targets.len(), 1);
-        assert!(
-            TrashPlanner::from_developer_artifacts(&inventory, &["forged".to_string()]).is_err()
-        );
+        assert!(TrashPlanner::from_developer_artifacts(
+            &environment,
+            &inventory,
+            &["forged".to_string()]
+        )
+        .is_err());
 
         let mut partial_inventory = inventory.clone();
         {
@@ -980,6 +1331,7 @@ mod tests {
                 Some("Some entries could not be measured.".to_string());
         }
         assert!(TrashPlanner::from_developer_artifacts(
+            &environment,
             &partial_inventory,
             &["artifact".to_string()]
         )
@@ -992,6 +1344,7 @@ mod tests {
             .artifact
             .status = crate::models::DeveloperArtifactStatus::SafetyBlocked;
         assert!(TrashPlanner::from_developer_artifacts(
+            &environment,
             &partial_inventory,
             &["artifact".to_string()]
         )
@@ -999,6 +1352,7 @@ mod tests {
 
         partial_inventory.cancelled = true;
         assert!(TrashPlanner::from_developer_artifacts(
+            &environment,
             &partial_inventory,
             &["artifact".to_string()]
         )
@@ -1008,6 +1362,13 @@ mod tests {
     #[test]
     fn developer_artifact_execution_rejects_removed_project_evidence() {
         let temp = tempfile::tempdir().unwrap();
+        let environment = PlatformEnvironment::simulated(PathFlavor::current())
+            .with_home(if PathFlavor::current().is_windows() {
+                r"Z:\NeatiFixtureHome"
+            } else {
+                "/neati-fixture-home"
+            })
+            .with_temp_dir(temp.path());
         let workspace = temp.path().join("workspace");
         let project = workspace.join("project");
         let target = project.join("target");
@@ -1029,6 +1390,7 @@ mod tests {
                 newest_mtime: None,
                 rebuild_hint: Some("cargo build".to_string()),
                 evidence: vec!["Cargo.toml".to_string()],
+                ownership: crate::models::ArtifactOwnershipEvidence::VerifiedGenerated,
                 status: crate::models::DeveloperArtifactStatus::Complete,
                 incomplete_reason: None,
                 selected_by_default: false,
@@ -1054,17 +1416,15 @@ mod tests {
             truncated: false,
             uninspected: Vec::new(),
         };
-        let plan =
-            TrashPlanner::from_developer_artifacts(&inventory, &["artifact".to_string()]).unwrap();
+        let plan = TrashPlanner::from_developer_artifacts(
+            &environment,
+            &inventory,
+            &["artifact".to_string()],
+        )
+        .unwrap();
         std::fs::remove_file(marker).unwrap();
         let mut move_attempts = 0;
-        let environment = PlatformEnvironment::simulated(PathFlavor::current())
-            .with_home(if PathFlavor::current().is_windows() {
-                r"Z:\NeatiFixtureHome"
-            } else {
-                "/neati-fixture-home"
-            })
-            .with_temp_dir(temp.path());
+
         let result = TrashExecutor::execute_with(&environment, plan, |_| {
             move_attempts += 1;
             Ok(())
@@ -1077,6 +1437,13 @@ mod tests {
     #[test]
     fn rust_cleanup_moves_only_target_when_project_is_the_selected_workspace() {
         let temp = tempfile::tempdir().unwrap();
+        let environment = PlatformEnvironment::simulated(PathFlavor::current())
+            .with_home(if PathFlavor::current().is_windows() {
+                r"Z:\NeatiFixtureHome"
+            } else {
+                "/neati-fixture-home"
+            })
+            .with_temp_dir(temp.path());
         let project = temp.path().join("rust-project");
         let source = project.join("src/lib.rs");
         let target = project.join("target");
@@ -1102,6 +1469,7 @@ mod tests {
                 newest_mtime: None,
                 rebuild_hint: Some("cargo build".to_string()),
                 evidence: vec!["Cargo.toml".to_string()],
+                ownership: crate::models::ArtifactOwnershipEvidence::VerifiedGenerated,
                 status: crate::models::DeveloperArtifactStatus::Complete,
                 incomplete_reason: None,
                 selected_by_default: false,
@@ -1127,15 +1495,13 @@ mod tests {
             truncated: false,
             uninspected: Vec::new(),
         };
-        let plan =
-            TrashPlanner::from_developer_artifacts(&inventory, &["artifact".to_string()]).unwrap();
-        let environment = PlatformEnvironment::simulated(PathFlavor::current())
-            .with_home(if PathFlavor::current().is_windows() {
-                r"Z:\NeatiFixtureHome"
-            } else {
-                "/neati-fixture-home"
-            })
-            .with_temp_dir(temp.path());
+        let plan = TrashPlanner::from_developer_artifacts(
+            &environment,
+            &inventory,
+            &["artifact".to_string()],
+        )
+        .unwrap();
+
         let result = TrashExecutor::execute_with(&environment, plan, |approved| {
             assert_eq!(approved.path(), target);
             std::fs::rename(approved.path(), &trashed).map_err(|error| error.to_string())

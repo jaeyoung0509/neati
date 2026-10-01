@@ -110,7 +110,7 @@ pub fn cancel_developer_artifact_scan(
 
 #[tauri::command]
 #[specta::specta]
-pub fn prepare_developer_artifact_cleanup(
+pub async fn prepare_developer_artifact_cleanup(
     scan_id: String,
     selected_item_ids: Vec<String>,
     state: State<'_, DesktopState>,
@@ -118,6 +118,7 @@ pub fn prepare_developer_artifact_cleanup(
     state
         .storage
         .prepare_developer_artifact_trash(&scan_id, &selected_item_ids)
+        .await
 }
 
 #[tauri::command]

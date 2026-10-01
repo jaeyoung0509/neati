@@ -41,6 +41,8 @@ pub enum DeveloperEcosystem {
 pub enum DeveloperArtifactKind {
     CargoTarget,
     NodeModules,
+    SvelteKitOutput,
+    NextOutput,
     PythonVenv,
     GoModuleCache,
     MavenTarget,
@@ -70,14 +72,16 @@ pub enum DeveloperArtifactStatus {
     /// Every measured entry and project marker was verified.
     Complete,
     /// The generated-folder scope and project evidence are verified, but one
-    /// or more descendants could not be measured. Manual cleanup is allowed
-    /// after an explicit warning and execution-time revalidation.
+    /// or more descendants could not be measured. Manual cleanup also requires
+    /// independent complete ownership evidence and execution-time revalidation.
     MeasurementIncomplete,
     /// A safety boundary (for example a symlink, filesystem boundary, or
     /// project marker identity) could not be verified. Cleanup is forbidden.
     SafetyBlocked,
     /// The scan was cancelled before this artifact could be fully validated.
     ScanCancelled,
+    /// Observed output whose owner-use and removal contracts are not verified.
+    ObservationOnly,
 }
 
 impl DeveloperArtifactStatus {
@@ -108,6 +112,7 @@ pub struct DeveloperArtifact {
     pub newest_mtime: Option<u64>,
     pub rebuild_hint: Option<String>,
     pub evidence: Vec<String>,
+    pub ownership: crate::models::ArtifactOwnershipEvidence,
     pub status: DeveloperArtifactStatus,
     pub incomplete_reason: Option<String>,
     pub selected_by_default: bool,

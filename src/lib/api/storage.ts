@@ -205,6 +205,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     newest_mtime: Math.floor(Date.now() / 1000) - 86400 * 3,
     rebuild_hint: 'cargo build',
     evidence: ['Cargo.toml'],
+    ownership: { state: 'verified_generated' },
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: false,
@@ -222,6 +223,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     newest_mtime: Math.floor(Date.now() / 1000) - 86400 * 12,
     rebuild_hint: 'pnpm install',
     evidence: ['package.json', 'pnpm-lock.yaml'],
+    ownership: { state: 'verified_generated' },
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: false,
@@ -239,6 +241,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     newest_mtime: Math.floor(Date.now() / 1000) - 86400 * 28,
     rebuild_hint: './gradlew build',
     evidence: ['build.gradle.kts'],
+    ownership: { state: 'verified_generated' },
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: false,
@@ -256,6 +259,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     newest_mtime: Math.floor(Date.now() / 1000) - 86400 * 4,
     rebuild_hint: 'composer install',
     evidence: ['composer.json', 'composer.lock'],
+    ownership: { state: 'verified_generated' },
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: false,
@@ -273,6 +277,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     newest_mtime: Math.floor(Date.now() / 1000),
     rebuild_hint: 'uv sync',
     evidence: ['pyproject.toml'],
+    ownership: { state: 'verified_generated' },
     status: 'measurement_incomplete',
     incomplete_reason: 'Permission denied while reading one or more entries',
     selected_by_default: false,
@@ -290,10 +295,29 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     newest_mtime: Math.floor(Date.now() / 1000) - 86400 * 7,
     rebuild_hint: 'pnpm install',
     evidence: ['package.json'],
+    ownership: { state: 'incomplete', reason: 'unreadable_metadata' },
     status: 'safety_blocked',
     incomplete_reason: 'Project markers could not be verified; cleanup is blocked.',
     selected_by_default: false,
   },
+  ...(['svelte_kit_output', 'next_output'] as const).map((kind): DeveloperArtifact => ({
+    id: `artifact-${kind}`,
+    workspace_id: 'workspace-work',
+    project_name: kind === 'next_output' ? 'web-next' : 'web-svelte-kit',
+    ecosystem: 'node',
+    kind,
+    path: kind === 'next_output' ? '/Users/mock/work/web-next/.next' : '/Users/mock/work/web-svelte-kit/.svelte-kit',
+    logical_bytes: 124 * MIB,
+    allocated_bytes: 120 * MIB,
+    file_count: 920,
+    newest_mtime: Math.floor(Date.now() / 1000),
+    rebuild_hint: 'The framework regenerates its default output during dev/build. Custom configuration is not evaluated.',
+    evidence: [`Direct package.json dependency: ${kind === 'next_output' ? 'next' : '@sveltejs/kit'}`],
+    ownership: { state: 'verified_generated' },
+    status: 'observation_only',
+    incomplete_reason: 'Framework output is observed only; cleanup is unavailable until build/dev use and deployment/offline ownership can be verified.',
+    selected_by_default: false,
+  })),
 ];
 
 const mockApps: InstalledApp[] = [
@@ -626,6 +650,12 @@ const mockStorageApi: StorageManagementApi = {
     }
     if (selected.some((item) => item.status === 'safety_blocked')) {
       throw new Error('Some selected artifacts are blocked because their cleanup safety checks could not be verified.');
+    }
+    if (selected.some((item) => item.status === 'observation_only')) {
+      throw new Error('Framework output is observation-only; cleanup is unavailable.');
+    }
+    if (selected.some((item) => item.ownership.state !== 'verified_generated')) {
+      throw new Error('Artifact ownership is unverified; cleanup is unavailable.');
     }
     if (selected.some((item) => item.status === 'scan_cancelled')) {
       throw new Error('Cancelled artifacts require a new scan before cleanup.');

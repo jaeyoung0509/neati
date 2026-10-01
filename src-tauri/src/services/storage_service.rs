@@ -450,7 +450,7 @@ impl StorageService {
     }
 
     /// Builds a one-shot Trash plan from reviewed artifact IDs.
-    pub fn prepare_developer_artifact_trash(
+    pub async fn prepare_developer_artifact_trash(
         &self,
         scan_id: &str,
         selected_item_ids: &[String],
@@ -473,10 +473,25 @@ impl StorageService {
             .filter(DeveloperArtifactInventory::is_fresh)
             .ok_or_else(|| "Developer artifact inventory expired. Scan again.".to_string())?;
 
-        self.store_reviewed_plan(TrashPlanner::from_developer_artifacts(
-            &inventory,
-            selected_item_ids,
-        )?)
+        let environment = self.environment.clone();
+        let selected_item_ids = selected_item_ids.to_vec();
+        let operation_gate = self.operation_gate.clone();
+        let permit = self.budgets.acquire_storage_read().await?;
+        let plan = crate::blocking::run_blocking(
+            move || {
+                let _permit = permit;
+                operation_gate.run_read(|| {
+                    TrashPlanner::from_developer_artifacts(
+                        &environment,
+                        &inventory,
+                        &selected_item_ids,
+                    )
+                })
+            },
+            "Developer artifact planning worker panicked",
+        )
+        .await?;
+        self.store_reviewed_plan(plan)
     }
 
     /// Lists the installed applications the uninstaller may review.

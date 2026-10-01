@@ -7,7 +7,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.3.90"
+version = "0.3.91"
 authors = ["neati Team"]
 edition = "2021"
 license = "MIT"

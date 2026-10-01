@@ -1,12 +1,50 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
 const temporaryDirectories: string[] = [];
+const windowsInstallerNames = [
+  'neati-windows-x64-setup.exe',
+  'neati-windows-x64-setup-machine.exe',
+];
+
+function windowsArtifactFixture() {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), 'neati-windows-smoke-artifacts-'));
+  temporaryDirectories.push(fixtureRoot);
+  const staged = join(fixtureRoot, 'staged');
+  const downloaded = join(fixtureRoot, 'downloaded');
+  const manifest = join(fixtureRoot, 'SHA256SUMS.txt');
+  mkdirSync(staged);
+  mkdirSync(downloaded);
+  for (const name of windowsInstallerNames) {
+    // These are disposable byte fixtures, not executable installers.
+    const contents = `staged bytes for ${name}`;
+    writeFileSync(join(staged, name), contents);
+    writeFileSync(join(downloaded, name), contents);
+  }
+  execFileSync(
+    process.execPath,
+    [
+      'scripts/release_checksums.cjs', 'write-many', '--output', manifest,
+      ...windowsInstallerNames.map((name) => join(staged, name)),
+    ],
+    { cwd: repositoryRoot, stdio: 'pipe' },
+  );
+  const verify = (directory = downloaded, expectedNames = windowsInstallerNames) =>
+    execFileSync(
+      process.execPath,
+      [
+        'scripts/release_checksums.cjs', 'verify-directory',
+        '--manifest', manifest, '--directory', directory, ...expectedNames,
+      ],
+      { cwd: repositoryRoot, stdio: 'pipe', encoding: 'utf8' },
+    );
+  return { staged, downloaded, manifest, verify };
+}
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -133,6 +171,70 @@ describe('release packaging contracts', () => {
     expect(combined).not.toContain('\r');
     expect(combined).toMatch(/neati-macos-arm64\.dmg\n/);
     expect(combined).toMatch(/neati-windows-x64-setup\.exe\n$/);
+  });
+
+  it('verifies the exact two Windows installer filenames and unchanged uploaded bytes', () => {
+    const fixture = windowsArtifactFixture();
+    expect(fixture.verify(fixture.staged)).toContain('Verified 2 artifacts');
+    expect(fixture.verify()).toContain('Verified 2 artifacts');
+  });
+
+  it('rejects an uploaded artifact that omits the machine-wide installer', () => {
+    const fixture = windowsArtifactFixture();
+    rmSync(join(fixture.downloaded, windowsInstallerNames[1]));
+    expect(fixture.verify).toThrow(/artifact directory must contain exactly/);
+  });
+
+  it('rejects renamed or extra downloaded installer files', () => {
+    const fixture = windowsArtifactFixture();
+    renameSync(
+      join(fixture.downloaded, windowsInstallerNames[1]),
+      join(fixture.downloaded, 'machine-installer.exe'),
+    );
+    expect(fixture.verify).toThrow(/artifact directory must contain exactly/);
+    renameSync(
+      join(fixture.downloaded, 'machine-installer.exe'),
+      join(fixture.downloaded, windowsInstallerNames[1]),
+    );
+    writeFileSync(join(fixture.downloaded, 'unexpected.exe'), 'unexpected bytes');
+    expect(fixture.verify).toThrow(/artifact directory must contain exactly/);
+  });
+
+  it('rejects changed or empty downloaded installer bytes', () => {
+    const fixture = windowsArtifactFixture();
+    writeFileSync(join(fixture.downloaded, windowsInstallerNames[1]), 'changed bytes');
+    expect(fixture.verify).toThrow(/artifact checksum does not match staged bytes/);
+    writeFileSync(join(fixture.downloaded, windowsInstallerNames[1]), '');
+    expect(fixture.verify).toThrow(/artifact must be a nonempty regular file/);
+  });
+
+  it('requires checksum coverage for every installer and refuses duplicate entries', () => {
+    const fixture = windowsArtifactFixture();
+    const lines = readFileSync(fixture.manifest, 'utf8').trimEnd().split('\n');
+    writeFileSync(fixture.manifest, `${lines[0]}\n`);
+    expect(fixture.verify).toThrow(/checksum manifest does not cover every expected artifact/);
+    writeFileSync(fixture.manifest, `${lines[0]}\n${lines[0]}\n`);
+    expect(fixture.verify).toThrow(/unexpected or duplicate artifact/);
+  });
+
+  it('refuses directories posing as installers and non-basename artifact requests', () => {
+    const fixture = windowsArtifactFixture();
+    rmSync(join(fixture.downloaded, windowsInstallerNames[1]));
+    mkdirSync(join(fixture.downloaded, windowsInstallerNames[1]));
+    expect(fixture.verify).toThrow(/artifact must be a nonempty regular file/);
+    expect(() => fixture.verify(fixture.downloaded, ['../outside.exe']))
+      .toThrow(/expected artifact filename must be a basename/);
+  });
+
+  it('uploads both explicit Windows installer paths and verifies the downloaded artifact', () => {
+    const workflow = readFileSync(join(repositoryRoot, '.github/workflows/ci.yml'), 'utf8');
+    const uploadStep = workflow.split('      - name: Upload Windows packaging smoke artifacts\n')[1]
+      ?.split('\n      - name:')[0];
+    const pathBlock = uploadStep?.match(/          path: \|\n((?:            .+\n)+)/)?.[1];
+    expect(pathBlock?.trim().split('\n').map((line) => line.trim()))
+      .toEqual(windowsInstallerNames.map((name) => `packaging/${name}`));
+    expect(workflow).toContain('      - name: Download Windows packaging smoke artifacts for verification');
+    expect(workflow).toContain('--manifest packaging-checksums.txt --directory packaging-downloaded');
   });
 
   it('binds endpoint review records to one exact, unique artifact set', () => {

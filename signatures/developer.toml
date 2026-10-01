@@ -961,3 +961,31 @@ owner = "Playwright / Puppeteer"
 provider = "Playwright / Puppeteer"
 artifact_kind = "package_store"
 description = "Observation only. These are executable browser installations used by projects and automation. Download age does not prove they are unused; an owner uninstall operation is required."
+
+[[signatures]]
+id = "dev.oh_my_zsh.cache"
+name = "Oh My Zsh Cache"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos", "linux"]
+paths = ["~/.oh-my-zsh/cache", "${XDG_CACHE_HOME}/oh-my-zsh"]
+owner = "Oh My Zsh"
+provider = "Oh My Zsh"
+artifact_kind = "package_store"
+description = "Observation only for the standard installation cache and XDG fallback namespace. Generated and downloaded completion scripts, update state and unknown files remain untouched. Custom ZSH or ZSH_CACHE_DIR roots and completion dumps outside these namespaces are not discovered."
+
+[[signatures]]
+id = "dev.github_cli.http_cache"
+name = "GitHub CLI Local Cache"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos", "linux"]
+paths = ["${XDG_CACHE_HOME}/gh"]
+owner = "GitHub CLI"
+provider = "GitHub CLI"
+artifact_kind = "download_cache"
+description = "Observation only for the named local HTTP-cache namespace. neati measures metadata without reading response contents and performs no credential, configuration or extension search or remote cache operation. A verified whole-scope gh config clear-cache adapter is required before cleanup can be offered."

@@ -500,6 +500,7 @@ impl ScanEngine {
                     duration_ms: span_started.elapsed().as_millis().min(u128::from(u64::MAX))
                         as u64,
                 });
+                spans.extend(scanned.spans);
                 if scanned.selector_incomplete {
                     scanned_incomplete_selectors = scanned_incomplete_selectors.saturating_add(1);
                 }

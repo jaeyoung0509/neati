@@ -48,6 +48,23 @@ just to ask whether an ordinary entry is a link. Windows reparse points still
 require a handle-level tag query; a failed query reports an incomplete scan,
 never permission to descend.
 
+The aged tree walker already gathers size, file count and newest modification
+time in one recursive pass. It prepares the environment's POSIX comparison
+keys and the signature's expanded exclusions once per enumerated namespace
+root, then reuses only that immutable vocabulary for its descendants. An
+independent tree measurement prepares its own vocabulary. This avoids building
+the protected-directory environment and normalizing every protected name for
+each file; candidate paths still use the same blacklist and path-algebra rules.
+The key map is bounded by the policy's names, not by the size of the tree.
+
+No candidate metadata, use verdict, filesystem identity, or authorization is
+cached. Every recursive entry still checks cancellation and reads fresh
+`symlink_metadata`; planning and execution retain their fresh guards. Windows
+8.3 alias resolution is filesystem-dependent and remains uncached, including
+the resolution of aliased environment facts. macOS case and Unicode-equivalent
+protection, Linux byte-exact matching, exclusions, depth limits and protected
+entries retain their existing semantics.
+
 Overlap resolution uses a disposable `ScanRelationships` cache for filesystem
 identity and actual directory-entry spelling. Its lifetime is one resolution
 pass, including one fresh pass when scan slices are merged. Missing identities
@@ -78,6 +95,16 @@ combines completed slices. Merged duration includes the slice durations plus
 that merge pass; it is not elapsed UI time including idle periods between scans.
 These spans complement the signature/provider timings without changing the
 meaning of traversal counters.
+
+Filesystem signatures add a bounded `.root_expansion` phase for
+environment/selector expansion. Enumerated aged
+roots also add `.aged.policy_preparation`, `.aged.tree_measurement`, and
+`.aged.enumeration_and_classification`. The latter includes child enumeration,
+classification and item construction, excluding the separately timed policy
+preparation and descendant measurement. These durations aggregate across all
+roots/children of a signature; there is no per-file span or new progress event.
+IDs contain only the catalog ID and phase name. The enclosing signature span
+includes these phases, so do not add the enclosing and nested durations together.
 
 `ScanResult.cancelled` states whether the run stopped because it was cancelled;
 a cancelled scan is `quality: partial` with a stated reason, and the flag is
@@ -130,8 +157,21 @@ developer machine). Timings are deliberately not compared byte-for-byte.
 
 Fixtures currently covered: `wide` (200 directories), `deep` (past the depth
 limit), `mixed_size` (3 B to 2 MiB), `mixed_age` (stale and fresh siblings),
-`overlapping_roots` (one location, two rules), plus unix-only `inaccessible`
+`aged_observation` (2,048 files in two advisory namespaces, one stale and one
+fresh), `overlapping_roots` (one location, two rules), plus unix-only `inaccessible`
 and `symlink` fixtures that are asserted by their own tests.
+
+The advisory fixture asserts 2,307 visited entries, 259 directory reads, two
+inventory units, 8 MiB of logical data and zero cleanup authority. Its cancellation
+case trips during the first unit and verifies that later descendants and the
+second unit remain unwalked. `repeated_aged_observation_reports_scan_cost` is an
+ignored, opt-in read-only fixture benchmark; it measures a warm-up and five runs
+without reading the user's temporary folders or constructing a cleanup plan:
+
+```sh
+cargo test -p neati-desktop --test scan_benchmark \
+  repeated_aged_observation_reports_scan_cost -- --ignored --exact --nocapture
+```
 
 ## Recorded real-machine baselines
 

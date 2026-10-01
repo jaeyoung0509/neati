@@ -440,8 +440,156 @@ fn committed_fixtures() -> Vec<Fixture> {
         deep_fixture(),
         mixed_size_fixture(),
         mixed_age_fixture(),
+        aged_observation_fixture(),
         overlapping_roots_fixture(),
     ]
+}
+
+/// A repeated read-only observation of a disposable aged namespace. It exercises
+/// the recursive age/size walker used by developer temporary discovery without
+/// reading the machine's temporary roots or constructing a cleanup plan.
+#[test]
+#[ignore = "local repeated read-only fixture benchmark; never scans user caches"]
+fn repeated_aged_observation_reports_scan_cost() {
+    let fixture = aged_observation_fixture();
+    for iteration in 0..6 {
+        let before_rss = resident_kib();
+        let started = Instant::now();
+        let result = fixture.scan();
+        let wall_us = started.elapsed().as_micros();
+        let rss_growth_kib = match (before_rss, resident_kib()) {
+            (Some(before), Some(after)) => Some(after - before),
+            _ => None,
+        };
+        assert_aged_observation(&result);
+        eprintln!(
+            "aged_observation_repeat {}",
+            serde_json::json!({
+                "version": env!("CARGO_PKG_VERSION"),
+                "iteration": iteration,
+                "warmup": iteration == 0,
+                "wall_us": wall_us,
+                "scan_ms": result.metrics.duration_ms,
+                "visited_entries": result.metrics.visited_entries,
+                "directories_read": result.metrics.directories_read,
+                "candidate_count": candidate_count(&result),
+                "logical_bytes": logical_bytes(&result),
+                "observed_bytes": result.total_bytes,
+                "skipped_entries": result.skipped_entry_count,
+                "peak_tasks": result.metrics.peak_outstanding_directory_tasks,
+                "rss_growth_kib": rss_growth_kib,
+            })
+        );
+    }
+}
+
+#[test]
+fn aged_observation_phase_spans_are_bounded_and_do_not_add_progress_events() {
+    let fixture = aged_observation_fixture();
+    let mut roots = 0;
+    let mut items = 0;
+    let result = fixture.scan_with(&NeverCancelled, |event| match event {
+        ScanEvent::RootStarted { .. } => roots += 1,
+        ScanEvent::ItemFound { .. } => items += 1,
+        _ => {}
+    });
+    assert_eq!(roots, 1);
+    assert_eq!(items, 2);
+    assert_aged_observation(&result);
+    let prefix = "benchmark.aged-observation.";
+    let phases: Vec<_> = result
+        .spans
+        .iter()
+        .filter(|span| span.source_id.starts_with(prefix))
+        .collect();
+    assert_eq!(phases.len(), 4);
+    assert_eq!(
+        phases
+            .iter()
+            .map(|span| span.source_id.strip_prefix(prefix).unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "root_expansion",
+            "aged.policy_preparation",
+            "aged.tree_measurement",
+            "aged.enumeration_and_classification",
+        ]
+    );
+    let total = result
+        .spans
+        .iter()
+        .find(|span| span.source_id == "benchmark.aged-observation")
+        .unwrap();
+    assert!(phases.iter().map(|span| span.duration_ms).sum::<u64>() <= total.duration_ms);
+    assert!(result
+        .spans
+        .iter()
+        .all(|span| !span.source_id.contains('/') && !span.source_id.contains('\\')));
+}
+
+#[test]
+fn aged_observation_cancellation_stops_inside_the_first_unit() {
+    use std::sync::atomic::AtomicUsize;
+    struct DuringTraversal {
+        calls: AtomicUsize,
+        tripped: OnceLock<Instant>,
+    }
+    impl CancellationProbe for DuringTraversal {
+        fn is_cancelled(&self) -> bool {
+            if self.calls.fetch_add(1, Ordering::SeqCst) < 128 {
+                return false;
+            }
+            self.tripped.get_or_init(Instant::now);
+            true
+        }
+    }
+    let fixture = aged_observation_fixture();
+    let probe = DuringTraversal {
+        calls: AtomicUsize::new(0),
+        tripped: OnceLock::new(),
+    };
+    let result = fixture.scan_with(&probe, |_| {});
+    let latency = probe
+        .tripped
+        .get()
+        .expect("cancellation trips inside the tree")
+        .elapsed();
+    assert!(result.cancelled);
+    assert_eq!(
+        result.quality,
+        neati_lib::models::ObservationQuality::Partial
+    );
+    assert!(result.metrics.visited_entries > 2);
+    assert!(result.metrics.visited_entries < 2307);
+    assert!(result.metrics.directories_read < 259);
+    assert_eq!(candidate_count(&result), 1);
+    assert!(logical_bytes(&result) > 0 && logical_bytes(&result) < 8_388_608);
+    let item = result
+        .categories
+        .iter()
+        .flat_map(|category| &category.items)
+        .next()
+        .unwrap();
+    assert_eq!(
+        item.quality,
+        neati_lib::models::ObservationQuality::Unavailable
+    );
+    assert_eq!(
+        item.inspection_issue,
+        Some(neati_lib::models::ScanGapKind::Cancelled)
+    );
+    assert!(!item.is_selected);
+    assert_eq!(item.cleanable_bytes(), 0);
+    assert!(latency.as_millis() <= u128::from(CANCELLATION_LATENCY_CEILING_MS));
+    eprintln!(
+        "aged_observation_cancel {}",
+        serde_json::json!({
+            "latency_us": latency.as_micros(),
+            "visited_entries": result.metrics.visited_entries,
+            "directories_read": result.metrics.directories_read,
+            "logical_bytes": logical_bytes(&result),
+        })
+    );
 }
 
 /// The number of retained candidates in a result, summed over its categories.
@@ -709,6 +857,48 @@ fn mixed_size_fixture() -> Fixture {
     Fixture::new("mixed_size", 1_250, directory, registry)
 }
 
+/// Two advisory namespace units, one stale and one fresh. Their 2,048 files
+/// exercise the aged walker rather than the pool-backed ordinary size walker.
+/// Discovery and whole-unit age remain visible even though neither unit grants
+/// deletion authority.
+fn aged_observation_fixture() -> Fixture {
+    let directory = tempfile::tempdir().expect("fixture directory");
+    let root = directory.path().join("aged-observation");
+    for unit in 0..2 {
+        let namespace = root.join(format!("tool-{unit}"));
+        for index in 0..128 {
+            let child = namespace.join(format!("d{index:03}"));
+            for file in 0..8 {
+                let path = child.join(format!("data-{file}.bin"));
+                write_file(&path, 4096);
+                if unit == 0 {
+                    age_entry(&path, 10);
+                }
+            }
+            if unit == 0 {
+                age_entry(&child, 10);
+            }
+        }
+        if unit == 0 {
+            age_entry(&namespace, 10);
+        }
+    }
+    let mut registry = SignatureRegistry::new();
+    let mut entry = signature(
+        "benchmark.aged-observation",
+        "Advisory temporary namespaces",
+        Category::System,
+        &[root],
+        Some(3),
+        Some(CleanupUnitKind::ChildNamespace),
+        CleanStrategy::Manual,
+    );
+    entry.risk = RiskTier::Manual;
+    entry.include_prefixes = vec!["tool-".into()];
+    registry.register(entry);
+    Fixture::new("aged_observation", 10_000, directory, registry)
+}
+
 /// Mixed age: a stale subtree and a fresh one under a namespace signature that
 /// removes stale contents older than 30 days.
 ///
@@ -777,6 +967,37 @@ fn overlapping_roots_fixture() -> Fixture {
 // ---------------------------------------------------------------------------
 // Assertions per fixture
 // ---------------------------------------------------------------------------
+
+fn assert_aged_observation(result: &ScanResult) {
+    assert_eq!(candidate_count(result), 2);
+    assert_eq!(logical_bytes(result), 2 * 128 * 8 * 4096);
+    assert_eq!(result.metrics.visited_entries, 2307);
+    assert_eq!(result.metrics.directories_read, 259);
+    assert_eq!(result.skipped_entry_count, 0);
+    assert!(!result.cancelled);
+    for (name, stale) in [("tool-0", true), ("tool-1", false)] {
+        let item = result
+            .categories
+            .iter()
+            .flat_map(|category| &category.items)
+            .find(|item| item.name == name)
+            .expect("both observed namespaces remain in the inventory");
+        assert_eq!(
+            item.age
+                .as_ref()
+                .expect("whole-unit age is preserved")
+                .satisfied,
+            stale
+        );
+        assert_eq!(item.quality, neati_lib::models::ObservationQuality::Fresh);
+        assert_eq!(
+            item.disposition.eligibility,
+            neati_lib::models::CleanupEligibility::Advisory
+        );
+        assert_eq!(item.cleanable_bytes(), 0);
+        assert!(!item.is_selected);
+    }
+}
 
 /// The shape each fixture states about itself, asserted against the result the
 /// fixture's own scan produced.
@@ -903,6 +1124,7 @@ fn assert_fixture_shape(fixture: &Fixture, result: &ScanResult) {
                 "a freshly written child has nothing stale to remove"
             );
         }
+        "aged_observation" => assert_aged_observation(result),
         "overlapping_roots" => {
             assert_eq!(
                 candidate_count(result),

@@ -7,6 +7,14 @@
     "max_depth": 32
   },
   "fixtures": {
+    "aged_observation": {
+      "candidate_count": 2,
+      "directories_read": 259,
+      "duration_ms_ceiling": 10000,
+      "skipped_entries": 0,
+      "logical_bytes": 8388608,
+      "visited_entries": 2307
+    },
     "deep": {
       "candidate_count": 1,
       "directories_read": 33,

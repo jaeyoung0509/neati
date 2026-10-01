@@ -107,6 +107,35 @@ and the index's referenced assets are embedded. The installed app was not
 replaced or launched. An actual Windows rerun and CI packaging results remain
 separate checks.
 
+The subsequent exact-head [Windows Rust job for d965806](https://github.com/jaeyoung0509/neati/actions/runs/36802481989/job/110179670771)
+succeeded. Its ten user-tool observation fixtures, including the two previous
+failures, and both portable scanner-walker regressions passed. The macOS package
+smoke job for the same run also succeeded. Windows packaging completion was not
+reviewed after the owner changed the merge workflow to use final local checks.
+
+### Final target synchronization
+
+The final tree incorporates `develop@9a5e1db189ff732abfc8af4d6f9334ad136d1c44`
+(0.3.91), retaining its prepared aged-tree policy, fresh payload/age checks and
+scan timings alongside this Manual-root boundary. The only merge conflicts were
+the four version files: the complete target files were adopted, then
+`just bump-patch` synchronized all manifests and workspace lock entries to
+0.3.92. No additional production scope was introduced.
+
+Final local verification on the same macOS build passed the full workspace
+all-target suite: 1,293 passed, zero failed and six existing ignored tests,
+including both the prepared-policy freshness and Manual missing-parent
+regressions. Workspace doc-tests, check, format, all-target Clippy with warnings
+denied, architecture, version and icon checks passed. The frontend typecheck
+reported zero errors/warnings and all 479 frontend tests passed. Final-head CI
+remains separate from these local results and is not awaited under the owner's
+approved merge workflow.
+
+`just build-fast` also passed, including the production frontend build. The
+final debug bundle's short/build versions both read 0.3.92; its packaged icon
+SHA-256 matches the source, and the current index asset names are embedded in
+`Neati`. The installed/running application was not replaced or launched.
+
 ## Remaining #381 work
 
 - Resolve supported effective shell cache overrides through a verified platform
@@ -123,5 +152,5 @@ separate checks.
 - Remeasure added observed bytes separately from cleanup yield. This PR runs
   fixture checks, not a live scan, live owner command or throughput benchmark.
 
-Xcode #350 and CLI #335 remain deferred. No release, tag or app installation
-is part of this change.
+Xcode #350 remains open/deferred and CLI #335 remains closed/not planned.
+No release, tag or app installation is part of this change.

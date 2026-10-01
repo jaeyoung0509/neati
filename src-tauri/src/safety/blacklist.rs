@@ -1,10 +1,51 @@
 use crate::models::NeatiError;
 use neati_platform::path_algebra::{self, PathFlavor};
 use neati_platform::PlatformPathsProvider;
+use std::borrow::Cow;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use unicode_normalization::UnicodeNormalization;
 
 pub struct Blacklist;
+
+/// Immutable comparison keys for one observation walk. Only the environment's
+/// protected names are prepared: no candidate metadata, identity, link or
+/// Windows alias-resolution result is cached here.
+pub(crate) struct PreparedBlacklist {
+    described: BlacklistEnvironment,
+    posix_keys: Option<HashMap<String, PathBuf>>,
+    macos: bool,
+}
+
+impl PreparedBlacklist {
+    pub(crate) fn is_blacklisted(&self, path: &Path) -> bool {
+        match &self.posix_keys {
+            Some(keys) => Blacklist::is_blacklisted_posix_with_keys(
+                path,
+                &self.described,
+                self.macos,
+                Some(keys),
+            ),
+            // Alias resolution performs filesystem work, so even an
+            // observation walk must obtain that answer afresh for each path.
+            None => Blacklist::is_blacklisted_windows(path, &self.described),
+        }
+    }
+}
+
+fn posix_key(value: &str, macos: bool) -> PathBuf {
+    let normalized = path_algebra::normalize(value, PathFlavor::Posix);
+    if macos {
+        PathBuf::from(
+            normalized
+                .nfd()
+                .flat_map(char::to_lowercase)
+                .collect::<String>(),
+        )
+    } else {
+        PathBuf::from(normalized)
+    }
+}
 
 /// The Windows environment facts the blacklist classifier depends on.
 ///
@@ -139,6 +180,35 @@ const SENSITIVE_RELATIVE: [&str; 23] = [
     "Searches",
     "Links",
     "Saved Games",
+];
+
+const POSIX_APP_DATA_RELATIVE: [&str; 3] = ["AppData", "AppData/Local", "AppData/Roaming"];
+const POSIX_MOUNT_ROOTS: [&str; 3] = ["/Volumes", "/mnt", "/media"];
+const POSIX_HOME_ROOTS: [&str; 2] = ["/Users", "/home"];
+const POSIX_TEMP_ROOTS: [&str; 4] = [
+    "/tmp",
+    "/private/tmp",
+    "/var/folders",
+    "/private/var/folders",
+];
+const POSIX_SYSTEM_ROOTS: [&str; 17] = [
+    "/System",
+    "/bin",
+    "/sbin",
+    "/usr",
+    "/etc",
+    "/var",
+    "/private",
+    "/Applications",
+    "/Library",
+    "/Network",
+    "/dev",
+    "/cores",
+    "/opt",
+    "/proc",
+    "/sys",
+    "/boot",
+    "/run",
 ];
 
 /// Classifies a Windows path, using Windows rules on every host.
@@ -308,6 +378,38 @@ fn has_unsupported_windows_namespace(path: &str) -> bool {
 }
 
 impl Blacklist {
+    /// Prepare only immutable path vocabulary for a bounded read-only walk.
+    /// Planning/execution still call the fresh public classifier, and every
+    /// candidate path is normalized and classified when it is visited.
+    pub(crate) fn prepare(environment: &neati_platform::PlatformEnvironment) -> PreparedBlacklist {
+        let described = BlacklistEnvironment::from_environment(environment);
+        let macos = environment.platform() == neati_core::domain::platform::PlatformKind::Macos;
+        let posix_keys = (!environment.flavor().is_windows()).then(|| {
+            described
+                .home
+                .iter()
+                .chain(std::iter::once(&described.temp_dir))
+                .chain(&described.known_content_dirs)
+                .chain(&described.system_roots)
+                .chain(described.local_app_data.iter())
+                .chain(described.roaming_app_data.iter())
+                .map(String::as_str)
+                .chain(SENSITIVE_RELATIVE)
+                .chain(POSIX_APP_DATA_RELATIVE)
+                .chain(POSIX_MOUNT_ROOTS)
+                .chain(POSIX_HOME_ROOTS)
+                .chain(POSIX_TEMP_ROOTS)
+                .chain(POSIX_SYSTEM_ROOTS)
+                .map(|value| (value.to_string(), posix_key(value, macos)))
+                .collect()
+        });
+        PreparedBlacklist {
+            described,
+            posix_keys,
+            macos,
+        }
+    }
+
     /// System and user directory paths that must NEVER be deleted under any
     /// circumstances, decided for the environment the caller is acting on.
     pub fn is_blacklisted_with(
@@ -402,17 +504,19 @@ impl Blacklist {
     /// volumes: refusing an alias is preferable to missing protected user state.
     /// Linux keeps byte-exact names. This key never grants deletion authority.
     fn is_blacklisted_posix(path: &Path, described: &BlacklistEnvironment, macos: bool) -> bool {
-        let key = |value: &str| -> PathBuf {
-            let normalized = path_algebra::normalize(value, PathFlavor::Posix);
-            if macos {
-                PathBuf::from(
-                    normalized
-                        .nfd()
-                        .flat_map(char::to_lowercase)
-                        .collect::<String>(),
-                )
-            } else {
-                PathBuf::from(normalized)
+        Self::is_blacklisted_posix_with_keys(path, described, macos, None)
+    }
+
+    fn is_blacklisted_posix_with_keys(
+        path: &Path,
+        described: &BlacklistEnvironment,
+        macos: bool,
+        prepared: Option<&HashMap<String, PathBuf>>,
+    ) -> bool {
+        let key = |value: &str| -> Cow<'_, Path> {
+            match prepared.and_then(|keys| keys.get(value)) {
+                Some(key) => Cow::Borrowed(key.as_path()),
+                None => Cow::Owned(posix_key(value, macos)),
             }
         };
         let Some(raw_path) = path.to_str() else {
@@ -427,7 +531,7 @@ impl Blacklist {
         };
         let path = key(raw_path);
         let home = key(home);
-        if path == Path::new("/") || path == home || path == key(&described.temp_dir) {
+        if path.as_ref() == Path::new("/") || path == home || path == key(&described.temp_dir) {
             return true;
         }
         if path.components().any(|part| part.as_os_str() == ".git") {
@@ -456,16 +560,16 @@ impl Blacklist {
                 return true;
             }
         }
-        if ["AppData", "AppData/Local", "AppData/Roaming"]
+        if POSIX_APP_DATA_RELATIVE
             .iter()
             .any(|relative| path == home.join(key(relative)))
         {
             return true;
         }
         // Mount containers and each mounted volume itself are never cleanup units.
-        for root in ["/Volumes", "/mnt", "/media"] {
+        for root in POSIX_MOUNT_ROOTS {
             let root = key(root);
-            if path == root || path.parent() == Some(root.as_path()) {
+            if path == root || path.parent() == Some(root.as_ref()) {
                 return true;
             }
         }
@@ -473,18 +577,13 @@ impl Blacklist {
         if path.starts_with(&home) {
             return false;
         }
-        for root in ["/Users", "/home"] {
+        for root in POSIX_HOME_ROOTS {
             if path.starts_with(key(root)) {
                 return true;
             }
         }
         // Component comparisons prevent /tmp-neighbor from inheriting /tmp's exception.
-        for root in [
-            "/tmp",
-            "/private/tmp",
-            "/var/folders",
-            "/private/var/folders",
-        ] {
+        for root in POSIX_TEMP_ROOTS {
             let root = key(root);
             if path == root {
                 return true;
@@ -493,27 +592,9 @@ impl Blacklist {
                 return false;
             }
         }
-        [
-            "/System",
-            "/bin",
-            "/sbin",
-            "/usr",
-            "/etc",
-            "/var",
-            "/private",
-            "/Applications",
-            "/Library",
-            "/Network",
-            "/dev",
-            "/cores",
-            "/opt",
-            "/proc",
-            "/sys",
-            "/boot",
-            "/run",
-        ]
-        .iter()
-        .any(|root| path.starts_with(key(root)))
+        POSIX_SYSTEM_ROOTS
+            .iter()
+            .any(|root| path.starts_with(key(root)))
     }
 
     /// Verifies that a target path is completely safe from the blacklist for
@@ -614,6 +695,90 @@ mod tests {
             &environment,
             true
         ));
+    }
+
+    #[test]
+    fn prepared_observation_keys_keep_posix_protection_and_platform_semantics() {
+        use neati_core::domain::platform::PlatformKind;
+        use neati_platform::{KnownFolder, PlatformEnvironment};
+
+        let paths = [
+            ("/users/JOSE\u{301}/documents/private.txt", true, false),
+            ("/Users/José/.SSH/id_ed25519", true, false),
+            ("/Users/José/work/.GIT/config", true, false),
+            ("/Users/José/work/.git/config", true, true),
+            ("/Users/José/Library/Caches/tool/data", false, false),
+            ("/Users/José/Documents-backup/data", false, false),
+            ("/Users/José/Documents/../Library/Caches/data", false, false),
+            ("/private/tmp", true, true),
+            ("/private/tmp/tool-cache/data", false, false),
+            ("/tmp-neighbor/data", false, false),
+            ("/Volumes/Data", true, true),
+            ("/System/Library/data", true, true),
+            ("/Redirected/Personal/data", true, true),
+            ("/Redirected/Personal-backup/data", false, false),
+            ("/Users/other/cache/data", true, true),
+        ];
+        for (platform, macos) in [(PlatformKind::Macos, true), (PlatformKind::Linux, false)] {
+            let environment = PlatformEnvironment::simulated(PathFlavor::Posix)
+                .with_platform(platform)
+                .with_home("/Users/José")
+                .with_temp_dir("/private/tmp")
+                .with_known_folder(KnownFolder::Documents, "/Redirected/Personal");
+            let prepared = Blacklist::prepare(&environment);
+            for (path, macos_expected, linux_expected) in paths {
+                let expected = if macos {
+                    macos_expected
+                } else {
+                    linux_expected
+                };
+                assert_eq!(
+                    prepared.is_blacklisted(Path::new(path)),
+                    expected,
+                    "{platform:?}: {path}"
+                );
+                assert_eq!(
+                    prepared.is_blacklisted(Path::new(path)),
+                    Blacklist::is_blacklisted_with(Path::new(path), &environment),
+                    "prepared and uncached observation: {platform:?}: {path}"
+                );
+            }
+        }
+        let unavailable = PlatformEnvironment::simulated(PathFlavor::Posix);
+        assert!(Blacklist::prepare(&unavailable).is_blacklisted(Path::new("/tmp/tool-cache")));
+    }
+
+    #[test]
+    fn prepared_windows_observations_keep_fresh_alias_classification() {
+        use neati_platform::{KnownFolder, PlatformEnvironment};
+        let environment = PlatformEnvironment::simulated(PathFlavor::Windows)
+            .with_home(r"D:\Users\me")
+            .with_temp_dir(r"D:\Users\me\AppData\Local\Temp")
+            .with_known_folder(KnownFolder::Documents, r"E:\Redirected\Documents");
+        let prepared = Blacklist::prepare(&environment);
+        for (path, denied) in [
+            (r"D:\Users\me\AppData\Local\Temp\tool\data", false),
+            (r"d:/USERS/ME/.SSH/id_ed25519", true),
+            (r"D:\Users\me\projects\.GIT\config", true),
+            (r"E:\Redirected\Documents\data", true),
+            (r"E:\Redirected\Documents-backup\data", false),
+            (r"D:\Users\me\cache\data:stream", true),
+            (r"D:\Users\me\cache\data.", true),
+            (r"D:\Users\me\cache\nul.txt", true),
+            (r"\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1", true),
+            (r"D:\Users\NONEXI~1\cache\data", true),
+        ] {
+            assert_eq!(prepared.is_blacklisted(Path::new(path)), denied, "{path}");
+            assert_eq!(
+                prepared.is_blacklisted(Path::new(path)),
+                Blacklist::is_blacklisted_with(Path::new(path), &environment),
+                "{path}"
+            );
+        }
+        assert!(
+            prepared.posix_keys.is_none(),
+            "Windows alias probes are never memoized"
+        );
     }
 
     #[test]

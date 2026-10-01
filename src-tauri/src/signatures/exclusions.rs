@@ -40,6 +40,48 @@ pub fn is_excluded(path: &Path, exclusions: &[String], environment: &PlatformEnv
     })
 }
 
+/// Expanded exclusion vocabulary for one observation walk. Expansion depends
+/// only on the stated environment; each visited candidate is still compared
+/// through the same path algebra, never through a cached filesystem verdict.
+pub(crate) struct PreparedExclusions {
+    entries: Vec<PreparedExclusion>,
+    flavor: PathFlavor,
+}
+
+enum PreparedExclusion {
+    Root(String),
+    Name(String),
+}
+
+impl PreparedExclusions {
+    pub(crate) fn new(exclusions: &[String], environment: &PlatformEnvironment) -> Self {
+        Self {
+            entries: exclusions
+                .iter()
+                .map(
+                    |exclusion| match SignatureLoader::expand_exclusion(exclusion, environment) {
+                        Some(root) => PreparedExclusion::Root(root.to_string_lossy().into_owned()),
+                        None => PreparedExclusion::Name(exclusion.clone()),
+                    },
+                )
+                .collect(),
+            flavor: environment.flavor(),
+        }
+    }
+
+    pub(crate) fn is_excluded(&self, path: &Path) -> bool {
+        self.entries.iter().any(|entry| match entry {
+            PreparedExclusion::Root(root) => {
+                path_algebra::contains(root, &path.to_string_lossy(), self.flavor)
+            }
+            PreparedExclusion::Name(name) => path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|candidate| path_algebra::equal(candidate, name, self.flavor)),
+        })
+    }
+}
+
 /// Whether a concrete path lies at or below a root selected by a pattern.
 /// This uses the same selector parser as traversal, without touching the disk.
 pub(crate) fn reachable_from(pattern: &str, path: &str, flavor: PathFlavor) -> bool {
@@ -179,6 +221,69 @@ mod tests {
             Path::new("C:/CACHE/keep-other/file"),
             &["c:/cache/keep".into()],
             &windows
+        ));
+    }
+
+    #[test]
+    fn prepared_observation_exclusions_match_fresh_expansion() {
+        for flavor in [PathFlavor::Posix, PathFlavor::Windows] {
+            let home = if flavor.is_windows() {
+                r"D:\Users\me"
+            } else {
+                "/Users/me"
+            };
+            let environment = PlatformEnvironment::simulated(flavor)
+                .with_home(home)
+                .with_temp_dir(if flavor.is_windows() {
+                    r"E:\Temp"
+                } else {
+                    "/private/tmp"
+                });
+            let exclusions = vec![
+                "onboarding.json".into(),
+                "~/cache/keep".into(),
+                "$TMPDIR/node-compile-cache".into(),
+            ];
+            let prepared = PreparedExclusions::new(&exclusions, &environment);
+            for (path, denied) in [
+                (format!("{home}/cache/keep/data"), true),
+                (format!("{home}/cache/keep-other/data"), false),
+                (format!("{home}/cache/onboarding.json"), true),
+                (format!("{home}/cache/onboarding.json.bak"), false),
+                (
+                    format!(
+                        "{}/node-compile-cache/data",
+                        environment.temp_dir().display()
+                    ),
+                    true,
+                ),
+                (
+                    format!(
+                        "{}/node-compile-cache-other/data",
+                        environment.temp_dir().display()
+                    ),
+                    false,
+                ),
+            ] {
+                assert_eq!(
+                    prepared.is_excluded(Path::new(&path)),
+                    denied,
+                    "{flavor:?}: {path}"
+                );
+                assert_eq!(
+                    prepared.is_excluded(Path::new(&path)),
+                    is_excluded(Path::new(&path), &exclusions, &environment)
+                );
+            }
+        }
+        let no_home = PlatformEnvironment::simulated(PathFlavor::Posix);
+        let exclusions = vec!["${USER_HOME}/cache/keep".into()];
+        let prepared = PreparedExclusions::new(&exclusions, &no_home);
+        assert!(!prepared.is_excluded(Path::new("/cache/keep/data")));
+        assert!(!is_excluded(
+            Path::new("/cache/keep/data"),
+            &exclusions,
+            &no_home
         ));
     }
 }

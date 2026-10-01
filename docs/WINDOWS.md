@@ -262,10 +262,19 @@ managed machine will allow the binary to run.
 
 `.github/workflows/ci.yml` runs the same checks on `windows-latest`, plus the
 packaging gate described under [Doctor self-check](#doctor-self-check) for both
-installers, and uploads both debug NSIS installers as
-`neati-windows-x64-nsis-debug`. The
-`msrv` job builds with the declared Rust 1.95.0 toolchain and the `supply-chain`
-job audits both lockfiles.
+installers. The upload uses the two explicit installer filenames in
+`neati-windows-x64-nsis-debug`; the job downloads that artifact again and
+requires exactly those two nonempty files with the staged SHA-256 checksums.
+The checks run through `scripts/release_checksums.cjs verify-directory`;
+disposable missing-file, renamed-file, and changed-byte regressions run once
+in the shared frontend job. The `msrv-windows` job checks the declared Rust
+1.95.0 floor on Windows and the `supply-chain` job audits both lockfiles.
+
+The [0.3.89 hosted-CI record](validation/2026-10-01-windows-ci-0.3.89.json)
+captures the September 30, 2026 develop run on Windows Server 2025 build
+10.0.26100. Both installer smoke tests passed, but its `*-setup.exe` upload
+pattern retained only the per-user installer. The artifact round-trip fix
+needs a new CI run; that earlier green run does not validate the fix.
 
 What CI does not verify on Windows: redirected user content folders, machines
 whose system drive is not `C:`, UNC or domain-joined profiles, non-NTFS
@@ -275,6 +284,11 @@ runtime absent under interactive use. The interactive matrix that covers those
 situations is a plan in [`WINDOWS_VALIDATION.md`](WINDOWS_VALIDATION.md); until a
 run records its application version, Windows build, and date, it is not
 evidence.
+
+Remaining supported-desktop validation is tracked in
+[#380](https://github.com/jaeyoung0509/neati/issues/380). A hosted Server runner
+and console `--doctor` checks do not prove a rendered WebView, tray or Quick
+Panel behavior, display scaling, interactive UAC, or Windows ARM64 support.
 
 Release packaging also runs the native Rust gate and consumes only the frontend
 artifact produced by its shared verification job.

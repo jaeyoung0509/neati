@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::models::{CancellationProbe, ScanItem, Signature};
+use neati_core::domain::scan::ScanSpan;
 use neati_platform::PlatformEnvironment;
 
 /// The bounds one scan runs under.
@@ -212,6 +213,9 @@ pub struct SignatureScan {
     /// Number of selector patterns whose bounded expansion had more matches
     /// than the scanner could inspect.
     pub selector_incomplete: bool,
+    /// Bounded phase timings, keyed only by catalog ID. They do not include
+    /// private paths or emit additional progress events.
+    pub spans: Vec<ScanSpan>,
 }
 
 impl SignatureScan {
@@ -220,6 +224,7 @@ impl SignatureScan {
             items,
             roots: Vec::new(),
             selector_incomplete: false,
+            spans: Vec::new(),
         }
     }
 }

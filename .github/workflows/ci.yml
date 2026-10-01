@@ -396,9 +396,36 @@ jobs:
         shell: pwsh
         run: just test-package packaging/neati-windows-x64-setup-machine.exe perMachine
 
+      - name: Record and verify both staged installers
+        shell: pwsh
+        run: |
+          node scripts/release_checksums.cjs write-many `
+            --output packaging-checksums.txt `
+            packaging/neati-windows-x64-setup.exe `
+            packaging/neati-windows-x64-setup-machine.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/release_checksums.cjs verify-directory `
+            --manifest packaging-checksums.txt --directory packaging `
+            neati-windows-x64-setup.exe neati-windows-x64-setup-machine.exe
+
       - name: Upload Windows packaging smoke artifacts
         uses: actions/upload-artifact@v7
         with:
           name: neati-windows-x64-nsis-debug
-          path: packaging/*-setup.exe
+          path: |
+            packaging/neati-windows-x64-setup.exe
+            packaging/neati-windows-x64-setup-machine.exe
           if-no-files-found: error
+
+      - name: Download Windows packaging smoke artifacts for verification
+        uses: actions/download-artifact@v8
+        with:
+          name: neati-windows-x64-nsis-debug
+          path: packaging-downloaded
+
+      - name: Verify uploaded installer filenames and contents
+        shell: pwsh
+        run: |
+          node scripts/release_checksums.cjs verify-directory `
+            --manifest packaging-checksums.txt --directory packaging-downloaded `
+            neati-windows-x64-setup.exe neati-windows-x64-setup-machine.exe

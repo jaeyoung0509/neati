@@ -37,6 +37,8 @@ mod cocoapods;
 #[cfg(target_os = "macos")]
 pub mod dotslash;
 #[cfg(target_os = "macos")]
+mod github_cli;
+#[cfg(target_os = "macos")]
 mod google_updater;
 #[cfg(target_os = "macos")]
 pub mod homebrew;
@@ -165,6 +167,11 @@ impl OwnerProviderRegistry {
             trash.clone(),
         ));
         let mut providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
+            #[cfg(target_os = "macos")]
+            Arc::new(tool_cleanup::ToolCleanupProvider::native(
+                tool_cleanup::ToolCacheKind::GithubCli,
+                process.clone(),
+            )),
             #[cfg(target_os = "macos")]
             Arc::new(tool_cleanup::ToolCleanupProvider::native(
                 tool_cleanup::ToolCacheKind::Cocoapods,

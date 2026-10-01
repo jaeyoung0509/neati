@@ -2,6 +2,7 @@ import { Channel } from '@tauri-apps/api/core';
 import { dispatchApi } from './index';
 import { commands } from '../bindings/tauri';
 import type {
+  AppLeftoverInventory,
   AppUninstallInspection,
   DeveloperArtifact,
   DeveloperArtifactScanEvent,
@@ -17,6 +18,7 @@ import type {
   TrashResult,
 } from '../models/types';
 import { isSelectedAppTrashLowerBound } from '../utils/storageManagement';
+import { mockAppLeftoverInventory } from './mocks/appLeftovers';
 type CommandResult<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E };
 
 async function unwrap<T, E>(promise: Promise<CommandResult<T, E>>): Promise<T> {
@@ -51,6 +53,7 @@ export interface StorageManagementApi {
     selectedItemIds: string[]
   ): Promise<TrashPlanPreview>;
   getInstalledApps(): Promise<InstalledAppInventory>;
+  getAppLeftovers(): Promise<AppLeftoverInventory>;
   inspectAppUninstall(appId: string): Promise<AppUninstallInspection>;
   prepareAppUninstall(
     inspectionId: string,
@@ -102,6 +105,10 @@ const nativeStorageApi: StorageManagementApi = {
 
   async getInstalledApps() {
     return await unwrap(commands.getInstalledApps());
+  },
+
+  async getAppLeftovers() {
+    return await unwrap(commands.getAppLeftovers());
   },
 
   async inspectAppUninstall(appId) {
@@ -680,6 +687,10 @@ const mockStorageApi: StorageManagementApi = {
       skipped_entry_count: 0,
       incomplete_reasons: [],
     };
+  },
+
+  async getAppLeftovers(): Promise<AppLeftoverInventory> {
+    return structuredClone(mockAppLeftoverInventory);
   },
 
   async inspectAppUninstall(appId) {

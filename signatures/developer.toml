@@ -932,7 +932,7 @@ paths = ["~/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data"]
 owner = "OrbStack"
 provider = "OrbStack"
 artifact_kind = "package_store"
-description = "Observation only for the known group-container data root. VM disks and machine data are not disposable caches; use the Containers workflow for supported Docker resources. A machine lifecycle adapter is required for this store."
+description = "Observation only for the known group-container data root. OrbStack 2.2.3's machine delete/reset commands stop machines and permanently remove machine or Docker data, not a disposable download cache. Use Containers for supported Docker resources; this VM store needs a separate reviewed lifecycle adapter."
 
 [[signatures]]
 id = "dev.corepack.distributions"
@@ -970,11 +970,11 @@ family = "package_managers"
 risk = "manual"
 strategy = "manual"
 platforms = ["macos", "linux"]
-paths = ["~/.oh-my-zsh/cache", "${XDG_CACHE_HOME}/oh-my-zsh"]
+paths = ["~/.oh-my-zsh/cache", "${XDG_CACHE_HOME}/oh-my-zsh", "${ZSH}/cache", "${ZSH_CACHE_DIR}"]
 owner = "Oh My Zsh"
 provider = "Oh My Zsh"
 artifact_kind = "package_store"
-description = "Observation only for the standard installation cache and XDG fallback namespace. Generated and downloaded completion scripts, update state and unknown files remain untouched. Custom ZSH or ZSH_CACHE_DIR roots and completion dumps outside these namespaces are not discovered."
+description = "Observation only for the standard installation cache and XDG fallback namespace. Generated and downloaded completion scripts, update state and unknown files remain untouched. Bounded absolute current-user ZSH/ZSH_CACHE_DIR overrides present in the macOS composition snapshot are also observed. Shell-local overrides remain unknown; no shell configuration is executed. Completion dumps outside these namespaces are not discovered."
 
 [[signatures]]
 id = "dev.github_cli.http_cache"
@@ -988,4 +988,77 @@ paths = ["${XDG_CACHE_HOME}/gh"]
 owner = "GitHub CLI"
 provider = "GitHub CLI"
 artifact_kind = "download_cache"
-description = "Observation only for the named local HTTP-cache namespace. neati measures metadata without reading response contents and performs no credential, configuration or extension search or remote cache operation. A verified whole-scope gh config clear-cache adapter is required before cleanup can be offered."
+description = "Metadata-only observation of the named local HTTP-cache namespace. No credential, configuration, extension or remote cache search is performed. The separate macOS gh 2.83.1 owner adapter covers only the verified default-root HTTP layout; custom roots, unknown layouts and other distributions remain advisory."
+
+[[signatures]]
+id = "dev.github_cli.local_cache_clear"
+name = "GitHub CLI Local Cache"
+category = "developer"
+family = "package_managers"
+risk = "rebuild"
+strategy = "owner_provider"
+platforms = ["macos"]
+paths = []
+provider_id = "github_cli.local_cache_clear"
+fail_if_running = ["gh"]
+owner = "GitHub CLI"
+provider = "GitHub CLI"
+artifact_kind = "download_cache"
+description = "Reviewed gh 2.83.1 owner command for the complete default local HTTP cache. Hash layout, ownership, permissions, inventory identities and idle handles are rechecked. Unknown distributions and custom roots stay observation-only."
+consequence = "Permanently clears the complete default local HTTP cache; requests may need the network again. Credentials, configuration, extensions and remote Actions caches remain."
+
+[[signatures]]
+id = "dev.kubernetes.cached_metadata"
+name = "Kubernetes Local Metadata"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.kube/cache"]
+owner = "kubectl"
+provider = "kubectl"
+artifact_kind = "download_cache"
+description = "Observation only for the default local metadata/cache child. kubeconfig, credentials and cluster state are not inspected or removed. Custom cache roots and owner cleanup semantics remain unverified."
+
+[[signatures]]
+id = "dev.pyenv.download_observation"
+name = "pyenv Retained Downloads"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/.pyenv/cache"]
+owner = "pyenv / python-build"
+provider = "pyenv / python-build"
+artifact_kind = "download_cache"
+description = "Observation only for the standard retained-download namespace. Installed Python versions, shims, environments and custom python-build download roots remain outside scope; no owner operation is validated."
+
+[[signatures]]
+id = "dev.precommit.environment_observation"
+name = "pre-commit Hook Environments"
+category = "developer"
+family = "package_managers"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["${XDG_CACHE_HOME}/pre-commit"]
+owner = "pre-commit"
+provider = "pre-commit"
+artifact_kind = "package_store"
+description = "Observation only. pre-commit owns installed hook environments and its database; gc and clean have different effects. No generic cache deletion or executable/database exception is allowed. PRE_COMMIT_HOME and custom layouts are not inferred."
+
+[[signatures]]
+id = "dev.pyinstaller.binary_observation"
+name = "PyInstaller Binary Cache"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/pyinstaller"]
+owner = "PyInstaller"
+provider = "PyInstaller"
+artifact_kind = "build_artifact"
+description = "Observation only for named default namespaces. Cached binaries and executable dependencies remain protected; no installed-version lifecycle or complete owner mutation contract is validated. Custom PYINSTALLER_CONFIG_DIR is not inferred."

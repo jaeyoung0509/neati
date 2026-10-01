@@ -1,0 +1,265 @@
+{
+  "version": "0.3.95",
+  "verified_at_utc": "2026-10-01T05:57:25.576791+00:00",
+  "base_commit": "241459e716d5514818bbf69b112b172864c32321",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+  "environment": {
+    "CARGO_BUILD_JOBS": "3",
+    "CARGO_INCREMENTAL": "0"
+  },
+  "commands": [
+    {
+      "name": "frontend-check",
+      "command": [
+        "pnpm",
+        "check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 5.706,
+      "log_sha256": "ec390a1282c2b28c2033aa7d0f792a251d7b85615cef7ace7f4f8fc5cdbc45a0"
+    },
+    {
+      "name": "frontend-tests",
+      "command": [
+        "pnpm",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 22.234,
+      "log_sha256": "39d1deebecdae0fe831492a3bde6a53256ca18e34fdc696783c2cb446e1049e2"
+    },
+    {
+      "name": "frontend-build",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.371,
+      "log_sha256": "b084c8f436f800de139f37bbdf1c67b15359fede81f408d9b1399eda50f231e0"
+    },
+    {
+      "name": "cargo-format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.812,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cargo-check",
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "--locked",
+        "--workspace"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 64.784,
+      "log_sha256": "3aa744502bb5817dc6ab453f6c87c2ad0d47a4ebfa821074bba18cfa7bac4899"
+    },
+    {
+      "name": "cargo-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 16.63,
+      "log_sha256": "a59f34f71d5d171ca1fc00bafa76f318fe5acf0d09f202923eb41b31856bfd10"
+    },
+    {
+      "name": "cargo-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--no-fail-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 133.043,
+      "log_sha256": "e4befe9aa99921471b1311e9b0bcf76ab938c0fe10c3d574b18775a66531fa51"
+    },
+    {
+      "name": "architecture",
+      "command": [
+        "just",
+        "check-architecture"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 13.306,
+      "log_sha256": "b5b0cd45e53b886488ba08e90f5d2e50c9dc03ec86bb873526ff9e924843e971"
+    },
+    {
+      "name": "bindings",
+      "command": [
+        "just",
+        "generate-bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 26.8,
+      "log_sha256": "cf6e5ee991ec02b340f288658c8534a54037fc052a7f530f8ba70808b477f1e6"
+    },
+    {
+      "name": "binding-drift",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "src/lib/bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.021,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "version",
+      "command": [
+        "just",
+        "check-version"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.166,
+      "log_sha256": "d40745e529046508bb54f18e38e0ee80a2ddec858ca8c3a9e788d154477e1072"
+    },
+    {
+      "name": "icons",
+      "command": [
+        "pnpm",
+        "icons:check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 1.832,
+      "log_sha256": "cfe5843b7794712a24a1461bbca843d73317c06425aed5b63fb6b09700b17ee2"
+    },
+    {
+      "name": "bundle",
+      "command": [
+        "just",
+        "build-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 46.563,
+      "log_sha256": "9b8814bf969ca5db2f5438c4cd20e8bed95dd7a386e2f3b835aa3c2ca92f1111"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.022,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "installed_or_launched_gui": false,
+  "frontend_tests_passed": 483,
+  "rust": {
+    "passed": 1308,
+    "failed": 0,
+    "ignored": 6,
+    "measured": 0,
+    "filtered": 0
+  },
+  "bundle": {
+    "path": "target/debug/bundle/macos/neati.app",
+    "CFBundleShortVersionString": "0.3.95",
+    "CFBundleVersion": "0.3.95",
+    "icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+    "icon_matches_source": true,
+    "assets": [
+      {
+        "name": "assets/BrandIcon-DhGGHqZf.css",
+        "sha256": "1d3925e72795e08443b03eb22dd60ad2fa4fc51aaacbd7f64152508950726c64",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/BrandIcon-P8L6dbcm.js",
+        "sha256": "d6861f812ee9c9e1780e1300aa11a358bf8522cbb18eb1b21c7daffd52dadba3",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-CrvOL9NB.js",
+        "sha256": "3d6c927766c8a3f07ee8e3bc6ec6aca7a6bd9b7420823a7254af0e8e562e9646",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-DrpCTGOC.css",
+        "sha256": "d3b3f70d254f6eef13e74a511b1850d9ae2740d9a80c72d5dff8b1d3eb9f3c98",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/QuickPanel-BvXcfAiv.js",
+        "sha256": "4fd6424009131b0fac5f6a9ad3d2214288175e27ac31ede63098c88adf5a7747",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/core-DNaw6KYU.js",
+        "sha256": "47fa86ad237989d8dca06a2bcbfc062f4627d45c70d4857731d1f5b7b76830d6",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/dpi-Cq0vR3n3.js",
+        "sha256": "ab852e58e16dd5dd5769a02937dcfd293e8fec9197a200cc69f8356f5c1b0de3",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/event-BlJUiB_z.js",
+        "sha256": "331a7d5879292307d786d6a8ea5b2a7dbcadd762a029bcf7b47b2dbc71982ba2",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-DT8eupiP.css",
+        "sha256": "804d9b1fdeefce35208cacaac12433744a0502bdc06eb7d2b94fcd3fd74198ef",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-Dw6b8e9P.js",
+        "sha256": "a7d4560f2f353f92457165c148a926d38a5a7b4f1bfcf48ec2c8632166cd42ba",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/rolldown-runtime-DK3Fl9T5.js",
+        "sha256": "a526d1bb3288ef04d001028843220a24b0867a4edf8c685b69506d6525af36ff",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/webviewWindow-By8nsw2m.js",
+        "sha256": "8fb90bd281c6f5b2bd7e8b4abe85cd413e2b7681a35ea4f63ab2006e5345ba15",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/window-CGM1TOkC.js",
+        "sha256": "e68d69f7f320b3995afa83e938dd9e07ba7bdd83ce164417224c2017c08ce26c",
+        "name_embedded": true
+      }
+    ],
+    "installed_or_launched_gui": false
+  },
+  "doctor": {
+    "exit_code": 0,
+    "report": "doctor.json"
+  },
+  "completed": true,
+  "verified_source_commit": "d8448d95c4c714cbf5070e72cf57b3f68d4f1e40"
+}

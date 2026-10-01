@@ -35,6 +35,8 @@ pub mod cargo;
 #[cfg(target_os = "macos")]
 mod cocoapods;
 #[cfg(target_os = "macos")]
+mod corepack;
+#[cfg(target_os = "macos")]
 pub mod dotslash;
 #[cfg(target_os = "macos")]
 mod github_cli;
@@ -109,6 +111,19 @@ pub trait OwnerScopedProvider: Send + Sync {
         guard: &neati_core::domain::cleanup::RunningProcessPolicy,
     ) -> OwnerStoreObservation;
 
+    /// Optional read-only diagnostics. The default preserves the provider's
+    /// ordinary observation; diagnostics never carry authorization or paths.
+    fn scan_with_spans(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &neati_core::domain::cleanup::RunningProcessPolicy,
+        _source_id: &str,
+        _cancellation: &dyn crate::models::CancellationProbe,
+        _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        self.scan(environment, guard)
+    }
+
     /// Builds the private authorization for the selected units.
     ///
     /// The selection is a claim about the scan, not authority: the provider
@@ -169,6 +184,11 @@ impl OwnerProviderRegistry {
         let mut providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
             #[cfg(target_os = "macos")]
             Arc::new(tool_cleanup::ToolCleanupProvider::native(
+                tool_cleanup::ToolCacheKind::Corepack,
+                process.clone(),
+            )),
+            #[cfg(target_os = "macos")]
+            Arc::new(tool_cleanup::ToolCleanupProvider::native(
                 tool_cleanup::ToolCacheKind::GithubCli,
                 process.clone(),
             )),
@@ -200,6 +220,12 @@ impl OwnerProviderRegistry {
             )),
             Arc::new(browser::ChromiumCacheProvider::new(
                 browser::BrowserCacheKind::OfflineCacheStorage,
+                process.clone(),
+                measuring.clone(),
+                trash.clone(),
+            )),
+            Arc::new(browser::ChromiumCacheProvider::new(
+                browser::BrowserCacheKind::RendererCaches,
                 process.clone(),
                 measuring.clone(),
                 trash.clone(),
@@ -309,8 +335,33 @@ impl OwnerProviderRegistry {
         environment: &PlatformEnvironment,
         spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
     ) -> Vec<ScanItem> {
+        self.scan_items_with_cancellation_and_spans(
+            registry,
+            category,
+            intensive_cleanup,
+            excluded_signatures,
+            environment,
+            &crate::models::NeverCancelled,
+            spans,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn scan_items_with_cancellation_and_spans(
+        &self,
+        registry: &SignatureRegistry,
+        category: crate::models::Category,
+        intensive_cleanup: bool,
+        excluded_signatures: &[String],
+        environment: &PlatformEnvironment,
+        cancellation: &dyn crate::models::CancellationProbe,
+        spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> Vec<ScanItem> {
         let mut items = Vec::new();
         for signature in registry.by_category_for_mode(category, intensive_cleanup) {
+            if cancellation.is_cancelled() {
+                break;
+            }
             let Some(provider_id) = signature.provider_id.as_deref() else {
                 continue;
             };
@@ -339,11 +390,15 @@ impl OwnerProviderRegistry {
             }
             let guard = signature.process_guard();
             let started = std::time::Instant::now();
-            let observation = provider.scan(environment, &guard);
+            let observation =
+                provider.scan_with_spans(environment, &guard, &signature.id, cancellation, spans);
             spans.push(neati_core::domain::scan::ScanSpan {
                 source_id: signature.id.clone(),
                 duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
             });
+            if cancellation.is_cancelled() {
+                break;
+            }
             let gate = signature.eligibility_gate(intensive_cleanup);
             if !observation.status.is_ready() {
                 crate::diagnostics::log_error(
@@ -358,12 +413,20 @@ impl OwnerProviderRegistry {
                     ),
                 );
             }
+            let projection_started = std::time::Instant::now();
             items.extend(Self::items_for(
                 signature,
                 provider.as_ref(),
                 &observation,
                 gate,
             ));
+            spans.push(neati_core::domain::scan::ScanSpan {
+                source_id: format!("{}.item_projection", signature.id),
+                duration_ms: projection_started
+                    .elapsed()
+                    .as_millis()
+                    .min(u128::from(u64::MAX)) as u64,
+            });
         }
         items
     }
@@ -890,6 +953,112 @@ mod tests {
 
     fn unit(key: &str, bytes: u64) -> OwnerUnitObservation {
         OwnerUnitObservation::ready(key, PathBuf::from("/store").join(key), bytes, bytes, 2)
+    }
+
+    #[test]
+    fn stopping_one_owner_observation_prevents_later_owner_launches() {
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+        struct StopSignal(Arc<AtomicBool>);
+        impl crate::models::CancellationProbe for StopSignal {
+            fn is_cancelled(&self) -> bool {
+                self.0.load(Ordering::SeqCst)
+            }
+        }
+        struct Observed {
+            id: &'static str,
+            stop: Arc<AtomicBool>,
+            calls: Arc<AtomicUsize>,
+            cancel_after_read: bool,
+        }
+        impl OwnerScopedProvider for Observed {
+            fn id(&self) -> &'static str {
+                self.id
+            }
+            fn platforms(&self) -> &'static [PlatformKind] {
+                &[
+                    PlatformKind::Macos,
+                    PlatformKind::Windows,
+                    PlatformKind::Linux,
+                ]
+            }
+            fn consequence(&self) -> &'static str {
+                "fixture only"
+            }
+            fn requires_confirmation(&self) -> bool {
+                true
+            }
+            fn scan(
+                &self,
+                _: &PlatformEnvironment,
+                _: &RunningProcessPolicy,
+            ) -> OwnerStoreObservation {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+                if self.cancel_after_read {
+                    self.stop.store(true, Ordering::SeqCst);
+                }
+                OwnerStoreObservation::ready(None, Vec::new())
+            }
+            fn prepare(
+                &self,
+                _: &PlatformEnvironment,
+                _: &RunningProcessPolicy,
+                _: &[OwnerProviderSelection],
+            ) -> Result<OwnerProviderAuthorization, OwnerProviderRefusal> {
+                panic!("profiling cannot authorize cleanup")
+            }
+            fn execute(
+                &self,
+                _: &PlatformEnvironment,
+                _: &OwnerProviderAuthorization,
+            ) -> OwnerProviderExecution {
+                panic!("profiling cannot execute cleanup")
+            }
+        }
+        let stop = Arc::new(AtomicBool::new(false));
+        let first_calls = Arc::new(AtomicUsize::new(0));
+        let later_calls = Arc::new(AtomicUsize::new(0));
+        let providers = OwnerProviderRegistry::new(vec![
+            Arc::new(Observed {
+                id: "test.first",
+                stop: Arc::clone(&stop),
+                calls: Arc::clone(&first_calls),
+                cancel_after_read: true,
+            }),
+            Arc::new(Observed {
+                id: "test.later",
+                stop: Arc::clone(&stop),
+                calls: Arc::clone(&later_calls),
+                cancel_after_read: false,
+            }),
+        ]);
+        let mut registry = SignatureRegistry::new();
+        for (id, priority) in [("test.first", 2), ("test.later", 1)] {
+            let mut entry = catalog_signature();
+            entry.id = id.into();
+            entry.provider_id = Some(id.into());
+            entry.priority = priority;
+            registry.register(entry);
+        }
+        let result = crate::scanner::ScanEngine::scan(
+            &registry,
+            &crate::cleaner::LifecycleProviderRegistry::new(Vec::new()),
+            &providers,
+            Some(&[Category::Developer]),
+            &[],
+            false,
+            &environment(),
+            &StopSignal(stop),
+            |_| {},
+        );
+        assert_eq!(first_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(later_calls.load(Ordering::SeqCst), 0);
+        assert!(result.cancelled);
+        assert_eq!(result.quality, ObservationQuality::Partial);
+        assert!(result
+            .gaps
+            .iter()
+            .any(|gap| gap.kind == crate::models::ScanGapKind::Cancelled));
+        assert_eq!(result.total_bytes, 0);
     }
 
     #[test]

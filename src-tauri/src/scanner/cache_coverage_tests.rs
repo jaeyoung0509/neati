@@ -396,6 +396,130 @@ fn prefix_and_explicit_exclusions_are_enforced_again_at_authorization() {
 }
 
 #[test]
+fn retained_container_state_is_observed_without_generic_cleanup_authority() {
+    for (id, relative) in [
+        (
+            "system.intensive.containers_caches",
+            "Library/Containers/com.example.notes/Data/Library/Caches",
+        ),
+        (
+            "system.intensive.group_containers_caches",
+            "Library/Group Containers/com.example.notes/Library/Caches",
+        ),
+    ] {
+        let fixture = tempfile::tempdir().unwrap();
+        let environment = PlatformEnvironment::simulated(PathFlavor::current())
+            .with_platform(PlatformKind::Macos)
+            .with_home(fixture.path());
+        let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+        let root = fixture.path().join(relative);
+        let ordinary = root.join("com.example.renderer/payload");
+        write(&ordinary);
+        let retained = ["cLoUdKiT", "com.apple.CloudKit", "cOm.ApPlE.SaFaRi"];
+        for name in retained {
+            write(&root.join(name).join("Assets/offline-payload"));
+        }
+        let items = scan(&registry, id, &environment, &idle());
+        let ordinary_item = items
+            .iter()
+            .find(|item| item.path == ordinary.parent().unwrap().to_string_lossy())
+            .unwrap();
+        assert!(
+            ordinary_item.is_selected,
+            "ordinary idle cache remains usable: {id}"
+        );
+        for name in retained {
+            let path = root.join(name);
+            let item = items
+                .iter()
+                .find(|item| item.path == path.to_string_lossy())
+                .unwrap();
+            assert!(
+                item.observed_bytes() > 0,
+                "retained bytes remain visible: {id}/{name}"
+            );
+            assert_eq!(item.cleanable_bytes(), 0, "{id}/{name}");
+            assert!(!item.is_selected && !item.allows_cleanup(), "{id}/{name}");
+            assert!(!registry.path_is_in_scope(registry.get(id).unwrap(), &path, &environment));
+            let mut forged = ordinary_item.clone();
+            forged.path = path.to_string_lossy().into_owned();
+            forged.unit.path = forged.path.clone();
+            assert!(
+                SafetyPlanner::create_plan_with_process_probe(
+                    &[forged],
+                    &registry,
+                    &environment,
+                    &OwnerProviderRegistry::new(Vec::new()),
+                    &idle()
+                )
+                .is_err(),
+                "forged eligible row cannot authorize retained state: {id}/{name}"
+            );
+        }
+    }
+}
+
+#[test]
+fn retained_nested_container_state_is_excluded_from_estimates_and_execution() {
+    use crate::safety::{RevalidationOutcome, SafeTreeDeleter, SafetyValidator};
+    let fixture = tempfile::tempdir().unwrap();
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_platform(PlatformKind::Macos)
+        .with_home(fixture.path());
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    let root = fixture
+        .path()
+        .join("Library/Containers/com.example.notes/Data/Library/Caches");
+    let unit = root.join("com.example.renderer");
+    let payload = unit.join("payload");
+    write(&payload);
+    let retained = [
+        unit.join("nested/cLoUdKiT/Assets/object"),
+        unit.join("nested/cOm.ApPlE.SaFaRi/WebKitCache/object"),
+    ];
+    for path in &retained {
+        write(path);
+    }
+    let items = scan(
+        &registry,
+        "system.intensive.containers_caches",
+        &environment,
+        &idle(),
+    );
+    let item = items
+        .iter()
+        .find(|item| item.path == unit.to_string_lossy())
+        .unwrap();
+    let payload_bytes = super::get_allocated_size(&payload).unwrap();
+    assert_eq!(item.cleanable_bytes(), payload_bytes);
+    let plan = SafetyPlanner::create_plan_with_process_probe(
+        std::slice::from_ref(item),
+        &registry,
+        &environment,
+        &OwnerProviderRegistry::new(Vec::new()),
+        &idle(),
+    )
+    .unwrap();
+    let target = match SafetyValidator::revalidate(&plan.targets[0], &environment) {
+        RevalidationOutcome::Validated(target) => target,
+        other => panic!("fixture must revalidate: {other:?}"),
+    };
+    // A protected namespace created after planning and final target validation
+    // must still survive the per-entry execution check.
+    let appeared = unit.join("nested/cOm.ApPlE.ClOuDkIt/Assets/new-object");
+    write(&appeared);
+    let report = SafeTreeDeleter::prune_stale_contents_validated(&target, &environment);
+    assert_eq!(report.skipped_files, 3);
+    assert_eq!(report.deleted_files, 1);
+    assert_eq!(report.reclaimed_bytes, payload_bytes);
+    assert!(!payload.exists());
+    assert!(appeared.exists());
+    for path in retained {
+        assert!(path.exists(), "{} must survive", path.display());
+    }
+}
+
+#[test]
 fn zed_download_cache_scope_preserves_installed_runtimes_and_editor_content() {
     let fixture = tempfile::tempdir().unwrap();
     let environment = PlatformEnvironment::simulated(PathFlavor::current())
@@ -657,4 +781,77 @@ fn podcasts_streaming_scratch_does_not_include_downloaded_episodes() {
     assert!(root
         .join("Library/Application Support/Downloaded/episode.m4a")
         .exists());
+}
+
+#[test]
+fn final_owner_boundary_arc_mirror_retains_bytes_without_generic_authority() {
+    let fixture = tempfile::tempdir().unwrap();
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_platform(PlatformKind::Macos)
+        .with_home(fixture.path());
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    let retained = fixture
+        .path()
+        .join("Library/Caches/Arc/User Data/Default/Cache/Worker.JS");
+    let ordinary = fixture
+        .path()
+        .join("Library/Caches/com.example.renderer/payload");
+    write(&retained);
+    write(&ordinary);
+    let generic = scan(
+        &registry,
+        "system.intensive.user_app_caches",
+        &environment,
+        &idle(),
+    );
+    let ordinary_item = generic
+        .iter()
+        .find(|item| {
+            item.path.starts_with(
+                fixture
+                    .path()
+                    .join("Library/Caches/com.example.renderer")
+                    .to_string_lossy()
+                    .as_ref(),
+            )
+        })
+        .unwrap();
+    assert!(ordinary_item.allows_cleanup());
+    assert!(generic
+        .iter()
+        .filter(|item| item.path.starts_with(
+            fixture
+                .path()
+                .join("Library/Caches/Arc")
+                .to_string_lossy()
+                .as_ref()
+        ))
+        .all(|item| !item.allows_cleanup() && !item.is_selected));
+    let observed = scan(
+        &registry,
+        "system.arc.profile_cache_observations",
+        &environment,
+        &idle(),
+    );
+    assert!(observed.iter().any(|item| item.observed_bytes() > 0));
+    assert!(observed
+        .iter()
+        .all(|item| !item.allows_cleanup() && item.cleanable_bytes() == 0 && !item.is_selected));
+    assert!(!registry.path_is_in_scope(
+        registry.get("system.intensive.user_app_caches").unwrap(),
+        &retained,
+        &environment
+    ));
+    let mut forged = ordinary_item.clone();
+    forged.path = retained.to_string_lossy().into_owned();
+    forged.unit.path = forged.path.clone();
+    assert!(SafetyPlanner::create_plan_with_process_probe(
+        &[forged],
+        &registry,
+        &environment,
+        &OwnerProviderRegistry::new(Vec::new()),
+        &idle()
+    )
+    .is_err());
+    assert!(retained.exists() && ordinary.exists());
 }

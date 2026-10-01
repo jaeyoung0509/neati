@@ -108,6 +108,17 @@ export class DevelopmentPortsStore {
     }
   }
 
+  /** One mounted consumer owns exactly one release. */
+  observePolling(intervalMs = 15000): () => void {
+    this.startPolling(intervalMs);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      this.stopPolling();
+    };
+  }
+
   stopPolling(): void {
     this.subscriberCount = Math.max(0, this.subscriberCount - 1);
     if (this.subscriberCount === 0 && this.pollInterval) {

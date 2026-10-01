@@ -233,6 +233,7 @@ impl PlatformEnvironment {
                 "XDG_DATA_HOME",
                 "XDG_CONFIG_HOME",
                 "XDG_CACHE_HOME",
+                "COREPACK_HOME",
                 "ZSH",
                 "ZSH_CACHE_DIR",
             ]

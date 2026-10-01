@@ -48,16 +48,39 @@ struct SignatureTimings {
     policy_preparation: Duration,
     tree_measurement: Duration,
     child_enumeration: Duration,
+    metadata_and_links: Duration,
+    age_evaluation: Duration,
+    size_accounting: Duration,
+    use_checks: Duration,
+    child_classification: Duration,
+    traversal: Duration,
     measured_aged_children: bool,
+}
+
+/// Exclusive local work inside the already single-pass age/size traversal.
+/// One aggregate per signature is emitted; paths and per-entry events are not.
+#[derive(Default)]
+struct TreePhaseTimings {
+    metadata_and_links: Duration,
+    age_evaluation: Duration,
+    size_accounting: Duration,
 }
 
 impl SignatureTimings {
     fn spans(self, signature: &Signature) -> Vec<neati_core::domain::scan::ScanSpan> {
-        let mut phases = vec![("root_expansion", self.root_expansion)];
+        let mut phases = vec![
+            ("root_expansion", self.root_expansion),
+            ("use_checks", self.use_checks),
+        ];
         if self.measured_aged_children {
             phases.extend([
                 ("aged.policy_preparation", self.policy_preparation),
                 ("aged.tree_measurement", self.tree_measurement),
+                ("aged.metadata_and_links", self.metadata_and_links),
+                ("aged.age_evaluation", self.age_evaluation),
+                ("aged.size_accounting", self.size_accounting),
+                ("aged.traversal_and_policy", self.traversal),
+                ("aged.child_classification", self.child_classification),
                 (
                     "aged.enumeration_and_classification",
                     self.child_enumeration,
@@ -342,11 +365,14 @@ impl DirectoryScanner {
         // A selection is derived from the facts above, so it is applied after
         // every field is set: only an auto-cleanable unit with reclaimable
         // bytes may be pre-selected.
+        let use_started = Instant::now();
         for item in &mut items {
             if item.risk != crate::models::RiskTier::Manual {
                 let guard = signature.process_guard_for(Path::new(&item.path), context.environment);
                 if !guard.is_empty() {
-                    match running_apps.running_executables(&guard) {
+                    match running_apps.running_executables_with_cancellation(&guard, &|| {
+                        context.cancellation.is_cancelled()
+                    }) {
                         Some(names) => item.owner_running |= !names.is_empty(),
                         None => {
                             item.quality = ObservationQuality::Unavailable;
@@ -361,6 +387,7 @@ impl DirectoryScanner {
             item.disposition = disposition;
             item.is_selected = item.is_pre_selectable();
         }
+        timings.use_checks += use_started.elapsed();
 
         SignatureScan {
             items,
@@ -1051,6 +1078,7 @@ impl DirectoryScanner {
             if context.cancellation.is_cancelled() {
                 break;
             }
+            let classification_started = Instant::now();
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(err) => {
@@ -1062,6 +1090,7 @@ impl DirectoryScanner {
                             err
                         ));
                     }
+                    timings.child_classification += classification_started.elapsed();
                     continue;
                 }
             };
@@ -1072,21 +1101,29 @@ impl DirectoryScanner {
                 &signature.include_prefixes,
             ) {
                 if !observe_include_misses {
+                    timings.child_classification += classification_started.elapsed();
                     continue;
                 }
                 coverage_count += 1;
                 if coverage_count > 64 {
                     entry_failure =
                         Some("Excluded namespace observation reached its 64-root limit".into());
+                    timings.child_classification += classification_started.elapsed();
                     continue;
                 }
                 items.push(super::coverage::observe(signature, &path,
                     "Outside this signature's included namespaces; no cleanup operation is authorized", context));
+                timings.child_classification += classification_started.elapsed();
                 continue;
             }
-            let child_is_link = SymlinkGuard::is_symlink(&path);
-            let metadata = match fs::symlink_metadata(&path) {
-                Ok(_) if child_is_link => {
+            // Use one no-follow metadata observation for classification. The
+            // Windows reparse-tag query remains fresh and fail-closed.
+            let metadata = match fs::symlink_metadata(&path).map(|metadata| {
+                let is_link =
+                    SymlinkGuard::is_symlink_from_metadata(&path, &metadata).unwrap_or(true);
+                (metadata, is_link)
+            }) {
+                Ok((_, true)) => {
                     items.push(
                         Self::unavailable_aged_item(
                             signature,
@@ -1106,9 +1143,10 @@ impl DirectoryScanner {
                         )
                         .with_inspection_issue(Some(ScanGapKind::SafetyProtected)),
                     );
+                    timings.child_classification += classification_started.elapsed();
                     continue;
                 }
-                Ok(metadata) => metadata,
+                Ok((metadata, false)) => metadata,
                 Err(err) => {
                     items.push(
                         Self::unavailable_aged_item(
@@ -1132,6 +1170,7 @@ impl DirectoryScanner {
                             inspection_issue_for_io(environment, &path, &err),
                         )),
                     );
+                    timings.child_classification += classification_started.elapsed();
                     continue;
                 }
             };
@@ -1147,6 +1186,7 @@ impl DirectoryScanner {
                 if coverage_count > 64 {
                     entry_failure =
                         Some("Excluded namespace observation reached its 64-root limit".into());
+                    timings.child_classification += classification_started.elapsed();
                     continue;
                 }
                 items.push(super::coverage::observe(
@@ -1155,6 +1195,7 @@ impl DirectoryScanner {
                     "Excluded from generic cleanup; use its dedicated owner when available",
                     context,
                 ));
+                timings.child_classification += classification_started.elapsed();
                 continue;
             }
 
@@ -1171,15 +1212,26 @@ impl DirectoryScanner {
             };
 
             // Single-pass fail-closed tree measurement
+            timings.child_classification += classification_started.elapsed();
             let measurement_started = Instant::now();
-            let stats = Self::measure_tree_stats_with_policy(
+            let mut tree_phases = TreePhaseTimings::default();
+            let stats = Self::measure_tree_stats_profiled(
                 context,
                 &path,
                 &observation_policy,
                 0,
                 stale_policy,
+                &mut tree_phases,
             );
-            timings.tree_measurement += measurement_started.elapsed();
+            let elapsed = measurement_started.elapsed();
+            timings.tree_measurement += elapsed;
+            timings.metadata_and_links += tree_phases.metadata_and_links;
+            timings.age_evaluation += tree_phases.age_evaluation;
+            timings.size_accounting += tree_phases.size_accounting;
+            timings.traversal += elapsed
+                .saturating_sub(tree_phases.metadata_and_links)
+                .saturating_sub(tree_phases.age_evaluation)
+                .saturating_sub(tree_phases.size_accounting);
             // An incomplete tree cannot prove the candidate's newest timestamp,
             // so retain it for observability but block cleanup.
             if !stats.complete {
@@ -1499,6 +1551,24 @@ impl DirectoryScanner {
         current_depth: usize,
         stale_policy: Option<crate::safety::StaleEntryPolicy>,
     ) -> TreeStats {
+        Self::measure_tree_stats_profiled(
+            context,
+            path,
+            policy,
+            current_depth,
+            stale_policy,
+            &mut TreePhaseTimings::default(),
+        )
+    }
+
+    fn measure_tree_stats_profiled(
+        context: &WalkContext<'_>,
+        path: &Path,
+        policy: &TreeObservationPolicy,
+        current_depth: usize,
+        stale_policy: Option<crate::safety::StaleEntryPolicy>,
+        phases: &mut TreePhaseTimings,
+    ) -> TreeStats {
         let environment = context.environment;
         let cancellation = context.cancellation;
         let max_depth = context.limits.max_depth;
@@ -1537,9 +1607,12 @@ impl DirectoryScanner {
             return stats;
         }
 
-        let (meta, is_link) = match fs::symlink_metadata(path).and_then(|meta| {
+        let metadata_started = Instant::now();
+        let observation = fs::symlink_metadata(path).and_then(|meta| {
             SymlinkGuard::is_symlink_from_metadata(path, &meta).map(|is_link| (meta, is_link))
-        }) {
+        });
+        phases.metadata_and_links += metadata_started.elapsed();
+        let (meta, is_link) = match observation {
             Ok(observation) => observation,
             Err(err) => {
                 stats.complete = false;
@@ -1574,17 +1647,22 @@ impl DirectoryScanner {
             return stats;
         }
 
-        if let Ok(modified) = meta.modified() {
+        let age_started = Instant::now();
+        let modified = meta.modified().ok();
+        if let Some(modified) = modified {
             stats.newest_mtime = Some(match stats.newest_mtime {
                 Some(existing) => existing.max(modified),
                 None => modified,
             });
         }
 
+        phases.age_evaluation += age_started.elapsed();
+
         // The walk refuses an indirection and accounts for the link itself;
         // `SymlinkGuard` is the same classifier size.rs uses, so a junction is
         // a boundary in both walks rather than only in one.
         if is_link || meta.is_file() {
+            let size_started = Instant::now();
             let len = meta.len();
             stats.logical = len;
             #[cfg(unix)]
@@ -1600,11 +1678,13 @@ impl DirectoryScanner {
                 stats.allocated = len;
             }
             stats.file_count = 1;
+            phases.size_accounting += size_started.elapsed();
 
             // The entry's own verdict, from the entry's own facts. The
             // execution guard evaluates the same predicate for the same file,
             // so the estimate and the deletion agree by construction.
             if let Some(policy) = stale_policy {
+                let age_started = Instant::now();
                 let name = path
                     .file_name()
                     .map(|name| name.to_string_lossy().into_owned())
@@ -1614,12 +1694,13 @@ impl DirectoryScanner {
                     &name,
                     crate::safety::stale::entry_kind(&meta),
                     crate::safety::stale::is_executable(&meta),
-                    meta.modified().ok(),
+                    modified,
                     now,
                 ) {
                     stats.stale_bytes += stats.allocated;
                     stats.stale_file_count = 1;
                 }
+                phases.age_evaluation += age_started.elapsed();
             }
             return stats;
         }
@@ -1689,12 +1770,13 @@ impl DirectoryScanner {
                 continue;
             }
 
-            let sub_stats = Self::measure_tree_stats_with_policy(
+            let sub_stats = Self::measure_tree_stats_profiled(
                 context,
                 &child_path,
                 policy,
                 current_depth + 1,
                 stale_policy,
+                phases,
             );
             if !sub_stats.complete {
                 stats.complete = false;
@@ -2775,6 +2857,69 @@ mod tests {
     }
 
     /// Each enumerated child is its own unit, with the root it was found under.
+    #[test]
+    fn stopping_a_unit_use_check_keeps_inventory_but_launches_no_later_probe() {
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+        use std::sync::Arc;
+        #[derive(Debug)]
+        struct StopProbe {
+            stop: Arc<AtomicBool>,
+            calls: Arc<AtomicUsize>,
+        }
+        impl neati_platform::open_files::OpenFileProbe for StopProbe {
+            fn observe(&self, _: &std::path::Path) -> neati_platform::open_files::OpenFileState {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+                self.stop.store(true, Ordering::SeqCst);
+                neati_platform::open_files::OpenFileState::Unknown
+            }
+        }
+        struct StopSignal(Arc<AtomicBool>);
+        impl crate::models::CancellationProbe for StopSignal {
+            fn is_cancelled(&self) -> bool {
+                self.0.load(Ordering::SeqCst)
+            }
+        }
+        let root = tempfile::tempdir().unwrap();
+        let logs = root.path().join("Library/Logs");
+        for name in ["com.fixture.first", "com.fixture.second"] {
+            let path = logs.join(name).join("blob.bin");
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, vec![1u8; 4096]).unwrap();
+            age_entry(&path, 30);
+        }
+        let stop = Arc::new(AtomicBool::new(false));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let processes =
+            crate::applications::RunningApplications::from_process_names(["fixture-idle".into()])
+                .with_open_file_probe(Arc::new(StopProbe {
+                    stop: stop.clone(),
+                    calls: calls.clone(),
+                }));
+        let environment = environment()
+            .with_platform(crate::models::PlatformKind::Macos)
+            .with_home(root.path());
+        let mut signature = child_signature(&logs, 7);
+        signature.fail_if_running = vec!["fixture-guard".into()];
+        let items = DirectoryScanner::scan_signature(
+            &signature,
+            &environment,
+            &StopSignal(stop),
+            &processes,
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert_eq!(items.len(), 2);
+        for item in &items {
+            assert!(item.observed_bytes() >= 4096);
+            assert_eq!(item.quality, ObservationQuality::Unavailable);
+            assert_eq!(
+                item.inspection_issue,
+                Some(crate::models::ScanGapKind::OwnerStateUnknown)
+            );
+            assert!(!item.is_selected);
+            assert_eq!(item.cleanable_bytes(), 0);
+        }
+    }
+
     #[test]
     fn enumerated_children_carry_their_unit_and_owner() {
         let root = tempfile::tempdir().unwrap();

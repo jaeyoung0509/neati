@@ -224,3 +224,27 @@ The current-user system access probe is recorded in
 [SYSTEM_CLEANUP_ACCESS.md](SYSTEM_CLEANUP_ACCESS.md#october-1-current-user-access-probe).
 Readable or writable roots still require an exact disposable unit and adapter;
 neither probe results nor Full Disk Access enable system deletion.
+
+## Final owner follow-up — October 1, 2026 checkpoint
+
+The current batch records tested Corepack 0.36.0/Node 26.7.0 complete default
+v1 cleanup and CocoaPods 1.17.0/Homebrew portable Ruby 4.0.7 (ABI 4.0.0) alongside
+the existing exact tuples. Arc 1.166.0/build 87668/ArcCore154 has a verified
+`Arc/User Data` contract; unknown/legacy roots stay observed. New renderer units
+cover only the named verified channel/MCP leaves. The generic Arc cache mirror
+is excluded so it cannot override unsupported owner/runtime or protected-state
+verdicts. Source/runtime files and inconsistent Corepack version markers remain
+blocked.
+
+[The owner evidence and incomplete validation ledger](validation/final-owner-coverage/README.md)
+classifies resumable Android staging, installed SDK packages, OrbStack VM/reset
+state and Playwright/Puppeteer executable distributions individually. Existing
+Docker operations retain their separate Containers contracts. The SDK and VM
+stores do not acquire generic cleanup permission. CloudKit/Safari/index and
+system decisions are recorded in [the system matrix](SYSTEM_CLEANUP_ACCESS.md).
+
+The named residual namespaces were remeasured without cleanup; partial bytecode
+coverage remains explicitly partial. Native TCC transitions, additional tool
+compatibility, actual browser use evidence, final synchronized-version checks,
+bundle verification and CI remain TODO at this checkpoint. This section does
+not close #362/#382 or claim a complete platform/runtime matrix.

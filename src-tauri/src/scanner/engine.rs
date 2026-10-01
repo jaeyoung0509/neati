@@ -483,10 +483,23 @@ impl ScanEngine {
         // One process-table pass for the whole scan: the scan asks which
         // application bundles are running, and every signature sees the same
         // answer.
+        let process_started = Instant::now();
         let running_apps = crate::applications::RunningApplications::probe();
+        spans.push(ScanSpan {
+            source_id: "scan.process_snapshot".into(),
+            duration_ms: process_started
+                .elapsed()
+                .as_millis()
+                .min(u128::from(u64::MAX)) as u64,
+        });
         // Reuse the explicitly bounded shared scan pool (see
         // `execution_budget`); never expand pools per request.
+        let pool_started = Instant::now();
         let directory_pool = shared_scan_pool();
+        spans.push(ScanSpan {
+            source_id: "scan.pool_startup".into(),
+            duration_ms: pool_started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
+        });
         // The scan's own bounds and counters. The limits are stated once, and
         // the counters are what turn them into a measurement: the peak
         // outstanding directory-task count is checked against the bound by the
@@ -529,7 +542,12 @@ impl ScanEngine {
                     gate,
                     &running_apps,
                 );
+                let use_started = Instant::now();
                 apply_signature_owner_state(&mut scanned.items, sig, &running_apps);
+                spans.push(ScanSpan {
+                    source_id: format!("{}.owner_state_projection", sig.id),
+                    duration_ms: use_started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
+                });
                 spans.push(ScanSpan {
                     source_id: sig.id.clone(),
                     duration_ms: span_started.elapsed().as_millis().min(u128::from(u64::MAX))
@@ -570,6 +588,7 @@ impl ScanEngine {
                     duration_ms: span_started.elapsed().as_millis().min(u128::from(u64::MAX))
                         as u64,
                 });
+                spans.extend(provider_scan.spans);
                 let provider_cancelled = provider_scan.cancelled;
                 for failure in provider_scan.failures {
                     category_incomplete = true;
@@ -625,12 +644,13 @@ impl ScanEngine {
             //    discovered here — in the category their catalog entry declares
             //    — and every one of them is offered for explicit selection.
             if !was_cancelled {
-                for item in owner_providers.scan_items_with_spans(
+                for item in owner_providers.scan_items_with_cancellation_and_spans(
                     registry,
                     category,
                     intensive_cleanup,
                     excluded_signatures,
                     environment,
+                    cancellation,
                     &mut spans,
                 ) {
                     if cancellation.is_cancelled() {
@@ -643,6 +663,7 @@ impl ScanEngine {
                         });
                     }
                 }
+                was_cancelled |= cancellation.is_cancelled();
             }
 
             // 5. Typed container adapters can report cleanable or observation-only storage.

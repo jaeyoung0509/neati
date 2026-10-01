@@ -48,6 +48,27 @@ consequence = "Offline website assets move to Trash and may need a network conne
 description = "Each depth-two CacheStorage directory is a separate reviewed Trash unit. Origin indexes, neighboring profile databases and Service Worker registrations remain intact; macOS checks whether each selected unit is in use, while Windows requires the browser to be stopped."
 
 [[signatures]]
+id = "system.chromium.additional_renderer_caches"
+name = "Additional Browser and Automation Renderer Caches"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "chromium.additional_renderer_caches"
+platforms = ["macos"]
+paths = []
+fail_if_running = [
+    "Arc", "Arc Helper", "Arc Helper (Renderer)", "Arc Helper (GPU)",
+    "Google Chrome Beta", "Google Chrome Beta Helper", "Google Chrome Dev", "Google Chrome Dev Helper",
+    "Google Chrome Canary", "Google Chrome Canary Helper", "chrome", "node", "nodejs"
+]
+owner = "Chromium browsers"
+provider = "Chromium renderer cache"
+artifact_kind = "renderer_cache"
+consequence = "Exact HTTP, code and GPU cache units move to Trash and are downloaded or rebuilt again. Profile data, offline websites, settings, credentials, extensions and models stay."
+description = "Bounded direct profiles for verified Arc 1.166.0 / ArcCore154, Chrome Beta/Dev/Canary and the source-verified Chrome DevTools MCP1.10.1 default/CLI channel roots. Arc needs its exact bundle metadata in platform-stated application roots. Every unit retains fresh exact handles and full entry/runtime identity at plan, execution and final mutation; unknown/custom roots, databases, credentials, configuration, models and executables are refused. Persistent or temporary whole automation profiles are never targets."
+
+[[signatures]]
 id = "system.developer_temp"
 name = "Stale Developer Temporary Files"
 category = "system"
@@ -102,6 +123,7 @@ paths = ["~/Library/Caches"]
 min_age_days = 0
 exclude_prefixes = [
     "CloudKit",
+    "Arc",
     "BraveSoftware",
     "Google",
     "Homebrew",
@@ -116,6 +138,7 @@ exclude_prefixes = [
     "CocoaPods"
 ]
 exclusions = [
+    "~/Library/Caches/Arc",
     "~/Library/Caches/com.apple.helpd",
     "~/Library/Caches/com.apple.dt.Xcode",
     "~/Library/Caches/com.apple.CloudKit",
@@ -433,9 +456,11 @@ risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos"]
 paths = ["~/Library/Containers/*/Data/Library/Caches"]
+exclude_prefixes = ["CloudKit", "com.apple.CloudKit", "com.apple.Safari"]
+exclusions = ["CloudKit", "com.apple.CloudKit", "com.apple.Safari"]
 min_age_days = 0
 intensive_only = false
-description = "Regenerable container cache payloads are eligible immediately when their owner is idle. Structured state, locks and compiled models remain protected. Inaccessible locations are reported explicitly."
+description = "Regenerable container cache payloads are eligible immediately when their owner is idle. CloudKit sync state, Safari website data, structured state, locks and compiled models remain protected. Inaccessible locations are reported explicitly."
 
 [[signatures]]
 id = "system.intensive.group_containers_caches"
@@ -446,9 +471,11 @@ risk = "rebuild"
 strategy = "delete_stale_contents"
 platforms = ["macos"]
 paths = ["~/Library/Group Containers/*/Library/Caches"]
+exclude_prefixes = ["CloudKit", "com.apple.CloudKit", "com.apple.Safari"]
+exclusions = ["CloudKit", "com.apple.CloudKit", "com.apple.Safari"]
 min_age_days = 0
 intensive_only = false
-description = "Regenerable container cache payloads are eligible immediately when their owner is idle. Structured state, locks and compiled models remain protected. Inaccessible locations are reported explicitly."
+description = "Regenerable container cache payloads are eligible immediately when their owner is idle. CloudKit sync state, Safari website data, structured state, locks and compiled models remain protected. Inaccessible locations are reported explicitly."
 
 [[signatures]]
 id = "system.advisory.macos_system_caches"
@@ -1006,25 +1033,27 @@ risk = "manual"
 strategy = "manual"
 platforms = ["macos"]
 paths = [
-    "~/Library/Application Support/Arc/User Data/*/{Cache,Code Cache,GPUCache}",
+    "~/Library/Caches/Arc/User Data/*/{Cache,Code Cache,GPUCache}",
+    "~/Library/Caches/Arc/*/{Cache,Code Cache,GPUCache}",
+    "~/Library/Application Support/Arc/User Data/*/{Cache,Code Cache}",
     "~/Library/Application Support/Arc/*/{Cache,Code Cache,GPUCache}",
     "~/Library/Application Support/company.thebrowser.Browser/*/{Cache,Code Cache,GPUCache}"
 ]
 owner = "Arc"
 provider = "Arc"
 # Observation does not inherit a verified renderer-cache removal policy.
-description = "Read-only metadata observation of exact cache-named leaves in known Arc root spellings. Root presence is not installed-version or active-profile evidence; profile state, cookies, history, registrations, databases and offline data are not targets. Cleanup remains unavailable until the version/root/use contract is independently verified."
+description = "Read-only legacy/custom cache-named observations. The reviewed official Arc1.166.0 contract uses Arc/User Data, with ordinary HTTP/code caches under the corresponding Library/Caches profile and GPU caches under User Data. Arc direct profiles, the bundle-ID spelling and HTTP/code leaves unexpectedly inside User Data do not inherit that contract. Root presence never identifies the installed version; all unknown layouts remain unavailable."
 
 [[signatures]]
 id = "system.chrome_devtools.profile_cache_observations"
-name = "Chrome DevTools MCP Profile Cache Leaves"
+name = "Chrome DevTools MCP Persistent Profile State"
 category = "system"
 family = "applications"
 risk = "manual"
 strategy = "manual"
 platforms = ["macos"]
-paths = ["~/.cache/chrome-devtools-mcp/{chrome-profile,chrome-profile-canary,chrome-profile-beta,chrome-profile-dev}/*/{Cache,Code Cache,GPUCache}"]
+paths = ["~/.cache/chrome-devtools-mcp/{chrome-profile,chrome-profile-canary,chrome-profile-beta,chrome-profile-dev}", "~/.cache/chrome-devtools-mcp-cli/{chrome-profile,chrome-profile-canary,chrome-profile-beta,chrome-profile-dev}"]
 owner = "Chrome DevTools MCP"
 provider = "Chrome DevTools MCP"
 # Observation does not inherit a verified renderer-cache removal policy.
-description = "Read-only observation of named leaves under the owner's documented persistent channel profiles. The profile is reused between runs, so it is never treated as an abandoned temporary folder. Custom/isolated profiles and all profile state remain outside this observation; no browser termination or cleanup is offered."
+description = "Whole persistent profiles remain advisory because sign-ins and website state survive runs. The separate renderer provider owns only verified disposable HTTP/code/GPU leaves, with fresh exact handles and protected-state refusal. Custom and isolated profiles are unknown; no whole profile deletion, implicit quit or generic process termination is offered."

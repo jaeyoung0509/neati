@@ -27,6 +27,9 @@ fn main() {
         .unwrap()
         .starts_with("neati-cocoapods-validation-"));
     let abi = args.next().expect("installed Ruby ABI, e.g. 2.6.0");
+    let version = args.next().unwrap_or_else(|| "1.16.2".into());
+    assert!(matches!(version.as_str(), "1.16.2" | "1.17.0"));
+    let ruby = args.next().map(PathBuf::from);
     assert!(
         abi.split('.').count() == 3
             && abi
@@ -45,7 +48,7 @@ fn main() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, vec![42; 8192]).unwrap();
     }
-    std::fs::write(cache.join("VERSION"), "1.16.2").unwrap();
+    std::fs::write(cache.join("VERSION"), &version).unwrap();
     let preserved = [
         ".cocoapods/repos/trunk/spec.json",
         ".cocoapods/config.yaml",
@@ -62,10 +65,13 @@ fn main() {
         std::fs::write(path, b"keep").unwrap();
     }
     let launcher_before = std::fs::read(&pod).unwrap();
-    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+    let mut environment = PlatformEnvironment::simulated(PathFlavor::current())
         .with_home(&home)
         .with_temp_dir(&root)
         .with_tool("pod", &pod);
+    if let Some(ruby) = ruby {
+        environment = environment.with_tool("ruby", ruby);
+    }
     let provider = ToolCleanupProvider::native(ToolCacheKind::Cocoapods, Arc::new(Idle));
     let guard = RunningProcessPolicy::none();
     let scan = provider.scan(&environment, &guard);

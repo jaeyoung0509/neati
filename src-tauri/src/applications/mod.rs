@@ -149,9 +149,13 @@ impl RunningApplications {
         self
     }
 
-    fn open_file_state(&self, path: &Path) -> neati_platform::open_files::OpenFileState {
+    fn open_file_state(
+        &self,
+        path: &Path,
+        is_cancelled: &dyn Fn() -> bool,
+    ) -> neati_platform::open_files::OpenFileState {
         self.open_files.as_ref().map_or_else(
-            || neati_platform::open_files::observe_open_files(path),
+            || neati_platform::open_files::observe_open_files_with_cancellation(path, is_cancelled),
             |probe| probe.observe(path),
         )
     }
@@ -325,8 +329,21 @@ impl RunningApplications {
         &self,
         policy: &neati_core::domain::cleanup::RunningProcessPolicy,
     ) -> Option<Vec<String>> {
+        self.running_executables_with_cancellation(policy, &|| false)
+    }
+
+    /// A scan may stop a read-only probe; an interrupted observation is unknown,
+    /// while ordinary callers retain the fresh uncancelled path above.
+    pub fn running_executables_with_cancellation(
+        &self,
+        policy: &neati_core::domain::cleanup::RunningProcessPolicy,
+        is_cancelled: &dyn Fn() -> bool,
+    ) -> Option<Vec<String>> {
         if policy.is_empty() {
             return Some(Vec::new());
+        }
+        if is_cancelled() {
+            return None;
         }
         if !self.process_state_known {
             return None;
@@ -371,7 +388,7 @@ impl RunningApplications {
             return None;
         }
         if let Some(path) = policy.open_file_path().filter(|_| names.is_empty()) {
-            match self.open_file_state(path) {
+            match self.open_file_state(path, is_cancelled) {
                 neati_platform::open_files::OpenFileState::Idle => {}
                 neati_platform::open_files::OpenFileState::InUse => {
                     names.push("An application using this cache".into())
@@ -1377,6 +1394,31 @@ mod tests {
             observed.running_executables(&guard),
             Some(vec!["Brave Browser Helper".into()])
         );
+    }
+
+    #[test]
+    fn stopped_scan_does_not_launch_an_open_file_read_or_change_fresh_callers() {
+        #[derive(Debug)]
+        struct Count(std::sync::Arc<std::sync::atomic::AtomicUsize>);
+        impl neati_platform::open_files::OpenFileProbe for Count {
+            fn observe(&self, _: &Path) -> neati_platform::open_files::OpenFileState {
+                self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                neati_platform::open_files::OpenFileState::Idle
+            }
+        }
+        let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let processes = RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(Count(calls.clone())));
+        let guard = RunningProcessPolicy::none().with_open_files(PathBuf::from("/fixture/unit"));
+        assert_eq!(
+            processes.running_executables_with_cancellation(&guard, &|| true),
+            None
+        );
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+        assert_eq!(processes.running_executables(&guard), Some(Vec::new()));
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        assert_eq!(processes.running_executables(&guard), Some(Vec::new()));
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 2);
     }
 
     #[test]

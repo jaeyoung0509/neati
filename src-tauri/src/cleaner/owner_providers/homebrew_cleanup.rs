@@ -59,6 +59,15 @@ impl BrewPreview {
 
 trait BrewCommandRunner: Send + Sync {
     fn preview(&self, environment: &PlatformEnvironment) -> Result<BrewPreview, String>;
+    fn preview_with_spans(
+        &self,
+        environment: &PlatformEnvironment,
+        _source_id: &str,
+        _cancellation: &dyn crate::models::CancellationProbe,
+        _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> Result<BrewPreview, String> {
+        self.preview(environment)
+    }
     fn cleanup(&self, environment: &PlatformEnvironment) -> Result<(), String>;
 }
 
@@ -86,11 +95,14 @@ impl NativeBrewCommandRunner {
         command
     }
 
-    fn version(executable: &Path) -> Result<String, String> {
+    fn version(
+        executable: &Path,
+        cancellation: &dyn crate::models::CancellationProbe,
+    ) -> Result<String, String> {
         let mut command = Command::new(executable);
         command.arg("--version");
         neati_platform::subprocess::configure_background_command(&mut command);
-        let output = Self::run(command, Duration::from_secs(5))?;
+        let output = Self::run_cancellable(command, Duration::from_secs(5), cancellation)?;
         if !output.status.success() {
             return Err("Homebrew version probe failed".into());
         }
@@ -103,11 +115,14 @@ impl NativeBrewCommandRunner {
             .ok_or_else(|| "Homebrew returned an unrecognized version".to_string())
     }
 
-    fn prefix(executable: &Path) -> Result<PathBuf, String> {
+    fn prefix(
+        executable: &Path,
+        cancellation: &dyn crate::models::CancellationProbe,
+    ) -> Result<PathBuf, String> {
         let mut command = Command::new(executable);
         command.arg("--prefix");
         neati_platform::subprocess::configure_background_command(&mut command);
-        let output = Self::run(command, Duration::from_secs(5))?;
+        let output = Self::run_cancellable(command, Duration::from_secs(5), cancellation)?;
         if !output.status.success() {
             return Err("Homebrew prefix probe failed".into());
         }
@@ -125,27 +140,67 @@ impl NativeBrewCommandRunner {
         neati_platform::subprocess::run_with_timeout(command, timeout)
             .map_err(|error| format!("Homebrew command failed to run: {error}"))
     }
+
+    fn run_cancellable(
+        command: Command,
+        timeout: Duration,
+        cancellation: &dyn crate::models::CancellationProbe,
+    ) -> Result<std::process::Output, String> {
+        neati_platform::subprocess::run_with_timeout_cancellable(command, timeout, &|| {
+            cancellation.is_cancelled()
+        })
+        .map_err(|error| format!("Homebrew command failed to run: {error}"))
+    }
 }
 
 impl BrewCommandRunner for NativeBrewCommandRunner {
     fn preview(&self, environment: &PlatformEnvironment) -> Result<BrewPreview, String> {
-        let executable = Self::executable(environment)?;
-        let prefix = Self::prefix(&executable)?;
-        let version = Self::version(&executable)?;
-        let output = Self::run(Self::command(&executable, true), PREVIEW_TIMEOUT)?;
+        self.preview_with_spans(
+            environment,
+            "homebrew.cleanup",
+            &crate::models::NeverCancelled,
+            &mut Vec::new(),
+        )
+    }
+
+    fn preview_with_spans(
+        &self,
+        environment: &PlatformEnvironment,
+        source_id: &str,
+        cancellation: &dyn crate::models::CancellationProbe,
+        spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> Result<BrewPreview, String> {
+        let executable = timed_phase(spans, source_id, "executable_discovery", || {
+            Self::executable(environment)
+        })?;
+        let prefix = timed_phase(spans, source_id, "prefix_query", || {
+            Self::prefix(&executable, cancellation)
+        })?;
+        let version = timed_phase(spans, source_id, "version_query", || {
+            Self::version(&executable, cancellation)
+        })?;
+        let output = timed_phase(spans, source_id, "dry_run_preview", || {
+            Self::run_cancellable(
+                Self::command(&executable, true),
+                PREVIEW_TIMEOUT,
+                cancellation,
+            )
+        })?;
         if !output.status.success() {
             return Err(format!(
                 "Homebrew cleanup preview failed: {}",
                 String::from_utf8_lossy(&output.stderr).trim()
             ));
         }
-        parse_preview(
-            &String::from_utf8_lossy(&output.stdout),
-            executable,
-            prefix,
-            version,
-            environment,
-        )
+        timed_phase(spans, source_id, "preview_parse", || {
+            parse_preview(
+                &String::from_utf8_lossy(&output.stdout),
+                executable,
+                prefix,
+                version,
+                environment,
+            )
+        })
     }
 
     fn cleanup(&self, environment: &PlatformEnvironment) -> Result<(), String> {
@@ -160,6 +215,21 @@ impl BrewCommandRunner for NativeBrewCommandRunner {
             ))
         }
     }
+}
+
+fn timed_phase<T>(
+    spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    source_id: &str,
+    phase: &str,
+    work: impl FnOnce() -> T,
+) -> T {
+    let started = std::time::Instant::now();
+    let value = work();
+    spans.push(neati_core::domain::scan::ScanSpan {
+        source_id: format!("{source_id}.{phase}"),
+        duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
+    });
+    value
 }
 
 pub struct HomebrewCleanupProvider {
@@ -188,7 +258,26 @@ impl HomebrewCleanupProvider {
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
-        match self.process.running(guard) {
+        self.read_store_with_spans(
+            environment,
+            guard,
+            "homebrew.cleanup",
+            &crate::models::NeverCancelled,
+            &mut Vec::new(),
+        )
+    }
+
+    fn read_store_with_spans(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+        source_id: &str,
+        cancellation: &dyn crate::models::CancellationProbe,
+        spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        match timed_phase(spans, source_id, "process_use_check", || {
+            self.process.running(guard)
+        }) {
             None => {
                 return OwnerStoreObservation::refused(
                     ProviderStatus::Blocked,
@@ -208,12 +297,16 @@ impl HomebrewCleanupProvider {
             }
             Some(_) => {}
         }
-        let preview = match self.runner.preview(environment) {
-            Ok(preview) => preview,
-            Err(error) => {
-                return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error)
-            }
-        };
+        let preview =
+            match self
+                .runner
+                .preview_with_spans(environment, source_id, cancellation, spans)
+            {
+                Ok(preview) => preview,
+                Err(error) => {
+                    return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error)
+                }
+            };
         let root = preview.prefix.clone();
         if preview.candidates.is_empty() || preview.estimated_bytes == 0 {
             return OwnerStoreObservation::ready(Some(root), Vec::new());
@@ -408,6 +501,17 @@ impl OwnerScopedProvider for HomebrewCleanupProvider {
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
         self.read_store(environment, guard)
+    }
+
+    fn scan_with_spans(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+        source_id: &str,
+        cancellation: &dyn crate::models::CancellationProbe,
+        spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        self.read_store_with_spans(environment, guard, source_id, cancellation, spans)
     }
 
     fn prepare(
@@ -629,6 +733,62 @@ mod tests {
                 .collect(),
             estimated_bytes: bytes,
         }
+    }
+
+    #[test]
+    fn read_only_command_stop_reaps_the_owned_child_without_waiting_for_timeout() {
+        struct StopAfter {
+            started: std::time::Instant,
+            requested: std::sync::OnceLock<std::time::Instant>,
+        }
+        impl crate::models::CancellationProbe for StopAfter {
+            fn is_cancelled(&self) -> bool {
+                if self.started.elapsed() < Duration::from_millis(100) {
+                    return false;
+                }
+                self.requested.get_or_init(std::time::Instant::now);
+                true
+            }
+        }
+        let mut command = Command::new("/bin/sh");
+        command.args(["-c", "sleep 10 & wait"]);
+        let started = std::time::Instant::now();
+        let stop = StopAfter {
+            started,
+            requested: std::sync::OnceLock::new(),
+        };
+        let result =
+            NativeBrewCommandRunner::run_cancellable(command, Duration::from_secs(15), &stop);
+        assert!(result.unwrap_err().contains("was cancelled"));
+        assert!(
+            stop.requested.get().expect("Stop was observed").elapsed() < Duration::from_secs(1)
+        );
+    }
+
+    #[test]
+    fn read_only_diagnostics_keep_the_exact_observation_and_never_call_cleanup() {
+        let (_temp, environment, executable, prefix) = fixture();
+        let observation = preview(&executable, &prefix, &["Cellar/tool/1.0"], 8000);
+        let runner = Arc::new(FakeRunner {
+            previews: Mutex::new(VecDeque::from([observation.clone(), observation])),
+            cleanup_calls: Mutex::new(0),
+            cleanup_error: None,
+        });
+        let provider = HomebrewCleanupProvider::with_runner(Arc::new(Idle), runner.clone());
+        let guard = RunningProcessPolicy::guarding(vec!["brew".into()]);
+        let plain = provider.scan(&environment, &guard);
+        let mut spans = Vec::new();
+        let profiled = provider.scan_with_spans(
+            &environment,
+            &guard,
+            "test.brew",
+            &crate::models::NeverCancelled,
+            &mut spans,
+        );
+        assert_eq!(plain, profiled);
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans[0].source_id, "test.brew.process_use_check");
+        assert_eq!(*runner.cleanup_calls.lock().unwrap(), 0);
     }
 
     #[test]

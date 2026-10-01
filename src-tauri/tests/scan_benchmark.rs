@@ -86,6 +86,9 @@ fn isolate_fixture_measurement() -> MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+#[path = "support/scan_profile.rs"]
+mod controlled_profile;
+
 /// An end-to-end cleanup measurement on a directory created solely by this
 /// harness. The elapsed time is evidence, not a CI threshold; the byte and
 /// empty-root assertions ensure the measurement describes completed work.
@@ -603,16 +606,23 @@ fn aged_observation_phase_spans_are_bounded_and_do_not_add_progress_events() {
         .iter()
         .filter(|span| span.source_id.starts_with(prefix))
         .collect();
-    assert_eq!(phases.len(), 4);
+    assert_eq!(phases.len(), 11);
     assert_eq!(
         phases
             .iter()
             .map(|span| span.source_id.strip_prefix(prefix).unwrap())
             .collect::<Vec<_>>(),
         [
+            "owner_state_projection",
             "root_expansion",
+            "use_checks",
             "aged.policy_preparation",
             "aged.tree_measurement",
+            "aged.metadata_and_links",
+            "aged.age_evaluation",
+            "aged.size_accounting",
+            "aged.traversal_and_policy",
+            "aged.child_classification",
             "aged.enumeration_and_classification",
         ]
     );
@@ -621,7 +631,33 @@ fn aged_observation_phase_spans_are_bounded_and_do_not_add_progress_events() {
         .iter()
         .find(|span| span.source_id == "benchmark.aged-observation")
         .unwrap();
-    assert!(phases.iter().map(|span| span.duration_ms).sum::<u64>() <= total.duration_ms);
+    let phase = |name: &str| {
+        phases
+            .iter()
+            .find(|span| span.source_id.ends_with(name))
+            .unwrap()
+            .duration_ms
+    };
+    assert!(
+        phase("aged.metadata_and_links")
+            + phase("aged.age_evaluation")
+            + phase("aged.size_accounting")
+            + phase("aged.traversal_and_policy")
+            <= phase("aged.tree_measurement")
+    );
+    assert!(phase("aged.child_classification") <= phase("aged.enumeration_and_classification"));
+    let exclusive = phases.iter().filter(|span| {
+        ![
+            "aged.metadata_and_links",
+            "aged.age_evaluation",
+            "aged.size_accounting",
+            "aged.traversal_and_policy",
+            "aged.child_classification",
+        ]
+        .iter()
+        .any(|phase| span.source_id.ends_with(phase))
+    });
+    assert!(exclusive.map(|span| span.duration_ms).sum::<u64>() <= total.duration_ms);
     assert!(result
         .spans
         .iter()

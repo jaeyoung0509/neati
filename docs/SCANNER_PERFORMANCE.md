@@ -358,7 +358,8 @@ multiple consumers, in-flight sharing, failure/retry and post-mutation freshness
 The associated developer-artifact clock change belongs to its workflow patch.
 Rust callback/encoding measurements and synthetic mounted DOM evidence do not
 measure native IPC. Actual native large-scan input/Stop and VoiceOver announcement
-acceptance remains pending because Computer Use native-pipe startup failed.
+acceptance remains pending. Computer Use connectivity was subsequently restored,
+but final-bundle native IPC/input/Stop and VoiceOver checks have not yet run.
 No native criterion is waived; #379 remains open until that evidence is obtained.
 
 ## Recorded real-machine baselines

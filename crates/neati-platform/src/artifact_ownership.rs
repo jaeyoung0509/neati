@@ -31,17 +31,59 @@ const INERT_PATH: &str = "/dev/null";
 struct Stamp {
     size: u64,
     modified: SystemTime,
-    #[cfg(unix)]
-    entity: (u64, u64),
-    #[cfg(windows)]
-    entity: WindowsEntity,
+    entity: NativeEntity,
+}
+
+#[cfg(unix)]
+type NativeEntity = (u64, u64);
+
+#[cfg(windows)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct NativeEntity {
+    volume: u64,
+    file_id: [u8; 16],
 }
 
 #[cfg(windows)]
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct WindowsEntity {
-    volume: u64,
-    file_id: [u8; 16],
+fn open_metadata_handle(path: &Path) -> Result<fs::File, Uncertainty> {
+    use std::os::windows::fs::OpenOptionsExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_DELETE,
+        FILE_SHARE_READ, FILE_SHARE_WRITE,
+    };
+    OpenOptions::new()
+        .read(true)
+        .access_mode(0)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
+        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)
+        .map_err(|_| Uncertainty::UnreadableMetadata)
+}
+
+// Ancestor bindings protect the native directory entity, not its sibling
+// entries. Shared Temp ancestors may change while independent probes run.
+// Artifact trees and repository metadata retain their full content stamps.
+fn directory_entity(path: &Path, metadata: &Metadata) -> Result<NativeEntity, Uncertainty> {
+    if is_link(metadata) || !metadata.is_dir() {
+        return Err(Uncertainty::ChangedDuringProbe);
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let _ = path;
+        Ok((metadata.dev(), metadata.ino()))
+    }
+    #[cfg(windows)]
+    {
+        let file = open_metadata_handle(path)?;
+        let opened = file
+            .metadata()
+            .map_err(|_| Uncertainty::UnreadableMetadata)?;
+        if is_link(&opened) || !opened.is_dir() {
+            return Err(Uncertainty::ChangedDuringProbe);
+        }
+        entity_opened(&file)
+    }
 }
 
 fn stamp(path: &Path, metadata: &Metadata) -> Result<Stamp, Uncertainty> {
@@ -49,18 +91,7 @@ fn stamp(path: &Path, metadata: &Metadata) -> Result<Stamp, Uncertainty> {
     let _ = path;
     #[cfg(windows)]
     {
-        use std::os::windows::fs::OpenOptionsExt;
-        use windows_sys::Win32::Storage::FileSystem::{
-            FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_DELETE,
-            FILE_SHARE_READ, FILE_SHARE_WRITE,
-        };
-        let file = OpenOptions::new()
-            .read(true)
-            .access_mode(0)
-            .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
-            .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
-            .open(path)
-            .map_err(|_| Uncertainty::UnreadableMetadata)?;
+        let file = open_metadata_handle(path)?;
         let opened = file
             .metadata()
             .map_err(|_| Uncertainty::UnreadableMetadata)?;
@@ -89,6 +120,17 @@ fn stamp(path: &Path, metadata: &Metadata) -> Result<Stamp, Uncertainty> {
 
 #[cfg(windows)]
 fn stamp_opened(file: &fs::File, metadata: &Metadata) -> Result<Stamp, Uncertainty> {
+    Ok(Stamp {
+        size: metadata.len(),
+        modified: metadata
+            .modified()
+            .map_err(|_| Uncertainty::UnreadableMetadata)?,
+        entity: entity_opened(file)?,
+    })
+}
+
+#[cfg(windows)]
+fn entity_opened(file: &fs::File) -> Result<NativeEntity, Uncertainty> {
     use std::os::windows::io::AsRawHandle;
     use windows_sys::Win32::Storage::FileSystem::{
         FileIdInfo, GetFileInformationByHandleEx, FILE_ID_INFO,
@@ -107,15 +149,9 @@ fn stamp_opened(file: &fs::File, metadata: &Metadata) -> Result<Stamp, Uncertain
     if observed == 0 || info.VolumeSerialNumber == 0 || info.FileId.Identifier == [0; 16] {
         return Err(Uncertainty::UnreadableMetadata);
     }
-    Ok(Stamp {
-        size: metadata.len(),
-        modified: metadata
-            .modified()
-            .map_err(|_| Uncertainty::UnreadableMetadata)?,
-        entity: WindowsEntity {
-            volume: info.VolumeSerialNumber,
-            file_id: info.FileId.Identifier,
-        },
+    Ok(NativeEntity {
+        volume: info.VolumeSerialNumber,
+        file_id: info.FileId.Identifier,
     })
 }
 
@@ -131,10 +167,6 @@ fn is_link(metadata: &Metadata) -> bool {
     }
 }
 
-fn same_entity(left: &Stamp, right: &Stamp) -> bool {
-    left.entity == right.entity
-}
-
 fn is_platform_alias(path: &Path) -> bool {
     cfg!(target_os = "macos") && [Path::new("/tmp"), Path::new("/var")].contains(&path)
 }
@@ -145,8 +177,8 @@ struct Budget<'a> {
     entries: usize,
     max_entries: usize,
     stamps: Vec<(PathBuf, Stamp)>,
-    component_entities: Vec<(PathBuf, Stamp)>,
-    repository_absences: Vec<(PathBuf, Stamp)>,
+    component_entities: Vec<(PathBuf, NativeEntity)>,
+    repository_absences: Vec<(PathBuf, NativeEntity)>,
     metadata_absences: Vec<PathBuf>,
     configurations: Vec<String>,
 }
@@ -184,7 +216,7 @@ impl Budget<'_> {
                 fs::symlink_metadata(path).map_err(|_| Uncertainty::ChangedDuringProbe)?;
             if is_link(&metadata)
                 || !metadata.is_dir()
-                || !same_entity(&stamp(path, &metadata)?, expected)
+                || directory_entity(path, &metadata)? != *expected
             {
                 return Err(Uncertainty::ChangedDuringProbe);
             }
@@ -200,8 +232,8 @@ impl Budget<'_> {
         for (path, expected) in self.repository_absences.clone() {
             let metadata =
                 fs::symlink_metadata(&path).map_err(|_| Uncertainty::ChangedDuringProbe)?;
-            let current = stamp(&path, &metadata)?;
-            if is_link(&metadata) || !metadata.is_dir() || !same_entity(&current, &expected) {
+            let current = directory_entity(&path, &metadata)?;
+            if current != expected {
                 return Err(Uncertainty::ChangedDuringProbe);
             }
             for entry in fs::read_dir(&path).map_err(|_| Uncertainty::ChangedDuringProbe)? {
@@ -292,7 +324,7 @@ fn probe_with(
             }
             budget
                 .component_entities
-                .push((path.to_path_buf(), stamp(path, &metadata)?));
+                .push((path.to_path_buf(), directory_entity(path, &metadata)?));
         }
         // The caller's trusted root may have a platform alias above it
         // (/var and /tmp on macOS). No link below that root is accepted.
@@ -306,9 +338,10 @@ fn probe_with(
         }
         let metadata =
             fs::symlink_metadata(project_root).map_err(|_| Uncertainty::UnreadableMetadata)?;
-        budget
-            .component_entities
-            .push((project_root.to_path_buf(), stamp(project_root, &metadata)?));
+        budget.component_entities.push((
+            project_root.to_path_buf(),
+            directory_entity(project_root, &metadata)?,
+        ));
         verify_components(artifact, &mut budget)?;
         if let Some(protected) = inspect_names(artifact, &mut budget)? {
             return Ok(protected);
@@ -378,9 +411,10 @@ fn verify_components(path: &Path, budget: &mut Budget<'_>) -> Result<(), Uncerta
         if is_link(&metadata) || !metadata.is_dir() {
             return Err(Uncertainty::OutsideScope);
         }
-        budget
-            .component_entities
-            .push((component.to_path_buf(), stamp(component, &metadata)?));
+        budget.component_entities.push((
+            component.to_path_buf(),
+            directory_entity(component, &metadata)?,
+        ));
         if component == path {
             budget.record(component, &metadata)?;
         }
@@ -630,7 +664,7 @@ fn repository_routes(
             }
             budget
                 .repository_absences
-                .push((root.to_path_buf(), stamp(root, &metadata)?));
+                .push((root.to_path_buf(), directory_entity(root, &metadata)?));
             continue;
         };
         let metadata =
@@ -696,7 +730,7 @@ fn repository_routes(
             }
             budget
                 .component_entities
-                .push((path.clone(), stamp(&path, &metadata)?));
+                .push((path.clone(), directory_entity(&path, &metadata)?));
         }
         // A missing index is uncertainty, including an index removed from an
         // otherwise valid repository. Do not reinterpret it as zero tracked files.
@@ -1192,6 +1226,101 @@ mod tests {
         probe_artifact_ownership(&environment(root), root, artifact, &AtomicBool::new(false))
     }
 
+    fn fixture_budget(cancel: &AtomicBool) -> Budget<'_> {
+        Budget {
+            cancel,
+            started: Instant::now(),
+            entries: 0,
+            max_entries: MAX_ENTRIES,
+            stamps: Vec::new(),
+            component_entities: Vec::new(),
+            repository_absences: Vec::new(),
+            metadata_absences: Vec::new(),
+            configurations: Vec::new(),
+        }
+    }
+
+    fn set_fixture_modified(path: &Path, modified: SystemTime) {
+        let mut options = OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_NOFOLLOW);
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            use windows_sys::Win32::Storage::FileSystem::{
+                FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_DELETE,
+                FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_WRITE_ATTRIBUTES,
+            };
+            options
+                .access_mode(FILE_WRITE_ATTRIBUTES)
+                .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
+                .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT);
+        }
+        options
+            .open(path)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(modified))
+            .unwrap();
+    }
+
+    #[test]
+    fn directory_bindings_ignore_sibling_timestamps_but_keep_the_native_entity() {
+        let temp = tempfile::tempdir().unwrap();
+        let ancestor = fs::canonicalize(temp.path()).unwrap().join("ancestor");
+        let route = ancestor.join("bound-route");
+        fs::create_dir_all(&route).unwrap();
+        let original = fs::symlink_metadata(&ancestor).unwrap();
+        let expected = directory_entity(&ancestor, &original).unwrap();
+        let cancel = AtomicBool::new(false);
+        let mut budget = fixture_budget(&cancel);
+        verify_components(&route, &mut budget).unwrap();
+        budget
+            .repository_absences
+            .push((ancestor.clone(), expected));
+
+        fs::write(ancestor.join("unrelated-sibling"), b"fixture").unwrap();
+        set_fixture_modified(
+            &ancestor,
+            original.modified().unwrap() - Duration::from_secs(60),
+        );
+        let changed = fs::symlink_metadata(&ancestor).unwrap();
+        assert_ne!(changed.modified().unwrap(), original.modified().unwrap());
+        // Deterministically exercise metadata captured before a sibling write.
+        assert_eq!(directory_entity(&ancestor, &original).unwrap(), expected);
+        assert_eq!(budget.unchanged(), Ok(()));
+
+        // Entity-only absence bindings still re-enumerate the Git namespace.
+        fs::create_dir(ancestor.join(".git")).unwrap();
+        assert_eq!(budget.unchanged(), Err(Uncertainty::ChangedDuringProbe));
+    }
+
+    #[test]
+    fn metadata_content_stamps_reject_writes_to_the_same_file() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("index");
+        fs::write(&path, b"before").unwrap();
+        let original = fs::symlink_metadata(&path).unwrap();
+        let expected = stamp(&path, &original).unwrap();
+        let cancel = AtomicBool::new(false);
+        let mut budget = fixture_budget(&cancel);
+        budget.record(&path, &original).unwrap();
+
+        fs::write(&path, b"after!").unwrap();
+        set_fixture_modified(
+            &path,
+            original.modified().unwrap() - Duration::from_secs(60),
+        );
+        let current = stamp(&path, &fs::symlink_metadata(&path).unwrap()).unwrap();
+        assert_eq!(current.entity, expected.entity);
+        assert_eq!(current.size, expected.size);
+        assert_ne!(current.modified, expected.modified);
+        assert_eq!(budget.unchanged(), Err(Uncertainty::ChangedDuringProbe));
+    }
+
     #[test]
     fn generated_untracked_payload_is_verified_and_new_tracked_content_is_protected() {
         let (_temp, root, artifact) = repository();
@@ -1268,9 +1397,15 @@ mod tests {
         let (_temp, root, _) = repository();
         git(&root, &["commit", "-qm", "fixture"]);
         let linked = root.parent().unwrap().join("linked");
+        let linked_operand = crate::path_algebra::normalize_lexical(&linked);
         git(
             &root,
-            &["worktree", "add", "--detach", linked.to_str().unwrap()],
+            &[
+                "worktree",
+                "add",
+                "--detach",
+                linked_operand.to_str().unwrap(),
+            ],
         );
         let artifact = linked.join("target");
         fs::create_dir(&artifact).unwrap();
@@ -2131,6 +2266,11 @@ mod tests {
         fs::create_dir(&path).unwrap();
         let metadata = fs::symlink_metadata(&path).unwrap();
         let before = stamp(&path, &metadata).unwrap();
+        let cancel = AtomicBool::new(false);
+        let mut budget = fixture_budget(&cancel);
+        budget
+            .component_entities
+            .push((path.clone(), directory_entity(&path, &metadata).unwrap()));
         fs::rename(&path, temp.path().join("original-metadata")).unwrap();
         fs::create_dir(&path).unwrap();
         let handle = OpenOptions::new()
@@ -2154,13 +2294,15 @@ mod tests {
             },
             0
         );
+        drop(handle);
         let restored = fs::symlink_metadata(&path).unwrap();
         assert_eq!(restored.creation_time(), metadata.creation_time());
         assert_eq!(restored.last_write_time(), metadata.last_write_time());
         let after = stamp(&path, &restored).unwrap();
         assert_eq!(before.size, after.size);
         assert_eq!(before.modified, after.modified);
-        assert!(!same_entity(&before, &after));
+        assert_ne!(before.entity, after.entity);
+        assert_eq!(budget.unchanged(), Err(Uncertainty::ChangedDuringProbe));
     }
 
     #[cfg(unix)]

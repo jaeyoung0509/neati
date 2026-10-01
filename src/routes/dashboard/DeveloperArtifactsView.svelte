@@ -13,7 +13,7 @@
   } from '../../lib/models/types';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
-  import DeletingDots from '../../lib/components/DeletingDots.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
   import {
     refusalForPreview,
@@ -450,7 +450,7 @@
           </Button>
         {/if}
         <Button variant="primary" size="md" onclick={scanThisComputer} disabled={isScanning} class="gap-1.5">
-          {#if isScanning}<DeletingDots size="sm" />{:else}<HardDrive size={14} />{/if}
+          {#if isScanning}<LoadingIndicator size="sm" />{:else}<HardDrive size={14} />{/if}
           {isScanning ? 'Scanning this computer…' : 'Scan this computer'}
         </Button>
         <Button variant="outline" size="md" onclick={addWorkspace} disabled={isScanning} class="gap-1.5">
@@ -458,7 +458,7 @@
           Add folder
         </Button>
         <Button variant="outline" size="md" onclick={scanArtifacts} disabled={isScanning || selectedWorkspaceIds.length === 0} class="gap-1.5">
-          {#if isScanning}<DeletingDots size="sm" />{:else}<RefreshCw size={14} />{/if}
+          {#if isScanning}<LoadingIndicator size="sm" />{:else}<RefreshCw size={14} />{/if}
           Scan selected
         </Button>
       </div>
@@ -562,7 +562,7 @@
               onclick={rescanAfterUninspected}
               disabled={isScanning || selectedWorkspaceIds.length === 0}
             >
-              {#if isScanning}<DeletingDots size="sm" />{:else}<RefreshCw size={13} />{/if}
+              {#if isScanning}<LoadingIndicator size="sm" />{:else}<RefreshCw size={13} />{/if}
               Scan again
             </Button>
           </div>
@@ -595,7 +595,7 @@
         <div class="flex items-center gap-2">
           <Button variant="ghost" size="sm" onclick={() => { plan = null; partialCleanupConfirmed = false; }}>Cancel</Button>
           <Button variant="destructive" size="md" onclick={executeCleanup} disabled={isExecuting || isExpired || (hasMeasurementIncompleteSelected && !partialCleanupConfirmed)} class="gap-1.5">
-            {#if isExecuting}<DeletingDots size="sm" />{:else}<Trash2 size={14} />{/if}
+            {#if isExecuting}<LoadingIndicator size="sm" />{:else}<Trash2 size={14} />{/if}
             {isExecuting ? 'Moving…' : isExpired ? 'Expired' : `Move generated folders to ${platformContextStore.trashLabel}`}
           </Button>
         </div>
@@ -655,7 +655,7 @@
         <Button variant="ghost" size="sm" onclick={selectAll} disabled={isScanning || isExecuting}><CheckSquare size={13} /> Select rebuildable</Button>
         <Button variant="ghost" size="sm" onclick={deselectAll} disabled={isScanning || isExecuting}><Square size={13} /> Clear</Button>
         <Button variant="primary" size="md" onclick={reviewCleanup} disabled={isScanning || isPreparing || isExecuting || selectedIds.length === 0} class="gap-1.5">
-          {#if isPreparing}<DeletingDots size="sm" />{:else}<Trash2 size={14} />{/if}
+          {#if isPreparing}<LoadingIndicator size="sm" />{:else}<Trash2 size={14} />{/if}
           {isPreparing ? 'Reviewing…' : `Review ${formatBytes(selectedBytes)}`}
         </Button>
       {/if}

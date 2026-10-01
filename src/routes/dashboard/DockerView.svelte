@@ -7,7 +7,7 @@
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import Badge from '../../lib/components/Badge.svelte';
-  import DeletingDots from '../../lib/components/DeletingDots.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
@@ -127,7 +127,7 @@
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
           {#if dockerStore.isPruning}
-            <DeletingDots size="xs" />
+            <LoadingIndicator size="xs" />
             <span>Pruning…</span>
           {:else}
             <Trash2 size={12} />
@@ -161,7 +161,7 @@
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
           {#if dockerStore.isPruning}
-            <DeletingDots size="xs" />
+            <LoadingIndicator size="xs" />
             <span>Pruning…</span>
           {:else}
             <Trash2 size={12} />
@@ -195,7 +195,7 @@
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
           {#if dockerStore.isPruning}
-            <DeletingDots size="xs" />
+            <LoadingIndicator size="xs" />
             <span>Pruning…</span>
           {:else}
             <Trash2 size={12} />
@@ -229,7 +229,7 @@
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
           {#if dockerStore.isPruning}
-            <DeletingDots size="xs" />
+            <LoadingIndicator size="xs" />
             <span>Pruning…</span>
           {:else}
             <Trash2 size={12} />
@@ -263,7 +263,7 @@
           class="w-full text-xs gap-1.5 text-destructive hover:text-destructive min-h-[30px]"
         >
           {#if dockerStore.isPruning}
-            <DeletingDots size="xs" />
+            <LoadingIndicator size="xs" />
             <span>Pruning…</span>
           {:else}
             <Trash2 size={12} />

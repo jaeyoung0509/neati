@@ -1,0 +1,572 @@
+{
+  "version": "0.3.94",
+  "scope": "Mounted production QuickPanel with mocked window/IPC. No native window or live system data.",
+  "checks": [
+    {
+      "name": "quick-scan-phase-bounds",
+      "capturedAt": "2026-10-01T03:04:01.227807+00:00",
+      "data": {
+        "baseline": {
+          "contentHeight": 499,
+          "footerBottom": 620,
+          "gaugeSlots": 2,
+          "height": 621,
+          "meters": 2,
+          "requests": [
+            {
+              "height": 621,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "states": [
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "preparing"
+          },
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "scanning"
+          },
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "stopping"
+          },
+          {
+            "contentHeight": 522,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "failed"
+          },
+          {
+            "contentHeight": 499,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": false,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "ready"
+          },
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "cleaning"
+          },
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "refreshing"
+          }
+        ]
+      },
+      "observations": {
+        "all_same_native_port_bounds": true,
+        "no_scan_state_resize_calls": true,
+        "same_configured_gauge_slots": true,
+        "footer_stays_inside_shell": true
+      },
+      "passed": true
+    },
+    {
+      "name": "quick-provider-stream-bounds",
+      "capturedAt": "2026-10-01T03:04:03.574050+00:00",
+      "data": {
+        "baseline": {
+          "contentHeight": 499,
+          "footerBottom": 620,
+          "gaugeSlots": 2,
+          "height": 621,
+          "meters": 2,
+          "requests": [
+            {
+              "height": 621,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "states": [
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 0,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "loading"
+          },
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 1,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "partial"
+          },
+          {
+            "contentHeight": 505,
+            "footerBottom": 620,
+            "gaugeSlots": 2,
+            "height": 621,
+            "meters": 2,
+            "requests": [
+              {
+                "height": 621,
+                "type": "Logical",
+                "width": 360
+              }
+            ],
+            "scrollable": true,
+            "subscribers": 1,
+            "visible": true,
+            "width": 400,
+            "kind": "ready"
+          }
+        ]
+      },
+      "observations": {
+        "all_same_bounds": true,
+        "no_stream_resize_calls": true,
+        "gauge_slots_reserved": true
+      },
+      "passed": true
+    },
+    {
+      "name": "quick-visible-brand-loading",
+      "capturedAt": "2026-10-01T03:04:04.540179+00:00",
+      "data": {
+        "loaders": [
+          {
+            "animations": 2,
+            "ariaHidden": "true",
+            "height": 20,
+            "moving": "true",
+            "width": 20
+          },
+          {
+            "animations": 2,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "true",
+            "width": 16
+          },
+          {
+            "animations": 2,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "true",
+            "width": 16
+          }
+        ],
+        "values": [
+          {
+            "animations": 0,
+            "text": "33%"
+          },
+          {
+            "animations": 0,
+            "text": "11.8 GB"
+          },
+          {
+            "animations": 0,
+            "text": "76%"
+          },
+          {
+            "animations": 0,
+            "text": "69% used"
+          }
+        ],
+        "version": "v0.3.94"
+      },
+      "observations": {
+        "brand_loaders_present": true,
+        "fixed_glyph_sizes": true,
+        "visible_loaders_move": true,
+        "decorative_accessibility": true
+      },
+      "passed": true
+    },
+    {
+      "name": "quick-inactive-window-motion",
+      "capturedAt": "2026-10-01T03:04:05.609636+00:00",
+      "data": {
+        "measurement": {
+          "contentHeight": 505,
+          "footerBottom": 620,
+          "gaugeSlots": 2,
+          "height": 621,
+          "meters": 0,
+          "requests": [
+            {
+              "height": 621,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": true,
+          "subscribers": 0,
+          "visible": false,
+          "width": 400
+        },
+        "loaders": [
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 20,
+            "moving": "false",
+            "width": 20
+          },
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "false",
+            "width": 16
+          },
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "false",
+            "width": 16
+          }
+        ],
+        "values": [
+          {
+            "animations": 0,
+            "text": "33%"
+          },
+          {
+            "animations": 0,
+            "text": "11.8 GB"
+          },
+          {
+            "animations": 0,
+            "text": "76%"
+          },
+          {
+            "animations": 0,
+            "text": "69% used"
+          }
+        ],
+        "version": "v0.3.94"
+      },
+      "observations": {
+        "fake_window_hidden": true,
+        "usage_subscriber_released": true,
+        "all_loaders_static": true,
+        "all_values_static": true
+      },
+      "passed": true
+    },
+    {
+      "name": "quick-hidden-metric-update",
+      "capturedAt": "2026-10-01T03:04:06.303664+00:00",
+      "data": {
+        "loaders": [
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 20,
+            "moving": "false",
+            "width": 20
+          },
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "false",
+            "width": 16
+          },
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "false",
+            "width": 16
+          }
+        ],
+        "values": [
+          {
+            "animations": 0,
+            "text": "86%"
+          },
+          {
+            "animations": 0,
+            "text": "13.6 GB"
+          },
+          {
+            "animations": 0,
+            "text": "76%"
+          },
+          {
+            "animations": 0,
+            "text": "69% used"
+          }
+        ],
+        "version": "v0.3.94"
+      },
+      "observations": {
+        "latest_cpu_immediate": true,
+        "latest_memory_immediate": true,
+        "no_hidden_metric_animation": true
+      },
+      "passed": true
+    },
+    {
+      "name": "quick-activation-no-value-replay",
+      "capturedAt": "2026-10-01T03:04:07.360935+00:00",
+      "data": {
+        "measurement": {
+          "contentHeight": 505,
+          "footerBottom": 620,
+          "gaugeSlots": 2,
+          "height": 621,
+          "meters": 0,
+          "requests": [
+            {
+              "height": 621,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": true,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "loaders": [
+          {
+            "animations": 2,
+            "ariaHidden": "true",
+            "height": 20,
+            "moving": "true",
+            "width": 20
+          },
+          {
+            "animations": 2,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "true",
+            "width": 16
+          },
+          {
+            "animations": 2,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "true",
+            "width": 16
+          }
+        ],
+        "values": [
+          {
+            "animations": 0,
+            "text": "86%"
+          },
+          {
+            "animations": 0,
+            "text": "13.6 GB"
+          },
+          {
+            "animations": 0,
+            "text": "76%"
+          },
+          {
+            "animations": 0,
+            "text": "69% used"
+          }
+        ],
+        "version": "v0.3.94"
+      },
+      "observations": {
+        "usage_subscriber_restored_once": true,
+        "latest_values_retained": true,
+        "no_metric_animation_replay": true,
+        "same_shell_bounds": true,
+        "no_activation_resize_needed": true
+      },
+      "passed": true
+    },
+    {
+      "name": "quick-reduced-motion",
+      "capturedAt": "2026-10-01T03:04:08.105232+00:00",
+      "data": {
+        "loaders": [
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 20,
+            "moving": "false",
+            "width": 20
+          },
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "false",
+            "width": 16
+          },
+          {
+            "animations": 0,
+            "ariaHidden": "true",
+            "height": 16,
+            "moving": "false",
+            "width": 16
+          }
+        ],
+        "values": [
+          {
+            "animations": 0,
+            "text": "86%"
+          },
+          {
+            "animations": 0,
+            "text": "13.6 GB"
+          },
+          {
+            "animations": 0,
+            "text": "76%"
+          },
+          {
+            "animations": 0,
+            "text": "69% used"
+          }
+        ],
+        "version": "v0.3.94"
+      },
+      "observations": {
+        "actual_browser_preference": true,
+        "all_loaders_static": true,
+        "all_values_static": true
+      },
+      "passed": true
+    }
+  ],
+  "browserErrors": []
+}

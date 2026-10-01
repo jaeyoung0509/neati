@@ -33,7 +33,8 @@ memoryStore.disk = await mockApi.getDiskMetrics();
 systemMetricsStore.cpu = await mockApi.getCpuMetrics();
 systemMetricsStore.battery = await mockApi.getBatteryMetrics();
 awakeStore.state = await mockApi.getAwakeState();
-usageStore.snapshot = await mockApi.getAiUsage();
+const cachedUsage = await mockApi.getAiUsage();
+usageStore.snapshot = structuredClone(cachedUsage);
 agentActivityStore.snapshot = await mockApi.getProjectContext();
 memoryStore.startPolling = systemMetricsStore.startPolling = () => {};
 memoryStore.stopPolling = systemMetricsStore.stopPolling = () => {};
@@ -79,13 +80,14 @@ async function scan(kind: string) {
     scanStore.lastScan = null;
     scanStore.selectedMap = {};
   }
-  if (kind === 'scanning' || kind === 'refreshing' || kind === 'preparing') {
+  if (kind === 'scanning' || kind === 'refreshing' || kind === 'preparing' || kind === 'stopping') {
     scanStore.isScanning = true;
     scanStore.scanId = kind === 'preparing' ? null : 'synthetic-validation-scan';
     scanStore.scanStartedAt = kind === 'preparing' ? Date.now() : Date.now() - 71_000;
     scanStore.isRefreshingAfterClean = kind === 'refreshing';
     scanStore.currentRoot = kind === 'preparing' ? null : { name: 'npm Cache', path: '/fixture/Library/Caches/npm' };
     scanStore.foundItemCount = kind === 'preparing' ? 0 : 53;
+    scanStore.isCancelling = kind === 'stopping';
   }
   if (kind === 'cleaning') {
     scanStore.isCleaning = true;
@@ -102,6 +104,15 @@ mount(Dashboard, { target: document.getElementById('app')! });
 const driver = {
   ready: false,
   scan,
+  async providerLoading(loading = true) {
+    const snapshot = structuredClone(cachedUsage);
+    snapshot.fetched_at = Math.floor(Date.now() / 1000);
+    usageStore.snapshot = snapshot;
+    usageStore.error = null;
+    usageStore.isLoading = loading;
+    usageStore.loadingProviders = loading ? [...settingsStore.settings.ai_accounts_quota_providers] : [];
+    await tick();
+  },
   async theme(dark: boolean) { settingsStore.settings.theme = dark ? 'dark' : 'light'; document.documentElement.classList.toggle('dark', dark); await tick(); },
   async values(cpu = 72, memory = 12.3) {
     if (systemMetricsStore.cpu) systemMetricsStore.cpu.usage_percent = cpu;

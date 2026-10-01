@@ -1,0 +1,2052 @@
+{
+  "version": "0.3.94",
+  "scope": "Mounted production UI, synthetic mock data; no live IPC/native app/cleanup. Actual browser reduced-motion and IntersectionObserver scrolling are observed.",
+  "complete": true,
+  "passed": 11,
+  "count": 11,
+  "browserErrors": [],
+  "rows": [
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-stroke-float",
+              "playState": "running"
+            },
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-ripple-out",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "true",
+          "rect": {
+            "bottom": 186,
+            "height": 28,
+            "top": 158,
+            "width": 28,
+            "x": 273,
+            "y": 158
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 660,
+        "rect": {
+          "bottom": 660,
+          "height": 660,
+          "top": 0,
+          "width": 736,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 660,
+        "scrollTop": 0
+      },
+      "metricTiles": [],
+      "reducedMotion": false,
+      "ripplePlacement": {
+        "bottom": "-82px",
+        "display": "block",
+        "rect": {
+          "bottom": 411,
+          "height": 159.53125,
+          "top": 251.46875,
+          "width": 390,
+          "x": 587,
+          "y": 251.46875
+        },
+        "right": "-48px",
+        "width": "390px"
+      },
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [
+            {
+              "duration": 7000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            },
+            {
+              "duration": 9000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "true",
+          "paths": 5,
+          "rect": {
+            "bottom": 411,
+            "height": 159.53125,
+            "top": 251.46875,
+            "width": 390,
+            "x": 587,
+            "y": 251.46875
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage"
+      ],
+      "synthetic": true,
+      "title": "Cleanup",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 277,
+            "height": 20,
+            "top": 257,
+            "width": 15.65625,
+            "x": 721.03125,
+            "y": 257
+          },
+          "text": "53"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "storage-working-brand-motion",
+      "capturedAt": "2026-10-01T03:09:06.671832+00:00",
+      "observations": {
+        "named_work_status": true,
+        "fixed_28px_loader": true,
+        "loader_two_2400ms_loops": true,
+        "working_wave_7s_9s": true,
+        "wave_is_five_curves_no_particles": true,
+        "decorative_semantics": true,
+        "final_lower_right_placement": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "false",
+          "rect": {
+            "bottom": 186,
+            "height": 28,
+            "top": 158,
+            "width": 28,
+            "x": 273,
+            "y": 158
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 660,
+        "rect": {
+          "bottom": 660,
+          "height": 660,
+          "top": 0,
+          "width": 736,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 660,
+        "scrollTop": 0
+      },
+      "metricTiles": [],
+      "reducedMotion": false,
+      "ripplePlacement": {
+        "bottom": "-82px",
+        "display": "block",
+        "rect": {
+          "bottom": 411,
+          "height": 159.53125,
+          "top": 251.46875,
+          "width": 390,
+          "x": 587,
+          "y": 251.46875
+        },
+        "right": "-48px",
+        "width": "390px"
+      },
+      "scenes": [
+        {
+          "activity": "stopping",
+          "animations": [],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "false",
+          "paths": 5,
+          "rect": {
+            "bottom": 411,
+            "height": 159.53125,
+            "top": 251.46875,
+            "width": 390,
+            "x": 587,
+            "y": 251.46875
+          }
+        }
+      ],
+      "statuses": [
+        "Stopping scan"
+      ],
+      "synthetic": true,
+      "title": "Cleanup",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 277,
+            "height": 20,
+            "top": 257,
+            "width": 15.65625,
+            "x": 721.03125,
+            "y": 257
+          },
+          "text": "54"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "storage-stopping-freezes-motion",
+      "capturedAt": "2026-10-01T03:09:07.346079+00:00",
+      "observations": {
+        "stopping_status": true,
+        "loader_static": true,
+        "wave_static": true,
+        "newest_count_without_feedback": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [],
+      "main": {
+        "clientHeight": 660,
+        "rect": {
+          "bottom": 660,
+          "height": 660,
+          "top": 0,
+          "width": 736,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 885,
+        "scrollTop": 0
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": 500.671875,
+            "height": 162,
+            "top": 338.671875,
+            "width": 219.328125,
+            "x": 248,
+            "y": 338.671875
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": 500.671875,
+            "height": 162,
+            "top": 338.671875,
+            "width": 219.328125,
+            "x": 479.328125,
+            "y": 338.671875
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": 500.671875,
+            "height": 162,
+            "top": 338.671875,
+            "width": 219.328125,
+            "x": 710.65625,
+            "y": 338.671875
+          }
+        }
+      ],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "idle",
+          "animations": [
+            {
+              "duration": 18000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            },
+            {
+              "duration": 22000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "true",
+          "paths": 5,
+          "rect": {
+            "bottom": 295.140625,
+            "height": 118.625,
+            "top": 176.515625,
+            "width": 290,
+            "x": 671,
+            "y": 176.515625
+          }
+        }
+      ],
+      "statuses": [],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 227.671875,
+            "height": 31.671875,
+            "top": 196,
+            "width": 82.484375,
+            "x": 273,
+            "y": 196
+          },
+          "text": "9.7 GB"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 413.671875,
+            "height": 32,
+            "top": 381.671875,
+            "width": 57.09375,
+            "x": 265,
+            "y": 381.671875
+          },
+          "text": "72%"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 413.671875,
+            "height": 32,
+            "top": 381.671875,
+            "width": 98.921875,
+            "x": 496.328125,
+            "y": 381.671875
+          },
+          "text": "11.8 GB"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 413.671875,
+            "height": 32,
+            "top": 381.671875,
+            "width": 57.09375,
+            "x": 727.65625,
+            "y": 381.671875
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "overview-idle-wave-cadence",
+      "capturedAt": "2026-10-01T03:09:08.728485+00:00",
+      "observations": {
+        "idle_wave_18s_22s": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-stroke-float",
+              "playState": "running"
+            },
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-ripple-out",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "true",
+          "rect": {
+            "bottom": 262,
+            "height": 20,
+            "top": 242,
+            "width": 20,
+            "x": 265,
+            "y": 242
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 921,
+        "scrollTop": 0
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 240,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": 365
+          }
+        }
+      ],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [
+            {
+              "duration": 7000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            },
+            {
+              "duration": 9000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "true",
+          "paths": 5,
+          "rect": {
+            "bottom": 311.953125,
+            "height": 85.90625,
+            "top": 226.046875,
+            "width": 210,
+            "x": 599,
+            "y": 226.046875
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage…"
+      ],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 257,
+            "y": 408
+          },
+          "text": "72%"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 98.921875,
+            "x": 440.328125,
+            "y": 408
+          },
+          "text": "11.8 GB"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 623.65625,
+            "y": 408
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "overview-working-wave-cadence",
+      "capturedAt": "2026-10-01T03:09:09.515425+00:00",
+      "observations": {
+        "working_wave_7s_9s": true,
+        "visible_loader_20px": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [],
+          "ariaHidden": "true",
+          "inView": false,
+          "moving": "false",
+          "rect": {
+            "bottom": -779,
+            "height": 20,
+            "top": -799,
+            "width": 20,
+            "x": 265,
+            "y": -799
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 1601,
+        "scrollTop": 1041
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": -496,
+            "height": 180,
+            "top": -676,
+            "width": 171.328125,
+            "x": 240,
+            "y": -676
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": -496,
+            "height": 180,
+            "top": -676,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": -676
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": -496,
+            "height": 180,
+            "top": -676,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": -676
+          }
+        }
+      ],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": false,
+          "moving": "false",
+          "paths": 5,
+          "rect": {
+            "bottom": -729.046875,
+            "height": 85.90625,
+            "top": -814.953125,
+            "width": 210,
+            "x": 599,
+            "y": -814.953125
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage…"
+      ],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": false,
+          "rect": {
+            "bottom": -601,
+            "height": 32,
+            "top": -633,
+            "width": 57.09375,
+            "x": 257,
+            "y": -633
+          },
+          "text": "72%"
+        },
+        {
+          "animations": [],
+          "inView": false,
+          "rect": {
+            "bottom": -601,
+            "height": 32,
+            "top": -633,
+            "width": 98.921875,
+            "x": 440.328125,
+            "y": -633
+          },
+          "text": "11.8 GB"
+        },
+        {
+          "animations": [],
+          "inView": false,
+          "rect": {
+            "bottom": -601,
+            "height": 32,
+            "top": -633,
+            "width": 57.09375,
+            "x": 623.65625,
+            "y": -633
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "offscreen-shared-loops-stop",
+      "capturedAt": "2026-10-01T03:09:11.073094+00:00",
+      "observations": {
+        "actual_scroll_occurred": true,
+        "hero_and_loader_offscreen": true,
+        "offscreen_loader_static": true,
+        "offscreen_wave_static": true,
+        "metrics_offscreen": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [],
+          "ariaHidden": "true",
+          "inView": false,
+          "moving": "false",
+          "rect": {
+            "bottom": -779,
+            "height": 20,
+            "top": -799,
+            "width": 20,
+            "x": 265,
+            "y": -799
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 1601,
+        "scrollTop": 1041
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": -496,
+            "height": 180,
+            "top": -676,
+            "width": 171.328125,
+            "x": 240,
+            "y": -676
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": -496,
+            "height": 180,
+            "top": -676,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": -676
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": -496,
+            "height": 180,
+            "top": -676,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": -676
+          }
+        }
+      ],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": false,
+          "moving": "false",
+          "paths": 5,
+          "rect": {
+            "bottom": -729.046875,
+            "height": 85.90625,
+            "top": -814.953125,
+            "width": 210,
+            "x": 599,
+            "y": -814.953125
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage…"
+      ],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": false,
+          "rect": {
+            "bottom": -601,
+            "height": 32,
+            "top": -633,
+            "width": 57.09375,
+            "x": 257,
+            "y": -633
+          },
+          "text": "86%"
+        },
+        {
+          "animations": [],
+          "inView": false,
+          "rect": {
+            "bottom": -601,
+            "height": 32,
+            "top": -633,
+            "width": 98.921875,
+            "x": 440.328125,
+            "y": -633
+          },
+          "text": "13.2 GB"
+        },
+        {
+          "animations": [],
+          "inView": false,
+          "rect": {
+            "bottom": -601,
+            "height": 32,
+            "top": -633,
+            "width": 57.09375,
+            "x": 623.65625,
+            "y": -633
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "offscreen-latest-metrics-no-animation",
+      "capturedAt": "2026-10-01T03:09:11.588983+00:00",
+      "observations": {
+        "exact_latest_values": true,
+        "values_offscreen": true,
+        "no_value_animations": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-stroke-float",
+              "playState": "running"
+            },
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-ripple-out",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "true",
+          "rect": {
+            "bottom": 262,
+            "height": 20,
+            "top": 242,
+            "width": 20,
+            "x": 265,
+            "y": 242
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 1601,
+        "scrollTop": 0
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 240,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": 365
+          }
+        }
+      ],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [
+            {
+              "duration": 7000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            },
+            {
+              "duration": 9000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "true",
+          "paths": 5,
+          "rect": {
+            "bottom": 311.953125,
+            "height": 85.90625,
+            "top": 226.046875,
+            "width": 210,
+            "x": 599,
+            "y": 226.046875
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage…"
+      ],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 257,
+            "y": 408
+          },
+          "text": "86%"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 98.921875,
+            "x": 440.328125,
+            "y": 408
+          },
+          "text": "13.2 GB"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 623.65625,
+            "y": 408
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "return-to-view-does-not-replay-values",
+      "capturedAt": "2026-10-01T03:09:12.259600+00:00",
+      "observations": {
+        "returned_to_top": true,
+        "latest_values_preserved": true,
+        "no_numeric_replay": true,
+        "loader_resumes": true,
+        "wave_resumes": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-stroke-float",
+              "playState": "running"
+            },
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-ripple-out",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "true",
+          "rect": {
+            "bottom": 262,
+            "height": 20,
+            "top": 242,
+            "width": 20,
+            "x": 265,
+            "y": 242
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 1601,
+        "scrollTop": 0
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 240,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": 365
+          }
+        }
+      ],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [
+            {
+              "duration": 7000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            },
+            {
+              "duration": 9000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "true",
+          "paths": 5,
+          "rect": {
+            "bottom": 311.953125,
+            "height": 85.90625,
+            "top": 226.046875,
+            "width": 210,
+            "x": 599,
+            "y": 226.046875
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage…"
+      ],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 257,
+            "y": 408
+          },
+          "text": "85%"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 98.921875,
+            "x": 440.328125,
+            "y": 408
+          },
+          "text": "12.8 GB"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 623.65625,
+            "y": 408
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "rapid-reading-burst-is-immediate-and-stable",
+      "capturedAt": "2026-10-01T03:09:12.828002+00:00",
+      "observations": {
+        "exact_last_readings": true,
+        "no_queued_numeric_animations": true,
+        "metric_geometry_unchanged": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "false",
+          "rect": {
+            "bottom": 262,
+            "height": 20,
+            "top": 242,
+            "width": 20,
+            "x": 265,
+            "y": 242
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 1601,
+        "scrollTop": 0
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 240,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": 365
+          }
+        }
+      ],
+      "reducedMotion": true,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "false",
+          "paths": 5,
+          "rect": {
+            "bottom": 311.953125,
+            "height": 85.90625,
+            "top": 226.046875,
+            "width": 210,
+            "x": 599,
+            "y": 226.046875
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage…"
+      ],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 257,
+            "y": 408
+          },
+          "text": "74%"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 98.921875,
+            "x": 440.328125,
+            "y": 408
+          },
+          "text": "12.4 GB"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 623.65625,
+            "y": 408
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "browser-reduced-motion-stops-loops-and-values",
+      "capturedAt": "2026-10-01T03:09:13.488850+00:00",
+      "observations": {
+        "actual_media_preference": true,
+        "loader_static_and_present": true,
+        "wave_static": true,
+        "immediate_values_no_motion": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-stroke-float",
+              "playState": "running"
+            },
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-ripple-out",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "true",
+          "rect": {
+            "bottom": 262,
+            "height": 20,
+            "top": 242,
+            "width": 20,
+            "x": 265,
+            "y": 242
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 1601,
+        "scrollTop": 0
+      },
+      "metricTiles": [
+        {
+          "label": "Open Performance CPU detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 240,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Performance memory detail",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": 365
+          }
+        },
+        {
+          "label": "Open Storage disk details",
+          "rect": {
+            "bottom": 545,
+            "height": 180,
+            "top": 365,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": 365
+          }
+        }
+      ],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [
+        {
+          "activity": "working",
+          "animations": [
+            {
+              "duration": 7000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            },
+            {
+              "duration": 9000,
+              "name": "svelte-18qrqha-water-flow",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "circles": 0,
+          "inView": true,
+          "moving": "true",
+          "paths": 5,
+          "rect": {
+            "bottom": 311.953125,
+            "height": 85.90625,
+            "top": 226.046875,
+            "width": 210,
+            "x": 599,
+            "y": 226.046875
+          }
+        }
+      ],
+      "statuses": [
+        "Checking storage…"
+      ],
+      "synthetic": true,
+      "title": "Overview",
+      "values": [
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 257,
+            "y": 408
+          },
+          "text": "91%"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 98.921875,
+            "x": 440.328125,
+            "y": 408
+          },
+          "text": "13.5 GB"
+        },
+        {
+          "animations": [],
+          "inView": true,
+          "rect": {
+            "bottom": 440,
+            "height": 32,
+            "top": 408,
+            "width": 57.09375,
+            "x": 623.65625,
+            "y": 408
+          },
+          "text": "69%"
+        }
+      ],
+      "version": "v0.3.94",
+      "name": "actual-document-hidden-stops-and-does-not-replay",
+      "capturedAt": "2026-10-01T03:09:16.402626+00:00",
+      "observations": {
+        "actual_hidden_event": true,
+        "hidden_loops_stopped": true,
+        "background_update_immediate_static": true,
+        "no_numeric_replay": true,
+        "visible_again": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true,
+      "backgroundProbe": {
+        "events": [
+          {
+            "hidden": true,
+            "loaders": [
+              {
+                "animations": [],
+                "ariaHidden": "true",
+                "inView": true,
+                "moving": "false",
+                "rect": {
+                  "bottom": 262,
+                  "height": 20,
+                  "top": 242,
+                  "width": 20,
+                  "x": 265,
+                  "y": 242
+                }
+              }
+            ],
+            "main": {
+              "clientHeight": 560,
+              "rect": {
+                "bottom": 560,
+                "height": 560,
+                "top": 0,
+                "width": 576,
+                "x": 224,
+                "y": 0
+              },
+              "scrollHeight": 1601,
+              "scrollTop": 0
+            },
+            "metricTiles": [
+              {
+                "label": "Open Performance CPU detail",
+                "rect": {
+                  "bottom": 545,
+                  "height": 180,
+                  "top": 365,
+                  "width": 171.328125,
+                  "x": 240,
+                  "y": 365
+                }
+              },
+              {
+                "label": "Open Performance memory detail",
+                "rect": {
+                  "bottom": 545,
+                  "height": 180,
+                  "top": 365,
+                  "width": 171.328125,
+                  "x": 423.328125,
+                  "y": 365
+                }
+              },
+              {
+                "label": "Open Storage disk details",
+                "rect": {
+                  "bottom": 545,
+                  "height": 180,
+                  "top": 365,
+                  "width": 171.328125,
+                  "x": 606.65625,
+                  "y": 365
+                }
+              }
+            ],
+            "reducedMotion": false,
+            "ripplePlacement": null,
+            "scenes": [
+              {
+                "activity": "working",
+                "animations": [],
+                "ariaHidden": "true",
+                "circles": 0,
+                "inView": true,
+                "moving": "false",
+                "paths": 5,
+                "rect": {
+                  "bottom": 311.953125,
+                  "height": 85.90625,
+                  "top": 226.046875,
+                  "width": 210,
+                  "x": 599,
+                  "y": 226.046875
+                }
+              }
+            ],
+            "statuses": [
+              "Checking storage…"
+            ],
+            "synthetic": true,
+            "title": "Overview",
+            "values": [
+              {
+                "animations": [],
+                "inView": true,
+                "rect": {
+                  "bottom": 440,
+                  "height": 32,
+                  "top": 408,
+                  "width": 57.09375,
+                  "x": 257,
+                  "y": 408
+                },
+                "text": "74%"
+              },
+              {
+                "animations": [],
+                "inView": true,
+                "rect": {
+                  "bottom": 440,
+                  "height": 32,
+                  "top": 408,
+                  "width": 98.921875,
+                  "x": 440.328125,
+                  "y": 408
+                },
+                "text": "12.4 GB"
+              },
+              {
+                "animations": [],
+                "inView": true,
+                "rect": {
+                  "bottom": 440,
+                  "height": 32,
+                  "top": 408,
+                  "width": 57.09375,
+                  "x": 623.65625,
+                  "y": 408
+                },
+                "text": "69%"
+              }
+            ],
+            "version": "v0.3.94"
+          },
+          {
+            "hidden": false,
+            "loaders": [
+              {
+                "animations": [
+                  {
+                    "duration": 2400,
+                    "name": "svelte-sm1v5r-stroke-float",
+                    "playState": "running"
+                  },
+                  {
+                    "duration": 2400,
+                    "name": "svelte-sm1v5r-ripple-out",
+                    "playState": "running"
+                  }
+                ],
+                "ariaHidden": "true",
+                "inView": true,
+                "moving": "true",
+                "rect": {
+                  "bottom": 262,
+                  "height": 20,
+                  "top": 242,
+                  "width": 20,
+                  "x": 265,
+                  "y": 242
+                }
+              }
+            ],
+            "main": {
+              "clientHeight": 560,
+              "rect": {
+                "bottom": 560,
+                "height": 560,
+                "top": 0,
+                "width": 576,
+                "x": 224,
+                "y": 0
+              },
+              "scrollHeight": 1601,
+              "scrollTop": 0
+            },
+            "metricTiles": [
+              {
+                "label": "Open Performance CPU detail",
+                "rect": {
+                  "bottom": 545,
+                  "height": 180,
+                  "top": 365,
+                  "width": 171.328125,
+                  "x": 240,
+                  "y": 365
+                }
+              },
+              {
+                "label": "Open Performance memory detail",
+                "rect": {
+                  "bottom": 545,
+                  "height": 180,
+                  "top": 365,
+                  "width": 171.328125,
+                  "x": 423.328125,
+                  "y": 365
+                }
+              },
+              {
+                "label": "Open Storage disk details",
+                "rect": {
+                  "bottom": 545,
+                  "height": 180,
+                  "top": 365,
+                  "width": 171.328125,
+                  "x": 606.65625,
+                  "y": 365
+                }
+              }
+            ],
+            "reducedMotion": false,
+            "ripplePlacement": null,
+            "scenes": [
+              {
+                "activity": "working",
+                "animations": [
+                  {
+                    "duration": 7000,
+                    "name": "svelte-18qrqha-water-flow",
+                    "playState": "running"
+                  },
+                  {
+                    "duration": 9000,
+                    "name": "svelte-18qrqha-water-flow",
+                    "playState": "running"
+                  }
+                ],
+                "ariaHidden": "true",
+                "circles": 0,
+                "inView": true,
+                "moving": "true",
+                "paths": 5,
+                "rect": {
+                  "bottom": 311.953125,
+                  "height": 85.90625,
+                  "top": 226.046875,
+                  "width": 210,
+                  "x": 599,
+                  "y": 226.046875
+                }
+              }
+            ],
+            "statuses": [
+              "Checking storage…"
+            ],
+            "synthetic": true,
+            "title": "Overview",
+            "values": [
+              {
+                "animations": [],
+                "inView": true,
+                "rect": {
+                  "bottom": 440,
+                  "height": 32,
+                  "top": 408,
+                  "width": 57.09375,
+                  "x": 257,
+                  "y": 408
+                },
+                "text": "91%"
+              },
+              {
+                "animations": [],
+                "inView": true,
+                "rect": {
+                  "bottom": 440,
+                  "height": 32,
+                  "top": 408,
+                  "width": 98.921875,
+                  "x": 440.328125,
+                  "y": 408
+                },
+                "text": "13.5 GB"
+              },
+              {
+                "animations": [],
+                "inView": true,
+                "rect": {
+                  "bottom": 440,
+                  "height": 32,
+                  "top": 408,
+                  "width": 57.09375,
+                  "x": 623.65625,
+                  "y": 408
+                },
+                "text": "69%"
+              }
+            ],
+            "version": "v0.3.94"
+          }
+        ],
+        "update": {
+          "hidden": true,
+          "loaders": [
+            {
+              "animations": [],
+              "ariaHidden": "true",
+              "inView": true,
+              "moving": "false",
+              "rect": {
+                "bottom": 262,
+                "height": 20,
+                "top": 242,
+                "width": 20,
+                "x": 265,
+                "y": 242
+              }
+            }
+          ],
+          "main": {
+            "clientHeight": 560,
+            "rect": {
+              "bottom": 560,
+              "height": 560,
+              "top": 0,
+              "width": 576,
+              "x": 224,
+              "y": 0
+            },
+            "scrollHeight": 1601,
+            "scrollTop": 0
+          },
+          "metricTiles": [
+            {
+              "label": "Open Performance CPU detail",
+              "rect": {
+                "bottom": 545,
+                "height": 180,
+                "top": 365,
+                "width": 171.328125,
+                "x": 240,
+                "y": 365
+              }
+            },
+            {
+              "label": "Open Performance memory detail",
+              "rect": {
+                "bottom": 545,
+                "height": 180,
+                "top": 365,
+                "width": 171.328125,
+                "x": 423.328125,
+                "y": 365
+              }
+            },
+            {
+              "label": "Open Storage disk details",
+              "rect": {
+                "bottom": 545,
+                "height": 180,
+                "top": 365,
+                "width": 171.328125,
+                "x": 606.65625,
+                "y": 365
+              }
+            }
+          ],
+          "reducedMotion": false,
+          "ripplePlacement": null,
+          "scenes": [
+            {
+              "activity": "working",
+              "animations": [],
+              "ariaHidden": "true",
+              "circles": 0,
+              "inView": true,
+              "moving": "false",
+              "paths": 5,
+              "rect": {
+                "bottom": 311.953125,
+                "height": 85.90625,
+                "top": 226.046875,
+                "width": 210,
+                "x": 599,
+                "y": 226.046875
+              }
+            }
+          ],
+          "statuses": [
+            "Checking storage…"
+          ],
+          "synthetic": true,
+          "title": "Overview",
+          "values": [
+            {
+              "animations": [],
+              "inView": true,
+              "rect": {
+                "bottom": 440,
+                "height": 32,
+                "top": 408,
+                "width": 57.09375,
+                "x": 257,
+                "y": 408
+              },
+              "text": "91%"
+            },
+            {
+              "animations": [],
+              "inView": true,
+              "rect": {
+                "bottom": 440,
+                "height": 32,
+                "top": 408,
+                "width": 98.921875,
+                "x": 440.328125,
+                "y": 408
+              },
+              "text": "13.5 GB"
+            },
+            {
+              "animations": [],
+              "inView": true,
+              "rect": {
+                "bottom": 440,
+                "height": 32,
+                "top": 408,
+                "width": 57.09375,
+                "x": 623.65625,
+                "y": 408
+              },
+              "text": "69%"
+            }
+          ],
+          "version": "v0.3.94"
+        }
+      }
+    },
+    {
+      "hidden": false,
+      "loaders": [
+        {
+          "animations": [
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-stroke-float",
+              "playState": "running"
+            },
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-ripple-out",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "true",
+          "rect": {
+            "bottom": 351,
+            "height": 16,
+            "top": 335,
+            "width": 16,
+            "x": 697.40625,
+            "y": 335
+          }
+        },
+        {
+          "animations": [
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-stroke-float",
+              "playState": "running"
+            },
+            {
+              "duration": 2400,
+              "name": "svelte-sm1v5r-ripple-out",
+              "playState": "running"
+            }
+          ],
+          "ariaHidden": "true",
+          "inView": true,
+          "moving": "true",
+          "rect": {
+            "bottom": 564,
+            "height": 16,
+            "top": 548,
+            "width": 16,
+            "x": 697.40625,
+            "y": 548
+          }
+        },
+        {
+          "animations": [],
+          "ariaHidden": "true",
+          "inView": false,
+          "moving": "false",
+          "rect": {
+            "bottom": 777,
+            "height": 16,
+            "top": 761,
+            "width": 16,
+            "x": 697.40625,
+            "y": 761
+          }
+        },
+        {
+          "animations": [],
+          "ariaHidden": "true",
+          "inView": false,
+          "moving": "false",
+          "rect": {
+            "bottom": 990,
+            "height": 16,
+            "top": 974,
+            "width": 16,
+            "x": 697.40625,
+            "y": 974
+          }
+        }
+      ],
+      "main": {
+        "clientHeight": 560,
+        "rect": {
+          "bottom": 560,
+          "height": 560,
+          "top": 0,
+          "width": 576,
+          "x": 224,
+          "y": 0
+        },
+        "scrollHeight": 1210,
+        "scrollTop": 0
+      },
+      "metricTiles": [],
+      "reducedMotion": false,
+      "ripplePlacement": null,
+      "scenes": [],
+      "statuses": [
+        "Loading usage metadata…",
+        "Loading usage metadata…",
+        "Loading usage metadata…",
+        "Loading usage metadata…"
+      ],
+      "synthetic": true,
+      "title": "AI Activity",
+      "values": [],
+      "version": "v0.3.94",
+      "name": "ai-cached-provider-loading-is-branded-and-labelled",
+      "capturedAt": "2026-10-01T03:09:18.053052+00:00",
+      "observations": {
+        "has_visible_branded_loaders": true,
+        "fixed_small_loader_boxes": true,
+        "work_named_in_status": true,
+        "decorative_loader_semantics": true,
+        "final_version": true,
+        "synthetic_data": true
+      },
+      "passed": true
+    }
+  ],
+  "unverified": [
+    {
+      "name": "actual-reduced-transparency-media",
+      "verified": false,
+      "reason": "Documented agent-browser media command exposes light/dark/reduced-motion but not reduced-transparency; source CSS and shared observer unit tests cover the branch. No OS preference or native glass claim."
+    }
+  ],
+  "finalRipplePlacement": "bottom:-82px"
+}

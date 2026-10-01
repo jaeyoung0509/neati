@@ -3,7 +3,7 @@ import { render } from 'svelte/server';
 import Switch from '../lib/components/Switch.svelte';
 import Checkbox from '../lib/components/Checkbox.svelte';
 import CategoryCard from '../lib/components/CategoryCard.svelte';
-import DeletingDots from '../lib/components/DeletingDots.svelte';
+import LoadingIndicator from '../lib/components/LoadingIndicator.svelte';
 import { scanStore } from '../lib/stores/scan.svelte';
 import type { CleanupEligibility, ScanItem } from '../lib/models/types';
 
@@ -85,14 +85,12 @@ describe('Checkbox component SSR / visual contracts', () => {
   });
 });
 
-describe('DeletingDots component SSR / visual contracts', () => {
-  it('uses generated dimensions and staggered animations at button size', () => {
-    const rendered = render(DeletingDots, { props: { size: 'sm' } });
-
-    expect(rendered.body).toContain('w-[5px] h-[5px]');
-    expect(rendered.body).toContain('animate-bounce-dot-1');
-    expect(rendered.body).toContain('animate-bounce-dot-2');
-    expect(rendered.body).toContain('animate-bounce-dot-3');
+describe('LoadingIndicator accessibility contract', () => {
+  it('keeps the brand motif decorative beside the named operation', () => {
+    const rendered = render(LoadingIndicator, { props: { size: 'sm' } });
+    expect(rendered.body).toContain('data-loading-indicator');
+    expect(rendered.body).toContain('aria-hidden="true"');
+    expect(rendered.body).not.toContain('role="status"');
   });
 });
 

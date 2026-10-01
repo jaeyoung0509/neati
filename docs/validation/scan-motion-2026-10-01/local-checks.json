@@ -1,0 +1,256 @@
+{
+  "version": "0.3.94",
+  "date": "2026-10-01",
+  "commands": [
+    {
+      "name": "frontend-check",
+      "command": [
+        "pnpm",
+        "check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 5.654
+    },
+    {
+      "name": "frontend-tests",
+      "command": [
+        "pnpm",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 21.011
+    },
+    {
+      "name": "frontend-build",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.21
+    },
+    {
+      "name": "final-fixture-typecheck",
+      "command": [
+        "pnpm",
+        "check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 4.747
+    },
+    {
+      "name": "cargo-format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.714
+    },
+    {
+      "name": "cargo-check",
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "--locked",
+        "--workspace"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.639
+    },
+    {
+      "name": "cargo-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 6.877
+    },
+    {
+      "name": "cargo-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--no-fail-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 43.879
+    },
+    {
+      "name": "architecture",
+      "command": [
+        "just",
+        "check-architecture"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 8.359
+    },
+    {
+      "name": "bindings",
+      "command": [
+        "just",
+        "generate-bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.998
+    },
+    {
+      "name": "binding-drift",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "src/lib/bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.021
+    },
+    {
+      "name": "version",
+      "command": [
+        "just",
+        "check-version"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.06
+    },
+    {
+      "name": "icons",
+      "command": [
+        "pnpm",
+        "icons:check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 1.854
+    },
+    {
+      "name": "bundle",
+      "command": [
+        "just",
+        "build-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 47.871
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.037
+    }
+  ],
+  "installed_or_launched": false,
+  "frontend_tests_passed": 483,
+  "rust": {
+    "passed": 1302,
+    "failed": 0,
+    "ignored": 6,
+    "measured": 0,
+    "filtered": 0
+  },
+  "bundle": {
+    "path": "target/debug/bundle/macos/neati.app",
+    "CFBundleShortVersionString": "0.3.94",
+    "CFBundleVersion": "0.3.94",
+    "icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+    "icon_matches_source": true,
+    "assets": [
+      {
+        "name": "assets/BrandIcon-Bt3Hixvw.js",
+        "sha256": "3c04904bda54163b1173e792846d355a778d7cc3affa0f7160f92024b6f2520c",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/BrandIcon-DhGGHqZf.css",
+        "sha256": "1d3925e72795e08443b03eb22dd60ad2fa4fc51aaacbd7f64152508950726c64",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-BOsoBL1Y.js",
+        "sha256": "1b60b5784639f3ba01c6182ef52fcbbf3d105e7700b372a43e60b4731aeb123a",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-DrpCTGOC.css",
+        "sha256": "d3b3f70d254f6eef13e74a511b1850d9ae2740d9a80c72d5dff8b1d3eb9f3c98",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/QuickPanel-CXkSrsnq.js",
+        "sha256": "ef990d23ca5d4fedbcddbdb096a57dae9d931a55037a72049a31a3448c5810de",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/core-DNaw6KYU.js",
+        "sha256": "47fa86ad237989d8dca06a2bcbfc062f4627d45c70d4857731d1f5b7b76830d6",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/dpi-Cq0vR3n3.js",
+        "sha256": "ab852e58e16dd5dd5769a02937dcfd293e8fec9197a200cc69f8356f5c1b0de3",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/event-BlJUiB_z.js",
+        "sha256": "331a7d5879292307d786d6a8ea5b2a7dbcadd762a029bcf7b47b2dbc71982ba2",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-Br_flCRj.js",
+        "sha256": "5b4aaf0355647c3da92d70bb5290cf2e03c3248eb8b7acb4be2fa08baae6a9f3",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-DT8eupiP.css",
+        "sha256": "804d9b1fdeefce35208cacaac12433744a0502bdc06eb7d2b94fcd3fd74198ef",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/rolldown-runtime-DK3Fl9T5.js",
+        "sha256": "a526d1bb3288ef04d001028843220a24b0867a4edf8c685b69506d6525af36ff",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/webviewWindow-By8nsw2m.js",
+        "sha256": "8fb90bd281c6f5b2bd7e8b4abe85cd413e2b7681a35ea4f63ab2006e5345ba15",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/window-CGM1TOkC.js",
+        "sha256": "e68d69f7f320b3995afa83e938dd9e07ba7bdd83ce164417224c2017c08ce26c",
+        "name_embedded": true
+      }
+    ],
+    "installed_or_launched": false
+  },
+  "doctor": {
+    "exit_code": 0,
+    "report": "doctor.json"
+  },
+  "completed": true,
+  "base_commit": "70c0c62ac6681b1697c7fb428326cb6d6dd234b7",
+  "installed_app_version": "0.3.93",
+  "scope": "macOS local build and fixture verification; application windows were not launched or installed"
+}

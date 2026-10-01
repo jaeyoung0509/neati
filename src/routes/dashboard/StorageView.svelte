@@ -26,7 +26,7 @@
   import EmptyState from '../../lib/components/EmptyState.svelte';
   import { cleanupView } from '../../lib/utils/cleanupView';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
-  import DeletingDots from '../../lib/components/DeletingDots.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import SelectionToolbar from '../../lib/components/SelectionToolbar.svelte';
   import DeveloperArtifactsView from './DeveloperArtifactsView.svelte';
   import LargeFilesView from './LargeFilesView.svelte';
@@ -330,7 +330,7 @@
         <div class="space-y-2" role="status" aria-live="polite">
           <div class="flex items-center justify-between text-xs">
             <span class="font-medium text-foreground flex items-center gap-2">
-              <DeletingDots size="xs" />
+              <LoadingIndicator size="xs" />
               <span>Cleaning: {scanStore.cleanProgress.currentItem}</span>
             </span>
             <span class="font-mono text-muted-foreground font-semibold">

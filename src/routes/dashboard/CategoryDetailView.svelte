@@ -14,7 +14,7 @@
   import ItemRow from '../../lib/components/ItemRow.svelte';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import CleanupReviewDialog from '../../lib/components/CleanupReviewDialog.svelte';
-  import DeletingDots from '../../lib/components/DeletingDots.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
   import Card from '../../lib/components/Card.svelte';
   import ScanFreshnessNotice from '../../lib/components/ScanFreshnessNotice.svelte';
@@ -166,7 +166,7 @@
         onclick={cleanSelected}
       >
         {#if scanStore.isCleaning || isPreparingReview}
-          <DeletingDots size="xs" />
+          <LoadingIndicator size="xs" />
           <span>{isPreparingReview ? 'Preparing…' : 'Cleaning…'}</span>
         {:else}
           <ListChecks size={13} />
@@ -219,7 +219,7 @@
       <div class="space-y-1.5">
         <div class="flex items-center justify-between text-xs">
           <span class="font-medium text-foreground flex items-center gap-2">
-            <DeletingDots size="xs" />
+            <LoadingIndicator size="xs" />
             <span>Cleaning: {scanStore.cleanProgress.currentItem}</span>
           </span>
           <span class="font-mono text-muted-foreground font-semibold">

@@ -3,7 +3,7 @@
   import { Square } from '@lucide/svelte';
   import { scanStore } from '../stores/scan.svelte';
   import Button from './Button.svelte';
-  import DeletingDots from './DeletingDots.svelte';
+  import LoadingIndicator from './LoadingIndicator.svelte';
   import AnimatedValue from './AnimatedValue.svelte';
   import RippleScene from './RippleScene.svelte';
 
@@ -27,10 +27,10 @@
 </script>
 
 <section class="scan-progress" aria-label="Storage scan progress" aria-busy="true">
-  <div class="scan-ripples"><RippleScene /></div>
+  <div class="scan-ripples"><RippleScene activity={scanStore.isCancelling ? 'stopping' : 'working'} /></div>
   <div class="relative flex flex-wrap items-start justify-between gap-3">
     <div class="flex min-w-0 flex-1 items-start gap-3">
-      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-primary" aria-hidden="true"><DeletingDots size="sm" /></span>
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-primary" aria-hidden="true"><LoadingIndicator size="md" active={!scanStore.isCancelling} /></span>
       <div class="min-w-0">
         <p class="text-sm font-semibold" role="status">
           {scanStore.isCancelling ? 'Stopping scan' : scanStore.isRefreshingAfterClean ? 'Checking storage after cleanup' : 'Checking storage'}
@@ -53,7 +53,7 @@
     </div>
     <div>
       <p class="text-meta text-muted-foreground">Found so far</p>
-      <p class="mt-1 font-mono text-body"><AnimatedValue value={String(scanStore.foundItemCount)} /> {scanStore.foundItemCount === 1 ? 'item' : 'items'}</p>
+      <p class="mt-1 font-mono text-body"><AnimatedValue value={String(scanStore.foundItemCount)} active={!scanStore.isCancelling} /> {scanStore.foundItemCount === 1 ? 'item' : 'items'}</p>
     </div>
     <p class="text-meta font-mono tabular-nums text-muted-foreground self-end">{elapsedLabel}</p>
   </div>
@@ -82,7 +82,7 @@
 
 <style>
   .scan-progress { position: relative; isolation: isolate; overflow: hidden; min-height: 188px; padding: 20px; border: 1px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); }
-  .scan-ripples { position: absolute; width: 330px; right: -48px; top: 4px; opacity: 0.32; z-index: -1; }
+  .scan-ripples { position: absolute; width: 390px; right: -48px; bottom: -82px; opacity: 0.52; z-index: -1; }
   .scan-facts { grid-template-columns: minmax(0, 1fr) auto auto; border-top: 1px solid hsl(var(--border)); padding-top: 16px; }
   @container (max-width: 460px) { .scan-facts { grid-template-columns: minmax(0, 1fr) auto; } .scan-facts > :last-child { grid-column: 1 / -1; } .scan-ripples { display: none; } }
 </style>

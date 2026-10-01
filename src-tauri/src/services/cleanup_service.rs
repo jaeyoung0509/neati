@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::SystemTime;
+use tokio::sync::{Mutex as AsyncMutex, Semaphore};
 use uuid::Uuid;
 
 use super::cancellation::{CancellationRegistry, ScanCancellation};
 use super::plan_store::{PlanStore, PlanStoreError};
 use super::scan_service::ScanService;
-use super::scan_store::{ScanCheckpoint, ScanStore};
+use super::scan_store::{ScanCheckpoint, ScanLease, ScanStore};
 use crate::cleaner::{CleanExecutor, LifecycleProviderRegistry, OwnerProviderRegistry};
 use crate::execution_budget::ExecutionBudgets;
 use crate::models::{
@@ -131,6 +132,58 @@ enum CleanupIntent {
     },
 }
 
+/// A lease belongs to the blocking worker, including when its caller stops
+/// awaiting it. Unwinding or returning an error cannot leave discovery running.
+struct ActiveScanLease {
+    store: Arc<ScanStore>,
+    lease: Option<ScanLease>,
+}
+
+impl ActiveScanLease {
+    fn new(store: Arc<ScanStore>, lease: ScanLease) -> Self {
+        Self {
+            store,
+            lease: Some(lease),
+        }
+    }
+
+    fn finish(mut self, result: Result<PublishedScan, String>) -> Result<PublishedScan, String> {
+        if let Some(lease) = self.lease.take() {
+            if let Err(error) = &result {
+                self.store.stop(lease, error.clone());
+            }
+        }
+        result
+    }
+}
+
+impl Drop for ActiveScanLease {
+    fn drop(&mut self) {
+        if let Some(lease) = self.lease.take() {
+            self.store
+                .stop(lease, "The scan worker stopped before publication.");
+        }
+    }
+}
+
+/// Retire the reported Stop handle even if a progress sink or scanner panics.
+struct ActiveScanCancellation {
+    registry: Arc<CancellationRegistry>,
+    registered: std::sync::Mutex<Option<String>>,
+}
+
+impl Drop for ActiveScanCancellation {
+    fn drop(&mut self) {
+        let registered = self
+            .registered
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(scan_id) = registered.take() {
+            self.registry.remove(&scan_id);
+        }
+    }
+}
+
 /// Application service coordinating scanning, safety planning, and execution.
 ///
 /// Manages operation serialization, execution budgets, plan TTLs, and scan invalidation
@@ -152,6 +205,12 @@ pub struct CleanupService {
     /// The cancellation handles of the scans this service is running, keyed by
     /// the id each scan reports so `cancel_scan` can reach one in flight.
     scan_cancellations: Arc<CancellationRegistry>,
+    /// Only scans share one publication lifecycle; unrelated storage reads
+    /// continue to use the concurrent read gate.
+    scan_lifecycle: Arc<AsyncMutex<()>>,
+    /// Bounds executing and waiting scan sessions independently of expensive
+    /// storage reads, so a waiting scan never reserves shared read capacity.
+    scan_admissions: Arc<Semaphore>,
     pub(super) platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     pub(super) empty_trash: Arc<super::empty_trash::EmptyTrashState>,
     pub(super) quit_dependencies: Option<super::cleanup_quit::CleanupQuitDependencies>,
@@ -159,6 +218,9 @@ pub struct CleanupService {
 
 impl CleanupService {
     const SCAN_CATEGORY_SLICE_LIMIT: usize = 2;
+    /// One lifecycle owner plus at most seventeen waiting requests. Admission
+    /// is immediate or refused; the semaphore itself has no waiting queue.
+    const MAX_ADMITTED_SCAN_SESSIONS: usize = 18;
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         scan_service: Arc<ScanService>,
@@ -189,6 +251,8 @@ impl CleanupService {
             owner_providers,
             trash_backend,
             scan_cancellations: Arc::new(CancellationRegistry::for_scans()),
+            scan_lifecycle: Arc::new(AsyncMutex::new(())),
+            scan_admissions: Arc::new(Semaphore::new(Self::MAX_ADMITTED_SCAN_SESSIONS)),
             platform_capabilities,
         }
     }
@@ -238,42 +302,47 @@ impl CleanupService {
                 .map_err(|e| e.to_string())?;
         }
 
-        self.scan_cancellations.request_all();
-        let lease = self.scan_store.begin();
-        let mut categories = request.categories.clone().unwrap_or_else(|| {
-            vec![
-                crate::models::Category::Ai,
-                crate::models::Category::Developer,
-                crate::models::Category::Container,
-                crate::models::Category::System,
-            ]
-        });
-        let remaining = if categories.len() > slice_limit {
-            categories.split_off(slice_limit)
-        } else {
-            Vec::new()
-        };
-        let mut pass_request = request.clone();
-        pass_request.categories = Some(categories);
-        let result = match self.run_scan_pass(pass_request, progress).await {
-            Ok(result) => result,
-            Err(error) => {
-                self.scan_store.stop(lease, error.clone());
-                return Err(error);
-            }
-        };
-        let checkpoint = (!result.cancelled && !remaining.is_empty()).then(|| ScanCheckpoint {
-            request,
-            remaining_categories: remaining,
-            slices: vec![result.clone()],
-            freshness_anchor: result.finished_at,
-        });
-        if result.cancelled {
-            self.scan_store
-                .publish_stopped(lease, result, "Scan was cancelled before completion.")
-        } else {
-            self.scan_store.publish(lease, result, checkpoint)
-        }
+        let scan_service = self.scan_service.clone();
+        let scan_store = self.scan_store.clone();
+        let cancellations = self.scan_cancellations.clone();
+        self.run_scan_session(move || {
+            cancellations.request_all();
+            let lease = scan_store.begin();
+            let active = ActiveScanLease::new(scan_store.clone(), lease);
+            let mut categories = request.categories.clone().unwrap_or_else(|| {
+                vec![
+                    crate::models::Category::Ai,
+                    crate::models::Category::Developer,
+                    crate::models::Category::Container,
+                    crate::models::Category::System,
+                ]
+            });
+            let remaining = if categories.len() > slice_limit {
+                categories.split_off(slice_limit)
+            } else {
+                Vec::new()
+            };
+            let mut pass_request = request.clone();
+            pass_request.categories = Some(categories);
+            let result = Self::run_scan_pass(
+                &scan_service,
+                cancellations,
+                &pass_request,
+                progress.as_ref(),
+            );
+            let checkpoint = (!result.cancelled && !remaining.is_empty()).then(|| ScanCheckpoint {
+                request,
+                remaining_categories: remaining,
+                slices: vec![result.clone()],
+                freshness_anchor: result.finished_at,
+            });
+            active.finish(if result.cancelled {
+                scan_store.publish_stopped(lease, result, "Scan was cancelled before completion.")
+            } else {
+                scan_store.publish(lease, result, checkpoint)
+            })
+        })
+        .await
     }
 
     /// Continues exactly the backend checkpoint named by the current scan.
@@ -289,84 +358,106 @@ impl CleanupService {
                 crate::models::CapabilityAccess::Inspect,
             )
             .map_err(|error| error.to_string())?;
-        let claimed = self.scan_store.claim(&request, unix_timestamp())?;
-        let mut checkpoint = claimed.checkpoint;
-        let mut categories = std::mem::take(&mut checkpoint.remaining_categories);
-        let remaining = if categories.len() > Self::SCAN_CATEGORY_SLICE_LIMIT {
-            categories.split_off(Self::SCAN_CATEGORY_SLICE_LIMIT)
-        } else {
-            Vec::new()
-        };
-        let mut pass_request = checkpoint.request.clone();
-        pass_request.categories = Some(categories);
-        let result = match self.run_scan_pass(pass_request, progress).await {
-            Ok(result) => result,
-            Err(error) => {
-                self.scan_store.stop(claimed.lease, error.clone());
-                return Err(error);
-            }
-        };
-        checkpoint.slices.push(result.clone());
-        let Some(mut merged) = self.scan_service.merge_slices(&checkpoint.slices) else {
-            let error = "The retained scan contained no observations.".to_string();
-            self.scan_store.stop(claimed.lease, error.clone());
-            return Err(error);
-        };
-        merged.finished_at = checkpoint.freshness_anchor;
-        checkpoint.remaining_categories = remaining;
-        let next = (!result.cancelled && !checkpoint.remaining_categories.is_empty())
-            .then_some(checkpoint);
-        if result.cancelled {
-            self.scan_store.publish_stopped(
-                claimed.lease,
-                merged,
-                "Scan was cancelled before completion.",
-            )
-        } else {
-            self.scan_store.publish(claimed.lease, merged, next)
-        }
+        let scan_service = self.scan_service.clone();
+        let scan_store = self.scan_store.clone();
+        let cancellations = self.scan_cancellations.clone();
+        self.run_scan_session(move || {
+            let claimed = scan_store.claim(&request, unix_timestamp())?;
+            let active = ActiveScanLease::new(scan_store.clone(), claimed.lease);
+            let mut checkpoint = claimed.checkpoint;
+            let mut categories = std::mem::take(&mut checkpoint.remaining_categories);
+            let remaining = if categories.len() > Self::SCAN_CATEGORY_SLICE_LIMIT {
+                categories.split_off(Self::SCAN_CATEGORY_SLICE_LIMIT)
+            } else {
+                Vec::new()
+            };
+            let mut pass_request = checkpoint.request.clone();
+            pass_request.categories = Some(categories);
+            let result = Self::run_scan_pass(
+                &scan_service,
+                cancellations,
+                &pass_request,
+                progress.as_ref(),
+            );
+            checkpoint.slices.push(result.clone());
+            let Some(mut merged) = scan_service.merge_slices(&checkpoint.slices) else {
+                return active.finish(Err(
+                    "The retained scan contained no observations.".to_string()
+                ));
+            };
+            merged.finished_at = checkpoint.freshness_anchor;
+            checkpoint.remaining_categories = remaining;
+            let next = (!result.cancelled && !checkpoint.remaining_categories.is_empty())
+                .then_some(checkpoint);
+            active.finish(if result.cancelled {
+                scan_store.publish_stopped(
+                    claimed.lease,
+                    merged,
+                    "Scan was cancelled before completion.",
+                )
+            } else {
+                scan_store.publish(claimed.lease, merged, next)
+            })
+        })
+        .await
     }
 
-    async fn run_scan_pass(
+    async fn run_scan_session(
         &self,
-        request: ScanRequest,
-        progress: Arc<dyn ScanProgressSink>,
-    ) -> Result<ScanResult, String> {
+        operation: impl FnOnce() -> Result<PublishedScan, String> + Send + 'static,
+    ) -> Result<PublishedScan, String> {
+        // Bound lifecycle waiters without reserving shared storage-read slots.
+        // This workflow mutex owns no domain state; no scan lease, cancellation
+        // handle or storage gate exists while awaiting it or the read budget.
+        let admission = self
+            .scan_admissions
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| {
+                "Scan queue is full; try again after the current scan finishes.".to_string()
+            })?;
+        let lifecycle = self.scan_lifecycle.clone().lock_owned().await;
         let permit = self.budgets.acquire_storage_read().await?;
-        let scan_service = self.scan_service.clone();
         let operation_gate = self.operation_gate.clone();
-        let cancellations = self.scan_cancellations.clone();
         crate::blocking::run_blocking(
-            move || -> Result<_, String> {
+            move || {
+                // Keep all guards in the actual worker: dropping its awaiting
+                // command future must not release a still-running scan session.
+                let _admission = admission;
                 let _permit = permit;
-                Ok(operation_gate.run_read(|| {
-                    let signal = Arc::new(std::sync::atomic::AtomicBool::new(false));
-                    let registered: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
-                    let probe = ScanCancellation::new(signal.clone());
-                    let sink = |event: ScanEvent| {
-                        if let ScanEvent::Started { scan_id } = &event {
-                            *registered
-                                .lock()
-                                .unwrap_or_else(|poisoned| poisoned.into_inner()) =
-                                Some(scan_id.clone());
-                            cancellations.register(scan_id.clone(), signal.clone());
-                        }
-                        progress.emit(event);
-                    };
-                    let result = scan_service.scan(&request, &sink, &probe);
-                    let finished = registered
-                        .lock()
-                        .unwrap_or_else(|poisoned| poisoned.into_inner())
-                        .take();
-                    if let Some(scan_id) = finished.as_deref() {
-                        cancellations.remove(scan_id);
-                    }
-                    result
-                }))
+                let _lifecycle = lifecycle;
+                operation_gate.run_read(operation)
             },
             "Scan worker panicked",
         )
         .await
+    }
+
+    fn run_scan_pass(
+        scan_service: &ScanService,
+        cancellations: Arc<CancellationRegistry>,
+        request: &ScanRequest,
+        progress: &dyn ScanProgressSink,
+    ) -> ScanResult {
+        let registration = ActiveScanCancellation {
+            registry: cancellations,
+            registered: std::sync::Mutex::new(None),
+        };
+        let signal = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let probe = ScanCancellation::new(signal.clone());
+        let sink = |event: ScanEvent| {
+            if let ScanEvent::Started { scan_id } = &event {
+                *registration
+                    .registered
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(scan_id.clone());
+                registration
+                    .registry
+                    .register(scan_id.clone(), signal.clone());
+            }
+            progress.emit(event);
+        };
+        scan_service.scan(request, &sink, &probe)
     }
 
     /// Returns the current cached scan result if available.
@@ -859,6 +950,562 @@ mod tests {
             ..Default::default()
         };
         assert!(select_quick_clean_safe_candidates(&scan, &settings).is_empty());
+    }
+
+    fn isolated_scan_service() -> Arc<CleanupService> {
+        let environment = Arc::new(
+            PlatformEnvironment::simulated(PathFlavor::current()).with_home(
+                if PathFlavor::current().is_windows() {
+                    r"Z:\NeatiFixtureHome"
+                } else {
+                    "/neati-fixture-home"
+                },
+            ),
+        );
+        let registry = Arc::new(SignatureRegistry::new());
+        let lifecycle = Arc::new(crate::cleaner::LifecycleProviderRegistry::new(Vec::new()));
+        let owners = Arc::new(crate::cleaner::OwnerProviderRegistry::new(Vec::new()));
+        let scan_service = Arc::new(ScanService::new_with_cache_providers(
+            registry.clone(),
+            lifecycle.clone(),
+            owners.clone(),
+            Arc::new(RecordingCacheProviders::default()),
+            environment.clone(),
+        ));
+        Arc::new(CleanupService::new(
+            scan_service,
+            Arc::new(PlanStore::new(crate::services::PlanLifecycle::cleanup())),
+            Arc::new(ScanStore::new()),
+            StorageOperationGate::default(),
+            Arc::new(ExecutionBudgets::new()),
+            environment,
+            registry,
+            Arc::new(DockerStatusCache::new()),
+            lifecycle,
+            owners,
+            Arc::new(neati_platform::MockTrashBackend::new()),
+            Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
+        ))
+    }
+
+    fn held_scan_progress() -> (
+        Arc<dyn ScanProgressSink>,
+        tokio::sync::oneshot::Receiver<String>,
+        std::sync::mpsc::Sender<()>,
+    ) {
+        let (started_tx, started_rx) = tokio::sync::oneshot::channel();
+        let started_tx = Mutex::new(Some(started_tx));
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let release_rx = Mutex::new(release_rx);
+        let progress = Arc::new(move |event: ScanEvent| {
+            if let ScanEvent::Started { scan_id } = event {
+                started_tx
+                    .lock()
+                    .unwrap()
+                    .take()
+                    .unwrap()
+                    .send(scan_id)
+                    .unwrap();
+                release_rx.lock().unwrap().recv().unwrap();
+            }
+        });
+        (progress, started_rx, release_tx)
+    }
+
+    #[tokio::test]
+    async fn concurrent_windows_cannot_supersede_a_scan_before_publication() {
+        let service = isolated_scan_service();
+        let (first_progress, first_started, release_first) = held_scan_progress();
+        let first_service = service.clone();
+        let first = tokio::spawn(async move {
+            first_service
+                .start_scan_complete(ScanRequest::default(), first_progress)
+                .await
+        });
+        let first_id = first_started.await.unwrap();
+        let (second_tx, mut second_started) = tokio::sync::oneshot::channel();
+        let second_tx = Mutex::new(Some(second_tx));
+        let second_progress = Arc::new(move |event: ScanEvent| {
+            if let ScanEvent::Started { scan_id } = event {
+                second_tx
+                    .lock()
+                    .unwrap()
+                    .take()
+                    .unwrap()
+                    .send(scan_id)
+                    .unwrap();
+            }
+        });
+        let second_service = service.clone();
+        let second = tokio::spawn(async move {
+            second_service
+                .start_scan_complete(ScanRequest::default(), second_progress)
+                .await
+        });
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), &mut second_started)
+                .await
+                .is_err(),
+            "a second window started another generation before the first could publish"
+        );
+        assert!(service.get_last_scan().is_none());
+        release_first.send(()).unwrap();
+        let first_result = first
+            .await
+            .unwrap()
+            .expect("the original scan must publish");
+        assert_eq!(first_result.result.scan_id, first_id);
+        assert!(!first_result.result.cancelled);
+        let second_id = second_started.await.unwrap();
+        let second_result = second
+            .await
+            .unwrap()
+            .expect("the queued window must publish");
+        assert_eq!(second_result.result.scan_id, second_id);
+        assert!(!second_result.result.cancelled);
+        assert_eq!(service.get_last_scan().unwrap().result.scan_id, second_id);
+        assert!(service.scan_cancellations.signal(&first_id).is_none());
+        assert!(service.scan_cancellations.signal(&second_id).is_none());
+    }
+
+    #[tokio::test]
+    async fn a_new_window_waits_until_a_continuation_has_published() {
+        let service = isolated_scan_service();
+        let initial = service
+            .start_scan(ScanRequest::default(), Arc::new(|_: ScanEvent| {}))
+            .await
+            .unwrap();
+        let ScanDiscovery::Paused { continuation_id } = initial.discovery else {
+            panic!("the bounded scan must retain a continuation")
+        };
+        let (progress, started, release) = held_scan_progress();
+        let resume_service = service.clone();
+        let resume = tokio::spawn(async move {
+            resume_service
+                .resume_scan(
+                    ResumeScanRequest {
+                        scan_id: initial.result.scan_id,
+                        continuation_id,
+                    },
+                    progress,
+                )
+                .await
+        });
+        started.await.unwrap();
+        let (next_tx, mut next_started) = tokio::sync::oneshot::channel();
+        let next_tx = Mutex::new(Some(next_tx));
+        let next_service = service.clone();
+        let next = tokio::spawn(async move {
+            next_service
+                .start_scan_complete(
+                    ScanRequest::default(),
+                    Arc::new(move |event: ScanEvent| {
+                        if let ScanEvent::Started { scan_id } = event {
+                            next_tx
+                                .lock()
+                                .unwrap()
+                                .take()
+                                .unwrap()
+                                .send(scan_id)
+                                .unwrap();
+                        }
+                    }),
+                )
+                .await
+        });
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), &mut next_started)
+                .await
+                .is_err(),
+            "a new start invalidated a running continuation"
+        );
+        assert!(
+            service.scan_store.get().is_none(),
+            "running discovery cannot authorize cleanup"
+        );
+        release.send(()).unwrap();
+        let resumed = resume
+            .await
+            .unwrap()
+            .expect("the continuation must publish");
+        assert_eq!(resumed.discovery, ScanDiscovery::Exhausted);
+        assert_eq!(resumed.result.categories.len(), 4);
+        let next_id = next_started.await.unwrap();
+        let current = next.await.unwrap().expect("the next scan must publish");
+        assert_eq!(current.result.scan_id, next_id);
+        assert_eq!(service.scan_store.get().unwrap().scan_id, next_id);
+    }
+
+    #[tokio::test]
+    async fn cancelling_the_active_scan_does_not_cancel_the_waiting_window() {
+        let service = isolated_scan_service();
+        let (progress, started, release) = held_scan_progress();
+        let active_service = service.clone();
+        let active = tokio::spawn(async move {
+            active_service
+                .start_scan_complete(ScanRequest::default(), progress)
+                .await
+        });
+        let active_id = started.await.unwrap();
+        let waiting_service = service.clone();
+        let waiting = tokio::spawn(async move {
+            waiting_service
+                .start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {}))
+                .await
+        });
+        service.cancel_scan(&active_id).unwrap();
+        release.send(()).unwrap();
+        let cancelled = active
+            .await
+            .unwrap()
+            .expect("a cancelled scan must publish its stopped result");
+        assert!(cancelled.result.cancelled);
+        assert!(matches!(cancelled.discovery, ScanDiscovery::Stopped { .. }));
+        let current = waiting
+            .await
+            .unwrap()
+            .expect("the waiting scan must finish");
+        assert!(!current.result.cancelled);
+        assert_eq!(current.discovery, ScanDiscovery::Exhausted);
+        assert!(service.scan_cancellations.signal(&active_id).is_none());
+        assert!(service
+            .scan_cancellations
+            .signal(&current.result.scan_id)
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn a_panicking_scan_retires_its_handle_and_releases_the_session() {
+        let service = isolated_scan_service();
+        let started_id = Arc::new(Mutex::new(None));
+        let captured = started_id.clone();
+        let failed = service
+            .start_scan_complete(
+                ScanRequest::default(),
+                Arc::new(move |event: ScanEvent| {
+                    if let ScanEvent::Started { scan_id } = event {
+                        *captured.lock().unwrap() = Some(scan_id);
+                        panic!("controlled scan progress failure");
+                    }
+                }),
+            )
+            .await;
+        assert!(failed.is_err());
+        let failed_id = started_id.lock().unwrap().clone().unwrap();
+        assert!(
+            service.scan_cancellations.signal(&failed_id).is_none(),
+            "a failed worker left a cancellation handle"
+        );
+        assert!(service.scan_store.get().is_none());
+        let recovered = service
+            .start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {}))
+            .await
+            .unwrap();
+        assert_eq!(recovered.discovery, ScanDiscovery::Exhausted);
+        assert_eq!(
+            service.scan_store.get().unwrap().scan_id,
+            recovered.result.scan_id
+        );
+    }
+
+    #[tokio::test]
+    async fn an_abandoned_caller_keeps_the_worker_serialized_and_cancellable() {
+        let service = isolated_scan_service();
+        let (progress, started, release) = held_scan_progress();
+        let active_service = service.clone();
+        let active = tokio::spawn(async move {
+            active_service
+                .start_scan_complete(ScanRequest::default(), progress)
+                .await
+        });
+        let active_id = started.await.unwrap();
+        active.abort();
+        assert!(active.await.unwrap_err().is_cancelled());
+
+        let (next_tx, mut next_started) = tokio::sync::oneshot::channel();
+        let next_tx = Mutex::new(Some(next_tx));
+        let waiting_service = service.clone();
+        let waiting = tokio::spawn(async move {
+            waiting_service
+                .start_scan_complete(
+                    ScanRequest::default(),
+                    Arc::new(move |event: ScanEvent| {
+                        if let ScanEvent::Started { scan_id } = event {
+                            next_tx
+                                .lock()
+                                .unwrap()
+                                .take()
+                                .unwrap()
+                                .send(scan_id)
+                                .unwrap();
+                        }
+                    }),
+                )
+                .await
+        });
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), &mut next_started)
+                .await
+                .is_err(),
+            "dropping the caller released a still-running worker's lifecycle"
+        );
+        assert!(service.scan_cancellations.signal(&active_id).is_some());
+        service.cancel_scan(&active_id).unwrap();
+        release.send(()).unwrap();
+
+        let next_id = next_started.await.unwrap();
+        let current = waiting.await.unwrap().unwrap();
+        assert_eq!(current.result.scan_id, next_id);
+        assert!(!current.result.cancelled);
+        assert_eq!(current.discovery, ScanDiscovery::Exhausted);
+        assert_eq!(service.scan_store.get().unwrap().scan_id, next_id);
+        assert!(service.scan_cancellations.signal(&active_id).is_none());
+        assert!(service.scan_cancellations.signal(&next_id).is_none());
+    }
+
+    #[tokio::test]
+    async fn an_active_scan_keeps_unrelated_storage_reads_concurrent() {
+        let service = isolated_scan_service();
+        let (progress, started, release) = held_scan_progress();
+        let active_service = service.clone();
+        let active = tokio::spawn(async move {
+            active_service
+                .start_scan_complete(ScanRequest::default(), progress)
+                .await
+        });
+        started.await.unwrap();
+
+        let read_service = service.clone();
+        let read = tokio::spawn(async move {
+            let permit = read_service.budgets.acquire_storage_read().await?;
+            let operation_gate = read_service.operation_gate.clone();
+            crate::blocking::run_blocking(
+                move || {
+                    let _permit = permit;
+                    Ok::<_, String>(operation_gate.run_read(|| 42))
+                },
+                "Fixture read worker panicked",
+            )
+            .await
+        });
+        let observed = tokio::time::timeout(std::time::Duration::from_secs(1), read)
+            .await
+            .expect("a scan must not exclude unrelated storage readers")
+            .unwrap()
+            .unwrap();
+        assert_eq!(observed, 42);
+        assert!(service.get_last_scan().is_none());
+        release.send(()).unwrap();
+        assert_eq!(
+            active.await.unwrap().unwrap().discovery,
+            ScanDiscovery::Exhausted
+        );
+    }
+
+    #[tokio::test]
+    async fn a_queued_scan_does_not_reserve_the_remaining_storage_read_permit() {
+        let service = isolated_scan_service();
+        let (progress, started, release) = held_scan_progress();
+        let active_service = service.clone();
+        let active = tokio::spawn(async move {
+            active_service
+                .start_scan_complete(ScanRequest::default(), progress)
+                .await
+        });
+        let active_id = started.await.unwrap();
+
+        let mut waiting = Box::pin(
+            service.start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {})),
+        );
+        // Poll once so this request is actually waiting behind the active
+        // scan, rather than relying on a spawned task's scheduling order.
+        std::future::poll_fn(|context| {
+            assert!(std::future::Future::poll(waiting.as_mut(), context).is_pending());
+            std::task::Poll::Ready(())
+        })
+        .await;
+
+        let read_service = service.clone();
+        let mut read = tokio::spawn(async move {
+            let permit = read_service.budgets.acquire_storage_read().await?;
+            let operation_gate = read_service.operation_gate.clone();
+            crate::blocking::run_blocking(
+                move || {
+                    let _permit = permit;
+                    Ok::<_, String>(operation_gate.run_read(|| 42))
+                },
+                "Fixture read worker panicked",
+            )
+            .await
+        });
+        let before_release =
+            tokio::time::timeout(std::time::Duration::from_secs(1), &mut read).await;
+        assert!(service.scan_cancellations.signal(&active_id).is_some());
+        release.send(()).unwrap();
+        assert_eq!(
+            active.await.unwrap().unwrap().discovery,
+            ScanDiscovery::Exhausted
+        );
+        assert_eq!(waiting.await.unwrap().discovery, ScanDiscovery::Exhausted);
+        match before_release {
+            Ok(observed) => assert_eq!(observed.unwrap().unwrap(), 42),
+            Err(_) => {
+                // Finish every fixture worker before reporting the regression.
+                assert_eq!(read.await.unwrap().unwrap(), 42);
+                panic!("a queued scan consumed the shared read permit before it could execute");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn scan_admission_is_bounded_and_dropping_a_waiter_returns_its_slot() {
+        let service = isolated_scan_service();
+        let (progress, started, release) = held_scan_progress();
+        let active_service = service.clone();
+        let active = tokio::spawn(async move {
+            active_service
+                .start_scan_complete(ScanRequest::default(), progress)
+                .await
+        });
+        let active_id = started.await.unwrap();
+        let mut waiting = (1..CleanupService::MAX_ADMITTED_SCAN_SESSIONS)
+            .map(|_| {
+                Box::pin(
+                    service
+                        .start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {})),
+                )
+            })
+            .collect::<Vec<_>>();
+        for request in &mut waiting {
+            std::future::poll_fn(|context| {
+                assert!(std::future::Future::poll(request.as_mut(), context).is_pending());
+                std::task::Poll::Ready(())
+            })
+            .await;
+        }
+        let overflow = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            service.start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {})),
+        )
+        .await
+        .expect("scan admission overflow must fail without joining a wait queue");
+        assert_eq!(
+            overflow.unwrap_err(),
+            "Scan queue is full; try again after the current scan finishes."
+        );
+        assert!(!service
+            .scan_cancellations
+            .signal(&active_id)
+            .unwrap()
+            .load(std::sync::atomic::Ordering::SeqCst));
+
+        drop(waiting.pop().unwrap());
+        let mut replacement = Box::pin(
+            service.start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {})),
+        );
+        std::future::poll_fn(|context| {
+            assert!(std::future::Future::poll(replacement.as_mut(), context).is_pending());
+            std::task::Poll::Ready(())
+        })
+        .await;
+        drop(waiting);
+        release.send(()).unwrap();
+        let original = active.await.unwrap().unwrap();
+        assert_eq!(original.result.scan_id, active_id);
+        assert!(!original.result.cancelled);
+        let current = replacement.await.unwrap();
+        assert_eq!(current.discovery, ScanDiscovery::Exhausted);
+        assert!(service.scan_cancellations.signal(&active_id).is_none());
+    }
+
+    #[tokio::test]
+    async fn abandoning_a_scan_waiting_for_the_read_budget_preserves_current_authority() {
+        let service = isolated_scan_service();
+        let initial = service
+            .start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {}))
+            .await
+            .unwrap();
+        let mut held_reads = Vec::new();
+        for _ in 0..ExecutionBudgets::storage_read_permits() {
+            held_reads.push(service.budgets.acquire_storage_read().await.unwrap());
+        }
+        let mut waiting = Box::pin(service.start_scan_complete(
+            ScanRequest::default(),
+            Arc::new(|_: ScanEvent| panic!("a scan without a read permit must not begin")),
+        ));
+        std::future::poll_fn(|context| {
+            assert!(std::future::Future::poll(waiting.as_mut(), context).is_pending());
+            std::task::Poll::Ready(())
+        })
+        .await;
+        assert_eq!(service.get_last_scan().unwrap(), initial);
+        assert_eq!(
+            service.scan_store.get().unwrap().scan_id,
+            initial.result.scan_id
+        );
+        drop(waiting);
+        drop(held_reads);
+
+        let current = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            service.start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {})),
+        )
+        .await
+        .expect("abandoning a pre-dispatch scan must release its lifecycle")
+        .unwrap();
+        assert_eq!(current.discovery, ScanDiscovery::Exhausted);
+        assert_ne!(current.result.scan_id, initial.result.scan_id);
+    }
+
+    #[tokio::test]
+    async fn a_panicking_continuation_retires_its_lease_and_handle() {
+        let service = isolated_scan_service();
+        let initial = service
+            .start_scan(ScanRequest::default(), Arc::new(|_: ScanEvent| {}))
+            .await
+            .unwrap();
+        let ScanDiscovery::Paused { continuation_id } = initial.discovery else {
+            panic!("the bounded scan must retain a continuation")
+        };
+        let request = ResumeScanRequest {
+            scan_id: initial.result.scan_id.clone(),
+            continuation_id,
+        };
+        let started_id = Arc::new(Mutex::new(None));
+        let captured = started_id.clone();
+        let failed = service
+            .resume_scan(
+                request.clone(),
+                Arc::new(move |event: ScanEvent| {
+                    if let ScanEvent::Started { scan_id } = event {
+                        *captured.lock().unwrap() = Some(scan_id);
+                        panic!("controlled continuation progress failure");
+                    }
+                }),
+            )
+            .await;
+        assert!(failed.is_err());
+        let failed_id = started_id.lock().unwrap().clone().unwrap();
+        assert!(service.scan_cancellations.signal(&failed_id).is_none());
+        let stopped = service.get_last_scan().unwrap();
+        assert_eq!(stopped.result.scan_id, initial.result.scan_id);
+        assert_eq!(
+            stopped.discovery,
+            ScanDiscovery::Stopped {
+                reason: "The scan worker stopped before publication.".into(),
+            },
+            "the failed continuation must retire its running lease"
+        );
+        assert!(service.scan_store.get().is_none());
+        assert!(service
+            .resume_scan(request, Arc::new(|_: ScanEvent| {}))
+            .await
+            .is_err());
+        let recovered = service
+            .start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {}))
+            .await
+            .unwrap();
+        assert_eq!(recovered.discovery, ScanDiscovery::Exhausted);
     }
 
     #[tokio::test]

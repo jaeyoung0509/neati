@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import AiUsageCards from '../AiUsageCards.svelte';
   import Card from '../Card.svelte';
-  import DeletingDots from '../DeletingDots.svelte';
+  import LoadingIndicator from '../LoadingIndicator.svelte';
   import { usageStore } from '../../stores/usage.svelte';
 
   // Revalidate the TTL cache while this tab stays open; hidden panels never poll.
@@ -49,7 +49,7 @@
   {:else if usageStore.isLoading}
     <div role="status" aria-label="Loading usage metadata">
       <Card class="p-8 text-center">
-        <DeletingDots size="sm" class="text-primary" />
+        <LoadingIndicator size="sm" class="text-primary" />
         <p class="mt-3 text-xs text-muted-foreground">Loading usage metadata…</p>
       </Card>
     </div>

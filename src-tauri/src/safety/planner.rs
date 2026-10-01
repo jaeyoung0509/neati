@@ -725,9 +725,11 @@ mod tests {
 
     #[test]
     fn brave_code_cache_review_removes_only_the_named_unit() {
-        use crate::models::{CleanupEligibility, StructuredStatePolicy};
+        use crate::applications::RunningApplications;
+        use crate::models::{CleanFailureReason, CleanupEligibility, StructuredStatePolicy};
         use crate::safety::{RevalidationOutcome, SafeTreeDeleter, SafetyValidator};
         use crate::scanner::DirectoryScanner;
+        use neati_platform::open_files::{FixedOpenFileProbe, OpenFileState};
         use neati_platform::path_algebra::PathFlavor;
         use neati_platform::PlatformEnvironment;
 
@@ -748,13 +750,15 @@ mod tests {
         let signature = registry
             .get("system.brave.code_cache")
             .expect("reviewed code cache signature");
+        let idle = RunningApplications::from_process_names(["fixture-idle".into()])
+            .with_open_file_probe(std::sync::Arc::new(FixedOpenFileProbe(OpenFileState::Idle)));
         let observed = DirectoryScanner::scan_signature(
             registry
                 .get("system.brave.http_cache")
                 .expect("HTTP cache inventory"),
             &environment,
             &crate::models::NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &idle,
         );
         assert_eq!(observed.len(), 1);
         assert_eq!(observed[0].risk, RiskTier::Rebuild);
@@ -764,7 +768,7 @@ mod tests {
             signature,
             &environment,
             &crate::models::NeverCancelled,
-            &crate::applications::RunningApplications::from_process_names(["fixture-idle".into()]),
+            &idle,
         );
         assert_eq!(items.len(), 1);
         assert_eq!(
@@ -775,11 +779,31 @@ mod tests {
         assert!(items[0].is_selected);
         items[0].is_selected = true;
 
-        let plan = SafetyPlanner::create_plan_with_environment(
+        // Fixture process state must reach planning too: the native wrapper
+        // would make this assertion depend on a real user's running browser.
+        let busy = RunningApplications::from_process_names(["Brave Browser".into()]);
+        let refused = SafetyPlanner::create_plan_with_process_probe(
             &items,
             &registry,
             &environment,
             &no_owner_providers(),
+            &busy,
+        );
+        match refused {
+            Err(NeatiError::RefusedSelection(refusals)) => {
+                assert_eq!(refusals.len(), 1);
+                assert_eq!(refusals[0].reason, CleanFailureReason::SafetyBoundary);
+            }
+            other => panic!("a running fixture browser must retain its code cache: {other:?}"),
+        }
+        assert!(cache.exists());
+
+        let plan = SafetyPlanner::create_plan_with_process_probe(
+            &items,
+            &registry,
+            &environment,
+            &no_owner_providers(),
+            &idle,
         )
         .expect("explicitly reviewed cache unit is plannable");
         assert_eq!(

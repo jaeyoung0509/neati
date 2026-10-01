@@ -18,7 +18,7 @@
     memoryPressureLabel,
   } from '../../lib/utils/systemReadings';
   import PageHeader from '../../lib/components/PageHeader.svelte';
-  import DeletingDots from '../../lib/components/DeletingDots.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import Button from '../../lib/components/Button.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
@@ -219,7 +219,7 @@
         disabled={refreshing}
         onclick={() => void refreshReadings()}
       >
-        {#if refreshing}<DeletingDots size="sm" />{:else}<RefreshCw size={14} aria-hidden="true" />{/if}
+        {#if refreshing}<LoadingIndicator size="sm" />{:else}<RefreshCw size={14} aria-hidden="true" />{/if}
         <span>Refresh</span>
       </Button>
     {/snippet}
@@ -227,7 +227,7 @@
 
   <!-- The next action, first. -->
   <section class="overview-hero flex flex-col items-start gap-3" aria-label="Cleanup summary">
-    <div class="overview-ripples"><RippleScene /></div>
+    <div class="overview-ripples"><RippleScene activity={scanStore.isCancelling ? 'stopping' : cleanupBusy ? 'working' : 'idle'} /></div>
     <div class="min-w-0 space-y-1">
       <div class="flex items-center gap-2">
         <HardDrive size={16} class="text-primary shrink-0" aria-hidden="true" />
@@ -238,7 +238,7 @@
       </div>
       {#if cleanupBusy}
         <p class="flex min-h-8 items-center gap-2 text-body font-medium text-foreground" role="status" aria-live="polite">
-          <DeletingDots size="sm" class="text-primary" />
+          <LoadingIndicator size="sm" class="text-primary" />
           <span>{cleanupState === 'cleaning' ? 'Cleaning safe caches…' : scanStore.isRefreshingAfterClean ? 'Checking storage after cleanup…' : 'Checking storage…'}</span>
         </p>
       {:else}

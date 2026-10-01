@@ -1,0 +1,134 @@
+[
+  {
+    "height": 660,
+    "synthetic": true,
+    "title": "Cleanup",
+    "version": "v0.3.94",
+    "width": 960,
+    "filename": "scanning-light-960.png",
+    "operation": "scanning, final lower-right ripple placement",
+    "capturedAt": "2026-10-01T03:06:22.123755+00:00",
+    "ripplePlacement": {
+      "bottom": "-82px",
+      "right": "-48px",
+      "top": "117.469px",
+      "width": "390px"
+    }
+  },
+  {
+    "height": 660,
+    "synthetic": true,
+    "title": "Cleanup",
+    "version": "v0.3.94",
+    "width": 960,
+    "filename": "scanning-dark-960.png",
+    "operation": "scanning, final lower-right ripple placement",
+    "capturedAt": "2026-10-01T03:06:23.486371+00:00",
+    "ripplePlacement": {
+      "bottom": "-82px",
+      "right": "-48px",
+      "top": "117.469px",
+      "width": "390px"
+    }
+  },
+  {
+    "height": 660,
+    "synthetic": true,
+    "title": "Cleanup",
+    "version": "v0.3.94",
+    "width": 960,
+    "filename": "stopping-light-960.png",
+    "operation": "stopping, final ripple placement",
+    "capturedAt": "2026-10-01T03:06:24.810652+00:00"
+  },
+  {
+    "height": 660,
+    "synthetic": true,
+    "title": "Cleanup",
+    "version": "v0.3.94",
+    "width": 960,
+    "filename": "stopped-light-960.png",
+    "operation": "stopped, final ripple placement",
+    "capturedAt": "2026-10-01T03:06:25.637321+00:00"
+  },
+  {
+    "height": 660,
+    "synthetic": true,
+    "title": "Cleanup",
+    "version": "v0.3.94",
+    "width": 960,
+    "filename": "failed-light-960.png",
+    "operation": "failed, final ripple placement",
+    "capturedAt": "2026-10-01T03:06:26.486429+00:00"
+  },
+  {
+    "height": 660,
+    "synthetic": true,
+    "title": "Cleanup",
+    "version": "v0.3.94",
+    "width": 960,
+    "filename": "preparing-light-960.png",
+    "operation": "preparing, final ripple placement",
+    "capturedAt": "2026-10-01T03:06:27.291086+00:00"
+  },
+  {
+    "height": 560,
+    "synthetic": true,
+    "title": "Overview",
+    "version": "v0.3.94",
+    "width": 800,
+    "filename": "overview-working-light-800.png",
+    "operation": "working",
+    "capturedAt": "2026-10-01T03:06:29.218418+00:00"
+  },
+  {
+    "height": 560,
+    "synthetic": true,
+    "title": "AI Activity",
+    "version": "v0.3.94",
+    "width": 800,
+    "filename": "ai-loading-light-800.png",
+    "operation": "cached providers refreshing",
+    "capturedAt": "2026-10-01T03:06:31.474570+00:00"
+  },
+  {
+    "height": 560,
+    "synthetic": true,
+    "title": "AI Activity",
+    "version": "v0.3.94",
+    "width": 800,
+    "filename": "ai-loading-dark-800.png",
+    "operation": "cached providers refreshing",
+    "capturedAt": "2026-10-01T03:06:32.473435+00:00"
+  },
+  {
+    "height": 850,
+    "synthetic": true,
+    "title": "Quick Panel",
+    "version": "v0.3.94",
+    "width": 400,
+    "filename": "quick-loading-light-400.png",
+    "operation": "mock window scan and providers loading",
+    "capturedAt": "2026-10-01T02:59:05.568648+00:00"
+  },
+  {
+    "height": 850,
+    "synthetic": true,
+    "title": "Quick Panel",
+    "version": "v0.3.94",
+    "width": 400,
+    "filename": "quick-loading-dark-400.png",
+    "operation": "mock window scan and providers loading",
+    "capturedAt": "2026-10-01T02:59:06.937188+00:00"
+  },
+  {
+    "height": 850,
+    "synthetic": true,
+    "title": "Quick Panel",
+    "version": "v0.3.94",
+    "width": 400,
+    "filename": "quick-ready-dark-400.png",
+    "operation": "ready mock window",
+    "capturedAt": "2026-10-01T02:59:08.677913+00:00"
+  }
+]

@@ -333,6 +333,16 @@ Plans expire after five minutes and are removed before execution, so they cannot
 be replayed. `CleanupService` owns that lifecycle end to end; the IPC layer
 submits a scan ID, selected item IDs, and an opaque plan ID and nothing else.
 
+Cleanup scans coordinate across webviews through one backend-owned lifecycle,
+including generation/continuation claim, measurement, merge and publication.
+Fast bounded scan admission precedes the lifecycle mutex; the shared storage-read
+budget is acquired only after that mutex. A queued scan therefore does not reserve
+an unrelated reader's slot. All three guards belong to the blocking worker until
+publication, even if its command caller stops awaiting. The concurrent storage
+read gate covers the whole pass, while mutations retain exclusive access. Lease
+and reported cancellation-handle guards retire failed or panicking workers;
+the ScanStore still refuses obsolete publication and incomplete cleanup authority.
+
 A plan states what it authorizes. `mode` is `permanent_delete` for generic
 cleanup (a move to the Trash is a different plan kind with different evidence),
 and the application service refuses to execute a plan whose mode does not

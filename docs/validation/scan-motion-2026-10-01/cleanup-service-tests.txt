@@ -1,0 +1,35 @@
+   Compiling neati-desktop v0.3.94 (/private/tmp/neati-issue-388/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.48s
+     Running unittests src/lib.rs (target/debug/deps/neati_lib-901b07648673504b)
+
+running 20 tests
+
+thread 'tokio-rt-worker' (2154145) panicked at src-tauri/src/services/cleanup_service.rs:1188:25:
+controlled scan progress failure
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tokio-rt-worker' (2154146) panicked at src-tauri/src/services/cleanup_service.rs:1482:25:
+controlled continuation progress failure
+test services::cleanup_service::tests::a_panicking_scan_retires_its_handle_and_releases_the_session ... ok
+test services::cleanup_service::tests::a_panicking_continuation_retires_its_lease_and_handle ... ok
+test services::cleanup_service::tests::a_bounded_scan_resumes_forward_and_publishes_one_merged_snapshot ... ok
+test services::cleanup_service::tests::a_queued_scan_does_not_reserve_the_remaining_storage_read_permit ... ok
+test services::cleanup_service::tests::abandoning_a_scan_waiting_for_the_read_budget_preserves_current_authority ... ok
+test services::cleanup_service::tests::cleanup_service_plan_and_execution_lifecycle ... ok
+test services::cleanup_service::tests::a_new_window_waits_until_a_continuation_has_published ... ok
+test services::cleanup_service::tests::an_active_scan_keeps_unrelated_storage_reads_concurrent ... ok
+test services::cleanup_service::tests::direct_cleanup_excludes_unverified_running_stateful_and_disabled_items ... ok
+test services::cleanup_service::tests::quick_clean_safe_handles_empty_candidates_gracefully ... ok
+test services::cleanup_service::tests::cancelling_a_running_scan_stops_it_and_the_result_says_so ... ok
+test services::cleanup_service::tests::an_abandoned_caller_keeps_the_worker_serialized_and_cancellable ... ok
+test services::cleanup_service::tests::select_quick_clean_filters_categories_and_risk ... ok
+test services::cleanup_service::tests::resumed_developer_scan_keeps_the_original_provider_exclusions ... ok
+test services::cleanup_service::tests::cancelling_the_active_scan_does_not_cancel_the_waiting_window ... ok
+test services::cleanup_service::tests::scan_admission_is_bounded_and_dropping_a_waiter_returns_its_slot ... ok
+test services::cleanup_service::tests::concurrent_windows_cannot_supersede_a_scan_before_publication ... ok
+test services::cleanup_service::tests::a_confirmation_required_provider_cannot_execute_without_confirmation ... ok
+test services::cleanup_service::tests::a_consumed_plan_cannot_be_replayed_through_the_service ... ok
+test services::cleanup_service::tests::quick_clean_executes_verified_items_from_a_partial_scan ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 959 filtered out; finished in 1.96s
+

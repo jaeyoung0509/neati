@@ -26,11 +26,17 @@ cool-neutral and periwinkle relationship.
 
 The owner-approved direction for issue #378 (October 1, 2026) pairs the
 handwritten neati identity with quiet water ripples. Overview and Cleanup use
-five thin SVG curves and six small particles as atmosphere on solid focal
-surfaces. Two transform-only CSS groups drift slowly over 18–22 seconds;
-there are no filters, frame loops, simulation, telemetry requests, or list
-animations. A shared IntersectionObserver pauses motion offscreen and in a
-hidden document. Reduced motion stops it; reduced transparency hides it.
+five thin SVG curves as atmosphere on solid focal surfaces. Two bounded
+transform/opacity groups drift over 18–22 seconds at rest and 7–9 seconds during
+an actual scan. Stopping freezes the scene into its static composition. The
+shared loading indicator uses the canonical handwritten n stroke from
+`src-tauri/icons/neati-mark.svg` with one small expanding water ripple on a
+2.4-second cycle; it has no tile, badge or extra logo geometry. There are no
+filters, frame loops, simulation, telemetry requests, dynamic particles or list
+animations. A shared IntersectionObserver removes motion offscreen and in a
+hidden document. Reduced motion keeps a static readable indicator; reduced
+transparency also removes decorative scenes. Existing paint-only header
+spinners retain their WKWebView teardown contract.
 The former planet scene is no longer used by Overview.
 
 This document is the visual contract. The executable half of it — colour,
@@ -254,8 +260,8 @@ chase a mockup radius.
 Functional motion communicates state change; it never delays input, replays a
 list, or animates a number continuously. The owner requested brief rising value
 updates and quiet ripples for #378. The actual new value appears immediately;
-a 180 ms, 5 px upward reveal settles it into place. No intermediate values are
-invented. Updates within 240 ms cancel the prior reveal and replace immediately,
+a 220 ms, 6 px upward reveal with a half-pixel settling phase places it. No
+intermediate values are invented. Updates within 260 ms cancel the prior reveal and replace immediately,
 without a queue or an animation library. Tabular numbers and reserved metric
 slots keep the layout still. One shared, subscriber-owned observer handles
 visibility and accessibility preferences; no animation timers are added.
@@ -289,7 +295,7 @@ visibility and accessibility preferences; no animation timers are added.
 | Hover / focus / pressed | 100–140 ms (`--duration-instant`, `--duration-fast`) | Colour, border, or opacity only; dense rows never move |
 | Navigation / content change | 140–180 ms (`--duration-normal`) | Opacity plus at most 2–4 px translation; route changes never queue |
 | Dialog / sheet | 160–220 ms (`--duration-overlay`) | Opacity-led; focus is trapped on open and returned on close |
-| Value update | 180 ms, cubic ease out | Actual reading replaces immediately; at most 5 px reveal, interrupted bursts replace without replay |
+| Value update | 220 ms, cubic ease out | Actual reading replaces immediately; 6 px rise and 0.5 px settle, interrupted bursts replace without replay |
 | Sidebar collapse | ≤ 180 ms | Width and padding only, labels fade; content stays fluid |
 | Observed working state | 2–3 s breathing dot | Only for an actually observed, currently running agent session while the surface is visible |
 
@@ -364,6 +370,9 @@ inventory is still valid.
   `outline`), at `text-caption` or above.
 - **ProgressBar**: 4–8 px tall, no looping shimmer, no indeterminate gradient.
 - **ByteValue**: monospace tabular numerals for every byte metric.
+- **LoadingIndicator**: the canonical handwritten n and one quiet water ripple;
+  adjacent copy names the operation. Fixed icon slots, no status percentage, and
+  static fallback for hidden/offscreen/reduced-motion/transparency surfaces.
 - **AnimatedValue**: brief reveal for headline readings only; no row-list replay,
   no interpolated totals, no motion while hidden or under reduced motion/transparency.
 - **SelectionToolbar**: reserved space in the content column; count, measured

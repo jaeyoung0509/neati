@@ -481,7 +481,7 @@ describe('quick cleanup state', () => {
       scanStore.isRefreshingAfterClean = true;
       const body = render(QuickPanel).body;
       expect(body).toContain('Checking the result');
-      expect(body).toContain('animate-bounce-dot-1');
+      expect(body).toContain('data-loading-indicator');
       expect(body).toContain('View scan');
       expect(body).toContain('Categories will appear when the scan finishes.');
       expect(body).not.toContain('Updating…');

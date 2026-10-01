@@ -1,0 +1,22 @@
+   Compiling neati-desktop v0.3.93 (/private/tmp/neati-issue-388/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 37.55s
+     Running unittests src/lib.rs (target/debug/deps/neati_lib-a86a8acc6b545ca1)
+
+running 1 test
+
+thread 'services::cleanup_service::tests::concurrent_windows_cannot_supersede_a_scan_before_publication' (2104921) panicked at src-tauri/src/services/cleanup_service.rs:938:9:
+a second window started another generation before the first could publish
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tokio-rt-worker' (2104930) panicked at src-tauri/src/services/cleanup_service.rs:912:51:
+called `Result::unwrap()` on an `Err` value: RecvError
+test services::cleanup_service::tests::concurrent_windows_cannot_supersede_a_scan_before_publication ... FAILED
+
+failures:
+
+failures:
+    services::cleanup_service::tests::concurrent_windows_cannot_supersede_a_scan_before_publication
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 972 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p neati-desktop --lib`

@@ -1,0 +1,22 @@
+   Compiling neati-desktop v0.3.93 (/private/tmp/neati-issue-388/src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.49s
+     Running unittests src/lib.rs (target/debug/deps/neati_lib-a86a8acc6b545ca1)
+
+running 1 test
+
+thread 'services::cleanup_service::tests::a_new_window_waits_until_a_continuation_has_published' (2116945) panicked at src-tauri/src/services/cleanup_service.rs:979:9:
+a new start invalidated a running continuation
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'tokio-rt-worker' (2116954) panicked at src-tauri/src/services/cleanup_service.rs:912:51:
+called `Result::unwrap()` on an `Err` value: RecvError
+test services::cleanup_service::tests::a_new_window_waits_until_a_continuation_has_published ... FAILED
+
+failures:
+
+failures:
+    services::cleanup_service::tests::a_new_window_waits_until_a_continuation_has_published
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 972 filtered out; finished in 0.12s
+
+error: test failed, to rerun pass `-p neati-desktop --lib`

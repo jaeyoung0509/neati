@@ -650,7 +650,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
 
     const rendered = render(StorageView, { props: { onSelectCategory: vi.fn() } });
 
-    expect(rendered.body).toContain('animate-bounce-dot-1');
+    expect(rendered.body).toContain('data-loading-indicator');
     expect(rendered.body).toContain('Scanning…');
     expect(rendered.body).not.toContain('Scan storage to find current cleanup candidates');
     expect(rendered.body).not.toContain('Scan Again');
@@ -667,7 +667,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     const scanningRender = render(StorageView, { props: { onSelectCategory: vi.fn() } });
     expect(scanningRender.body).toContain('id="storage-scan-button"');
     expect(scanningRender.body).toContain('inline-flex items-center justify-center shrink-0 w-3.5 h-3.5');
-    expect(scanningRender.body).toContain('animate-bounce-dot-1');
+    expect(scanningRender.body).toContain('data-loading-indicator');
   });
 
   it('labels the native workflow selector and keeps its region programmatically focusable', () => {
@@ -751,9 +751,9 @@ describe('StorageView CTA and responsive toolbar layout', () => {
 
     expect(storageView).toContain('motion="paint"');
     expect(storageTools).toContain('motion="paint"');
-    expect(storageView).toContain('<DeletingDots');
+    expect(storageView).toContain('<LoadingIndicator');
     expect(storageTools).toContain('<LoadingSpinner');
-    expect(quickPanel).toContain('<DeletingDots');
+    expect(quickPanel).toContain('<LoadingIndicator');
     expect(storageView).not.toContain('animate-gentle-spin');
     expect(storageTools).not.toContain('animate-gentle-spin');
   });

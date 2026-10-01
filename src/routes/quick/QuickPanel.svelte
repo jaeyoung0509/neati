@@ -44,7 +44,7 @@
   import QuickMetricRow from '../../lib/components/metrics/QuickMetricRow.svelte';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import QuickCleanupDetailsDialog from '../../lib/components/QuickCleanupDetailsDialog.svelte';
-  import DeletingDots from '../../lib/components/DeletingDots.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import PreviewModeIndicator from '../../lib/components/PreviewModeIndicator.svelte';
   import {
@@ -510,7 +510,7 @@
             <p class="text-meta font-semibold text-foreground">Cleanup</p>
             {#if cleanupBusy}
               <p class="quick-cleanup-status mt-1 flex items-center gap-2 text-caption text-muted-foreground" role="status">
-                <DeletingDots active={panelActive} size="sm" class="shrink-0 text-primary" />
+                <LoadingIndicator active={panelActive} size="sm" class="shrink-0 text-primary" />
                 <span>{cleanupState === 'cleaning' ? 'Cleaning caches' : scanStore.isRefreshingAfterClean ? 'Checking the result' : 'Checking storage'}</span>
               </p>
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
@@ -659,7 +659,7 @@
                 <p class="flex min-h-5 items-center text-caption leading-snug text-muted-foreground">
                   {#if row.provider}
                     <span class="inline-flex items-center gap-1.5">
-                      {#if loading}<DeletingDots active={panelActive} size="xs" class="text-primary" />{/if}
+                      {#if loading}<LoadingIndicator active={panelActive} size="xs" class="text-primary" />{/if}
                       <span>{formatQuickProviderUsage(row.provider, loading, stale)}</span>
                       {#if (stale || (row.provider.collection_status && row.provider.collection_status !== 'fresh')) && !loading}
                         <button

@@ -43,6 +43,8 @@ pub enum DeveloperArtifactKind {
     NodeModules,
     SvelteKitOutput,
     NextOutput,
+    SvelteKitTypes,
+    NextWebpackCache,
     PythonVenv,
     GoModuleCache,
     MavenTarget,

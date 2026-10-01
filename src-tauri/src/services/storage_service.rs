@@ -92,6 +92,11 @@ impl StorageWorkflowState {
         let mut sizes = HashMap::new();
         if let Some(inventory) = inventory {
             for record in inventory.records.values() {
+                if inventory.records.values().any(|parent| {
+                    parent.path != record.path && record.path.starts_with(&parent.path)
+                }) {
+                    continue;
+                }
                 let total = sizes.entry(record.project_root.clone()).or_insert(0u64);
                 *total = total.saturating_add(record.artifact.allocated_bytes);
             }
@@ -119,6 +124,7 @@ pub struct StorageService {
     trash_executor: Arc<TrashExecutor>,
     system_actions: Arc<dyn neati_platform::SystemActionProvider>,
     platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
+    temporary_review: Option<Arc<super::temporary_storage::TemporaryStorageService>>,
 }
 
 impl StorageService {
@@ -138,7 +144,57 @@ impl StorageService {
             trash_executor,
             system_actions,
             platform_capabilities,
+            temporary_review: None,
         }
+    }
+
+    pub fn with_temporary_review(mut self, trash: Arc<dyn neati_platform::TrashBackend>) -> Self {
+        self.temporary_review = Some(Arc::new(
+            super::temporary_storage::TemporaryStorageService::new(
+                self.environment.clone(),
+                self.operation_gate.clone(),
+                self.budgets.clone(),
+                trash,
+            ),
+        ));
+        self
+    }
+
+    fn temporary_service(
+        &self,
+    ) -> Result<&super::temporary_storage::TemporaryStorageService, String> {
+        self.temporary_review
+            .as_deref()
+            .ok_or_else(|| "Temporary review is unavailable in this composition.".into())
+    }
+
+    pub async fn scan_temporary_storage(
+        &self,
+        sink: Arc<dyn super::progress::TemporaryStorageSink>,
+    ) -> Result<crate::models::TemporaryStorageInventory, String> {
+        self.temporary_service()?.scan(sink).await
+    }
+    pub fn cancel_temporary_storage_scan(&self, scan_id: &str) -> Result<(), String> {
+        self.temporary_service()?.cancel_scan(scan_id)
+    }
+    pub async fn prepare_temporary_storage_review(
+        &self,
+        scan_id: &str,
+        selected_ids: &[String],
+    ) -> Result<crate::models::TemporaryReviewPreview, String> {
+        self.temporary_service()?
+            .prepare(scan_id, selected_ids)
+            .await
+    }
+    pub async fn execute_temporary_storage_review(
+        &self,
+        id: uuid::Uuid,
+        consent: crate::models::TemporaryReviewConsent,
+    ) -> Result<TrashResult, String> {
+        self.temporary_service()?.execute(id, consent).await
+    }
+    pub fn cancel_temporary_storage_review(&self, id: uuid::Uuid) -> Result<(), String> {
+        self.temporary_service()?.cancel_execution(id)
     }
 
     /// Per-project measured artifact sizes for the project views.

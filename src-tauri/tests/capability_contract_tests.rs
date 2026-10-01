@@ -54,9 +54,10 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 20] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 44] = [
+const READ_ONLY_PERMISSIONS: [&str; 46] = [
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
+    "allow-cancel-temporary-storage-scan",
     // Cancelling a scan stops work; it does not authorize a mutation.
     "allow-cancel-scan",
     "allow-get-agent-integrations",
@@ -97,6 +98,7 @@ const READ_ONLY_PERMISSIONS: [&str; 44] = [
     "allow-resume-scan",
     "allow-show-in-file-manager",
     "allow-start-developer-artifact-scan",
+    "allow-start-temporary-storage-scan",
     "allow-start-scan",
     "allow-take-pending-navigation",
     "allow-toggle-quick-panel",
@@ -113,7 +115,7 @@ const READ_ONLY_PERMISSIONS: [&str; 44] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 33] = [
+const MUTATING_PERMISSIONS: [&str; 36] = [
     "allow-connect-openrouter-oauth",
     "allow-consume-ai-recommendation-preview",
     "allow-create-delete-plan",
@@ -121,6 +123,9 @@ const MUTATING_PERMISSIONS: [&str; 33] = [
     "allow-preview-empty-trash",
     "allow-execute-empty-trash",
     "allow-cancel-empty-trash",
+    "allow-cancel-temporary-storage-review",
+    "allow-execute-temporary-storage-review",
+    "allow-prepare-temporary-storage-review",
     "allow-delete-ai-provider-credential",
     "allow-delete-local-model",
     "allow-disable-manual-awake",

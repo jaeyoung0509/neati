@@ -1,6 +1,7 @@
 mod rules;
 pub(crate) use rules::artifact_is_observation_only;
 pub(crate) use rules::artifact_relative_is_allowed;
+pub(crate) use rules::{framework_generated_kind, verify_framework_generated_contract};
 
 use crate::large_files::identity_from_path;
 use crate::models::{
@@ -101,6 +102,19 @@ struct ArtifactMatch {
     marker_paths: Vec<PathBuf>,
     evidence: Vec<String>,
     rebuild_hint: Option<String>,
+}
+
+/// Reuse the central generated-artifact catalog for the temporary workflow.
+/// Framework parent observations and unrecognized wrappers grant no authority.
+pub(crate) fn temporary_generated_evidence(
+    project: &Path,
+    path: &Path,
+) -> Option<(DeveloperArtifactKind, Vec<PathBuf>)> {
+    let name = path.file_name()?.to_str()?;
+    let found = rules::recognize(project, name)?;
+    (path == project.join(&found.artifact_relative)
+        && artifact_relative_is_allowed(&found.artifact_relative, found.kind))
+    .then_some((found.kind, found.marker_paths))
 }
 
 #[derive(Debug, Clone, Default)]
@@ -873,7 +887,48 @@ fn discover_workspace<F>(
                     ecosystem: candidate.ecosystem,
                 });
                 *discovered_count = discovered_count.saturating_add(1);
+                let generated_children = if artifact_is_observation_only(candidate.kind) {
+                    rules::framework_generated_matches(&candidate.project_root)
+                        .into_iter()
+                        .filter_map(|found| {
+                            let path = candidate.project_root.join(&found.artifact_relative);
+                            if !fs::symlink_metadata(&path)
+                                .ok()
+                                .is_some_and(|metadata| metadata.is_dir())
+                                || SymlinkGuard::is_symlink(&path)
+                            {
+                                return None;
+                            }
+                            Some(Candidate {
+                                id: Uuid::new_v4().to_string(),
+                                workspace: candidate.workspace.clone(),
+                                project_name: candidate.project_name.clone(),
+                                ecosystem: found.ecosystem,
+                                kind: found.kind,
+                                path,
+                                project_root: found.project_root,
+                                artifact_relative: found.artifact_relative,
+                                marker_paths: found.marker_paths,
+                                evidence: found.evidence,
+                                rebuild_hint: found.rebuild_hint,
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                } else {
+                    vec![]
+                };
                 candidates.push(candidate);
+                for child in generated_children {
+                    if candidates.len() >= MAX_CANDIDATES {
+                        *truncated = true;
+                        break;
+                    }
+                    if !seen_paths.insert(child.path.clone()) {
+                        continue;
+                    }
+                    *discovered_count = discovered_count.saturating_add(1);
+                    candidates.push(child);
+                }
                 // Recognized artifact trees are measured in Phase B and are
                 // never descended during discovery.
                 continue;
@@ -1344,6 +1399,30 @@ fn measure_candidate(
         &candidate.path,
         cancel,
     );
+    let mut candidate = candidate;
+    let mut stats = stats;
+    if framework_generated_kind(candidate.kind).is_some() {
+        let contract = verify_framework_generated_contract(
+            environment,
+            &candidate.project_root,
+            &candidate.path,
+            candidate.kind,
+            cancel,
+        );
+        let usage = neati_platform::temporary_storage::observe_temporary_use(
+            environment,
+            &candidate.project_root,
+        );
+        if let Err(reason) = contract {
+            stats.safety_blocked = true;
+            candidate.evidence.push(reason);
+        } else if usage.state != neati_core::domain::storage::TemporaryUsageState::NoUseDetected {
+            stats.safety_blocked = true;
+            candidate.evidence.push(if usage.state == neati_core::domain::storage::TemporaryUsageState::InUse { "Framework project use was detected; stop its owner and scan again." } else { "Framework project use could not be established; generated-only cleanup is unavailable." }.into());
+        } else {
+            candidate.evidence.push("A completed macOS use probe detected no current use. This does not establish future abandonment.".into());
+        }
+    }
     let _ = tx.send(MeasurementMessage::Finished {
         candidate: Box::new(candidate),
         stats,
@@ -1481,6 +1560,8 @@ fn record_from_measurement(
         ),
         DeveloperArtifactStatus::SafetyBlocked => Some(if let Some(reason) = ownership.refusal_message() {
             reason.to_string()
+        } else if stats.safety_blocked && framework_generated_kind(candidate.kind).is_some() {
+            candidate.evidence.last().cloned().unwrap_or_else(|| "Generated framework evidence could not be verified.".into())
         } else if stats.safety_blocked {
             "A symbolic link or filesystem boundary could not be verified; cleanup is blocked."
                 .to_string()

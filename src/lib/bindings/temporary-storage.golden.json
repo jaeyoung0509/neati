@@ -1,0 +1,76 @@
+{
+  "inventory": {
+    "available": true,
+    "cancelled": false,
+    "expires_at": 1023,
+    "items": [
+      {
+        "allocated_bytes": 4096,
+        "contents": [
+          "unknown"
+        ],
+        "id": "unit",
+        "logical_bytes": 100,
+        "name": "unit",
+        "newest_activity": 123,
+        "options": [
+          {
+            "allocated_bytes": 4096,
+            "blocked_reason": null,
+            "id": "scope",
+            "mode": "whole_folder",
+            "partial": false,
+            "path": "/fixture/temporary/unit"
+          }
+        ],
+        "partial": false,
+        "path": "/fixture/temporary/unit",
+        "physical_overlap": false,
+        "selected_by_default": false,
+        "usage": {
+          "evidence": [
+            "No complete use verdict"
+          ],
+          "limitation": "Not proof of abandonment",
+          "observed_at": 123,
+          "probe": "Fixture probe",
+          "state": "unable_to_determine"
+        }
+      }
+    ],
+    "notes": [
+      "Fixture contract"
+    ],
+    "observed_allocated_bytes": 4096,
+    "observed_at": 123,
+    "partial": false,
+    "physical_overlap": false,
+    "roots": [
+      "/fixture/temporary"
+    ],
+    "scan_id": "inventory",
+    "unavailable_reason": null,
+    "unknown_estimates": 0
+  },
+  "preview": {
+    "expires_at": 423,
+    "has_unknown_usage": true,
+    "has_whole_folders": true,
+    "id": "00000000-0000-0000-0000-000000000000",
+    "known_allocated_bytes": 4096,
+    "selected": [
+      {
+        "allocated_bytes": 4096,
+        "blocked_reason": null,
+        "id": "scope",
+        "mode": "whole_folder",
+        "partial": false,
+        "path": "/fixture/temporary/unit"
+      }
+    ],
+    "unknown_estimates": 0,
+    "warnings": [
+      "Fixture warning"
+    ]
+  }
+}

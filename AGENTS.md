@@ -292,9 +292,14 @@ safety conventions below when changing neati.
   opaque one-shot plan ID; it never supplies paths, strategies, or identities.
 - `Manual` is never a generic filesystem strategy. Stateful resources such as
   local models and Docker volumes require a typed adapter and explicit UX.
-- Never scan or delete all of `/tmp`. Temporary cleanup is limited to direct
-  children with known tool prefixes and a minimum inactivity age. Determine
-  inactivity from the newest timestamp in the candidate tree.
+- Never delete a temporary root. Automatic temporary cleanup remains limited
+  to known direct-child prefixes and minimum whole-tree inactivity. The separate
+  Temporary Folders review may inventory bounded direct units of the stated
+  user/shared roots without prefix-based permission. Nothing is preselected;
+  its private one-shot plan binds exact scope, explicit source-loss and unknown-use
+  consent, current-user ownership, no-follow identity checks and fresh usage.
+  Positive use always blocks. This usage exception never extends to ordinary
+  cleanup or generated-only Developer Artifacts.
 - Do not follow symlinks. Apply blacklist, signature-scope, and TOCTOU checks
   before deletion and at every recursive entry. Fully measured, idle `Safe`
   and `Rebuild` caches are selected by default. Cleaning is an explicit user
@@ -413,7 +418,8 @@ safety conventions below when changing neati.
   regular files, positive headers/checksums, ownership, permissions, three-day
   whole-unit inactivity and fresh owner/handle checks. Unknown versions/layouts,
   worktrees, upload/recovery artifacts and other temporary folders remain
-  advisory or protected. No arbitrary `neati-*` or `codex-*` deletion is implied.
+  advisory or protected in automatic cleanup. Their separate explicit temporary
+  review does not imply arbitrary `neati-*` or `codex-*` cleanup authority.
 
 - Google Updater downloads authorize only the current-user `crx_cache` unit:
   its complete bounded index and matching non-executable CRX3/SHA-256 payloads,

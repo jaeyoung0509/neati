@@ -10,6 +10,7 @@ mod scan_store;
 mod settings_service;
 mod storage_service;
 mod system_service;
+mod temporary_storage;
 
 pub use ai_service::AiService;
 pub use cancellation::{CancellationRegistry, ScanCancellation};

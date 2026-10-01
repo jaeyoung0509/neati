@@ -179,6 +179,11 @@ export const commands = {
 	inspectAppUninstall: (appId: string) => typedError<AppUninstallInspection_Serialize, string>(__TAURI_INVOKE("inspect_app_uninstall", { appId })),
 	prepareAppUninstall: (inspectionId: string, selectedRelatedIds: string[]) => typedError<TrashPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_app_uninstall", { inspectionId, selectedRelatedIds })),
 	executeTrashPlan: (planId: string) => typedError<TrashResult_Serialize, string>(__TAURI_INVOKE("execute_trash_plan", { planId })),
+	startTemporaryStorageScan: (onEvent: Channel<TemporaryStorageEvent_Deserialize>) => typedError<TemporaryStorageInventory_Serialize, string>(__TAURI_INVOKE("start_temporary_storage_scan", { onEvent })),
+	cancelTemporaryStorageScan: (scanId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_temporary_storage_scan", { scanId })),
+	prepareTemporaryStorageReview: (scanId: string, selectedOptionIds: string[]) => typedError<TemporaryReviewPreview_Serialize, string>(__TAURI_INVOKE("prepare_temporary_storage_review", { scanId, selectedOptionIds })),
+	executeTemporaryStorageReview: (planId: string, consent: TemporaryReviewConsent) => typedError<TrashResult_Serialize, string>(__TAURI_INVOKE("execute_temporary_storage_review", { planId, consent })),
+	cancelTemporaryStorageReview: (planId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_temporary_storage_review", { planId })),
 };
 
 /* Types */
@@ -1516,7 +1521,7 @@ export type DashboardTab_Serialize = "overview" | "disk" | "storage" |
 
 export type DeveloperArtifact = DeveloperArtifact_Serialize | DeveloperArtifact_Deserialize;
 
-export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "svelte_kit_output" | "next_output" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache";
+export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "svelte_kit_output" | "next_output" | "svelte_kit_types" | "next_webpack_cache" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache";
 
 export type DeveloperArtifactScanEvent = DeveloperArtifactScanEvent_Serialize | DeveloperArtifactScanEvent_Deserialize;
 
@@ -3626,6 +3631,156 @@ export type StructuredStateKind =
 "compiled_model_cache" |
 /**  An executable image. */
 "executable";
+
+export type TemporaryContentKind = "build_output" | "source_checkout" | "git_metadata" | "browser_or_session_data" | "unknown";
+
+export type TemporaryRemovalMode = "whole_folder" | "generated_subtree";
+
+export type TemporaryRemovalOption = TemporaryRemovalOption_Serialize | TemporaryRemovalOption_Deserialize;
+
+export type TemporaryRemovalOption_Deserialize = {
+	id: string,
+	mode: TemporaryRemovalMode,
+	path: string,
+	allocated_bytes: number | null,
+	partial: boolean,
+	blocked_reason: string | null,
+};
+
+export type TemporaryRemovalOption_Serialize = {
+	id: string,
+	mode: TemporaryRemovalMode,
+	path: string,
+	allocated_bytes: number | null,
+	partial: boolean,
+	blocked_reason: string | null,
+};
+
+/**
+ *  The only uncertainty the temporary workflow may accept is usage. These
+ *  acknowledgements never override scope, ownership, identity or no-link checks.
+ */
+export type TemporaryReviewConsent = {
+	confirmed: boolean,
+	accept_unknown_usage: boolean,
+	accept_source_loss: boolean,
+};
+
+export type TemporaryReviewPreview = TemporaryReviewPreview_Serialize | TemporaryReviewPreview_Deserialize;
+
+export type TemporaryReviewPreview_Deserialize = {
+	id: string,
+	selected: TemporaryRemovalOption_Deserialize[],
+	known_allocated_bytes: number,
+	unknown_estimates: number,
+	has_unknown_usage: boolean,
+	has_whole_folders: boolean,
+	expires_at: number,
+	warnings: string[],
+};
+
+export type TemporaryReviewPreview_Serialize = {
+	id: string,
+	selected: TemporaryRemovalOption_Serialize[],
+	known_allocated_bytes: number,
+	unknown_estimates: number,
+	has_unknown_usage: boolean,
+	has_whole_folders: boolean,
+	expires_at: number,
+	warnings: string[],
+};
+
+export type TemporaryStorageEvent = TemporaryStorageEvent_Serialize | TemporaryStorageEvent_Deserialize;
+
+export type TemporaryStorageEvent_Deserialize = ({ type: "started"; scan_id: string }) & { inventory?: never; item?: never } | ({ type: "item_found"; item: TemporaryStorageItem_Deserialize }) & { inventory?: never; scan_id?: never } | ({ type: "finished"; inventory: TemporaryStorageInventory_Deserialize }) & { item?: never; scan_id?: never };
+
+export type TemporaryStorageEvent_Serialize = ({ type: "started"; scan_id: string }) & { inventory?: never; item?: never } | ({ type: "item_found"; item: TemporaryStorageItem_Serialize }) & { inventory?: never; scan_id?: never } | ({ type: "finished"; inventory: TemporaryStorageInventory_Serialize }) & { item?: never; scan_id?: never };
+
+export type TemporaryStorageInventory = TemporaryStorageInventory_Serialize | TemporaryStorageInventory_Deserialize;
+
+export type TemporaryStorageInventory_Deserialize = {
+	scan_id: string,
+	roots: string[],
+	items: TemporaryStorageItem_Deserialize[],
+	observed_at: number,
+	expires_at: number,
+	observed_allocated_bytes: number,
+	unknown_estimates: number,
+	partial: boolean,
+	physical_overlap: boolean,
+	cancelled: boolean,
+	available: boolean,
+	unavailable_reason: string | null,
+	notes: string[],
+};
+
+export type TemporaryStorageInventory_Serialize = {
+	scan_id: string,
+	roots: string[],
+	items: TemporaryStorageItem_Serialize[],
+	observed_at: number,
+	expires_at: number,
+	observed_allocated_bytes: number,
+	unknown_estimates: number,
+	partial: boolean,
+	physical_overlap: boolean,
+	cancelled: boolean,
+	available: boolean,
+	unavailable_reason: string | null,
+	notes: string[],
+};
+
+export type TemporaryStorageItem = TemporaryStorageItem_Serialize | TemporaryStorageItem_Deserialize;
+
+export type TemporaryStorageItem_Deserialize = {
+	id: string,
+	name: string,
+	path: string,
+	logical_bytes: number | null,
+	allocated_bytes: number | null,
+	newest_activity: number | null,
+	partial: boolean,
+	contents: TemporaryContentKind[],
+	physical_overlap: boolean,
+	usage: TemporaryUsageObservation_Deserialize,
+	options: TemporaryRemovalOption_Deserialize[],
+	selected_by_default: boolean,
+};
+
+export type TemporaryStorageItem_Serialize = {
+	id: string,
+	name: string,
+	path: string,
+	logical_bytes: number | null,
+	allocated_bytes: number | null,
+	newest_activity: number | null,
+	partial: boolean,
+	contents: TemporaryContentKind[],
+	physical_overlap: boolean,
+	usage: TemporaryUsageObservation_Serialize,
+	options: TemporaryRemovalOption_Serialize[],
+	selected_by_default: boolean,
+};
+
+export type TemporaryUsageObservation = TemporaryUsageObservation_Serialize | TemporaryUsageObservation_Deserialize;
+
+export type TemporaryUsageObservation_Deserialize = {
+	state: TemporaryUsageState,
+	observed_at: number,
+	probe: string,
+	evidence: string[],
+	limitation: string,
+};
+
+export type TemporaryUsageObservation_Serialize = {
+	state: TemporaryUsageState,
+	observed_at: number,
+	probe: string,
+	evidence: string[],
+	limitation: string,
+};
+
+export type TemporaryUsageState = "in_use" | "no_use_detected" | "unable_to_determine";
 
 export type TrashItemResult = {
 	item_id: string,

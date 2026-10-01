@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cancel-temporary-storage-scan"
+description = "Enables the cancel_temporary_storage_scan command without any pre-configured scope."
+commands.allow = ["cancel_temporary_storage_scan"]
+
+[[permission]]
+identifier = "deny-cancel-temporary-storage-scan"
+description = "Denies the cancel_temporary_storage_scan command without any pre-configured scope."
+commands.deny = ["cancel_temporary_storage_scan"]

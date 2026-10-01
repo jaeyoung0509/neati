@@ -84,6 +84,11 @@
     "allow-get-installed-apps",
     "allow-inspect-app-uninstall",
     "allow-prepare-app-uninstall",
-    "allow-execute-trash-plan"
+    "allow-execute-trash-plan",
+    "allow-start-temporary-storage-scan",
+    "allow-cancel-temporary-storage-scan",
+    "allow-prepare-temporary-storage-review",
+    "allow-execute-temporary-storage-review",
+    "allow-cancel-temporary-storage-review"
   ]
 }

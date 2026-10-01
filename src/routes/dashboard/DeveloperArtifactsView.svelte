@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick, untrack } from 'svelte';
+  import TemporaryStorageView from './TemporaryStorageView.svelte';
   import type {
     DeveloperArtifact,
     DeveloperArtifactStatus,
@@ -51,6 +52,7 @@
   }
 
   let { onBack, initialResult = null }: Props = $props();
+  let temporaryReviewOpen = $state(false);
 
   onMount(() => {
     void platformContextStore.load();
@@ -123,6 +125,8 @@
       cargo_target: 'Rust build output',
       node_modules: 'Node dependencies',
       svelte_kit_output: 'SvelteKit output',
+      svelte_kit_types: 'SvelteKit generated types',
+      next_webpack_cache: 'Next.js Webpack build cache',
       next_output: 'Next.js output',
       python_venv: 'Python environment',
       go_module_cache: 'Go module cache',
@@ -154,7 +158,9 @@
       cargo_target: 'target/',
       node_modules: 'node_modules/',
       svelte_kit_output: '.svelte-kit/',
+      svelte_kit_types: '.svelte-kit/types/',
       next_output: '.next/',
+      next_webpack_cache: '.next/cache/webpack/',
       python_venv: item.path.endsWith('/.venv') ? '.venv/' : 'venv/',
       go_module_cache: 'pkg/mod/',
       maven_target: 'target/',
@@ -423,6 +429,9 @@
   }
 </script>
 
+{#if temporaryReviewOpen}
+  <TemporaryStorageView onBack={() => temporaryReviewOpen = false} />
+{:else}
 <div class="space-y-5">
   <div class="flex items-start gap-3">
     <Button variant="ghost" size="icon" onclick={onBack} ariaLabel="Back to Storage">
@@ -441,6 +450,8 @@
       </p>
     </div>
   </div>
+
+  <Button variant="outline" disabled={isScanning || isPreparing || isExecuting} onclick={() => temporaryReviewOpen = true}>Review temporary folders</Button>
 
   <Card class="p-5 space-y-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -733,3 +744,4 @@
     </div>
   {/if}
 </div>
+{/if}

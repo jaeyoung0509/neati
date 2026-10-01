@@ -3,6 +3,7 @@
 pub mod cleanup;
 pub mod scan;
 pub mod storage;
+pub mod temporary_storage;
 
 pub use cleanup::{
     CleanEvent, CleanFailureReason, CleanItemResult, CleanResult, CleanStatus, PlanPreview,

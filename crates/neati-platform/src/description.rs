@@ -148,6 +148,20 @@ mod temporary_root_tests {
             Some(PathBuf::from("/private/tmp/node-compile-cache"))
         );
     }
+    #[test]
+    fn macos_data_volume_temp_aliases_normalize_only_stated_roots() {
+        let env = PlatformEnvironment::simulated(PathFlavor::Posix)
+            .with_platform(PlatformKind::Macos)
+            .with_temp_dir("/System/Volumes/Data/private/var/folders/fixture/T")
+            .with_shared_temp_dir("/System/Volumes/Data/private/tmp");
+        assert_eq!(
+            env.temporary_roots(),
+            vec![
+                PathBuf::from("/private/tmp"),
+                PathBuf::from("/private/var/folders/fixture/T")
+            ]
+        );
+    }
 }
 
 impl std::fmt::Debug for PlatformEnvironment {
@@ -314,14 +328,20 @@ impl PlatformEnvironment {
     }
 
     /// Exact roots, not permission to enumerate or remove their contents.
-    /// Normalize the one platform-owned macOS alias without following arbitrary links.
+    /// Normalize only known macOS volume aliases without following arbitrary links.
     pub fn temporary_roots(&self) -> Vec<PathBuf> {
         let mut roots = vec![self.temp_dir()];
         roots.extend(self.shared_temp_dir.clone());
         if self.platform == PlatformKind::Macos {
             for root in &mut roots {
-                if root == Path::new("/tmp") {
+                if root == Path::new("/tmp")
+                    || root == Path::new("/System/Volumes/Data/private/tmp")
+                {
                     *root = PathBuf::from("/private/tmp");
+                } else if let Ok(relative) = root.strip_prefix("/var") {
+                    *root = PathBuf::from("/private/var").join(relative);
+                } else if let Ok(relative) = root.strip_prefix("/System/Volumes/Data/private/var") {
+                    *root = PathBuf::from("/private/var").join(relative);
                 }
             }
         }

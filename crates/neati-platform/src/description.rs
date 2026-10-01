@@ -394,7 +394,13 @@ impl PlatformEnvironment {
     }
 
     pub fn cache_path_override(&self, name: &str) -> Option<&Path> {
-        self.cache_path_overrides.get(name).map(PathBuf::as_path)
+        self.cache_path_overrides
+            .get(name)
+            // XDG_CACHE_HOME defines an exactly empty value as unset.
+            // Nonempty invalid paths remain explicit, so resolution refuses
+            // them instead of inspecting a different default namespace.
+            .filter(|path| name != "XDG_CACHE_HOME" || !path.as_os_str().is_empty())
+            .map(PathBuf::as_path)
     }
 
     /// Resolved user-content folder, or `None` when the platform does not
@@ -1235,6 +1241,124 @@ mod tests {
 #[cfg(test)]
 mod cache_root_tests {
     use super::*;
+
+    #[test]
+    fn unset_and_exactly_empty_xdg_cache_home_use_the_same_default() {
+        for (flavor, home, expected) in [
+            (
+                PathFlavor::Posix,
+                "/fixture-home",
+                "/fixture-home/.cache/gh",
+            ),
+            (
+                PathFlavor::Windows,
+                r"C:\Users\fixture",
+                r"C:\Users\fixture\.cache\gh",
+            ),
+        ] {
+            let unset = PlatformEnvironment::simulated(flavor).with_home(home);
+            let empty = unset.clone().with_cache_path_override("XDG_CACHE_HOME", "");
+            assert_eq!(
+                unset.expand_placeholder("${XDG_CACHE_HOME}/gh"),
+                Some(PathBuf::from(expected))
+            );
+            assert_eq!(
+                empty.expand_placeholder("${XDG_CACHE_HOME}/gh"),
+                unset.expand_placeholder("${XDG_CACHE_HOME}/gh")
+            );
+            assert_eq!(empty.cache_path_override("XDG_CACHE_HOME"), None);
+        }
+    }
+
+    #[test]
+    fn nonempty_xdg_cache_overrides_remain_authoritative_or_refused() {
+        for (flavor, home, custom, expected) in [
+            (
+                PathFlavor::Posix,
+                "/fixture-home",
+                "/fixture-cache",
+                "/fixture-cache/gh",
+            ),
+            (
+                PathFlavor::Windows,
+                r"C:\Users\fixture",
+                r"D:\Caches",
+                r"D:\Caches\gh",
+            ),
+        ] {
+            let env = PlatformEnvironment::simulated(flavor)
+                .with_home(home)
+                .with_cache_path_override("XDG_CACHE_HOME", custom);
+            assert_eq!(
+                env.expand_placeholder("${XDG_CACHE_HOME}/gh"),
+                Some(PathBuf::from(expected))
+            );
+        }
+        for (flavor, custom) in [
+            (PathFlavor::Posix, "relative-cache"),
+            (PathFlavor::Posix, " "),
+            (PathFlavor::Posix, "/fixture-home/../cache"),
+            (PathFlavor::Windows, r"C:cache"),
+            (PathFlavor::Windows, r"C:\Users\fixture\..\cache"),
+            (PathFlavor::Windows, r"C:\Users\RUNNER~1\cache"),
+            (PathFlavor::Windows, r"C:\Caches\named:stream"),
+            (PathFlavor::Windows, r"C:\Caches\trailing."),
+            (PathFlavor::Windows, "C:\\Caches\\trailing "),
+        ] {
+            let env = PlatformEnvironment::simulated(flavor)
+                .with_home(if flavor.is_windows() {
+                    r"C:\Users\fixture"
+                } else {
+                    "/fixture-home"
+                })
+                .with_cache_path_override("XDG_CACHE_HOME", custom);
+            assert_eq!(
+                env.expand_placeholder("${XDG_CACHE_HOME}/gh"),
+                None,
+                "{custom}"
+            );
+        }
+    }
+
+    #[test]
+    fn default_xdg_cache_root_requires_a_stated_home() {
+        let unset = PlatformEnvironment::simulated(PathFlavor::Posix);
+        let empty = unset.clone().with_cache_path_override("XDG_CACHE_HOME", "");
+        assert_eq!(unset.expand_placeholder("${XDG_CACHE_HOME}/gh"), None);
+        assert_eq!(empty.expand_placeholder("${XDG_CACHE_HOME}/gh"), None);
+        assert_eq!(
+            unset
+                .with_cache_path_override("XDG_CACHE_HOME", "/fixture-cache")
+                .expand_placeholder("${XDG_CACHE_HOME}/gh"),
+            Some(PathBuf::from("/fixture-cache/gh"))
+        );
+    }
+
+    #[test]
+    fn empty_non_cache_xdg_and_other_tool_overrides_are_preserved() {
+        for variable in [
+            "XDG_STATE_HOME",
+            "XDG_DATA_HOME",
+            "XDG_CONFIG_HOME",
+            "GRADLE_USER_HOME",
+            "NPM_CONFIG_CACHE",
+            "PIP_CACHE_DIR",
+            "UV_CACHE_DIR",
+        ] {
+            let env = PlatformEnvironment::simulated(PathFlavor::Posix)
+                .with_home("/fixture-home")
+                .with_cache_path_override(variable, "");
+            assert_eq!(
+                env.cache_path_override(variable),
+                Some(Path::new("")),
+                "{variable}"
+            );
+            if variable == "GRADLE_USER_HOME" {
+                assert_eq!(env.expand_placeholder("${GRADLE_USER_HOME}/caches"), None);
+            }
+        }
+    }
+
     #[test]
     fn windows_cache_overrides_reject_short_aliases_on_every_host() {
         for (variable, pattern) in [

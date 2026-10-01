@@ -497,6 +497,68 @@ fn custom_gradle_home_partitions_payloads_from_dependencies_and_locks() {
 }
 
 #[test]
+fn empty_xdg_named_javascript_caches_keep_exact_scope_and_fresh_plan_guards() {
+    let fixture = tempfile::tempdir().unwrap();
+    let home = neati_platform::NativePlatformPaths::normalize_verbatim_path(
+        &fixture.path().canonicalize().unwrap(),
+    );
+    let environment = PlatformEnvironment::simulated(PathFlavor::current())
+        .with_platform(PlatformKind::Macos)
+        .with_home(&home)
+        .with_cache_path_override("XDG_CACHE_HOME", "");
+    let registry = SignatureRegistry::load_embedded_with(&environment).unwrap();
+    let owners = OwnerProviderRegistry::new(Vec::new());
+    for tool in ["typescript", "vite", "webpack", "eslint", "prettier"] {
+        let cache = home.join(".cache").join(tool);
+        let payload = cache.join("payload");
+        let sibling = home.join(".cache").join(format!("{tool}-project/payload"));
+        write(&payload);
+        write(&sibling);
+        let id = format!("dev.{tool}.user_cache");
+        let items = scan(&registry, &id, &environment, &idle());
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].path, payload.to_string_lossy());
+        assert_eq!(items[0].size.logical, 8192);
+        assert!(items[0].cleanable_bytes() > 0);
+        assert!(items[0].is_selected);
+        assert!(!registry.path_is_in_scope(registry.get(&id).unwrap(), &sibling, &environment));
+        let plan = SafetyPlanner::create_plan_with_process_probe(
+            &items,
+            &registry,
+            &environment,
+            &owners,
+            &idle(),
+        )
+        .unwrap();
+        assert_eq!(plan.targets.len(), 1);
+        assert_eq!(plan.targets[0].path, payload);
+
+        // A scan made while idle must still be refused if the owner starts
+        // before planning. Resolving the empty variable grants no exemption.
+        let busy = RunningApplications::from_process_names(["node".into()]);
+        let refused = SafetyPlanner::create_plan_with_process_probe(
+            &items,
+            &registry,
+            &environment,
+            &owners,
+            &busy,
+        );
+        match refused {
+            Err(crate::models::NeatiError::RefusedSelection(refusals)) => {
+                assert_eq!(refusals.len(), 1);
+                assert_eq!(
+                    refusals[0].reason,
+                    crate::models::CleanFailureReason::SafetyBoundary
+                );
+            }
+            other => panic!("a freshly running cache owner must refuse planning: {other:?}"),
+        }
+        assert!(payload.exists());
+        assert!(sibling.exists());
+    }
+}
+
+#[test]
 fn xdg_cache_override_is_used_by_discovery_and_authorization() {
     let fixture = tempfile::tempdir().unwrap();
     let home = neati_platform::NativePlatformPaths::normalize_verbatim_path(

@@ -177,6 +177,34 @@ fn user_tool_observation_retains_generated_executable_and_unknown_payloads_witho
 }
 
 #[test]
+fn empty_xdg_cache_home_retains_named_observations_without_cleanup_authority() {
+    let fixture = tempfile::tempdir().unwrap();
+    let home = fixture.path().canonicalize().unwrap();
+    let env = environment(&home).with_cache_path_override("XDG_CACHE_HOME", "");
+    let registry = SignatureRegistry::load_embedded_catalog().unwrap();
+    let unrelated = home.join(".cache/unrelated/payload");
+    write(&unrelated);
+    for (id, namespace) in [
+        (IDS[0], "oh-my-zsh"),
+        (IDS[1], "gh"),
+        ("ai.opencode.cache", "opencode"),
+    ] {
+        let cache = home.join(".cache").join(namespace);
+        write(&cache.join("payload"));
+        let items = observe(&registry, id, &env);
+        let present = items.iter().filter(|item| item.exists).collect::<Vec<_>>();
+        assert_eq!(present.len(), 1, "{id}");
+        assert_eq!(present[0].path, cache.to_string_lossy());
+        assert_eq!(present[0].size.logical, 8192);
+        assert_eq!(present[0].quality, ObservationQuality::Fresh);
+        assert_advisory(present[0]);
+        assert!(!registry.path_is_in_scope(registry.get(id).unwrap(), &unrelated, &env));
+        assert!(cache.join("payload").exists());
+    }
+    assert!(unrelated.exists());
+}
+
+#[test]
 fn user_tool_xdg_override_is_exact_and_never_searches_the_default_or_neighbor_store() {
     let fixture = tempfile::tempdir().unwrap();
     let home = fixture.path().canonicalize().unwrap();
@@ -236,7 +264,7 @@ fn user_tool_invalid_xdg_override_does_not_fall_back_to_another_namespace() {
 fn user_tool_advisory_signature_cannot_be_forged_into_a_delete_plan() {
     let fixture = tempfile::tempdir().unwrap();
     let home = fixture.path().canonicalize().unwrap();
-    let env = environment(&home);
+    let env = environment(&home).with_cache_path_override("XDG_CACHE_HOME", "");
     let registry = catalog();
     write(&home.join(".oh-my-zsh/cache/payload"));
     write(&home.join(".cache/gh/response"));
@@ -501,17 +529,22 @@ fn user_tool_linked_roots_and_ancestors_are_not_measured_or_followed() {
         } else {
             symlink(&outside, home.join(".cache")).unwrap();
         }
-        let items = observe(&catalog(), IDS[1], &environment(&home));
-        assert_eq!(items.len(), 1);
-        assert_eq!(items[0].quality, ObservationQuality::Unavailable);
-        assert_eq!(
-            items[0].inspection_issue,
-            Some(ScanGapKind::SafetyProtected)
-        );
-        assert_eq!(items[0].size.logical, 0);
-        assert_eq!(items[0].file_count, 0);
-        assert_eq!(items[0].last_modified, None);
-        assert_advisory(&items[0]);
+        for env in [
+            environment(&home),
+            environment(&home).with_cache_path_override("XDG_CACHE_HOME", ""),
+        ] {
+            let items = observe(&catalog(), IDS[1], &env);
+            assert_eq!(items.len(), 1);
+            assert_eq!(items[0].quality, ObservationQuality::Unavailable);
+            assert_eq!(
+                items[0].inspection_issue,
+                Some(ScanGapKind::SafetyProtected)
+            );
+            assert_eq!(items[0].size.logical, 0);
+            assert_eq!(items[0].file_count, 0);
+            assert_eq!(items[0].last_modified, None);
+            assert_advisory(&items[0]);
+        }
         assert!(outside.join("gh/response").exists());
     }
 }

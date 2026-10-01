@@ -1306,12 +1306,21 @@ mod tests {
             } else {
                 "/neati-fixture-home"
             });
-        let excluded_environment = environment
-            .clone()
-            .with_cache_path_override("XDG_CACHE_HOME", &cache);
-        let included_environment =
-            environment.with_cache_path_override("XDG_CACHE_HOME", fixture.path().join("other"));
-        let exclusions = vec!["${XDG_CACHE_HOME}/keep".into()];
+        // Windows TEMP may use an 8.3 spelling that an arbitrary XDG override
+        // correctly refuses. Exercise the environment's stated temporary root
+        // instead of weakening that override contract for a fixture.
+        let excluded_environment = environment.clone().with_temp_dir(fixture.path());
+        let included_root = fixture.path().join("other");
+        let included_environment = environment.with_temp_dir(&included_root);
+        let exclusions = vec!["${TEMP}/cache/keep".to_string()];
+        assert_eq!(
+            excluded_environment.expand_placeholder(&exclusions[0]),
+            Some(cache.join("keep"))
+        );
+        assert_eq!(
+            included_environment.expand_placeholder(&exclusions[0]),
+            Some(included_root.join("cache/keep"))
+        );
         let pool = ThreadPoolBuilder::new().num_threads(2).build().unwrap();
         for workers in [None, Some(&pool)] {
             std::fs::write(cache.join("payload.bin"), vec![1u8; 1_024]).unwrap();

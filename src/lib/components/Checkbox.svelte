@@ -46,13 +46,13 @@
   />
   <div
     class="h-4 w-4 rounded-[4px] border transition-colors duration-140 flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background {checked || indeterminate
-      ? 'bg-success border-success text-white'
+      ? 'bg-success border-success text-success-foreground'
       : 'border-border-strong bg-card hover:border-foreground text-transparent'}"
   >
     {#if indeterminate}
       <Minus size={11} strokeWidth={3} aria-hidden="true" />
     {:else if checked}
-      <Check size={11} strokeWidth={3} class="stroke-white" />
+      <Check size={11} strokeWidth={3} class="stroke-success-foreground" />
     {/if}
   </div>
   {#if label}<span class="text-body font-medium">{label}</span>{/if}

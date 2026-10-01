@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { trapDialogFocus } from '../utils/modalDialog';
   import type { ScanResult } from '../models/types';
   import { quickCleanupDetails } from '../utils/quickCleanupDetails';
   import Button from './Button.svelte';
@@ -27,6 +28,7 @@
 </script>
 
 <dialog
+  use:trapDialogFocus
   bind:this={dialog}
   aria-labelledby={id + '-title'}
   aria-describedby={id + '-description'}

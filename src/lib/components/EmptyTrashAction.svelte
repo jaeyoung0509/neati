@@ -2,6 +2,7 @@
   import { onDestroy, tick } from 'svelte';
   import Button from './Button.svelte';
   import { restoreFocus } from '../utils/focus';
+  import { trapDialogFocus } from '../utils/modalDialog';
   import { formatBytes } from '../utils/format';
   import { emptyReviewedTrash } from '../utils/emptyTrash';
   import { tauriPreviewEmptyTrash, tauriCancelEmptyTrash } from '../utils/tauri';
@@ -44,7 +45,7 @@
 <Button variant="outline" size="sm" disabled={disabled || loading} onclick={review}>{loading ? 'Reading Trash…' : 'Review Trash'}</Button>
 {#if error && !preview}<span role="alert" class="text-meta text-destructive">{error}</span>{/if}
 {#if preview}
-  <dialog bind:this={dialog} tabindex="-1" aria-labelledby={id + '-title'} aria-describedby={id + '-description'}
+  <dialog use:trapDialogFocus bind:this={dialog} tabindex="-1" aria-labelledby={id + '-title'} aria-describedby={id + '-description'}
     oncancel={event => { event.preventDefault(); close(); }}
     class="m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30">
     <h2 id={id + '-title'} class="text-title font-semibold">{result ? 'Trash cleanup result' : 'Empty home Trash?'}</h2>

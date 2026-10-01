@@ -2,6 +2,7 @@
 import '../../app.css';
 import { mount, tick } from 'svelte';
 import Dashboard from '../../routes/dashboard/Dashboard.svelte';
+import ModalValidation from './ModalValidation.svelte';
 import { mockApi } from '../../lib/api/mock';
 import { settingsStore } from '../../lib/stores/settings.svelte';
 import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
@@ -12,10 +13,29 @@ import { awakeStore } from '../../lib/stores/awake.svelte';
 import { scanStore } from '../../lib/stores/scan.svelte';
 import { usageStore } from '../../lib/stores/usage.svelte';
 import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
+import { developmentPortsStore } from '../../lib/stores/developmentPorts.svelte';
 import type { PublishedScan, ScanEvent, ScanItem, ScanResult } from '../../lib/models/types';
 
 const published = await mockApi.startScan(() => {});
 const inventory = published.result;
+const dialogItems = inventory.categories.flatMap(category => category.items)
+  .filter(item => item.disposition?.eligibility === 'auto_cleanable' || item.is_selected).slice(0, 3);
+const dialogPlan = await mockApi.createPlan(inventory.scan_id, dialogItems);
+const dialogResult = await mockApi.executeClean(dialogPlan, true, () => {});
+// Synthetic result DTO, never a native free-space reading or removal claim.
+dialogResult.actual_disk_free_delta = null;
+for (const item of dialogResult.items) item.path = '/fixture/' + '긴 경로와 프로젝트 이름 / '.repeat(20);
+const dialogQuit = await mockApi.previewCleanupQuit(inventory.scan_id, dialogItems.map(item => item.id));
+async function dismissDialog() {
+  modalFixture.dismiss();
+  await tick();
+}
+async function showDialog(kind: string) {
+  await dismissDialog();
+  if (!['review', 'quit', 'result', 'details', 'quick-review'].includes(kind)) throw new Error('Unknown dialog fixture');
+  modalFixture.show(kind);
+  await tick();
+}
 platformCapabilitiesStore.capabilities = await mockApi.getPlatformCapabilities();
 platformContextStore.context = await mockApi.getPlatformContext();
 platformCapabilitiesStore.load = platformContextStore.load = async () => {};
@@ -34,6 +54,7 @@ memoryStore.disk = await mockApi.getDiskMetrics();
 systemMetricsStore.cpu = await mockApi.getCpuMetrics();
 systemMetricsStore.battery = await mockApi.getBatteryMetrics();
 awakeStore.state = await mockApi.getAwakeState();
+developmentPortsStore.listeners = await mockApi.listDevelopmentListeners();
 const cachedUsage = await mockApi.getAiUsage();
 usageStore.snapshot = structuredClone(cachedUsage);
 agentActivityStore.snapshot = await mockApi.getProjectContext();
@@ -195,12 +216,27 @@ async function scan(kind: string) {
 }
 await scan('ready');
 mount(Dashboard, { target: document.getElementById('app')! });
+const modalFixture = mount(ModalValidation, { target: document.getElementById('app')!, props: {
+  plan: dialogPlan, items: dialogItems, result: dialogResult, quit: dialogQuit, scan: inventory,
+} });
 const driver = {
   ready: false,
   scan,
   beginProgress,
   progressMeasurement,
   endProgress,
+  showDialog,
+  dismissDialog,
+  async syntheticForceTransition() {
+    // Exercise the production two-step UI using the existing deterministic
+    // mock response. This fixture never invokes a native release or PID action.
+    developmentPortsStore.release = async (listener, mode) => {
+      const result = await mockApi.releaseDevelopmentListener(listener.id, mode);
+      developmentPortsStore.listeners = await mockApi.listDevelopmentListeners();
+      return result;
+    };
+    await tick();
+  },
   async providerLoading(loading = true) {
     const snapshot = structuredClone(cachedUsage);
     snapshot.fetched_at = Math.floor(Date.now() / 1000);
@@ -219,7 +255,12 @@ const driver = {
   },
   async longNames() {
     for (const category of scanStore.lastScan?.categories ?? []) category.display_name = `개발 도구와 애플리케이션 캐시 · ${category.display_name} with an unusually long translated name`;
-    for (const provider of usageStore.snapshot?.providers ?? []) provider.name += ' · 개발 조직의 긴 계정 이름과 워크스페이스';
+    for (const provider of usageStore.snapshot?.providers ?? []) {
+      if (!provider.name.includes('개발 조직')) provider.name += ' · 개발 조직의 긴 계정 이름과 워크스페이스';
+    }
+    for (const process of memoryStore.memory?.top_processes ?? []) {
+      if (!process.name.includes('개발 애플리케이션')) process.name += ' · 개발 애플리케이션의 긴 영어와 한국어 이름';
+    }
     await tick();
   },
 };

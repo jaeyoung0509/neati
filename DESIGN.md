@@ -159,7 +159,8 @@ targets ≥ 4.5:1 and meaningful controls, boundaries, and focus target ≥ 3:1.
 | `--action-foreground` | `225 48% 24%` | `225 48% 15%` | Text on pastel buttons |
 | `--primary-foreground` | `0 0% 100%` | `224 48% 13%` | Text on saturated cobalt surfaces |
 | `--ring` | `220 82% 36%` | `217 88% 68%` | Focus outline |
-| `--success` | `162 71% 24%` | `157 60% 29%` | Safe candidates, protected items, healthy readings |
+| `--success` | `162 71% 24%` | `157 58% 68%` | Safe candidates, protected items, healthy readings |
+| `--success-foreground` | `0 0% 100%` | `159 43% 9%` | Checked control marks on the success fill |
 | `--warning` | `33 100% 27%` | `38 76% 63%` | Rebuild caches, cautionary states, elevated pressure |
 | `--destructive` | `3 71% 41%` | `4 75% 70%` | Destructive actions, kills, hard errors |
 | `--ai` | `215 76% 39%` | `217 85% 72%` | AI metadata accent, shared blue family |
@@ -382,7 +383,9 @@ inventory is still valid.
   tab uses the pale blue `--accent` surface rather than a dark pill.
 - **Switch / Checkbox**: switches are for persistent on/off state only,
   checkboxes for selection. The enabled switch track and the selected checkbox
-  use `--success` with a white check; never a plain white track.
+  use `--success` with its paired `--success-foreground` mark. An unchecked
+  switch uses a contrasting muted thumb and an essential border; both themes
+  retain the shared visible focus ring.
 - **EmptyState**: separate states for empty search results, no inventory,
   missing platform capability, and failed loading.
   Cleanup distinguishes a verified empty scan from an unread/partial result,
@@ -749,7 +752,12 @@ preview states that permission checks require the desktop application.
   focus ≥ 3:1 in both themes. Decorative separators are not the only boundary
   between two interactive regions.
 - Full keyboard traversal with visible focus; dialogs trap focus and return it
-  to the invoking control.
+  to the invoking control. Containers, Dev Servers and Keep Awake use native
+  modal isolation with the shared keyboard/focus action. Destructive reviews
+  start at Cancel; long editors start at their title. Hidden disclosure controls
+  never enter the modal tab cycle, and busy workflows own cancellation.
+  Existing cleanup and process dialogs share that visible-control Tab cycle
+  while preserving their own plan, Stop and confirmation lifetimes.
 - Accessible names, tooltips, and labels on every icon-only button.
 - No information is conveyed by colour alone, and long English/Korean labels
   wrap between words instead of shrinking or breaking inside a word.

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { restoreFocus } from '../../utils/focus';
+  import { trapDialogFocus } from '../../utils/modalDialog';
   import type { ProcessMemory } from '../../models/types';
   import { memoryStore } from '../../stores/memory.svelte';
   import { platformCapabilitiesStore } from '../../stores/platformCapabilities.svelte';
@@ -314,6 +315,8 @@
                     size="sm"
                     class="gap-1.5 opacity-70 group-hover:opacity-100"
                     disabled={memoryStore.terminating !== null}
+                    ariaLabel={`Quit ${proc.name}`}
+                    title={`Review quit options for ${proc.name}`}
                     onclick={() => openTerminationDialog(proc)}
                   >
                     <LogOut size={12} />
@@ -348,7 +351,7 @@
 
   <!-- Quit Process Group Modal -->
   {#if pendingProcess}
-    <dialog bind:this={terminationDialog} class="m-auto w-[calc(100%-2rem)] max-w-md overflow-visible border-0 bg-transparent p-0 text-foreground backdrop:bg-background/80" aria-labelledby="terminate-title" oncancel={() => { pendingProcess = null; forceAuthorized = false; }}>
+    <dialog use:trapDialogFocus bind:this={terminationDialog} class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable border-0 bg-transparent p-0 text-foreground backdrop:bg-background/80 [overflow-wrap:anywhere]" aria-labelledby="terminate-title" oncancel={() => { pendingProcess = null; forceAuthorized = false; }}>
       <Card class="w-full max-w-md space-y-4 border-border bg-card p-5 shadow-2xl">
         <div class="flex items-start gap-3">
           <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">

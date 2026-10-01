@@ -6,6 +6,7 @@
   import Button from './Button.svelte';
   import { CheckCircle2, AlertTriangle, X, AlertCircle, CircleMinus } from '@lucide/svelte';
   import { restoreFocus } from '../utils/focus';
+  import { trapDialogFocus } from '../utils/modalDialog';
   import { platformContextStore } from '../stores/platformContext.svelte';
 
   interface Props {
@@ -75,21 +76,6 @@
       onClose();
       return;
     }
-    if (event.key === 'Tab') {
-      const focusable = dialog?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      if (!focusable || focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
   }
 
   function handleBackdropClick(event: MouseEvent) {
@@ -108,6 +94,7 @@
 </script>
 
 <dialog
+  use:trapDialogFocus
   bind:this={dialog}
   tabindex="-1"
   id={id + '-dialog'}

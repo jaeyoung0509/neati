@@ -398,13 +398,14 @@
           type="search"
           bind:value={query}
           placeholder="Search applications"
-          class="w-full h-8 rounded-lg border border-border bg-background pl-8 pr-3 text-xs outline-none focus:border-ring"
+          aria-label="Search applications"
+          class="focus-ring w-full h-8 rounded-lg border border-border bg-background pl-8 pr-3 text-xs outline-none focus:border-ring"
         />
       </div>
 
       <!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard users must be able to scroll the virtualized region) -->
       <div
-        class="max-h-[calc(100vh-245px)] overflow-y-auto scroll-stable md:min-h-0 md:max-h-none md:flex-1"
+        class="focus-ring max-h-[calc(100vh-245px)] overflow-y-auto scroll-stable md:min-h-0 md:max-h-none md:flex-1"
         bind:clientHeight={appListViewportHeight}
         onscroll={(event) => (appListScrollTop = event.currentTarget.scrollTop)}
         role="region"
@@ -470,7 +471,13 @@
       </div>
     </Card>
 
-    <div class="space-y-4 min-w-0 md:max-h-[calc(100vh-5rem)] md:overflow-y-auto md:scroll-stable">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex (application details have an independent scroller) -->
+    <div
+      class="focus-ring space-y-4 min-w-0 md:max-h-[calc(100vh-5rem)] md:overflow-y-auto md:scroll-stable"
+      role="region"
+      aria-label="Application details"
+      tabindex="0"
+    >
       {#if inspection}
         <Card class="p-5 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">

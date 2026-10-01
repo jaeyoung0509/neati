@@ -911,7 +911,7 @@ mod tests {
         let plan = TrashPlanner::from_developer_artifacts(
             &environment,
             &inventory,
-            &[record.artifact.id.clone()],
+            std::slice::from_ref(&record.artifact.id),
         )
         .unwrap();
         let backend = Arc::new(neati_platform::MockTrashBackend::new());
@@ -928,7 +928,7 @@ mod tests {
         let plan = TrashPlanner::from_developer_artifacts(
             &environment,
             &inventory,
-            &[record.artifact.id.clone()],
+            std::slice::from_ref(&record.artifact.id),
         )
         .unwrap();
         let backend = neati_platform::MockTrashBackend::new();
@@ -971,7 +971,7 @@ mod tests {
         let mut plan = TrashPlanner::from_developer_artifacts(
             &environment,
             &inventory,
-            &[record.artifact.id.clone()],
+            std::slice::from_ref(&record.artifact.id),
         )
         .unwrap();
         let project = record.project_root.clone();

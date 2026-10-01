@@ -384,7 +384,10 @@ safety conventions below when changing neati.
   revoke authority; key contents are never inspected. An unfinished ownership
   probe cannot be treated as an incomplete byte measurement. Read-only index
   inspection uses the bounded platform adapter, sanitized routing, disabled
-  hooks/fsmonitor and denied network/lazy-fetch protocols. Split-index layouts,
+  hooks/fsmonitor and denied network/lazy-fetch protocols. Git queries receive
+  private checksum-verified SHA-1 index copies and bounded configuration copies;
+  live repository metadata is rebound rather than passed to the child.
+  Split-index and non-SHA-1 layouts, unsupported file identities,
   ambiguous Unicode path equivalence and unverified metadata remain blocked.
   Default SvelteKit/Next outputs with direct bounded dependency evidence remain
   observation-only until their owner-use and mutation contracts are verified;

@@ -46,8 +46,11 @@ fn composition_snapshot_shell_overrides_are_bounded_advisory_and_do_not_execute_
         assert_eq!(item.size.logical, 0);
         assert_eq!(item.file_count, 0);
         assert!(
-            Path::new(&item.path) == home.join(".oh-my-zsh/cache")
-                || Path::new(&item.path) == home.join(".cache/oh-my-zsh")
+            [home.join(".oh-my-zsh/cache"), home.join(".cache/oh-my-zsh")]
+                .iter()
+                .any(|root| path_algebra::equal(&item.path, &root.to_string_lossy(), env.flavor())),
+            "Unexpected absent observation root: {}",
+            item.path
         );
     }
     for broad in [
@@ -63,6 +66,34 @@ fn composition_snapshot_shell_overrides_are_bounded_advisory_and_do_not_execute_
             .is_none());
     }
     assert!(home.join(".zshrc").exists());
+}
+
+#[test]
+fn shell_fixed_roots_preserve_stated_windows_verbatim_home_identity_and_scope() {
+    let env = PlatformEnvironment::simulated(PathFlavor::Windows)
+        .with_platform(PlatformKind::Macos)
+        .with_home(r"\\?\C:\Users\fixture");
+    let registry = catalog();
+    let signature = registry.get(IDS[0]).unwrap();
+    let roots = registry.resolve_paths(signature, &env);
+    assert_eq!(roots.len(), 2);
+    for expected in [
+        r"\\?\C:\Users\fixture\.oh-my-zsh\cache",
+        r"\\?\C:\Users\fixture\.cache\oh-my-zsh",
+    ] {
+        assert!(roots.iter().any(|root| path_algebra::equal(
+            &root.to_string_lossy(),
+            expected,
+            env.flavor()
+        )));
+    }
+    for outside in [
+        r"C:\Users\fixture\.oh-my-zsh",
+        r"C:\Users\fixture\.cache",
+        r"C:\Users\fixture\.cache\unrelated",
+    ] {
+        assert!(!registry.path_is_in_scope(signature, Path::new(outside), &env));
+    }
 }
 
 #[test]

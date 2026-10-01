@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { onMount, tick } from 'svelte';
   import type {
     LargeFileItem,
@@ -105,8 +106,7 @@
 
   $effect(() => {
     if (!plan) return;
-    const timer = setInterval(() => (now = Date.now()), 1000);
-    return () => clearInterval(timer);
+    return observeWhileVisible(() => { now = Date.now(); }, 1000);
   });
   function resetReview() {
     plan = null;

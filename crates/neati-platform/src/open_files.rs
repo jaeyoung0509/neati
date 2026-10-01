@@ -32,6 +32,18 @@ impl OpenFileProbe for FixedOpenFileProbe {
 }
 
 pub fn observe_open_files(path: &Path) -> OpenFileState {
+    observe_open_files_with_cancellation(path, &|| false)
+}
+
+/// Scan cancellation never proves idle. Planning and execution continue to use
+/// the ordinary fresh observation above, without a reused scan verdict.
+pub fn observe_open_files_with_cancellation(
+    path: &Path,
+    is_cancelled: &dyn Fn() -> bool,
+) -> OpenFileState {
+    if is_cancelled() {
+        return OpenFileState::Unknown;
+    }
     #[cfg(target_os = "macos")]
     {
         if !path.is_absolute() {
@@ -45,15 +57,27 @@ pub fn observe_open_files(path: &Path) -> OpenFileState {
             command.arg("--");
         }
         command.arg(path);
-        match crate::subprocess::run_with_timeout(command, std::time::Duration::from_secs(3)) {
-            Ok(output) => classify(output.status.code(), &output.stdout, &output.stderr),
-            Err(_) => OpenFileState::Unknown,
-        }
+        observe_command(command, is_cancelled)
     }
     #[cfg(not(target_os = "macos"))]
     {
         let _ = path;
         OpenFileState::Unknown
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn observe_command(
+    command: std::process::Command,
+    is_cancelled: &dyn Fn() -> bool,
+) -> OpenFileState {
+    match crate::subprocess::run_with_timeout_cancellable(
+        command,
+        std::time::Duration::from_secs(3),
+        is_cancelled,
+    ) {
+        Ok(output) => classify(output.status.code(), &output.stdout, &output.stderr),
+        Err(_) => OpenFileState::Unknown,
     }
 }
 
@@ -78,6 +102,35 @@ fn classify(code: Option<i32>, stdout: &[u8], stderr: &[u8]) -> OpenFileState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_cancelled_read_never_proves_the_unit_idle() {
+        assert_eq!(
+            observe_open_files_with_cancellation(Path::new("/fixture/not-probed"), &|| true),
+            OpenFileState::Unknown
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn stop_reaps_an_owned_read_only_probe_and_returns_unknown() {
+        let requested = std::sync::OnceLock::new();
+        let started = std::time::Instant::now();
+        let mut command = std::process::Command::new("/bin/sh");
+        command.args(["-c", "sleep 10 & wait"]);
+        let result = observe_command(command, &|| {
+            if started.elapsed() < std::time::Duration::from_millis(100) {
+                return false;
+            }
+            requested.get_or_init(std::time::Instant::now);
+            true
+        });
+        assert_eq!(result, OpenFileState::Unknown);
+        assert!(
+            requested.get().expect("Stop was observed").elapsed()
+                < std::time::Duration::from_secs(1)
+        );
+    }
     #[test]
     fn only_a_complete_empty_listing_proves_idle() {
         assert_eq!(classify(Some(1), b"", b""), OpenFileState::Idle);

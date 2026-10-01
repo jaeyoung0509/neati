@@ -69,3 +69,8 @@ packaging result. Windows file-ID/time-restoration and linked-worktree fixtures
 need that native runner; interactive Windows/Linux use and native tray/glass
 behavior remain unverified. This local bundle was not installed or launched
 as a GUI. No real-user cleanup was performed.
+
+The first follow-up run subsequently passed Windows lint but failed its
+positive generated-artifact planning fixture. The
+[Git operand correction](../git-operands/README.md) records the resulting
+path-boundary correction and updated local evidence.

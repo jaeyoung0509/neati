@@ -8,11 +8,12 @@ checkpoint was `e0ff207`, before binding export and test-only Clippy fixes.
 The shipped UI remained frozen between those checkpoints.
 
 The latest Rust-only source checkpoint is
-`633337cfb0421c726fa0c0e41f53744b4a799d19`. The
-[Windows CI follow-up](ci-followup/README.md) records the lint correction,
-canonical linked-worktree route comparison, regression coverage and repeated
-local verification. Version **0.3.95** is retained for this same-PR follow-up;
-the initial evidence below remains a record of its earlier checkpoints.
+`e6d7a9a5d531deb16566c2ce02b4865848a12ee1`. The
+[Windows Git operand correction](git-operands/README.md) records its final
+1,335-test local verification and rebuilt bundle. The earlier
+[Windows CI follow-up](ci-followup/README.md) records the lint and canonical
+linked-worktree corrections. Version **0.3.95** is retained for this same-PR
+follow-up; the initial evidence below records its earlier checkpoints.
 
 This batch implements [#390](https://github.com/jaeyoung0509/neati/issues/390)
 and the observation slice of

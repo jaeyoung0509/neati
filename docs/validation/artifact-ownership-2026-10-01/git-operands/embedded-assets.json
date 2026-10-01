@@ -1,0 +1,131 @@
+{
+  "verified_at_utc": "2026-10-01T09:15:22.769Z",
+  "source_commit": "e6d7a9a5d531deb16566c2ce02b4865848a12ee1",
+  "version": "0.3.95",
+  "method": "Brotli-decompress generated Tauri assets, compare every dist/assets file byte-for-byte, and find those exact compressed bytes in the packaged executable.",
+  "entry_script": "./assets/index-Ej6E9PNk.js",
+  "embedded_html_routes_to_current_entry": true,
+  "asset_count": 20,
+  "assets": [
+    {
+      "asset": "assets/BrandIcon-DhGGHqZf.css",
+      "sha256": "1d3925e72795e08443b03eb22dd60ad2fa4fc51aaacbd7f64152508950726c64",
+      "compressed_bytes": 518,
+      "embedded": true
+    },
+    {
+      "asset": "assets/BrandIcon-d1fj7cuD.js",
+      "sha256": "911e63c87744ebd01dc787c2004e72f275dfe81fa9a15fe10ff845cfc5a4b714",
+      "compressed_bytes": 20272,
+      "embedded": true
+    },
+    {
+      "asset": "assets/Dashboard-D64YTg3c.js",
+      "sha256": "68ee24441260230b161bfe823e7acab96ae37baa6f692fd579a1ef55dc9eb5e1",
+      "compressed_bytes": 104652,
+      "embedded": true
+    },
+    {
+      "asset": "assets/Dashboard-DrpCTGOC.css",
+      "sha256": "d3b3f70d254f6eef13e74a511b1850d9ae2740d9a80c72d5dff8b1d3eb9f3c98",
+      "compressed_bytes": 1242,
+      "embedded": true
+    },
+    {
+      "asset": "assets/QuickPanel-B70bV4XZ.js",
+      "sha256": "8b245f918d0b2af5afec8f1d4a5b77e9c7997c87b8233abebb4fa2e2a9500f06",
+      "compressed_bytes": 11126,
+      "embedded": true
+    },
+    {
+      "asset": "assets/copilot-7BoBRmFo.png",
+      "sha256": "cb853b5b8a881d697cd6e51439ebbc7ac1eea436ce450371fb948093ea509217",
+      "compressed_bytes": 7439,
+      "embedded": true
+    },
+    {
+      "asset": "assets/core-DNaw6KYU.js",
+      "sha256": "47fa86ad237989d8dca06a2bcbfc062f4627d45c70d4857731d1f5b7b76830d6",
+      "compressed_bytes": 838,
+      "embedded": true
+    },
+    {
+      "asset": "assets/dpi-Cq0vR3n3.js",
+      "sha256": "ab852e58e16dd5dd5769a02937dcfd293e8fec9197a200cc69f8356f5c1b0de3",
+      "compressed_bytes": 623,
+      "embedded": true
+    },
+    {
+      "asset": "assets/event-BlJUiB_z.js",
+      "sha256": "331a7d5879292307d786d6a8ea5b2a7dbcadd762a029bcf7b47b2dbc71982ba2",
+      "compressed_bytes": 721,
+      "embedded": true
+    },
+    {
+      "asset": "assets/gemini-Bo4M5sF3.png",
+      "sha256": "351e9f5b1bf863d738cd7be4ed040a625a1419450ae7fc490143e4042b7c2438",
+      "compressed_bytes": 44400,
+      "embedded": true
+    },
+    {
+      "asset": "assets/index-DT8eupiP.css",
+      "sha256": "804d9b1fdeefce35208cacaac12433744a0502bdc06eb7d2b94fcd3fd74198ef",
+      "compressed_bytes": 13295,
+      "embedded": true
+    },
+    {
+      "asset": "assets/index-Ej6E9PNk.js",
+      "sha256": "ec938348dd293738be302b4c176e1b4322c85bb358b8541b061bc6cb5f00a27e",
+      "compressed_bytes": 51408,
+      "embedded": true
+    },
+    {
+      "asset": "assets/neati-C2G2Ko1w.svg",
+      "sha256": "82bfb6c378e65cfd0bb248cc9f3d65929c36423823d8aab68cfd0f80a42a7c0d",
+      "compressed_bytes": 270,
+      "embedded": true
+    },
+    {
+      "asset": "assets/ollama-CdYDqr97.svg",
+      "sha256": "1c8cec1ca568fad4ca8e66ab0328ca7c44a4a87a23b644cf9bd0cbd024d040f1",
+      "compressed_bytes": 3129,
+      "embedded": true
+    },
+    {
+      "asset": "assets/opencode-Dabr91qj.svg",
+      "sha256": "b1c48d82ebd304eab820658387642bcf4c9b8350d6860894d0fe21ddca25ef3f",
+      "compressed_bytes": 382,
+      "embedded": true
+    },
+    {
+      "asset": "assets/rolldown-runtime-DK3Fl9T5.js",
+      "sha256": "a526d1bb3288ef04d001028843220a24b0867a4edf8c685b69506d6525af36ff",
+      "compressed_bytes": 156,
+      "embedded": true
+    },
+    {
+      "asset": "assets/vite-Bs_r76O8.svg",
+      "sha256": "ceeac38434be7a3b4d0f68b8cd8aa2b9ae78c260d6343087c6e095f8031ce4ff",
+      "compressed_bytes": 1517,
+      "embedded": true
+    },
+    {
+      "asset": "assets/vscode-CQOxoFr0.png",
+      "sha256": "a51653af6534e0637d91b55ebd5f63f989302071d67a0724e48adfc16624b0a7",
+      "compressed_bytes": 674,
+      "embedded": true
+    },
+    {
+      "asset": "assets/webviewWindow-By8nsw2m.js",
+      "sha256": "8fb90bd281c6f5b2bd7e8b4abe85cd413e2b7681a35ea4f63ab2006e5345ba15",
+      "compressed_bytes": 1516,
+      "embedded": true
+    },
+    {
+      "asset": "assets/window-CGM1TOkC.js",
+      "sha256": "e68d69f7f320b3995afa83e938dd9e07ba7bdd83ce164417224c2017c08ce26c",
+      "compressed_bytes": 3289,
+      "embedded": true
+    }
+  ]
+}

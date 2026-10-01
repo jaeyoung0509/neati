@@ -65,3 +65,7 @@ native Windows Rust and packaging CI results separately. Interactive native
 Windows/Linux, tray/glass behavior and GUI cleanup remain unverified. No
 real-user cleanup, installation or GUI launch ran. Full logs and complete Git
 recovery bundles remain outside temporary storage.
+
+The owner subsequently authorized the ordered merge of #398 and #399.
+The [0.3.96 integration proof](../integration-0.3.96/README.md) records the
+new target/version synchronization and fresh local verification.

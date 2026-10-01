@@ -1,20 +1,22 @@
 # Developer artifact ownership and framework observations
 
-Validation date: October 1, 2026. Version: **0.3.94 → 0.3.95**, using one
+Initial validation date: October 1, 2026. Initial proposal: **0.3.94 → 0.3.95**, using one
 `just bump-patch` after scope settled. Host: macOS 27.0.1 (26A434), arm64.
 The initial validated source checkpoint is
 `e333f75d55fef8ddcc8dd26fc621ad5517fe05c1`; the initial browser interaction
 checkpoint was `e0ff207`, before binding export and test-only Clippy fixes.
 The shipped UI remained frozen between those checkpoints.
 
-The latest Rust-only source checkpoint is
-`26ef04d4db9d0f22fa56163388d79331cd730c8b`. The
-[directory identity follow-up](directory-entities/README.md) records its
-1,337-test local verification and rebuilt bundle. The earlier
+The latest local integration checkpoint is
+`876bea5404fba7d336347f04d8bbfc9034fca981`. The
+[ordered integration at 0.3.96](integration-0.3.96/README.md) records fresh
+1,343-test Rust and 485-test frontend verification, the rebuilt bundle,
+and the owner's authorization to merge without waiting for Windows packaging.
+#398 merged at .95 first; #399 then synchronizes the next patch to **.96**.
+The [directory identity follow-up](directory-entities/README.md),
 [Git operand correction](git-operands/README.md) and
-[Windows CI follow-up](ci-followup/README.md) retain their own checkpoints and
-results. Version **0.3.95** is retained within this PR; the evidence below
-records its initial checkpoints.
+[Windows CI follow-up](ci-followup/README.md) retain their own earlier .95
+checkpoints. The evidence below records the initial artifact proposal.
 
 This batch implements [#390](https://github.com/jaeyoung0509/neati/issues/390)
 and the observation slice of
@@ -32,7 +34,7 @@ unverified. Link #391 as **Refs**, rather than closing the entire issue. Custom
 configuration is not evaluated, and unverified wrappers retain nested-package
 discovery. The existing 16-workspace and 512-candidate budgets remain in place.
 
-## Local checks
+## Initial local checks
 
 All commands completed successfully against the .95 source. Full command logs
 are retained in the durable recovery verification directory; the portable

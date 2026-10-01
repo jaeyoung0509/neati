@@ -667,6 +667,11 @@ fn repository_routes(
             }
             let common =
                 recorded_path(&target, &read_metadata(&target.join("commondir"), budget)?)?;
+            // Bind the recorded route before canonicalization, then compare
+            // like canonical forms. Windows canonical paths carry a verbatim
+            // prefix that lexical metadata paths deliberately normalize away.
+            verify_components(&common, budget)?;
+            let common = fs::canonicalize(common).map_err(|_| Uncertainty::MalformedMetadata)?;
             if target.parent().and_then(Path::parent) != Some(common.as_path())
                 || target.parent().and_then(Path::file_name)
                     != Some(std::ffi::OsStr::new("worktrees"))
@@ -1230,10 +1235,29 @@ mod tests {
         fs::create_dir(&artifact).unwrap();
         fs::write(artifact.join("generated.bin"), b"generated").unwrap();
         assert_eq!(probe(&linked, &artifact), Evidence::VerifiedGenerated);
-        git(&linked, &["add", "--", "target/generated.bin"]);
-        assert_eq!(probe(&linked, &artifact), Evidence::TrackedContent);
         let pointer = fs::read_to_string(linked.join(".git")).unwrap();
         let git_dir = PathBuf::from(pointer.trim().strip_prefix("gitdir: ").unwrap());
+        let common_pointer = git_dir.join("commondir");
+        let original_common = fs::read(&common_pointer).unwrap();
+        let canonical_common = fs::canonicalize(root.join(".git")).unwrap();
+        // The same native directory can be recorded with a lexical spelling
+        // or the verbatim spelling returned by Windows canonicalization.
+        for common in [
+            crate::path_algebra::normalize_lexical(&canonical_common),
+            canonical_common,
+        ] {
+            fs::write(&common_pointer, common.to_string_lossy().as_bytes()).unwrap();
+            assert_eq!(probe(&linked, &artifact), Evidence::VerifiedGenerated);
+        }
+        fs::write(&common_pointer, &original_common).unwrap();
+        git(&linked, &["add", "--", "target/generated.bin"]);
+        assert_eq!(probe(&linked, &artifact), Evidence::TrackedContent);
+        fs::write(&common_pointer, root.to_string_lossy().as_bytes()).unwrap();
+        assert_eq!(
+            probe(&linked, &artifact),
+            Evidence::Incomplete(Uncertainty::MalformedMetadata)
+        );
+        fs::write(&common_pointer, original_common).unwrap();
         fs::write(
             git_dir.join("gitdir"),
             root.join(".git").to_string_lossy().as_bytes(),

@@ -77,8 +77,28 @@ fn additional_named_browser_and_tool_scopes_preserve_adjacent_state_and_never_au
             "Library/Application Support/Arc/User Data/Default/Cache/response",
         ),
         (
+            "system.arc.profile_cache_observations",
+            "Library/Application Support/Arc/Profile 1/Code Cache/response",
+        ),
+        (
+            "system.arc.profile_cache_observations",
+            "Library/Application Support/company.thebrowser.Browser/Profile 2/GPUCache/response",
+        ),
+        (
             "system.chrome_devtools.profile_cache_observations",
             ".cache/chrome-devtools-mcp/chrome-profile/Default/Code Cache/data",
+        ),
+        (
+            "system.chrome_devtools.profile_cache_observations",
+            ".cache/chrome-devtools-mcp/chrome-profile-beta/Profile 1/Cache/data",
+        ),
+        (
+            "system.chrome_devtools.profile_cache_observations",
+            ".cache/chrome-devtools-mcp/chrome-profile-canary/Default/GPUCache/data",
+        ),
+        (
+            "system.chrome_devtools.profile_cache_observations",
+            ".cache/chrome-devtools-mcp/chrome-profile-dev/Default/Cache/data",
         ),
         (
             "dev.kubernetes.cached_metadata",
@@ -103,12 +123,24 @@ fn additional_named_browser_and_tool_scopes_preserve_adjacent_state_and_never_au
         assert!(!items.is_empty(), "{id}");
         for item in items {
             assert_advisory(&item);
+            if item.exists && item.observed_bytes() > 0 {
+                let mut forged = item.clone();
+                forged.is_selected = true;
+                forged.risk = RiskTier::Rebuild;
+                forged.cache_metadata.management_mode = CacheManagementMode::Neati;
+                forged.cache_metadata.size_semantics = CacheSizeSemantics::PhysicalReclaimable;
+                forged.disposition = forged.derive_disposition();
+                assert!(matches!(SafetyPlanner::create_plan_with_environment(
+                    &[forged], &registry, &env, &OwnerProviderRegistry::new(vec![]) ),
+                    Err(NeatiError::RefusedSelection(ref refused)) if refused.len() == 1 && refused[0].reason == CleanFailureReason::OwnerManaged));
+            }
         }
     }
     for relative in [
         "Library/Application Support/Arc/User Data/Default/Cookies",
         "Library/Application Support/Arc/User Data/Default/Service Worker/ScriptCache/keep",
         ".cache/chrome-devtools-mcp/chrome-profile/Default/IndexedDB/keep",
+        ".cache/chrome-devtools-mcp/chrome-profile-custom/Default/Cache/keep",
         ".kube/config",
         ".pyenv/versions/3.14/bin/python",
     ] {

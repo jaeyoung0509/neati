@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import AppLeftoverReview from '../lib/components/AppLeftoverReview.svelte';
-import { mockAppLeftoverInventory } from '../lib/api/mocks/appLeftovers';
+import { mockAppLeftoverInventory, mockAppLeftoversForPlatform } from '../lib/api/mocks/appLeftovers';
 import { mockStorageApi } from '../lib/api/storage';
 import { platformCapabilitiesStore } from '../lib/stores/platformCapabilities.svelte';
 import { platformContextStore } from '../lib/stores/platformContext.svelte';
@@ -62,5 +62,17 @@ describe('read-only application resource review', () => {
     expect(Object.keys(first).sort()).toEqual(['incomplete_reasons', 'items', 'limitation', 'observed_roots', 'quality', 'skipped_entry_count']);
     first.items[0].classification = 'installed_owner';
     expect((await mockStorageApi.getAppLeftovers()).items[0].classification).toBe('possible_removed_owner');
+  });
+
+  it('does not synthesize macOS observations for unimplemented platform previews', () => {
+    for (const platform of ['windows', 'linux'] as const) {
+      const inventory = mockAppLeftoversForPlatform(platform);
+      expect(inventory.quality).toBe('unavailable');
+      expect(inventory.items).toEqual([]);
+      const { body } = render(AppLeftoverReview, { props: { initialOpen: true, initialInventory: inventory } });
+      expect(body).toContain('Resource review unavailable');
+      expect(body).toContain('macOS adapter only');
+      expect(body).not.toContain('No possible leftovers were identified');
+    }
   });
 });

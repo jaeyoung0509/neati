@@ -60,7 +60,7 @@
         {#if loading || error}<p class="text-meta text-muted-foreground">Showing the previous observation; a fresh review has not completed.</p>{/if}
         <p class="text-meta text-muted-foreground">{inventory.limitation}</p>
         {#if inventory.quality !== 'fresh'}
-          <InlineNotice variant="info" title="Partial resource review" message={inventory.incomplete_reasons[0] ?? 'Some owners or locations could not be checked. Unknown locations are not counted as empty.'} />
+          <InlineNotice variant="info" title={inventory.quality === 'unavailable' ? 'Resource review unavailable' : 'Partial resource review'} message={inventory.incomplete_reasons[0] ?? 'Some owners or locations could not be checked. Unknown locations are not counted as empty.'} />
         {/if}
         <Checkbox checked={showInstalled} onchange={(checked) => { showInstalled = checked; }}
           ariaLabel="Include resources with an installed owner" label="Include resources with an installed owner"

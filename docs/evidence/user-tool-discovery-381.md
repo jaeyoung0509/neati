@@ -191,6 +191,14 @@ The prior sections describe the historical first slice. This follow-up adds:
   identifies a persistent automation profile; it is not a disposable whole unit.
   Unknown automation/user profile overrides gain no authority.
 
+The bounded browser matrix is: Arc's three recorded root spellings and the
+MCP default/canary/beta/dev persistent profile roots get named metadata-only
+observations. Dia, additional Firefox user-profile cache roots, Antigravity
+variants and custom automation roots remain unsupported pending exact
+installed-version/root evidence. None of these observations enable profile,
+offline-store, executable-distribution or browser-process mutation; versioned
+distribution/lifecycle work stays with #362.
+
 Cloud-provider credential stores (including AWS) and Prometheus WAL remain
 protected. No exact disposable user-cloud-log layout or installed owner scope
 was verified, so no speculative cloud namespace or command was added.
@@ -206,3 +214,11 @@ with zero reclaimed bytes and fixture/cache sentinels preserved. The
 example is `src-tauri/examples/validate_github_cli_cleanup.rs`; no user cache
 or installed software was changed. Additional checks and UI evidence belong
 to the final handoff; this section does not claim CI or native TCC success.
+
+A read-only 0.3.98 rerun on the same host measured 180,224 bytes in the named
+GitHub CLI/Oh My Zsh observations. Kubernetes was partial with unknown bytes;
+the other named roots produced no rows, which does not establish tool absence.
+ScanEngine's separate excluded-namespace observer is not new cleanup yield.
+Application review returned 128 rows within its bounded inventory and reported
+partial coverage. This run removed zero user bytes and did not measure free-space
+change; `src-tauri/examples/observe_mac_coverage.rs` records de-identified totals.

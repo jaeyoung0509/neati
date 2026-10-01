@@ -1,4 +1,5 @@
 import type { AppLeftoverInventory } from '../../models/types';
+import type { PreviewPlatform } from '../../models/platformContext';
 
 export const mockAppLeftoverInventory: AppLeftoverInventory = {
       items: [
@@ -9,3 +10,12 @@ export const mockAppLeftoverInventory: AppLeftoverInventory = {
       ], quality: 'partial', observed_roots: 6, skipped_entry_count: 1, incomplete_reasons: ['A shared-container descendant could not be measured; its displayed bytes are a lower bound.'],
       limitation: 'Read-only observations, separate from Cleanup estimates. A missing owner does not prove uninstall: apps may be relocated, portable, on an unavailable volume, or command-line tools. Cleanup is unavailable.',
     };
+
+export function mockAppLeftoversForPlatform(platform: PreviewPlatform): AppLeftoverInventory {
+  if (platform === 'macos') return structuredClone(mockAppLeftoverInventory);
+  return {
+    items: [], quality: 'unavailable', observed_roots: 0, skipped_entry_count: 0,
+    incomplete_reasons: ['User Library resource review has a macOS adapter only'],
+    limitation: mockAppLeftoverInventory.limitation,
+  };
+}

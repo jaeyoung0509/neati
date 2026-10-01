@@ -472,6 +472,22 @@ mod tests {
             incomplete_reasons: vec![],
         }
     }
+    #[test]
+    fn stated_non_mac_platforms_report_unavailable_without_adjacent_library_results() {
+        for platform in [PlatformKind::Windows, PlatformKind::Linux] {
+            let env = PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
+                .with_platform(platform)
+                .with_home("/unused-fixture-home");
+            let result = scan(&env);
+            assert_eq!(result.quality, ObservationQuality::Unavailable);
+            assert!(result.items.is_empty());
+            assert_eq!(result.observed_roots, 0);
+            assert!(result
+                .incomplete_reasons
+                .iter()
+                .any(|reason| reason.contains("macOS adapter only")));
+        }
+    }
     #[cfg(not(target_os = "windows"))]
     fn fixture_environment(home: &Path) -> PlatformEnvironment {
         use neati_platform::paths::SimulatedPaths;

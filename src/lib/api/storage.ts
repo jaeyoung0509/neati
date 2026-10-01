@@ -18,7 +18,8 @@ import type {
   TrashResult,
 } from '../models/types';
 import { isSelectedAppTrashLowerBound } from '../utils/storageManagement';
-import { mockAppLeftoverInventory } from './mocks/appLeftovers';
+import { mockAppLeftoversForPlatform } from './mocks/appLeftovers';
+import { previewPlatform } from './mocks/previewPlatform';
 type CommandResult<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E };
 
 async function unwrap<T, E>(promise: Promise<CommandResult<T, E>>): Promise<T> {
@@ -690,7 +691,7 @@ const mockStorageApi: StorageManagementApi = {
   },
 
   async getAppLeftovers(): Promise<AppLeftoverInventory> {
-    return structuredClone(mockAppLeftoverInventory);
+    return mockAppLeftoversForPlatform(previewPlatform());
   },
 
   async inspectAppUninstall(appId) {

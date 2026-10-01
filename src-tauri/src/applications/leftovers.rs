@@ -7,7 +7,7 @@ use crate::models::{
 };
 use crate::safety::SymlinkGuard;
 use neati_platform::PlatformEnvironment;
-#[cfg(test)]
+#[cfg(all(test, not(target_os = "windows")))]
 use std::fs;
 use std::{
     path::Path,

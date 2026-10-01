@@ -4,9 +4,13 @@
 
 The catalog observes the exact standard `~/.oh-my-zsh/cache` and
 `${XDG_CACHE_HOME}/oh-my-zsh` fallback namespaces, plus GitHub CLI's named
-`${XDG_CACHE_HOME}/gh` local cache on macOS/Linux. XDG defaults to `~/.cache`
-and uses the injected platform environment; invalid relative or traversing
-overrides do not fall back to another namespace. These entries are advisory:
+`${XDG_CACHE_HOME}/gh` local cache on macOS/Linux. An unset or exactly empty
+`XDG_CACHE_HOME` defaults to `~/.cache`, per the
+[XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/latest/).
+The injected platform environment applies this contract before catalog
+resolution; nonempty relative, traversing or ambiguous overrides remain refused
+without falling back to another namespace. Other tool overrides keep their own
+contracts. Linux desktop capabilities remain unavailable. These entries are advisory:
 observed bytes never increase cleanable or selected bytes. File metadata is
 measured without reading HTTP responses, shell scripts or configuration contents.
 
@@ -145,8 +149,9 @@ to quit the app themselves because its process adapter has no graceful operation
 | Zed `node/cache` and `node/*/cache` | Download payloads only; installed runtimes/extensions/language servers remain outside scope |
 | Xcode DeviceSupport | Existing 30-day retention plus active Xcode/Simulator guards |
 
-Named JavaScript cache paths honor the injected `XDG_CACHE_HOME`, defaulting
-to `~/.cache`. Gradle roots honor `GRADLE_USER_HOME`, defaulting to `~/.gradle`.
+Named JavaScript cache paths honor the same injected `XDG_CACHE_HOME` contract,
+defaulting to `~/.cache` when unset or exactly empty. Gradle roots honor
+`GRADLE_USER_HOME`, defaulting to `~/.gradle` only when unset.
 Invalid relative or ambiguous overrides do not fall back to another location.
 No project search is introduced.
 Running Node/Bun blocks these generic JavaScript cache signatures because the

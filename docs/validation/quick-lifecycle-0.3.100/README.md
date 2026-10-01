@@ -17,7 +17,9 @@ No installed app, permissions or user data were changed.
   Escape and a 320×420 work area passed. Header/footer remained reachable;
   the body scrolled. Reduced motion had no running document animations.
 - **26 view/theme cases** at 800×560 and 125% text with long English/Korean
-  labels had no document horizontal overflow or unnamed visible buttons.
+  labels had no document horizontal overflow or unnamed visible buttons. The
+  integrated run verified each destination's actual heading and focused its
+  navigation control into the sidebar scroller before a reachable pointer click.
   **55 sequential Tab stops** remained visible; custom checkboxes showed their
   focus ring on the visible label proxy. This is not a complete accessibility audit.
 - **Six mounted progress/Stop runs** delivered 1,558 API events / 466 items.
@@ -36,3 +38,11 @@ transitions, subscriptions and real scan-store progress/Stop through mock API po
 ![Stop feedback, light](stop-light.png)
 ![Stop feedback, dark](stop-dark.png)
 ![Long labels and keyboard focus at 125%](main-dark-scaled.png)
+
+Final integration includes A/B/C and their CI portability fixes. Workspace
+all-target Rust tests: **1,390 passed, 8 ignored, zero failed**. Check, doc-tests,
+format/Clippy, architecture, bindings/goldens and scan-baseline drift passed.
+Frontend typecheck: zero errors/warnings; **501 tests**, production build,
+version and 61-icon checks passed. `just build-fast` produced **0.3.100** with
+the source icon and all current frontend asset names embedded; doctor passed
+all **14 checks**. CI/package results remain separate from these local checks.

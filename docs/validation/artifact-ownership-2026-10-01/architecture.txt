@@ -1,0 +1,35 @@
+cargo check -p neati-core
+   Compiling libc v0.2.189
+    Checking serde_core v1.0.229
+   Compiling syn v3.0.3
+    Checking getrandom v0.4.3
+    Checking uuid v1.26.1
+   Compiling serde_derive v1.0.229
+    Checking specta v2.0.0-rc.25
+    Checking serde v1.0.229
+    Checking neati-core v0.3.95 ($WORKTREE/crates/neati-core)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.05s
+cargo check -p neati-platform
+    Checking typenum v1.20.1
+    Checking bitflags v2.13.1
+    Checking objc2 v0.6.4
+    Checking uuid v1.26.1
+    Checking serde v1.0.229
+    Checking generic-array v0.14.7
+    Checking specta v2.0.0-rc.25
+    Checking objc2-foundation v0.3.2
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking rustix v1.1.4
+    Checking digest v0.10.7
+    Checking once_cell v1.21.4
+    Checking tokio v1.53.1
+    Checking trash v5.2.9
+    Checking sha1 v0.10.7
+    Checking neati-core v0.3.95 ($WORKTREE/crates/neati-core)
+    Checking tempfile v3.27.0
+    Checking neati-platform v0.3.95 ($WORKTREE/crates/neati-platform)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.80s
+node scripts/check_core_boundaries.cjs
+✅ neati-core declares no forbidden dependency and reaches 39 crates over runtime edges without touching one.
+✅ neati-platform declares no forbidden dependency and reaches 95 crates over runtime edges without touching one.

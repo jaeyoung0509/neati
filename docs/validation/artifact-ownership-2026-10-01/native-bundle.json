@@ -1,0 +1,23 @@
+{
+  "verified_at_utc": "2026-10-01T07:04:17.623317+00:00",
+  "source_commit": "e333f75d55fef8ddcc8dd26fc621ad5517fe05c1",
+  "version": "0.3.95",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+  "architecture": "arm64",
+  "bundle": "target/debug/bundle/macos/neati.app",
+  "bundle_identifier": "com.neati.desktop",
+  "bundle_version": "0.3.95",
+  "short_version": "0.3.95",
+  "executable": "Neati",
+  "executable_bytes": 73737016,
+  "executable_sha256": "29ac4cabd00d0980bcd356a842b5643fad4611905292ecc8ea2be9a92683d613",
+  "icon": "icon.icns",
+  "icon_bytes": 137274,
+  "icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+  "packaged_icon_matches_source": true,
+  "doctor_checks_passed": 14,
+  "doctor_checks_failed": 0,
+  "installed_app_replaced": false,
+  "native_gui_exercised": false,
+  "signature": "Linker ad hoc signature; no TeamIdentifier, no sealed resources. No release signing was performed."
+}

@@ -1,0 +1,212 @@
+{
+  "version": "0.3.95",
+  "verified_at_utc": "2026-10-01T06:59:38.188Z",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+  "source_checkpoint": "e0ff207",
+  "surface": "owned headless Chromium browser mock, not a native Tauri window",
+  "origin": "http://127.0.0.1:5191/",
+  "fixture_action": "Scan this computer in deterministic browser preview; /Users/mock paths only",
+  "tests": 43,
+  "passed": 43,
+  "failed": 0,
+  "phases": [
+    {
+      "artifactLabels": [
+        "Select clean1 Rust build output",
+        "Select android-app Gradle build",
+        "Select bitbreif Node dependencies",
+        "Select sdk-python Python environment with partial measurement warning",
+        "Select billing-api Composer vendor",
+        "Select web-svelte-kit SvelteKit output",
+        "Select web-next Next.js output",
+        "Select unsafe-link-project Node dependencies"
+      ],
+      "checks": {
+        "browserMock": true,
+        "currentVersion": true,
+        "eightArtifactUnits": true,
+        "explicitManualSelection": true,
+        "frameworkSelectionDisabled": true,
+        "noFalseSourceGuarantee": true,
+        "noHorizontalOverflow": true,
+        "noViteError": true,
+        "observationQualification": true,
+        "ownershipUnknownDisabled": true,
+        "partialBytesSelectable": true,
+        "twoFrameworkUnits": true
+      },
+      "phase": "initial"
+    },
+    {
+      "checks": {
+        "bulkOnlyFourVerifiedComplete": true,
+        "partialExcluded": true,
+        "protectedExcluded": true
+      },
+      "phase": "pointer bulk",
+      "selected": [
+        "Select clean1 Rust build output",
+        "Select android-app Gradle build",
+        "Select bitbreif Node dependencies",
+        "Select billing-api Composer vendor"
+      ]
+    },
+    {
+      "checks": {
+        "clearEmptiesSelection": true
+      },
+      "phase": "clear"
+    },
+    {
+      "checks": {
+        "focusVisible": true,
+        "keyboardManualSelection": true
+      },
+      "phase": "keyboard selection"
+    },
+    {
+      "checks": {
+        "keyboardReviewShowsOneGeneratedUnit": true,
+        "noFrameworkInSelection": true
+      },
+      "phase": "keyboard review"
+    },
+    {
+      "checks": {
+        "keyboardCancelClosesReview": true,
+        "selectionRetained": true
+      },
+      "phase": "keyboard cancel"
+    },
+    {
+      "phase": "keyboard bulk",
+      "checks": {
+        "keyboardBulkFour": true,
+        "keyboardBulkNoProtected": true
+      }
+    },
+    {
+      "phase": "small light viewport",
+      "viewport": [
+        800,
+        560
+      ],
+      "checks": {
+        "smallViewportNoOverflow": true,
+        "keyboardClearEmptiesSelection": true,
+        "frameworkChecksStillDisabled": true,
+        "reducedMotionPreferred": true
+      }
+    },
+    {
+      "checks": {
+        "darkThemeApplied": true,
+        "frameworkDisabled": true,
+        "mediumViewportNoOverflow": true,
+        "systemDarkPreferred": true
+      },
+      "phase": "dark viewport",
+      "viewport": [
+        960,
+        660
+      ]
+    },
+    {
+      "assets": [
+        "./assets/index-Ej6E9PNk.js"
+      ],
+      "checks": {
+        "allEightUnits": true,
+        "finalVersion": true,
+        "frameworksDisabled": true,
+        "noDevClient": true,
+        "noOverflow": true,
+        "nonePreselected": true,
+        "productionBuildMock": true
+      },
+      "phase": "production bundle preview",
+      "viewport": [
+        1280,
+        900
+      ]
+    },
+    {
+      "checks": {
+        "customConfigQualification": true,
+        "disclosureDoesNotAuthorize": true,
+        "exactDirectEvidence": true,
+        "keyboardDisclosureOpen": true
+      },
+      "phase": "framework evidence disclosure"
+    }
+  ],
+  "developer_server_page_errors": [],
+  "production_preview_page_errors": [],
+  "destructive_actions_executed": false,
+  "native_runtime_verified": false,
+  "screenshots": [
+    {
+      "file": "screenshots/review-light-1280x900.png",
+      "viewport": [
+        1280,
+        900
+      ],
+      "theme": "light",
+      "surface": "Vite development preview"
+    },
+    {
+      "file": "screenshots/frameworks-light-800x560.png",
+      "viewport": [
+        800,
+        560
+      ],
+      "theme": "light",
+      "surface": "Vite development preview"
+    },
+    {
+      "file": "screenshots/frameworks-light-960x660.png",
+      "viewport": [
+        960,
+        660
+      ],
+      "theme": "light",
+      "surface": "Vite development preview"
+    },
+    {
+      "file": "screenshots/frameworks-dark-800x560.png",
+      "viewport": [
+        800,
+        560
+      ],
+      "theme": "dark via Settings",
+      "surface": "Vite development preview"
+    },
+    {
+      "file": "screenshots/frameworks-dark-960x660.png",
+      "viewport": [
+        960,
+        660
+      ],
+      "theme": "dark via Settings",
+      "surface": "Vite development preview"
+    },
+    {
+      "file": "screenshots/frameworks-light-production-1280x900.png",
+      "viewport": [
+        1280,
+        900
+      ],
+      "theme": "light",
+      "surface": "built dist via Vite preview"
+    },
+    {
+      "file": "screenshots/framework-evidence-light-production-1280x900.png",
+      "viewport": [
+        1280,
+        900
+      ],
+      "theme": "light",
+      "surface": "built dist via Vite preview"
+    }
+  ]
+}

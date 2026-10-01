@@ -55,7 +55,7 @@ bounds and Unix root/ancestor/descendant links. It does not clean user files.
 The Manual-root guard also applies to existing fixed advisory catalog entries;
 the full existing scanner/safety suites remain required checks.
 
-Local verification on October 1, 2026, macOS 27.0.1 (26A434), app 0.3.90:
+Initial local verification on October 1, 2026, macOS 27.0.1 (26A434), app 0.3.90:
 
 - The 13 focused discovery/safety fixtures passed, including counting an HTTP
   response fixture whose body has no read permission. Existing catalog,
@@ -76,7 +76,36 @@ Local verification on October 1, 2026, macOS 27.0.1 (26A434), app 0.3.90:
   The installed/running app was not replaced or launched.
 - No live cache scan, owner cleanup, Linux runtime session, Windows runtime
   session or native visual comparison ran. No frontend layout or assets change
-  in this slice. CI is separate and has not run for this unpublished branch.
+  in this slice. These local results predate publication; subsequent CI and
+  follow-up verification are recorded below.
+
+### Windows CI follow-up
+
+[PR #387's first Windows Rust job](https://github.com/jaeyoung0509/neati/actions/runs/36800853141/job/110174615949)
+failed two of the ten discovery fixtures. One compared a fixture's mixed Windows
+separators with the scanner's normalized display string. It now compares paths
+through the environment's shared path algebra. The other exposed Windows'
+`NotFound` result for a child beneath an existing regular file, which had turned
+a blocked Manual namespace into a fresh absent observation.
+
+The Manual-root scanner now qualifies that first missing component by inspecting
+only its direct parent without following links. A file, link or inspection
+failure remains an explicit gap; a directory or genuinely absent parent preserves
+the existing absence behavior. No new cleanup authority or Windows cache root is
+introduced. A fixture injects the Windows-style missing result on every runner,
+and another verifies genuine absence independently of the host's error mapping.
+
+Follow-up local tests on the same macOS build and app version passed all 13
+discovery fixtures, all 25 scanner-walker tests, and the complete workspace
+all-target suite: 1,287 passed, zero failed and five existing ignored. The earlier
+loopback and log-write restrictions were absent in this verification environment.
+Workspace doc-tests, check, Clippy with warnings denied, format, architecture,
+version synchronization, frontend typecheck and all 472 frontend tests also
+passed. `just build-fast` rebuilt the debug app with the current production
+frontend; its short/build versions are both 0.3.90, its icon matches the source,
+and the index's referenced assets are embedded. The installed app was not
+replaced or launched. An actual Windows rerun and CI packaging results remain
+separate checks.
 
 ## Remaining #381 work
 

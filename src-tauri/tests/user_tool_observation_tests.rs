@@ -10,7 +10,7 @@ use neati_lib::scanner::{
     DirectoryScanner, NoRootProgress, ScanEngine, ScanLimits, TraversalCounters, WalkContext,
 };
 use neati_lib::signatures::SignatureRegistry;
-use neati_platform::{PathFlavor, PlatformEnvironment};
+use neati_platform::{path_algebra, PathFlavor, PlatformEnvironment};
 use std::fs;
 use std::path::Path;
 
@@ -156,14 +156,14 @@ fn user_tool_observation_retains_generated_executable_and_unknown_payloads_witho
     assert_eq!(omz.len(), 2);
     let standard_item = omz
         .iter()
-        .find(|item| item.path == standard.to_string_lossy())
+        .find(|item| path_algebra::equal(&item.path, &standard.to_string_lossy(), env.flavor()))
         .unwrap();
     assert_eq!(standard_item.size.logical, 4 * 8192);
     assert_eq!(standard_item.file_count, 4);
     assert_eq!(standard_item.quality, ObservationQuality::Fresh);
     let fallback_item = omz
         .iter()
-        .find(|item| item.path == fallback.to_string_lossy())
+        .find(|item| path_algebra::equal(&item.path, &fallback.to_string_lossy(), env.flavor()))
         .unwrap();
     assert_eq!(fallback_item.size.logical, 8192);
     let gh = observe(&registry, IDS[1], &env);

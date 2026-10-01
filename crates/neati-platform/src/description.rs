@@ -148,6 +148,20 @@ mod temporary_root_tests {
             Some(PathBuf::from("/private/tmp/node-compile-cache"))
         );
     }
+    #[test]
+    fn macos_data_volume_temp_aliases_normalize_only_stated_roots() {
+        let env = PlatformEnvironment::simulated(PathFlavor::Posix)
+            .with_platform(PlatformKind::Macos)
+            .with_temp_dir("/System/Volumes/Data/private/var/folders/fixture/T")
+            .with_shared_temp_dir("/System/Volumes/Data/private/tmp");
+        assert_eq!(
+            env.temporary_roots(),
+            vec![
+                PathBuf::from("/private/tmp"),
+                PathBuf::from("/private/var/folders/fixture/T")
+            ]
+        );
+    }
 }
 
 impl std::fmt::Debug for PlatformEnvironment {
@@ -219,6 +233,8 @@ impl PlatformEnvironment {
                 "XDG_DATA_HOME",
                 "XDG_CONFIG_HOME",
                 "XDG_CACHE_HOME",
+                "ZSH",
+                "ZSH_CACHE_DIR",
             ]
             .into_iter()
             .filter_map(|name| {
@@ -314,14 +330,20 @@ impl PlatformEnvironment {
     }
 
     /// Exact roots, not permission to enumerate or remove their contents.
-    /// Normalize the one platform-owned macOS alias without following arbitrary links.
+    /// Normalize only known macOS volume aliases without following arbitrary links.
     pub fn temporary_roots(&self) -> Vec<PathBuf> {
         let mut roots = vec![self.temp_dir()];
         roots.extend(self.shared_temp_dir.clone());
         if self.platform == PlatformKind::Macos {
             for root in &mut roots {
-                if root == Path::new("/tmp") {
+                if root == Path::new("/tmp")
+                    || root == Path::new("/System/Volumes/Data/private/tmp")
+                {
                     *root = PathBuf::from("/private/tmp");
+                } else if let Ok(relative) = root.strip_prefix("/var") {
+                    *root = PathBuf::from("/private/var").join(relative);
+                } else if let Ok(relative) = root.strip_prefix("/System/Volumes/Data/private/var") {
+                    *root = PathBuf::from("/private/var").join(relative);
                 }
             }
         }
@@ -495,6 +517,50 @@ impl PlatformEnvironment {
     }
 
     pub fn expand_placeholder(&self, pattern: &str) -> Option<PathBuf> {
+        // Shell-local settings are not guessed or executed. Only an absolute,
+        // bounded current-user override present in the composition snapshot is
+        // observed, and it never supplies cleanup authority.
+        if self.platform == PlatformKind::Macos {
+            for (token, variable) in [("${ZSH_CACHE_DIR}", "ZSH_CACHE_DIR"), ("${ZSH}", "ZSH")] {
+                if let Some(suffix) = pattern.strip_prefix(token) {
+                    if !suffix.is_empty() && !suffix.starts_with('/') {
+                        return None;
+                    }
+                    let root = self.cache_path_override(variable)?;
+                    let home = self.user_home()?;
+                    let relative = root.strip_prefix(&home).ok()?;
+                    if !root.is_absolute()
+                        || relative.components().count() < if variable == "ZSH" { 1 } else { 2 }
+                        || root.components().any(|part| {
+                            matches!(
+                                part,
+                                std::path::Component::ParentDir | std::path::Component::CurDir
+                            )
+                        })
+                        || [
+                            "Documents",
+                            "Desktop",
+                            "Downloads",
+                            ".ssh",
+                            ".aws",
+                            ".config",
+                        ]
+                        .iter()
+                        .any(|name| root.starts_with(home.join(name)))
+                    {
+                        return None;
+                    }
+                    if suffix.is_empty() {
+                        return Some(root.to_path_buf());
+                    }
+                    return Some(super::paths::join_with_flavor(
+                        root.to_path_buf(),
+                        suffix.trim_start_matches('/'),
+                        self.flavor,
+                    ));
+                }
+            }
+        }
         if let Some(suffix) = pattern.strip_prefix("${DARWIN_USER_TRANSLOCATION}") {
             if !suffix.is_empty() && !suffix.starts_with('/') {
                 return None;

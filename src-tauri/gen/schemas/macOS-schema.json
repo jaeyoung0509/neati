@@ -201,6 +201,18 @@
           "markdownDescription": "Enables the cancel_scan command without any pre-configured scope."
         },
         {
+          "description": "Enables the cancel_temporary_storage_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-temporary-storage-review",
+          "markdownDescription": "Enables the cancel_temporary_storage_review command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the cancel_temporary_storage_scan command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-temporary-storage-scan",
+          "markdownDescription": "Enables the cancel_temporary_storage_scan command without any pre-configured scope."
+        },
+        {
           "description": "Enables the connect_openrouter_oauth command without any pre-configured scope.",
           "type": "string",
           "const": "allow-connect-openrouter-oauth",
@@ -255,6 +267,12 @@
           "markdownDescription": "Enables the execute_empty_trash command without any pre-configured scope."
         },
         {
+          "description": "Enables the execute_temporary_storage_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-execute-temporary-storage-review",
+          "markdownDescription": "Enables the execute_temporary_storage_review command without any pre-configured scope."
+        },
+        {
           "description": "Enables the execute_trash_plan command without any pre-configured scope.",
           "type": "string",
           "const": "allow-execute-trash-plan",
@@ -307,6 +325,12 @@
           "type": "string",
           "const": "allow-get-ai-usage",
           "markdownDescription": "Enables the get_ai_usage command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_app_leftovers command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-app-leftovers",
+          "markdownDescription": "Enables the get_app_leftovers command without any pre-configured scope."
         },
         {
           "description": "Enables the get_app_version command without any pre-configured scope.",
@@ -483,6 +507,12 @@
           "markdownDescription": "Enables the prepare_large_file_trash command without any pre-configured scope."
         },
         {
+          "description": "Enables the prepare_temporary_storage_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-prepare-temporary-storage-review",
+          "markdownDescription": "Enables the prepare_temporary_storage_review command without any pre-configured scope."
+        },
+        {
           "description": "Enables the preview_ai_recommendation command without any pre-configured scope.",
           "type": "string",
           "const": "allow-preview-ai-recommendation",
@@ -621,6 +651,12 @@
           "markdownDescription": "Enables the start_scan command without any pre-configured scope."
         },
         {
+          "description": "Enables the start_temporary_storage_scan command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-start-temporary-storage-scan",
+          "markdownDescription": "Enables the start_temporary_storage_scan command without any pre-configured scope."
+        },
+        {
           "description": "Enables the take_pending_navigation command without any pre-configured scope.",
           "type": "string",
           "const": "allow-take-pending-navigation",
@@ -661,6 +697,18 @@
           "type": "string",
           "const": "deny-cancel-scan",
           "markdownDescription": "Denies the cancel_scan command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cancel_temporary_storage_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-temporary-storage-review",
+          "markdownDescription": "Denies the cancel_temporary_storage_review command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cancel_temporary_storage_scan command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-temporary-storage-scan",
+          "markdownDescription": "Denies the cancel_temporary_storage_scan command without any pre-configured scope."
         },
         {
           "description": "Denies the connect_openrouter_oauth command without any pre-configured scope.",
@@ -717,6 +765,12 @@
           "markdownDescription": "Denies the execute_empty_trash command without any pre-configured scope."
         },
         {
+          "description": "Denies the execute_temporary_storage_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-execute-temporary-storage-review",
+          "markdownDescription": "Denies the execute_temporary_storage_review command without any pre-configured scope."
+        },
+        {
           "description": "Denies the execute_trash_plan command without any pre-configured scope.",
           "type": "string",
           "const": "deny-execute-trash-plan",
@@ -769,6 +823,12 @@
           "type": "string",
           "const": "deny-get-ai-usage",
           "markdownDescription": "Denies the get_ai_usage command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_app_leftovers command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-app-leftovers",
+          "markdownDescription": "Denies the get_app_leftovers command without any pre-configured scope."
         },
         {
           "description": "Denies the get_app_version command without any pre-configured scope.",
@@ -945,6 +1005,12 @@
           "markdownDescription": "Denies the prepare_large_file_trash command without any pre-configured scope."
         },
         {
+          "description": "Denies the prepare_temporary_storage_review command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-prepare-temporary-storage-review",
+          "markdownDescription": "Denies the prepare_temporary_storage_review command without any pre-configured scope."
+        },
+        {
           "description": "Denies the preview_ai_recommendation command without any pre-configured scope.",
           "type": "string",
           "const": "deny-preview-ai-recommendation",
@@ -1081,6 +1147,12 @@
           "type": "string",
           "const": "deny-start-scan",
           "markdownDescription": "Denies the start_scan command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_temporary_storage_scan command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-start-temporary-storage-scan",
+          "markdownDescription": "Denies the start_temporary_storage_scan command without any pre-configured scope."
         },
         {
           "description": "Denies the take_pending_navigation command without any pre-configured scope.",

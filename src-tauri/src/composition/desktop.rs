@@ -85,14 +85,17 @@ pub fn desktop_state_with_catalog(
     let trash_executor = Arc::new(crate::trash_manager::TrashExecutor::new(
         trash_backend.clone(),
     ));
-    let storage_service = Arc::new(StorageService::new(
-        operation_gate.clone(),
-        budgets.clone(),
-        environment.clone(),
-        trash_executor,
-        Arc::new(neati_platform::NativeSystemActions::new()),
-        platform_capabilities.clone(),
-    ));
+    let storage_service = Arc::new(
+        StorageService::new(
+            operation_gate.clone(),
+            budgets.clone(),
+            environment.clone(),
+            trash_executor,
+            Arc::new(neati_platform::NativeSystemActions::new()),
+            platform_capabilities.clone(),
+        )
+        .with_temporary_review(trash_backend.clone()),
+    );
 
     // The reviewed lifecycle providers are built once here and shared by the
     // scan (which probes for candidates) and the executor (which performs the

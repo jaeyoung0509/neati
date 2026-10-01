@@ -57,6 +57,11 @@ the protected-directory environment and normalizing every protected name for
 each file; candidate paths still use the same blacklist and path-algebra rules.
 The key map is bounded by the policy's names, not by the size of the tree.
 
+The ordinary size walker now prepares that same blacklist and exclusion
+vocabulary once per measurement, and shares it across its serial or bounded
+parallel descendants. Separate measurements prepare their own policy; the
+regression test changes both file metadata and the environment between walks.
+
 No candidate metadata, use verdict, filesystem identity, or authorization is
 cached. Every recursive entry still checks cancellation and reads fresh
 `symlink_metadata`; planning and execution retain their fresh guards. Windows
@@ -207,6 +212,42 @@ and icon hash, and the three unchanged Rust tests blocked by managed-environment
 loopback/log-directory restrictions. The unfiltered suite failed on those
 tests; a separate run with exactly those three named exclusions passed. Neither
 result substitutes for CI or native Windows validation, which have not run.
+
+### Controlled ordinary-walker comparison, 2026-10-01
+
+The `repeated_plain_observation_reports_scan_cost` ignored benchmark compares
+the ordinary walker from `63a8a3e` (0.3.96 behavior) with this change in the same
+debug harness. Both binaries carry the reserved 0.3.97 label. Each process
+warms up once and measures five scans on MacBook Air M1, 16 GiB, macOS 27.0.1
+(26A434). Every scan asserts 2,305 visits, 257 directory reads, one advisory
+unit, 8 MiB logical data, zero cleanable bytes, no skipped entries and eight
+events. Both runs reached the unchanged 16-task bound; the shared pool remains
+capped at four workers.
+
+| Median measurement | Original walker | Prepared policy |
+|---|---|---|
+| Scan wall time | 212.961 ms | 128.187 ms |
+| Scan CPU time (`getrusage`, user + system) | 529.763 ms | 220.761 ms |
+| First root progress | 88.315 ms | 81.025 ms |
+| First measured item | 195.055 ms | 111.717 ms |
+| Resident bytes immediately after scan | 17,399,808 | 17,170,432 |
+| Resident growth across scan, bytes | 32,768 | 49,152 |
+
+This fixture's wall time fell 39.81% and CPU time 58.33%. RSS comes from
+`sysinfo::Process::memory()` in bytes, is an instantaneous reading rather than
+peak working set, and establishes no memory improvement. The existing Stop
+fixture returned in less than its one-millisecond resolution for both walkers.
+
+Three full-catalog read-only observations per walker remained partial: original
+24.148–27.254 s, current 22.150–28.012 s. They used the Codex shell host's existing
+privacy grants and an unsigned diagnostic child, with background activity and
+changing inventory; the current diagnostic also measured JSON event encoding.
+These observations establish no live speedup or installed-app TCC behavior.
+Current event encoding alone cost 59–95 ms for about 1.89 MB, not native IPC
+latency. Homebrew preview, Codex runtime measurement and browser-use probes
+remain the leading live spans; no use verdict is cached. The frontend burst
+regression exercises real store callbacks and Stop dispatch with mocked IPC in
+Node, without DOM rendering or native-window evidence.
 
 ## Recorded real-machine baselines
 

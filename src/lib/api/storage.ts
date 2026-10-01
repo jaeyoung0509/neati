@@ -2,6 +2,7 @@ import { Channel } from '@tauri-apps/api/core';
 import { dispatchApi } from './index';
 import { commands } from '../bindings/tauri';
 import type {
+  AppLeftoverInventory,
   AppUninstallInspection,
   DeveloperArtifact,
   DeveloperArtifactScanEvent,
@@ -17,6 +18,8 @@ import type {
   TrashResult,
 } from '../models/types';
 import { isSelectedAppTrashLowerBound } from '../utils/storageManagement';
+import { mockAppLeftoversForPlatform } from './mocks/appLeftovers';
+import { previewPlatform } from './mocks/previewPlatform';
 type CommandResult<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E };
 
 async function unwrap<T, E>(promise: Promise<CommandResult<T, E>>): Promise<T> {
@@ -51,6 +54,7 @@ export interface StorageManagementApi {
     selectedItemIds: string[]
   ): Promise<TrashPlanPreview>;
   getInstalledApps(): Promise<InstalledAppInventory>;
+  getAppLeftovers(): Promise<AppLeftoverInventory>;
   inspectAppUninstall(appId: string): Promise<AppUninstallInspection>;
   prepareAppUninstall(
     inspectionId: string,
@@ -102,6 +106,10 @@ const nativeStorageApi: StorageManagementApi = {
 
   async getInstalledApps() {
     return await unwrap(commands.getInstalledApps());
+  },
+
+  async getAppLeftovers() {
+    return await unwrap(commands.getAppLeftovers());
   },
 
   async inspectAppUninstall(appId) {
@@ -317,6 +325,15 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'observation_only',
     incomplete_reason: 'Framework output is observed only; cleanup is unavailable until build/dev use and deployment/offline ownership can be verified.',
     selected_by_default: false,
+  })),
+  ...(['svelte_kit_types', 'next_webpack_cache'] as const).map((kind): DeveloperArtifact => ({
+    id: `artifact-${kind}`, workspace_id: 'workspace-work',
+    project_name: kind === 'next_webpack_cache' ? 'web-next' : 'web-svelte-kit', ecosystem: 'node', kind,
+    path: kind === 'next_webpack_cache' ? '/Users/mock/work/web-next/.next/cache/webpack' : '/Users/mock/work/web-svelte-kit/.svelte-kit/types',
+    logical_bytes: 16 * MIB, allocated_bytes: 15 * MIB, file_count: 80, newest_mtime: Math.floor(Date.now() / 1000),
+    rebuild_hint: 'Only this verified generated subtree moves to Trash; parent deployment and offline output stay. The framework regenerates it.',
+    evidence: ['Browser fixture: positive supported file contract and completed negative project-use observation; native execution rechecks both.'],
+    ownership: { state: 'verified_generated' }, status: 'complete', incomplete_reason: null, selected_by_default: false,
   })),
 ];
 
@@ -680,6 +697,10 @@ const mockStorageApi: StorageManagementApi = {
       skipped_entry_count: 0,
       incomplete_reasons: [],
     };
+  },
+
+  async getAppLeftovers(): Promise<AppLeftoverInventory> {
+    return mockAppLeftoversForPlatform(previewPlatform());
   },
 
   async inspectAppUninstall(appId) {

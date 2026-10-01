@@ -46,6 +46,7 @@ pub mod recycle_bin;
 pub mod selector;
 pub mod subprocess;
 pub mod system_actions;
+pub mod temporary_storage;
 pub mod trash;
 pub use capabilities::NativePlatformCapabilities;
 pub use description::{

@@ -1,6 +1,9 @@
 import { api, isTauri, refusalForPreview } from '../api';
 import { storageApi } from '../api/storage';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { Channel, invoke } from '@tauri-apps/api/core';
+import { temporaryStorageMock } from '../api/mocks/temporaryStorage';
+import type { TemporaryReviewConsent, TemporaryReviewPreview, TemporaryStorageEvent, TemporaryStorageInventory } from '../models/types';
 import type {
   AiProviderUsage,
   AiUsageSnapshot,
@@ -29,6 +32,7 @@ import type {
   DiskVolume,
   DockerStatus,
   InstalledApp,
+  AppLeftoverInventory,
   InstalledAppInventory,
   LargeFileScanEvent,
   LargeFileScanRequest,
@@ -63,6 +67,28 @@ import type {
 } from '../models/types';
 
 export { isTauri, refusalForPreview };
+
+export async function tauriStartTemporaryStorageScan(onEvent: (event: TemporaryStorageEvent) => void): Promise<TemporaryStorageInventory> {
+  if (!isTauri()) return temporaryStorageMock.scan(onEvent);
+  const channel = new Channel<TemporaryStorageEvent>(); channel.onmessage = onEvent;
+  return invoke('start_temporary_storage_scan', { onEvent: channel });
+}
+export async function tauriCancelTemporaryStorageScan(scanId: string): Promise<void> {
+  if (!isTauri()) return temporaryStorageMock.cancelScan(scanId);
+  return invoke('cancel_temporary_storage_scan', { scanId });
+}
+export async function tauriPrepareTemporaryStorageReview(scanId: string, selectedOptionIds: string[]): Promise<TemporaryReviewPreview> {
+  if (!isTauri()) return temporaryStorageMock.prepare(scanId, selectedOptionIds);
+  return invoke('prepare_temporary_storage_review', { scanId, selectedOptionIds });
+}
+export async function tauriExecuteTemporaryStorageReview(planId: string, consent: TemporaryReviewConsent): Promise<TrashResult> {
+  if (!isTauri()) return temporaryStorageMock.execute(planId, consent);
+  return invoke('execute_temporary_storage_review', { planId, consent });
+}
+export async function tauriCancelTemporaryStorageReview(planId: string): Promise<void> {
+  if (!isTauri()) return temporaryStorageMock.cancelExecution(planId);
+  return invoke('cancel_temporary_storage_review', { planId });
+}
 
 let latestScanDiscovery: ScanDiscovery = { status: 'exhausted' };
 
@@ -422,6 +448,10 @@ export function tauriPrepareDeveloperArtifactCleanup(
 
 export function tauriGetInstalledApps(): Promise<InstalledAppInventory> {
   return storageApi.getInstalledApps();
+}
+
+export function tauriGetAppLeftovers(): Promise<AppLeftoverInventory> {
+  return storageApi.getAppLeftovers();
 }
 
 export function tauriInspectAppUninstall(appId: string): Promise<AppUninstallInspection> {

@@ -11,6 +11,13 @@ use serde::{Deserialize, Serialize};
 
 mod artifact_ownership;
 pub use artifact_ownership::{ArtifactOwnershipEvidence, ArtifactOwnershipUncertainty};
+mod framework_output;
+mod temporary_review;
+pub use framework_output::{supported_webpack_pack, FrameworkGeneratedKind};
+pub use temporary_review::{
+    require_temporary_consent, TemporaryContentKind, TemporaryRemovalMode, TemporaryReviewConsent,
+    TemporaryUsageState,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
@@ -88,4 +95,16 @@ pub enum AppRelatedKind {
     ApplicationScripts,
     HttpStorage,
     WebKit,
+}
+
+/// An observation about a Library resource's possible owner, never removal
+/// authorization. Absence from bounded app roots is not proof of uninstall.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AppLeftoverClassification {
+    InstalledOwner,
+    PossibleRemovedOwner,
+    AmbiguousSharedOwner,
+    IncompleteInventory,
+    ProtectedState,
 }

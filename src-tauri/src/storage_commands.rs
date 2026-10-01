@@ -15,11 +15,69 @@ use tauri::State;
 use crate::commands::DesktopState;
 use crate::events::storage::{TauriDeveloperArtifactProgress, TauriLargeFileScanProgress};
 use crate::models::{
-    AppUninstallInspection, DeveloperArtifactScanEvent, DeveloperArtifactScanResult,
-    DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent, LargeFileScanRequest,
-    LargeFileScanResult, TrashPlanPreview, TrashResult,
+    AppLeftoverInventory, AppUninstallInspection, DeveloperArtifactScanEvent,
+    DeveloperArtifactScanResult, DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent,
+    LargeFileScanRequest, LargeFileScanResult, TrashPlanPreview, TrashResult,
 };
 use crate::services::progress::{DeveloperArtifactScanSink, LargeFileScanSink};
+
+#[tauri::command]
+#[specta::specta]
+pub async fn start_temporary_storage_scan(
+    on_event: Channel<crate::models::TemporaryStorageEvent>,
+    state: State<'_, DesktopState>,
+) -> Result<crate::models::TemporaryStorageInventory, String> {
+    state
+        .storage
+        .scan_temporary_storage(Arc::new(
+            crate::events::storage::TauriTemporaryStorageProgress::new(on_event),
+        ))
+        .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn cancel_temporary_storage_scan(
+    scan_id: String,
+    state: State<'_, DesktopState>,
+) -> Result<(), String> {
+    state.storage.cancel_temporary_storage_scan(&scan_id)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn prepare_temporary_storage_review(
+    scan_id: String,
+    selected_option_ids: Vec<String>,
+    state: State<'_, DesktopState>,
+) -> Result<crate::models::TemporaryReviewPreview, String> {
+    state
+        .storage
+        .prepare_temporary_storage_review(&scan_id, &selected_option_ids)
+        .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn execute_temporary_storage_review(
+    plan_id: uuid::Uuid,
+    consent: crate::models::TemporaryReviewConsent,
+    state: State<'_, DesktopState>,
+) -> Result<TrashResult, String> {
+    state
+        .storage
+        .execute_temporary_storage_review(plan_id, consent)
+        .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn cancel_temporary_storage_review(
+    plan_id: uuid::Uuid,
+    state: State<'_, DesktopState>,
+) -> Result<(), String> {
+    state.storage.cancel_temporary_storage_review(plan_id)
+}
 
 #[tauri::command]
 #[specta::specta]
@@ -127,6 +185,14 @@ pub async fn get_installed_apps(
     state: State<'_, DesktopState>,
 ) -> Result<InstalledAppInventory, String> {
     state.storage.installed_apps().await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_app_leftovers(
+    state: State<'_, DesktopState>,
+) -> Result<AppLeftoverInventory, String> {
+    state.storage.app_leftovers().await
 }
 
 #[tauri::command]

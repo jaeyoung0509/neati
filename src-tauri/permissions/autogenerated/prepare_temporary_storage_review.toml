@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-prepare-temporary-storage-review"
+description = "Enables the prepare_temporary_storage_review command without any pre-configured scope."
+commands.allow = ["prepare_temporary_storage_review"]
+
+[[permission]]
+identifier = "deny-prepare-temporary-storage-review"
+description = "Denies the prepare_temporary_storage_review command without any pre-configured scope."
+commands.deny = ["prepare_temporary_storage_review"]

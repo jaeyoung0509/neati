@@ -64,6 +64,21 @@ describe('developer artifact review workflow', () => {
     expect(rendered.body).toContain('Partial measurement');
   });
 
+  it('selects only the supported generated framework children while their parents stay observed', async () => {
+    const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-work'], () => undefined);
+    const children = result.items.filter(item => item.kind === 'svelte_kit_types' || item.kind === 'next_webpack_cache');
+    expect(children).toHaveLength(2);
+    expect(children.every(item => item.status === 'complete' && !item.selected_by_default)).toBe(true);
+    for (const child of children) {
+      const preview = await mockStorageApi.prepareDeveloperArtifactCleanup(result.scan_id, [child.id]);
+      expect(preview).toMatchObject({ item_count: 1, allocated_size: child.allocated_bytes });
+    }
+    const body = render(DeveloperArtifactsView, { props: { onBack: () => undefined, initialResult: result } }).body;
+    expect(body).toContain('Next.js Webpack build cache'); expect(body).toContain('SvelteKit generated types');
+    expect(body).toContain('parent deployment and offline output stay');
+    expect(body).toContain('Observed only · cleanup unavailable');
+  });
+
   it('rejects forged artifact IDs even when a valid ID is also selected', async () => {
     const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-myproject'], () => undefined);
     const valid = result.items.find((item) => item.status === 'complete');

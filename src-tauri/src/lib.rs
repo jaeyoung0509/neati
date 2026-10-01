@@ -696,9 +696,15 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             storage_commands::cancel_developer_artifact_scan,
             storage_commands::prepare_developer_artifact_cleanup,
             storage_commands::get_installed_apps,
+            storage_commands::get_app_leftovers,
             storage_commands::inspect_app_uninstall,
             storage_commands::prepare_app_uninstall,
             storage_commands::execute_trash_plan,
+            storage_commands::start_temporary_storage_scan,
+            storage_commands::cancel_temporary_storage_scan,
+            storage_commands::prepare_temporary_storage_review,
+            storage_commands::execute_temporary_storage_review,
+            storage_commands::cancel_temporary_storage_review,
         ])
 }
 

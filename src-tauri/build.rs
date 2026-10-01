@@ -76,9 +76,15 @@ fn main() {
         "cancel_developer_artifact_scan",
         "prepare_developer_artifact_cleanup",
         "get_installed_apps",
+        "get_app_leftovers",
         "inspect_app_uninstall",
         "prepare_app_uninstall",
         "execute_trash_plan",
+        "start_temporary_storage_scan",
+        "cancel_temporary_storage_scan",
+        "prepare_temporary_storage_review",
+        "execute_temporary_storage_review",
+        "cancel_temporary_storage_review",
     ];
 
     let attributes = tauri_build::Attributes::new()

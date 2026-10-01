@@ -203,3 +203,24 @@ share the typed reason labels. These facts are diagnostics, never authorization.
 This implements reason routing, not the native unsigned-bundle grant/revoke/
 upgrade validation matrix. Signing, privileged-helper cleanup, compatibility
 expansion and the rest of #362 remain open.
+
+## October 1 current-user decisions (0.3.98)
+
+These are completed scope decisions, not claims that observation implements
+cleanup. Native permission-transition QA remains separate and keeps #362 open.
+
+| Remaining store | Decision and evidence boundary |
+| --- | --- |
+| CocoaPods/Ruby | Preserve the installed-distribution evidence for CocoaPods 1.16.2 and system Ruby 2.6.10. No new Homebrew/env/custom-gem-home or extra Ruby version is asserted tested. Launcher/ABI and complete Pods-child scope must match the existing adapter. |
+| Android SDK | Installed packages/system images remain advisory. [SDK Manager](https://developer.android.com/tools/sdkmanager) installs/uninstalls selected packages; this does not establish a disposable staged-download unit. No currently recorded staged format or installed `sdkmanager` distribution supports a new operation. |
+| OrbStack | Installed app/CLI 2.2.3, app build 20963, inspected through version and help only. [`delete` and `reset`](https://docs.orbstack.dev/machines/commands) remove machine/user or Docker data and stop machines. They are stateful lifecycle operations, so the known data root stays advisory; existing Containers operations retain their own scope. No VM/container state was changed. |
+| Browser/Corepack distributions | Executable/offline dependencies stay advisory. Versioned installed-distribution evidence and complete owner scope are required before an uninstall/cache command becomes available. No missing PATH entry is treated as proof that software is absent. |
+| SwiftPM | Preserve the recorded exact banner and tested repository/registry/manifest-cache operation. Other banners, project build outputs and artifact stores are unsupported by that adapter; no broad store/project sweep. |
+| Conda/mise | Preserve the eight recorded releases above. No extra distribution was installed or tested in this batch, and no unrecorded release is declared supported. |
+| CloudKit/Safari/cache infrastructure | Retain service/account/session/offline and DB/WAL/SHM state. CloudKit's registered root remains Manual; Safari or neighboring system databases gain no adapter. No independently verified disposable DB unit or complete owner command is recorded. |
+| Residual user tools/browsers | gh 2.83.1 receives a separately verified default-root HTTP-cache operation. Other named observations remain non-actionable, with their contracts in [the coverage evidence](../evidence/user-tool-discovery-381.md#october-1-coverage-follow-up-0398). Resource leftovers use a separate read-only Applications inventory. |
+
+The current-user system access probe is recorded in
+[SYSTEM_CLEANUP_ACCESS.md](SYSTEM_CLEANUP_ACCESS.md#october-1-current-user-access-probe).
+Readable or writable roots still require an exact disposable unit and adapter;
+neither probe results nor Full Disk Access enable system deletion.

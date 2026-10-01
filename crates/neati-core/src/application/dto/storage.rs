@@ -8,7 +8,8 @@
 //! carries a plan ID and byte totals, not the plan.
 
 use crate::domain::storage::{
-    AppInstallSource, AppRelatedConfidence, AppRelatedKind, LargeFileFilter, LargeFileKind,
+    AppInstallSource, AppLeftoverClassification, AppRelatedConfidence, AppRelatedKind,
+    LargeFileFilter, LargeFileKind,
 };
 use crate::domain::ObservationQuality;
 use serde::{Deserialize, Serialize};
@@ -126,6 +127,82 @@ pub struct InstalledAppInventory {
     #[specta(type = u64)]
     pub skipped_entry_count: u64,
     pub incomplete_reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct AppLeftoverItem {
+    pub id: String,
+    pub name: String,
+    pub display_path: String,
+    pub kind: AppRelatedKind,
+    pub classification: AppLeftoverClassification,
+    pub owner_names: Vec<String>,
+    pub evidence: String,
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub logical_size: u64,
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub allocated_size: u64,
+    pub quality: ObservationQuality,
+    pub incomplete_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct AppLeftoverInventory {
+    pub items: Vec<AppLeftoverItem>,
+    pub quality: ObservationQuality,
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub observed_roots: u64,
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub skipped_entry_count: u64,
+    pub incomplete_reasons: Vec<String>,
+    pub limitation: String,
+}
+
+#[cfg(test)]
+mod leftover_numeric_tests {
+    use super::*;
+    #[test]
+    fn leftover_real_models_preserve_safe_numbers_and_refuse_unsafe_bytes_and_counts() {
+        let mut item = AppLeftoverItem {
+            id: "read-only".into(),
+            name: "fixture".into(),
+            display_path: "/fixture".into(),
+            kind: AppRelatedKind::Cache,
+            classification: AppLeftoverClassification::PossibleRemovedOwner,
+            owner_names: vec![],
+            evidence: "limited observation".into(),
+            logical_size: crate::ipc_numeric::MAX_SAFE_INTEGER,
+            allocated_size: 4096,
+            quality: ObservationQuality::Fresh,
+            incomplete_reason: None,
+        };
+        let json = serde_json::to_string(&item).unwrap();
+        assert_eq!(
+            serde_json::from_str::<AppLeftoverItem>(&json).unwrap(),
+            item
+        );
+        item.logical_size += 1;
+        assert!(serde_json::to_string(&item).is_err());
+        item.logical_size = 1;
+        item.allocated_size = crate::ipc_numeric::MAX_SAFE_INTEGER + 1;
+        assert!(serde_json::to_string(&item).is_err());
+        let mut inventory = AppLeftoverInventory {
+            items: vec![],
+            quality: ObservationQuality::Fresh,
+            observed_roots: crate::ipc_numeric::MAX_SAFE_INTEGER + 1,
+            skipped_entry_count: 0,
+            incomplete_reasons: vec![],
+            limitation: "read-only".into(),
+        };
+        assert!(serde_json::to_string(&inventory).is_err());
+        inventory.observed_roots = 6;
+        inventory.skipped_entry_count = crate::ipc_numeric::MAX_SAFE_INTEGER + 1;
+        assert!(serde_json::to_string(&inventory).is_err());
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]

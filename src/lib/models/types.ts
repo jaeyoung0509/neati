@@ -1,4 +1,5 @@
 // Re-export generated types from Tauri Specta bindings
+export type { TemporaryContentKind, TemporaryRemovalMode, TemporaryReviewConsent, TemporaryRemovalOption, TemporaryReviewPreview, TemporaryStorageEvent, TemporaryStorageInventory, TemporaryStorageItem, TemporaryUsageObservation, TemporaryUsageState } from '../bindings/tauri';
 export type {
   EmptyTrashPreview,
   EmptyTrashResult,
@@ -22,6 +23,9 @@ export type {
   IngestedAgentEvent,
   AwakeAgentId,
   AppInstallSource,
+  AppLeftoverClassification,
+  AppLeftoverInventory,
+  AppLeftoverItem,
   AppRelatedConfidence,
   AppRelatedItem,
   AppRelatedKind,

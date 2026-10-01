@@ -2,8 +2,24 @@
 
 use tauri::ipc::Channel;
 
+use crate::models::TemporaryStorageEvent;
 use crate::models::{DeveloperArtifactScanEvent, LargeFileScanEvent};
+use crate::services::progress::TemporaryStorageSink;
 use crate::services::progress::{DeveloperArtifactScanSink, LargeFileScanSink};
+
+pub struct TauriTemporaryStorageProgress {
+    channel: Channel<TemporaryStorageEvent>,
+}
+impl TauriTemporaryStorageProgress {
+    pub fn new(channel: Channel<TemporaryStorageEvent>) -> Self {
+        Self { channel }
+    }
+}
+impl TemporaryStorageSink for TauriTemporaryStorageProgress {
+    fn emit(&self, event: TemporaryStorageEvent) {
+        let _ = self.channel.send(event);
+    }
+}
 
 /// Forwards large-file scan progress to the channel the WebView owns.
 pub struct TauriLargeFileScanProgress {

@@ -57,9 +57,13 @@ pub use neati_core::application::dto::scan::{
     ScanProgressSink, ScanRequest,
 };
 pub use neati_core::application::dto::storage::{
-    AppRelatedItem, AppUninstallInspection, InstalledApp, InstalledAppInventory, LargeFileItem,
-    LargeFileScanEvent, LargeFileScanRequest, LargeFileScanResult, TrashItemResult,
-    TrashPlanPreview, TrashResult,
+    AppLeftoverInventory, AppLeftoverItem, AppRelatedItem, AppUninstallInspection, InstalledApp,
+    InstalledAppInventory, LargeFileItem, LargeFileScanEvent, LargeFileScanRequest,
+    LargeFileScanResult, TrashItemResult, TrashPlanPreview, TrashResult,
+};
+pub use neati_core::application::dto::temporary_storage::{
+    TemporaryRemovalOption, TemporaryReviewPreview, TemporaryStorageEvent,
+    TemporaryStorageInventory, TemporaryStorageItem, TemporaryUsageObservation,
 };
 pub use neati_core::domain::category::Category;
 pub use neati_core::domain::cleanup::{
@@ -93,6 +97,9 @@ pub use neati_core::domain::scan::{
     ScanGapKind, ScanItem, ScanResult, StaleEntryObservation, UnitRelationship,
 };
 pub use neati_core::domain::storage::{
-    AppInstallSource, AppRelatedConfidence, AppRelatedKind, ArtifactOwnershipEvidence,
-    ArtifactOwnershipUncertainty, LargeFileFilter, LargeFileKind,
+    AppInstallSource, AppLeftoverClassification, AppRelatedConfidence, AppRelatedKind,
+    ArtifactOwnershipEvidence, ArtifactOwnershipUncertainty, LargeFileFilter, LargeFileKind,
+};
+pub use neati_core::domain::storage::{
+    TemporaryContentKind, TemporaryRemovalMode, TemporaryReviewConsent, TemporaryUsageState,
 };

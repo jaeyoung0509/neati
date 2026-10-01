@@ -942,11 +942,28 @@ family = "package_managers"
 risk = "manual"
 strategy = "manual"
 platforms = ["macos"]
-paths = ["~/.cache/node/corepack"]
+paths = ["~/.cache/node/corepack/v1"]
 owner = "Corepack"
 provider = "Corepack"
 artifact_kind = "package_store"
-description = "Observation only. corepack cache clean removes package manager distributions needed for offline use. Installed manager versions require an owner command with complete scope and executable validation."
+description = "Observed v1 executable package-manager distributions. A separately reviewed Corepack 0.36.0 owner action with Node 26.7.0 covers only this complete verified default store; unknown distributions and custom roots remain unavailable. Project/offline dependencies require explicit review. lastKnownGood.json and installed shims remain outside the command scope."
+
+[[signatures]]
+id = "dev.corepack.distribution_cache_clear"
+name = "Corepack Package Manager Cache Clear"
+category = "developer"
+family = "package_managers"
+risk = "rebuild"
+strategy = "owner_provider"
+provider_id = "corepack.distribution_cache_clear"
+platforms = ["macos"]
+paths = []
+owner = "Corepack"
+provider = "Corepack"
+artifact_kind = "package_store"
+fail_if_running = ["corepack", "node", "nodejs", "npm", "npx", "pnpm", "yarn"]
+consequence = "Verified v1 manager distributions are permanently removed. Offline projects pinned to these versions can fail until the managers are downloaded again. Projects, shims and lastKnownGood.json remain."
+description = "Fixed Corepack 0.36.0 cache clean, with pinned distribution contents and Node 26.7.0, complete v1 preview, current-user ownership, runtime/tree identity and fresh owner/handle/final launch checks. No generic executable deletion or filesystem fallback."
 
 [[signatures]]
 id = "dev.browser.downloaded_bundles"

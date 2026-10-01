@@ -8,6 +8,8 @@ use std::{
     process::Command,
 };
 
+const VERSIONS: &[&str] = &["1.16.2", "1.17.0"];
+#[cfg(test)]
 const VERSION: &str = "1.16.2";
 // Use the installed RubyGems runtime, but bypass pod's launcher and CLAide's
 // automatic plugin loading. No inherited RubyGems/RUBYOPT/Bundler environment.
@@ -16,16 +18,20 @@ require 'rubygems'
 if ENV['GEM_HOME']
   abort 'RubyGems ABI does not match the launcher' unless File.basename(ENV['GEM_HOME']) == RbConfig::CONFIG['ruby_version']
 end
-gem 'cocoapods', '= 1.16.2'
+version = Gem::Specification.find_all_by_name('cocoapods').map(&:version).max
+abort 'Unsupported installed CocoaPods version' unless version && ['1.16.2', '1.17.0'].include?(version.to_s)
+abi = RbConfig::CONFIG['ruby_version']
+abort 'Unsupported CocoaPods/Ruby ABI combination' unless [['1.16.2', '2.6.0'], ['1.17.0', '4.0.0']].include?([version.to_s, abi])
+gem 'cocoapods', '= ' + version.to_s
 require 'cocoapods'
 require 'cocoapods/command'
 require 'cocoapods/downloader/cache'
 require 'json'
-abort 'Unsupported CocoaPods version' unless Pod::VERSION == '1.16.2'
+abort 'Unsupported CocoaPods version' unless Pod::VERSION == version.to_s
 Pod::Command.plugin_prefixes = []
 if ARGV == ['--neati-inventory']
   files = $LOADED_FEATURES + Gem.loaded_specs.values.map(&:loaded_from)
-  puts JSON.generate(version: Pod::VERSION, runtime: File.realpath(RbConfig.ruby), files: files.select { |p| p && p.start_with?('/') }.map { |p| File.realpath(p) }.uniq.sort)
+  puts JSON.generate(version: Pod::VERSION, abi: RbConfig::CONFIG['ruby_version'], runtime: File.realpath(RbConfig.ruby), files: files.select { |p| p && p.start_with?('/') }.map { |p| File.realpath(p) }.uniq.sort)
 else
   abort 'Unsupported command' unless ARGV == ['cache', 'clean', '--all', '--no-ansi', '--silent']
   Pod::Command.run(ARGV)
@@ -51,7 +57,7 @@ pub(super) fn cocoapods_download_root(env: &PlatformEnvironment) -> Result<PathB
     Ok(cocoapods_cache_root(env)?.join("Pods"))
 }
 
-fn ruby_for_pod(pod: &Path) -> Result<PathBuf, String> {
+fn ruby_for_pod(pod: &Path, environment: &PlatformEnvironment) -> Result<PathBuf, String> {
     let metadata = std::fs::metadata(pod).map_err(|e| e.to_string())?;
     if metadata.len() > 16_384 {
         return Err("Unsupported CocoaPods launcher".into());
@@ -63,14 +69,25 @@ fn ruby_for_pod(pod: &Path) -> Result<PathBuf, String> {
         .and_then(|line| line.strip_prefix("#!"))
         .ok_or("CocoaPods needs an absolute RubyGems Ruby launcher")?
         .trim();
-    let path = Path::new(interpreter);
-    if !path.is_absolute()
-        || interpreter.chars().any(char::is_whitespace)
-        || path.file_name().and_then(|n| n.to_str()) != Some("ruby")
-        || !text.contains("Gem.activate_bin_path('cocoapods', 'pod'")
-    {
-        return Err("Only standard RubyGems CocoaPods launchers are supported".into());
+    if !text.contains("Gem.activate_bin_path('cocoapods', 'pod'") {
+        return Err("Only standard RubyGems CocoaPods launchers are supported; Homebrew shell wrappers and custom launchers require a separate owner contract".into());
     }
+    // env-shebang launchers resolve the reviewed snapshot, never inherited PATH.
+    let path = if interpreter == "/usr/bin/env ruby" {
+        crate::tooling::resolve_with("ruby", environment)
+            .ok_or("The env-shebang Ruby snapshot is unavailable")?
+    } else {
+        let path = Path::new(interpreter);
+        if !path.is_absolute()
+            || interpreter.chars().any(char::is_whitespace)
+            || path.file_name().and_then(|n| n.to_str()) != Some("ruby")
+        {
+            return Err(
+                "Only absolute Ruby or the exact /usr/bin/env ruby launcher is supported".into(),
+            );
+        }
+        path.to_path_buf()
+    };
     let ruby = std::fs::canonicalize(path).map_err(|e| e.to_string())?;
     if ![
         "/usr/bin",
@@ -94,7 +111,7 @@ pub(super) fn cocoapods_command(
     preview: bool,
     environment: &PlatformEnvironment,
 ) -> Result<Command, String> {
-    let mut command = Command::new(ruby_for_pod(pod)?);
+    let mut command = Command::new(ruby_for_pod(pod, environment)?);
     command.args(["-e", LAUNCHER, "--"]);
     if preview {
         command.arg("--neati-inventory");
@@ -160,8 +177,25 @@ fn user_gem_root(pod: &Path, environment: &PlatformEnvironment) -> Result<Option
 fn runtime_report(output: &[u8]) -> Result<serde_json::Value, String> {
     let report: serde_json::Value =
         serde_json::from_slice(output).map_err(|_| "Invalid CocoaPods runtime report")?;
-    if report.get("version").and_then(|v| v.as_str()) != Some(VERSION) {
-        return Err("CocoaPods cleanup is supported for 1.16.2 only".into());
+    if !report
+        .get("version")
+        .and_then(|v| v.as_str())
+        .is_some_and(|version| VERSIONS.contains(&version))
+    {
+        return Err(
+            "CocoaPods cleanup is supported for the verified 1.16.2 and 1.17.0 commands only"
+                .into(),
+        );
+    }
+    let tuple = (report["version"].as_str(), report["abi"].as_str());
+    if !matches!(
+        tuple,
+        (Some("1.16.2"), Some("2.6.0")) | (Some("1.17.0"), Some("4.0.0"))
+    ) {
+        return Err(
+            "CocoaPods/Ruby ABI tuple has not been validated; the owner command is unavailable"
+                .into(),
+        );
     }
     Ok(report)
 }
@@ -208,7 +242,10 @@ pub(super) fn cocoapods_candidates(
     output: &[u8],
     env: &PlatformEnvironment,
 ) -> Result<Vec<PathBuf>, String> {
-    runtime_report(output)?;
+    let report = runtime_report(output)?;
+    let version = report["version"]
+        .as_str()
+        .ok_or("CocoaPods version is unavailable")?;
     let root = cocoapods_download_root(env)?;
     match std::fs::symlink_metadata(&root) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![root]),
@@ -240,7 +277,7 @@ pub(super) fn cocoapods_candidates(
     if std::fs::read_to_string(root.join("VERSION"))
         .map_err(|e| e.to_string())?
         .trim()
-        != VERSION
+        != version
     {
         return Err(
             "CocoaPods cache version is missing or unsupported; preview leaves it untouched".into(),
@@ -329,7 +366,7 @@ mod tests {
         (temp, env, root)
     }
     fn report() -> Vec<u8> {
-        serde_json::to_vec(&serde_json::json!({"version":VERSION,"runtime":"/usr/bin/ruby","files":["/usr/bin/ruby"]})).unwrap()
+        serde_json::to_vec(&serde_json::json!({"version":VERSION,"abi":"2.6.0","runtime":"/usr/bin/ruby","files":["/usr/bin/ruby"]})).unwrap()
     }
     #[test]
     fn whole_scope_refuses_overrides_unknown_versions_and_root_entries_without_mutation() {
@@ -361,7 +398,7 @@ mod tests {
             b"keep"
         );
         let mut wrong: serde_json::Value = serde_json::from_slice(&report()).unwrap();
-        wrong["version"] = "1.17.0".into();
+        wrong["version"] = "1.18.0".into();
         assert!(cocoapods_candidates(&serde_json::to_vec(&wrong).unwrap(), &env).is_err());
     }
     #[test]
@@ -397,7 +434,7 @@ mod tests {
         let library = temp.path().join("library.rb");
         std::fs::write(&library, "before").unwrap();
         let report = serde_json::to_vec(
-            &serde_json::json!({"version":VERSION,"runtime":"/usr/bin/ruby","files":[library]}),
+            &serde_json::json!({"version":VERSION,"abi":"2.6.0","runtime":"/usr/bin/ruby","files":[library]}),
         )
         .unwrap();
         let mut before = Sha256::new();
@@ -583,6 +620,20 @@ require 'cocoapods/command/cache'
             "#!/usr/bin/env ruby\nGem.activate_bin_path('cocoapods', 'pod', version)\n",
         )
         .unwrap();
-        assert!(cocoapods_command(&pod, &root, &scratch, true, &env).is_err());
+        let reviewed_env = env.clone().with_tool("ruby", "/usr/bin/ruby");
+        let command = cocoapods_command(&pod, &root, &scratch, true, &reviewed_env).unwrap();
+        assert_eq!(
+            command.get_program(),
+            std::fs::canonicalize("/usr/bin/ruby").unwrap()
+        );
+        for launcher in [
+            "#!/usr/bin/env -S ruby --disable-gems\nGem.activate_bin_path('cocoapods', 'pod', version)\n",
+            "#!/usr/bin/ruby -w\nGem.activate_bin_path('cocoapods', 'pod', version)\n",
+            "#!/bin/bash\nexport GEM_HOME=/custom/libexec\nexec ruby pod\n",
+        ] {
+            std::fs::write(&pod, launcher).unwrap();
+            assert!(cocoapods_command(&pod, &root, &scratch, true, &reviewed_env).is_err());
+        }
+        assert!(root.join("Release/Example/source.m").exists());
     }
 }

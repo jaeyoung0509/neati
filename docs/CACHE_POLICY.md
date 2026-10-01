@@ -156,6 +156,14 @@ For stale-content cleanup, a protected directory's entire descendant tree is
 excluded from the reclaim estimate while its measured bytes remain observed.
 A whole-directory cleanup cannot bypass these classifications.
 
+CloudKit sync state and Safari website-data namespaces also stay protected in
+application/container/group-container caches. Their direct prefixes and nested
+bare names are excluded case-insensitively on macOS; this narrows authority
+without widening any inclusion. These bytes remain observed while excluded
+from cleanup estimates. Fresh recursive execution checks preserve protected
+names that appeared after planning. See the
+[system/state assessment](SYSTEM_CLEANUP_ACCESS.md) for owner evidence and limits.
+
 Owner use is checked during discovery, planning and execution. On macOS,
 ordinary pruned payloads under `Library/Caches` and `Library/Logs` use a bounded
 open-file check on the exact unit. A running app or daemon alone does not block

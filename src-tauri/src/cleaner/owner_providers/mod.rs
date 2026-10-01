@@ -35,6 +35,8 @@ pub mod cargo;
 #[cfg(target_os = "macos")]
 mod cocoapods;
 #[cfg(target_os = "macos")]
+mod corepack;
+#[cfg(target_os = "macos")]
 pub mod dotslash;
 #[cfg(target_os = "macos")]
 mod github_cli;
@@ -109,6 +111,19 @@ pub trait OwnerScopedProvider: Send + Sync {
         guard: &neati_core::domain::cleanup::RunningProcessPolicy,
     ) -> OwnerStoreObservation;
 
+    /// Optional read-only diagnostics. The default preserves the provider's
+    /// ordinary observation; diagnostics never carry authorization or paths.
+    fn scan_with_spans(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &neati_core::domain::cleanup::RunningProcessPolicy,
+        _source_id: &str,
+        _cancellation: &dyn crate::models::CancellationProbe,
+        _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        self.scan(environment, guard)
+    }
+
     /// Builds the private authorization for the selected units.
     ///
     /// The selection is a claim about the scan, not authority: the provider
@@ -169,6 +184,11 @@ impl OwnerProviderRegistry {
         let mut providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
             #[cfg(target_os = "macos")]
             Arc::new(tool_cleanup::ToolCleanupProvider::native(
+                tool_cleanup::ToolCacheKind::Corepack,
+                process.clone(),
+            )),
+            #[cfg(target_os = "macos")]
+            Arc::new(tool_cleanup::ToolCleanupProvider::native(
                 tool_cleanup::ToolCacheKind::GithubCli,
                 process.clone(),
             )),
@@ -200,6 +220,12 @@ impl OwnerProviderRegistry {
             )),
             Arc::new(browser::ChromiumCacheProvider::new(
                 browser::BrowserCacheKind::OfflineCacheStorage,
+                process.clone(),
+                measuring.clone(),
+                trash.clone(),
+            )),
+            Arc::new(browser::ChromiumCacheProvider::new(
+                browser::BrowserCacheKind::RendererCaches,
                 process.clone(),
                 measuring.clone(),
                 trash.clone(),

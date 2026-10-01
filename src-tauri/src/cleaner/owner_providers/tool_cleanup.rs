@@ -48,7 +48,10 @@ impl ToolPreview {
         self.fingerprint.clone()
     }
     fn operation_path(&self, kind: ToolCacheKind) -> &Path {
-        if matches!(kind, ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli) {
+        if matches!(
+            kind,
+            ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli | ToolCacheKind::Corepack
+        ) {
             self.candidates
                 .first()
                 .map(PathBuf::as_path)
@@ -104,6 +107,7 @@ pub enum ToolCacheKind {
     Swiftpm,
     Cocoapods,
     GithubCli,
+    Corepack,
 }
 impl ToolCacheKind {
     fn executable(self) -> &'static str {
@@ -113,6 +117,7 @@ impl ToolCacheKind {
             Self::Swiftpm => "swift-package",
             Self::Cocoapods => "pod",
             Self::GithubCli => "gh",
+            Self::Corepack => "corepack",
         }
     }
 }
@@ -127,6 +132,9 @@ impl NativeToolCommandRunner {
             crate::tooling::resolve_with(self.kind.executable(), environment)
                 .ok_or("Tool is not installed")?
         };
+        if matches!(self.kind, ToolCacheKind::Corepack) {
+            return super::corepack::resolve_distribution(&path, environment);
+        }
         let canonical = std::fs::canonicalize(&path).map_err(|e| e.to_string())?;
         let mut roots = vec![
             PathBuf::from("/opt/homebrew"),
@@ -178,6 +186,9 @@ impl NativeToolCommandRunner {
         match self.kind {
             ToolCacheKind::GithubCli => {
                 return Err("GitHub CLI requires its isolated command".into())
+            }
+            ToolCacheKind::Corepack => {
+                return Err("Corepack uses an isolated versioned runtime command".into());
             }
             ToolCacheKind::Cocoapods => {
                 return Err("CocoaPods requires its isolated launcher".into())
@@ -248,10 +259,14 @@ impl NativeToolCommandRunner {
             ToolCacheKind::Swiftpm => swiftpm_candidates(output, environment)?,
             ToolCacheKind::Cocoapods => cocoapods_candidates(output, environment)?,
             ToolCacheKind::GithubCli => super::github_cli::candidates(output, environment)?,
+            ToolCacheKind::Corepack => super::corepack::candidates(output, environment)?,
         };
         let mut digest = Sha256::new();
         if matches!(self.kind, ToolCacheKind::Cocoapods) {
             fingerprint_cocoapods_runtime(output, &mut digest)?;
+        }
+        if matches!(self.kind, ToolCacheKind::Corepack) {
+            super::corepack::fingerprint_runtime(&executable, environment, &mut digest)?;
         }
         digest.update(executable.as_os_str().as_encoded_bytes());
         let executable_identity =
@@ -291,7 +306,10 @@ impl NativeToolCommandRunner {
             digest.update(measurement.allocated_bytes.to_le_bytes());
             if matches!(
                 self.kind,
-                ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+                ToolCacheKind::Swiftpm
+                    | ToolCacheKind::Cocoapods
+                    | ToolCacheKind::GithubCli
+                    | ToolCacheKind::Corepack
             ) {
                 fingerprint_tree(path, &mut digest)?;
             }
@@ -301,6 +319,8 @@ impl NativeToolCommandRunner {
                 cocoapods_download_root(environment)?
             } else if matches!(self.kind, ToolCacheKind::GithubCli) {
                 super::github_cli::cache_root(environment)?
+            } else if matches!(self.kind, ToolCacheKind::Corepack) {
+                super::corepack::cache_root(environment)?
             } else {
                 executable
                     .parent()
@@ -353,7 +373,10 @@ impl NativeToolCommandRunner {
         }
         let scratch = if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) {
             Some(
                 tempfile::Builder::new()
@@ -374,6 +397,16 @@ impl NativeToolCommandRunner {
                     .path(),
                 dry_run,
                 environment,
+            )?
+        } else if matches!(self.kind, ToolCacheKind::Corepack) {
+            super::corepack::command(
+                &executable,
+                environment,
+                scratch
+                    .as_ref()
+                    .ok_or("Isolated workspace unavailable")?
+                    .path(),
+                dry_run,
             )?
         } else if matches!(self.kind, ToolCacheKind::GithubCli) {
             super::github_cli::command(
@@ -411,6 +444,17 @@ impl NativeToolCommandRunner {
                 &executable,
                 reviewed.ok_or("GitHub CLI requires a reviewed scope")?,
             )?;
+        }
+        if !dry_run
+            && matches!(
+                self.kind,
+                ToolCacheKind::Corepack | ToolCacheKind::Cocoapods | ToolCacheKind::Swiftpm
+            )
+        {
+            let final_preview = self.preview(environment)?;
+            if final_preview.key() != reviewed.ok_or("Owner requires a reviewed scope")?.key() {
+                return Err("Owner scope or runtime changed after the final use check; no command was launched".into());
+            }
         }
         let output = neati_platform::subprocess::run_with_timeout(
             command,
@@ -472,7 +516,10 @@ impl ToolCommandRunner for NativeToolCommandRunner {
         }
         if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) {
             verify_swiftpm_idle(&current.candidates, processes, guard)?;
         }
@@ -484,7 +531,8 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             ToolCacheKind::Mise
             | ToolCacheKind::Swiftpm
             | ToolCacheKind::Cocoapods
-            | ToolCacheKind::GithubCli => Ok(()),
+            | ToolCacheKind::GithubCli
+            | ToolCacheKind::Corepack => Ok(()),
         }
     }
 }
@@ -752,7 +800,10 @@ impl ToolCleanupProvider {
     ) -> OwnerStoreObservation {
         if !matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) && crate::tooling::resolve_with(self.kind.executable(), environment).is_none()
         {
             return OwnerStoreObservation::ready(None, Vec::new());
@@ -794,7 +845,10 @@ impl ToolCleanupProvider {
         };
         if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) {
             if let Err(error) =
                 verify_swiftpm_idle(&preview.candidates, self.process.as_ref(), guard)
@@ -994,6 +1048,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
             ToolCacheKind::Swiftpm => "swiftpm.purge_cache",
             ToolCacheKind::Cocoapods => "cocoapods.download_cache",
             ToolCacheKind::GithubCli => "github_cli.local_cache_clear",
+            ToolCacheKind::Corepack => "corepack.distribution_cache_clear",
         }
     }
 
@@ -1003,6 +1058,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
 
     fn consequence(&self) -> &'static str {
         match self.kind {
+            ToolCacheKind::Corepack => "Corepack permanently removes its verified v1 package-manager distributions. Projects pinned to those versions need network access to download them again; offline execution can fail. Project package.json/lockfiles, shims, credentials and lastKnownGood.json remain intact.",
             ToolCacheKind::Cocoapods => "CocoaPods permanently clears its complete default download cache, including cached pod sources, specifications and its version marker. Dependencies may need downloading again. Repositories, project Pods, credentials, configuration and installed tools remain intact.",
             ToolCacheKind::Swiftpm => "SwiftPM purges global repository downloads, registry downloads and its manifest cache. Dependencies may need downloading again. Project builds, installed toolchains, artifacts, configuration and security state stay intact.",
             ToolCacheKind::Conda => "Conda removes downloaded package archives, index caches and logs. Extracted packages and installed environments remain intact.",
@@ -1522,7 +1578,9 @@ mod tests {
                 ToolCacheKind::Mise => assert_eq!(args, ["cache", "clear"]),
                 ToolCacheKind::Swiftpm => assert_eq!(args, ["--version"]),
                 ToolCacheKind::Cocoapods => panic!("CocoaPods uses a separate isolated command"),
-                ToolCacheKind::GithubCli => panic!("GitHub CLI uses a separate isolated command"),
+                ToolCacheKind::GithubCli | ToolCacheKind::Corepack => {
+                    panic!("The owner uses a separate isolated command")
+                }
             }
             assert_eq!(command.get_current_dir(), Some(Path::new("/profile")));
         }

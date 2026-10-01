@@ -60,7 +60,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::{Instant, SystemTime};
 
 use neati_lib::cleaner::{CleanExecutor, LifecycleProviderRegistry, OwnerProviderRegistry};
@@ -76,11 +76,22 @@ use neati_platform::PlatformEnvironment;
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 
+/// Keep fixture setup and measurement from competing with other cases in this
+/// harness for filesystem I/O and the shared scan pool. The scanner's internal
+/// parallelism and every timing ceiling remain unchanged.
+fn isolate_fixture_measurement() -> MutexGuard<'static, ()> {
+    static MEASUREMENT: Mutex<()> = Mutex::new(());
+    MEASUREMENT
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 /// An end-to-end cleanup measurement on a directory created solely by this
 /// harness. The elapsed time is evidence, not a CI threshold; the byte and
 /// empty-root assertions ensure the measurement describes completed work.
 #[test]
 fn disposable_cleanup_fixture_reports_verified_reclaim() {
+    let _measurement = isolate_fixture_measurement();
     const FILES: usize = 64;
     const FILE_BYTES: usize = 64 * 1024;
 
@@ -164,6 +175,7 @@ fn disposable_cleanup_fixture_reports_verified_reclaim() {
 #[test]
 #[ignore = "local repeated fixture benchmark; never cleans real caches"]
 fn repeated_cleanup_shapes_report_verified_accounting() {
+    let _measurement = isolate_fixture_measurement();
     use neati_core::domain::cleanup::DeletionDisposition;
     use neati_platform::PathFlavor;
     let lifecycle = LifecycleProviderRegistry::new(vec![]);
@@ -451,6 +463,7 @@ fn committed_fixtures() -> Vec<Fixture> {
 #[test]
 #[ignore = "local repeated read-only fixture benchmark; never scans user caches"]
 fn repeated_aged_observation_reports_scan_cost() {
+    let _measurement = isolate_fixture_measurement();
     let fixture = aged_observation_fixture();
     for iteration in 0..6 {
         let before_rss = resident_kib();
@@ -488,6 +501,7 @@ fn repeated_aged_observation_reports_scan_cost() {
 #[test]
 #[ignore = "local repeated read-only fixture benchmark; never scans user caches"]
 fn repeated_plain_observation_reports_scan_cost() {
+    let _measurement = isolate_fixture_measurement();
     let fixture = plain_observation_fixture();
     for iteration in 0..6 {
         let before_rss_bytes = resident_bytes();
@@ -571,6 +585,7 @@ fn process_cpu_us() -> Option<u64> {
 
 #[test]
 fn aged_observation_phase_spans_are_bounded_and_do_not_add_progress_events() {
+    let _measurement = isolate_fixture_measurement();
     let fixture = aged_observation_fixture();
     let mut roots = 0;
     let mut items = 0;
@@ -615,6 +630,7 @@ fn aged_observation_phase_spans_are_bounded_and_do_not_add_progress_events() {
 
 #[test]
 fn aged_observation_cancellation_stops_inside_the_first_unit() {
+    let _measurement = isolate_fixture_measurement();
     use std::sync::atomic::AtomicUsize;
     struct DuringTraversal {
         calls: AtomicUsize,
@@ -1355,6 +1371,7 @@ fn assert_row_matches_baseline(baseline: &Baseline, row: &MetricsRow, fixture: &
 #[test]
 #[ignore = "baseline regeneration; CI regenerates and diff-checks the committed file"]
 fn export_scan_baseline() {
+    let _measurement = isolate_fixture_measurement();
     let mut rows = Vec::new();
     for fixture in committed_fixtures() {
         let result = fixture.scan();
@@ -1372,6 +1389,7 @@ fn export_scan_baseline() {
 /// fixture finished well inside its ceiling.
 #[test]
 fn scan_metrics_match_the_committed_baseline() {
+    let _measurement = isolate_fixture_measurement();
     let baseline = load_baseline();
     assert_eq!(
         baseline.schema, BASELINE_SCHEMA,
@@ -1441,6 +1459,7 @@ fn scan_metrics_match_the_committed_baseline() {
 /// runner.
 #[test]
 fn cancellation_latency_is_measured_from_the_first_candidate() {
+    let _measurement = isolate_fixture_measurement();
     let directory = tempfile::tempdir().expect("fixture directory");
     let anchor = directory.path().join("cancel-anchor");
     write_file(&anchor.join("anchor.bin"), 4_096);
@@ -1566,6 +1585,7 @@ impl CancellationProbe for Probe {
 #[cfg(unix)]
 #[test]
 fn inaccessible_directory_is_attempted_counted_and_reported() {
+    let _measurement = isolate_fixture_measurement();
     use std::os::unix::fs::PermissionsExt;
 
     let directory = tempfile::tempdir().expect("fixture directory");
@@ -1642,6 +1662,7 @@ fn assert_fixture_shape_inaccessible(result: &ScanResult) {
 #[cfg(unix)]
 #[test]
 fn a_symlinked_directory_is_accounted_for_and_never_traversed() {
+    let _measurement = isolate_fixture_measurement();
     let outside = tempfile::tempdir().expect("outside directory");
     write_file(&outside.path().join("outside.bin"), 16_384);
     let directory = tempfile::tempdir().expect("fixture directory");

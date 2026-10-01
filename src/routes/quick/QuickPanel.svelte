@@ -1,6 +1,6 @@
 <script lang="ts">
   import NeatiWordmark from '../../lib/components/NeatiWordmark.svelte';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import type {
     DashboardRoute,
     AgentQuickSummary,
@@ -61,6 +61,7 @@
   const AI_ROW_LIMIT = 5;
 
   let panelActive = $state(false);
+  let panelDataReady = $state(false);
   let activation = 0;
   let showResultModal = $state(false);
   let showCleanupDetails = $state(false);
@@ -164,8 +165,6 @@
   let activeCount = $derived(agentSummary?.active_count ?? 0);
 
   let stopFreshness: (() => void) | undefined;
-  let stopUsageRefresh: (() => void) | undefined;
-  let metricsPolling = false;
   let panelShell: HTMLDivElement;
   let panelHeader: HTMLDivElement;
   let panelFooter: HTMLDivElement;
@@ -173,7 +172,7 @@
   let panelSizer = $state<ReturnType<typeof createQuickPanelSizer>>();
 
   $effect(() => {
-    const ready = settingsStore.hasLoaded && !settingsStore.isLoading
+    const ready = panelDataReady && settingsStore.hasLoaded && !settingsStore.isLoading
       && (platformCapabilitiesStore.capabilities !== null || capabilitiesFailed);
     const layout = JSON.stringify([
       settings.quick_panel_sections,
@@ -183,6 +182,31 @@
       capabilitiesFailed,
     ]);
     panelSizer?.configure(panelActive && ready, layout);
+  });
+
+  $effect(() => {
+    const ready = panelActive && panelDataReady;
+    const wantsMemory = ready && hasSection('memory') && memoryAvailable;
+    const wantsMetrics = ready && ((hasSection('cpu') && cpuAvailable) || hasSection('battery'));
+    // Tie each subscription to this activation's visible sections, rather than
+    // consulting possibly changed preferences when the panel is hidden.
+    const stopMemory = wantsMemory ? untrack(() => memoryStore.observePolling(3000)) : undefined;
+    const stopMetrics = wantsMetrics ? untrack(() => systemMetricsStore.observePolling(3000, 30_000)) : undefined;
+    return () => {
+      stopMemory?.();
+      stopMetrics?.();
+    };
+  });
+
+  $effect(() => {
+    const wantsUsage = panelActive && panelDataReady && aiAvailable
+      && (hasSection('agent_activity') || hasSection('categories'))
+      && settings.quick_panel_ai_providers.length > 0;
+    if (!wantsUsage) return;
+    return untrack(() => {
+      void usageStore.refreshIfStale();
+      return usageStore.observeAutoRefresh();
+    });
   });
 
   async function activatePanel() {
@@ -198,29 +222,17 @@
   async function refreshPanelData() {
     const currentActivation = activation;
     const stillActive = () => panelActive && currentActivation === activation;
+    if (!stillActive()) return;
+    panelDataReady = false;
     await settingsStore.load(true);
     if (!settingsStore.hasLoaded || !stillActive()) return;
     await platformCapabilitiesStore.load(true);
     if (!stillActive()) return;
     await platformContextStore.load(true);
     if (!stillActive()) return;
-    stopUsageRefresh?.();
-    stopUsageRefresh = undefined;
+    panelDataReady = true;
     if (awakeAvailable) void awakeStore.refresh();
     if (hasSection('storage') && cleanupAvailable) void memoryStore.refreshDisk();
-    if (hasSection('memory') && memoryAvailable) memoryStore.startPolling(3000);
-    if ((hasSection('cpu') && cpuAvailable) || hasSection('battery')) {
-      metricsPolling = true;
-      systemMetricsStore.startPolling(3000, 30_000);
-    }
-    if (
-      (hasSection('agent_activity') || hasSection('categories')) &&
-      aiAvailable &&
-      settings.quick_panel_ai_providers.length > 0
-    ) {
-      void usageStore.refreshIfStale();
-      stopUsageRefresh = usageStore.observeAutoRefresh();
-    }
     if (hasSection('agent_activity') && aiAvailable) {
       void tauriGetAgentQuickSummary().then((summary) => {
         if (stillActive()) agentSummary = summary;
@@ -237,19 +249,13 @@
   function deactivatePanel() {
     if (!panelActive) return;
     panelActive = false;
+    panelDataReady = false;
     activation += 1;
     panelSizer?.configure(false, '');
     if (usageClock !== undefined) clearInterval(usageClock);
     usageClock = undefined;
-    stopUsageRefresh?.();
-    stopUsageRefresh = undefined;
     stopFreshness?.();
     stopFreshness = undefined;
-    if (hasSection('memory')) memoryStore.stopPolling();
-    if (metricsPolling) {
-      metricsPolling = false;
-      systemMetricsStore.stopPolling();
-    }
   }
 
   onMount(() => {

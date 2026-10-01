@@ -90,4 +90,43 @@ describe('Quick Panel durable bounds', () => {
     expect(resize.mock.calls).toEqual([[360, 570], [360, 322]]);
     sizer.dispose();
   });
+
+  it('repairs reopened bounds after a resize already in flight finishes for an older activation', async () => {
+    const { measured, resize, maximumHeight, sizer } = harness();
+    let finishFirst: () => void = () => {};
+    resize.mockImplementationOnce((_width, height) => new Promise<void>(resolve => {
+      finishFirst = () => { measured.height = height; resolve(); };
+    }));
+    sizer.configure(true, 'old');
+    await vi.advanceTimersByTimeAsync(180);
+    sizer.configure(false, '');
+    sizer.viewportChanged();
+    await vi.advanceTimersByTimeAsync(180);
+    expect(maximumHeight).toHaveBeenCalledTimes(1);
+    expect(resize).toHaveBeenCalledTimes(1);
+
+    measured.contentHeight = 200;
+    sizer.configure(true, 'reopened');
+    await vi.advanceTimersByTimeAsync(180);
+    expect(resize).toHaveBeenCalledTimes(1);
+    finishFirst();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(resize.mock.calls).toEqual([[360, 570], [360, 322]]);
+    expect(measured.height).toBe(322);
+    sizer.dispose();
+  });
+
+  it('does not schedule another resize when disposed during an accepted native request', async () => {
+    const { resize, sizer } = harness();
+    let finish: () => void = () => {};
+    resize.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+    sizer.configure(true, 'first');
+    await vi.advanceTimersByTimeAsync(180);
+    sizer.configure(true, 'queued');
+    await vi.advanceTimersByTimeAsync(180);
+    sizer.dispose();
+    finish();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(resize).toHaveBeenCalledTimes(1);
+  });
 });

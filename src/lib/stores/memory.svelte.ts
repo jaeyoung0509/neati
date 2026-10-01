@@ -120,6 +120,17 @@ export class MemoryStore {
     }
   }
 
+  /** One consumer owns one idempotent release, regardless of later preferences. */
+  observePolling(intervalMs: number = 2500): () => void {
+    this.startPolling(intervalMs);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      this.stopPolling();
+    };
+  }
+
   stopPolling() {
     this.subscriberCount = Math.max(0, this.subscriberCount - 1);
     if (this.subscriberCount === 0 && this.timer !== null) {

@@ -1,0 +1,803 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-01T01:02:35.418515+00:00",
+  "date_kst": "2026-10-01",
+  "host": {
+    "reported_hardware": {
+      "model": "MacBook Air M1",
+      "memory_gib": 16,
+      "source": "Previously recorded host in issue379; hardware sysctl queries are unavailable in the current managed environment."
+    },
+    "os_version": "27.0.1",
+    "os_build": "26A434",
+    "os_source": "/System/Library/CoreServices/SystemVersion.plist read during this run"
+  },
+  "scope": "Disposable synthetic aged namespace trees only; no user-directory scan, cleanup plan, sudo, installation or permission changes.",
+  "source": {
+    "before_commit": "ddcfe3937e5380448dcde1d53036ff209352d39f",
+    "before_version": "0.3.89",
+    "before_note": "Base production code plus the same read-only fixture added for this comparison.",
+    "after_commit": "86b3b2f1dc6d2024b2911f44e1be0d7229c75b70",
+    "after_version": "0.3.90",
+    "binary_sha256": {
+      "before": "8b1bedb260d24347731a165da3ff4d07562efccd21094057530917fdb0f45bed",
+      "after": "8d8786960eb7361d79db5ea545918786b5d0794b1035d52b9d5d8497b9237bd7"
+    }
+  },
+  "method": {
+    "schedule": [
+      "before",
+      "after",
+      "after",
+      "before",
+      "before",
+      "after"
+    ],
+    "process_runs_per_variant": 3,
+    "warmup_scans_per_process": 1,
+    "measured_scans_per_process": 5,
+    "fixture_files": 2048,
+    "fixture_namespace_units": 2,
+    "fixture_age_days": {
+      "stale": 10,
+      "fresh": 0
+    },
+    "retention_days": 3,
+    "mode": "debug test binaries, sequential fresh fixture construction per process with repeated warm-cache scans",
+    "other_agent_builds_and_tests": "paused during this measurement window",
+    "background_host_activity": "normal OS and application activity was not stopped",
+    "whole_process_note": "os.wait4 user/system CPU and native peak RSS include fixture creation, all six scans, assertions and test startup; they are not scan-only CPU or heap measurements. Native RSS is reported without unit conversion.",
+    "sampler_note": "/usr/bin/time -l was unsuitable in this managed environment because its kern.clockrate query was denied; the sampler reads only resource usage returned when waiting for our own child."
+  },
+  "summary": {
+    "before": {
+      "samples": 15,
+      "median_scan_wall_us": 435398,
+      "min_scan_wall_us": 432786,
+      "max_scan_wall_us": 443114,
+      "median_scan_rss_growth_kib": 16,
+      "median_whole_process_cpu_s": 2.942291,
+      "median_whole_process_peak_rss_native": 16924672
+    },
+    "after": {
+      "samples": 15,
+      "median_scan_wall_us": 185242,
+      "min_scan_wall_us": 184802,
+      "max_scan_wall_us": 185956,
+      "median_scan_rss_growth_kib": 64,
+      "median_whole_process_cpu_s": 1.44253,
+      "median_whole_process_peak_rss_native": 17203200
+    }
+  },
+  "median_fixture_wall_reduction_percent": 57.45,
+  "limitations": [
+    "Not a measurement of live developer temporary folders, GUI/IPC delivery, first useful progress or Windows runtime.",
+    "Peak tasks is zero because the aged walker remains sequential; pool/thread/queue bounds were not changed.",
+    "RSS growth is approximate and allocator/cache-dependent; zero or negative growth does not establish no allocations.",
+    "These timings are observations, not byte-exact or new CI thresholds."
+  ],
+  "runs": [
+    {
+      "step": 0,
+      "variant": "before",
+      "rows": [
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 0,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 5456,
+          "scan_ms": 437,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 437687,
+          "warmup": true
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 1,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 144,
+          "scan_ms": 436,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 437046,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 2,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 256,
+          "scan_ms": 442,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 442832,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 3,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 32,
+          "scan_ms": 443,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 443114,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 4,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 32,
+          "scan_ms": 437,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 437405,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 5,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 0,
+          "scan_ms": 435,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 435191,
+          "warmup": false
+        }
+      ],
+      "whole_process": {
+        "wall_s": 2.9649974169951747,
+        "user_cpu_s": 2.3695559999999998,
+        "system_cpu_s": 0.5937669999999999,
+        "peak_rss_native": 17055744
+      }
+    },
+    {
+      "step": 1,
+      "variant": "after",
+      "rows": [
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 0,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 5696,
+          "scan_ms": 188,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 188249,
+          "warmup": true
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 1,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 176,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185940,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 2,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 80,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185380,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 3,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 80,
+          "scan_ms": 184,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 184956,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 4,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 32,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185116,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 5,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 0,
+          "scan_ms": 184,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 184920,
+          "warmup": false
+        }
+      ],
+      "whole_process": {
+        "wall_s": 1.4440507920007803,
+        "user_cpu_s": 0.868694,
+        "system_cpu_s": 0.573836,
+        "peak_rss_native": 17235968
+      }
+    },
+    {
+      "step": 2,
+      "variant": "after",
+      "rows": [
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 0,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 5632,
+          "scan_ms": 189,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 189157,
+          "warmup": true
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 1,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 192,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185585,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 2,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 112,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185467,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 3,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 64,
+          "scan_ms": 184,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 184808,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 4,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 32,
+          "scan_ms": 184,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 184802,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 5,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 0,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185074,
+          "warmup": false
+        }
+      ],
+      "whole_process": {
+        "wall_s": 1.442778000004182,
+        "user_cpu_s": 0.868261,
+        "system_cpu_s": 0.572789,
+        "peak_rss_native": 17203200
+      }
+    },
+    {
+      "step": 3,
+      "variant": "before",
+      "rows": [
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 0,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 5424,
+          "scan_ms": 436,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 437094,
+          "warmup": true
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 1,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 128,
+          "scan_ms": 438,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 438224,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 2,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 0,
+          "scan_ms": 434,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 434518,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 3,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 16,
+          "scan_ms": 436,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 436469,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 4,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 16,
+          "scan_ms": 435,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 435398,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 5,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 0,
+          "scan_ms": 433,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 433770,
+          "warmup": false
+        }
+      ],
+      "whole_process": {
+        "wall_s": 2.9438305829971796,
+        "user_cpu_s": 2.355965,
+        "system_cpu_s": 0.586326,
+        "peak_rss_native": 16728064
+      }
+    },
+    {
+      "step": 4,
+      "variant": "before",
+      "rows": [
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 0,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 5552,
+          "scan_ms": 436,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 436128,
+          "warmup": true
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 1,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 176,
+          "scan_ms": 433,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 433531,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 2,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 16,
+          "scan_ms": 440,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 440448,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 3,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 32,
+          "scan_ms": 433,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 433097,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 4,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 16,
+          "scan_ms": 432,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 432786,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 5,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 16,
+          "scan_ms": 433,
+          "skipped_entries": 0,
+          "version": "0.3.89",
+          "visited_entries": 2307,
+          "wall_us": 433577,
+          "warmup": false
+        }
+      ],
+      "whole_process": {
+        "wall_s": 2.9423441250037285,
+        "user_cpu_s": 2.3530699999999998,
+        "system_cpu_s": 0.5881029999999999,
+        "peak_rss_native": 16924672
+      }
+    },
+    {
+      "step": 5,
+      "variant": "after",
+      "rows": [
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 0,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 5664,
+          "scan_ms": 187,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 187867,
+          "warmup": true
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 1,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 192,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185956,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 2,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 64,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185288,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 3,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 80,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185242,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 4,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 32,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185204,
+          "warmup": false
+        },
+        {
+          "candidate_count": 2,
+          "directories_read": 259,
+          "iteration": 5,
+          "logical_bytes": 8388608,
+          "observed_bytes": 8388608,
+          "peak_tasks": 0,
+          "rss_growth_kib": 0,
+          "scan_ms": 185,
+          "skipped_entries": 0,
+          "version": "0.3.90",
+          "visited_entries": 2307,
+          "wall_us": 185301,
+          "warmup": false
+        }
+      ],
+      "whole_process": {
+        "wall_s": 1.4456930000014836,
+        "user_cpu_s": 0.8680279999999999,
+        "system_cpu_s": 0.576226,
+        "peak_rss_native": 17203200
+      }
+    }
+  ],
+  "asserted_contract": {
+    "assertions": "assert_aged_observation executes after every warmup and measured scan in the passing test process.",
+    "visited_entries": 2307,
+    "directories_read": 259,
+    "inventory_units": 2,
+    "logical_bytes": 8388608,
+    "observed_bytes_on_this_run": 8388608,
+    "skipped_entries": 0,
+    "peak_outstanding_directory_tasks": 0,
+    "cleanable_bytes": 0,
+    "selected_bytes": 0,
+    "age_eligibility": [
+      "stale unit remains Advisory because the signature is Manual",
+      "fresh unit remains Fresh"
+    ],
+    "policy_reuse": "Only immutable environment comparison keys and expanded exclusion vocabulary; no candidate metadata, filesystem identity, open-use verdict or authorization is reused."
+  },
+  "cancellation_evidence": {
+    "test": "aged_observation_cancellation_stops_inside_the_first_unit",
+    "kind": "Separate focused passing fixture run; not a before/after latency comparison.",
+    "latency_us": 18839,
+    "ceiling_ms": 1000,
+    "visited_entries": 62,
+    "directories_read": 9,
+    "logical_bytes": 217088,
+    "returned_inventory_units": 1,
+    "cancelled": true,
+    "quality": "Partial",
+    "cleanable_bytes": 0,
+    "later_unit_walked": false,
+    "final_workspace_runs": "Passed in both final unfiltered and explicitly filtered Rust suites."
+  },
+  "verification": {
+    "source_commit": "86b3b2f1dc6d2024b2911f44e1be0d7229c75b70",
+    "version_transition": "0.3.89 -> 0.3.90, one just bump-patch, synchronized outputs checked",
+    "passed": [
+      "cargo fmt --all -- --check",
+      "cargo check --offline --locked --workspace",
+      "cargo clippy --offline --locked --workspace --all-targets -- -D warnings",
+      "just check-architecture",
+      "just check-version",
+      "just generate-bindings: three exports passed, no tracked drift",
+      "pnpm check: 0 errors and 0 warnings",
+      "pnpm test -- --run: 472 tests in 49 files passed",
+      "pnpm build: passed, Tailwind utilities verified",
+      "just build-fast: debug macOS app bundle created",
+      "git diff --check"
+    ],
+    "rust_unfiltered": {
+      "command": "cargo test --offline --locked --workspace --no-fail-fast",
+      "status": "failed",
+      "passed": 1274,
+      "failed": 3,
+      "ignored": 6,
+      "filtered": 0,
+      "environment_failures": [
+        {
+          "test": "ai_providers::openrouter::tests::a_silent_connection_times_out_and_a_later_callback_is_still_accepted",
+          "reason": "Loopback TcpListener::bind denied with EPERM in the managed environment."
+        },
+        {
+          "test": "diagnostics::doctor::tests::run_cli_exit_codes_follow_the_checks",
+          "reason": "Native log_writable check fails because the user Library/Logs directory is read-only in the managed environment."
+        },
+        {
+          "test": "release_integration::test_controlled_integration_ephemeral_loopback_release",
+          "reason": "Python loopback helper cannot bind and emits no PORT line in the managed environment."
+        }
+      ],
+      "test_changes": "None of the three unchanged tests or their guards were relaxed or environment-gated.",
+      "doc_tests": "passed"
+    },
+    "rust_explicitly_filtered": {
+      "command": "cargo test --offline --locked --workspace -- --skip a_silent_connection_times_out_and_a_later_callback_is_still_accepted --skip run_cli_exit_codes_follow_the_checks --skip test_controlled_integration_ephemeral_loopback_release",
+      "status": "passed with the three named exclusions",
+      "passed": 1274,
+      "failed": 0,
+      "ignored": 6,
+      "filtered": 3,
+      "includes": [
+        "portable scan baseline drift",
+        "scanner safety fixtures",
+        "integration suites",
+        "test hygiene"
+      ],
+      "doc_tests": "passed"
+    },
+    "bundle": {
+      "name": "neati.app",
+      "configuration": "debug bundle with embedded current frontend and default custom-protocol",
+      "CFBundleShortVersionString": "0.3.90",
+      "CFBundleVersion": "0.3.90",
+      "CFBundleExecutable": "Neati",
+      "CFBundleIconFile": "icon.icns",
+      "packaged_icon_bytes": 137274,
+      "packaged_icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+      "icon_matches_tracked_source": true,
+      "installed_or_launched": false,
+      "running_or_installed_app_replaced": false
+    },
+    "ci": "not run; branch has not been published",
+    "github_publication": "not attempted after the parent received a connector write rejection: requires approval, but approval policy is never",
+    "unverified": [
+      "Windows native runtime",
+      "live developer temporary namespaces",
+      "GUI/IPC delivery and first useful progress",
+      "provider startup and other slow scanner categories"
+    ],
+    "issue_closure": "Refs #379 only; this initial slice does not close the broader performance issue."
+  }
+}

@@ -173,6 +173,41 @@ cargo test -p neati-desktop --test scan_benchmark \
   repeated_aged_observation_reports_scan_cost -- --ignored --exact --nocapture
 ```
 
+### Controlled aged-namespace comparison, 2026-10-01
+
+The [0.3.90 validation record](validation/2026-10-01-aged-observation-0.3.90.json)
+compares the base `ddcfe393` production code at 0.3.89 against `86b3b2f` at
+0.3.90 using the same disposable fixture and debug test profile. The host's
+previously recorded hardware is a MacBook Air M1 with 16 GiB; this run read
+macOS 27.0.1 (26A434) from the system version file. Other agents' builds and
+tests were paused, while ordinary OS/application activity continued.
+
+Six processes ran in before/after/after/before/before/after order. Each process
+created its own fixture, warmed it once and measured five repeated scans, giving
+15 measured samples per version. Every scan asserted the same 2,307 visits,
+259 directory reads, two units, 8 MiB of logical data, no skipped entries and
+zero cleanup authority.
+
+| Fixture measurement | 0.3.89 | 0.3.90 |
+|---|---|---|
+| Median scan wall time | 435.398 ms | 185.242 ms |
+| Measured scan range | 432.786–443.114 ms | 184.802–185.956 ms |
+| Median reported scan RSS growth | 16 KiB | 64 KiB |
+| Median whole-process CPU time | 2.942291 s | 1.442530 s |
+
+Median wall time fell 57.45% for this synthetic aged-namespace fixture. This
+does not establish a speedup for the live 36-second scan or its 18-second
+temporary-folder category, GUI/IPC progress, provider startup or Windows.
+Whole-process CPU includes fixture construction, test startup and all six scans;
+RSS is approximate and does not show a memory improvement here. The aged walk
+remains sequential and the shared pool/queue bounds are unchanged.
+
+The record also lists the local check results, the final debug bundle's version
+and icon hash, and the three unchanged Rust tests blocked by managed-environment
+loopback/log-directory restrictions. The unfiltered suite failed on those
+tests; a separate run with exactly those three named exclusions passed. Neither
+result substitutes for CI or native Windows validation, which have not run.
+
 ## Recorded real-machine baselines
 
 Counts are properties of the fixtures and are identical on every machine; the

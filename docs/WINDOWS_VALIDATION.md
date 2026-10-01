@@ -5,6 +5,11 @@ requires a human on a real Windows machine. The manual matrix below is a
 **plan**: no row has been executed and recorded yet, so none of it is evidence.
 An unexecuted matrix is a plan, not a validation result.
 
+Current ownership is [#380](https://github.com/jaeyoung0509/neati/issues/380).
+Historical #224 and #227 are closed; their issue state is not evidence that the
+unexecuted desktop cases passed. No Windows 11 PC or VM was available for the
+October 1, 2026 follow-up.
+
 Issue #122 addresses profile, drive, known-folder, Unicode picker, and directory
 identity defects found in v0.3.0. The old v0.2.0 screenshots describe the
 separate verbatim-path and console regressions fixed in #118.
@@ -42,9 +47,18 @@ identifier — as *simulated* inputs, not as a real machine's configuration:
 - `a_drive_rooted_fixture_protects_its_system_roots`
 
 The packaging job also proves the per-user installer installs silently, passes
-`Neati --doctor`, uninstalls silently, and leaves no install directory, and it
-proves the machine-wide installer packages. See
+`Neati --doctor`, uninstalls silently, and leaves no install directory. It runs
+the same smoke assertions for the machine-wide installer. See
 [`docs/WINDOWS.md`](WINDOWS.md).
+
+The [0.3.89 hosted-CI record](validation/2026-10-01-windows-ci-0.3.89.json)
+records develop commit `ddcfe3937e5380448dcde1d53036ff209352d39f`, its
+September 30, 2026 UTC run, and Windows Server 2025 build 10.0.26100. Windows
+Rust, MSRV, and both NSIS scope checks passed; each installed binary passed 14
+doctor checks and was uninstalled without an install directory remaining.
+The uploaded artifact contained only one file because its glob omitted the
+machine-wide filename. The new explicit two-file upload and downloaded
+checksum check remain unverified on GitHub until this change runs in CI.
 
 ## What CI does not verify
 
@@ -205,7 +219,9 @@ The helper now also accepts `--providers-read-only` and
 cancellation after a progress event. Those options still do not exercise a
 Recycle Bin action or any prune/delete path. The
 [0.3.48 macOS record](validation/2026-09-22-macos-0.3.48.json) demonstrates the
-record shape only; it is not Windows evidence. As of 2026-09-22, no supported
-Windows 11 desktop record has been committed, so every row in the manual matrix
-and issue #224 remain open. See [VALIDATION_SIGNOFF.md](VALIDATION_SIGNOFF.md)
+record shape only; it is not Windows evidence. As of October 1, 2026, no
+supported Windows 11 desktop record has been committed. Every row in the
+manual matrix is still unexecuted and is owned by
+[#380](https://github.com/jaeyoung0509/neati/issues/380), even though historical
+#224 and #227 are closed. See [VALIDATION_SIGNOFF.md](VALIDATION_SIGNOFF.md)
 for the evidence-class boundary.

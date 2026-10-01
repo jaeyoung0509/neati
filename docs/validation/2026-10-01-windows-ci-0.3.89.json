@@ -1,0 +1,83 @@
+{
+  "evidence_class": "native_hosted_ci",
+  "reviewed_at_utc": "2026-10-01",
+  "application_version": "0.3.89",
+  "commit": "ddcfe3937e5380448dcde1d53036ff209352d39f",
+  "run_date_utc": "2026-09-30",
+  "workflow": {
+    "run_id": 36792293604,
+    "url": "https://github.com/jaeyoung0509/neati/actions/runs/36792293604",
+    "event": "push",
+    "branch": "develop",
+    "conclusion": "success"
+  },
+  "runner": {
+    "os": "Microsoft Windows Server 2025",
+    "build": "10.0.26100",
+    "architecture": "x86_64",
+    "hardware": "GitHub-hosted runner; physical hardware not recorded",
+    "account": "hosted runner administrator",
+    "profile": "hosted default profile; no redirection or domain configuration tested"
+  },
+  "jobs": [
+    {
+      "name": "Rust Checks (Windows x64)",
+      "id": 110147755226,
+      "url": "https://github.com/jaeyoung0509/neati/actions/runs/36792293604/job/110147755226",
+      "runner_image": "windows-2025-vs2026 20260925.250.1",
+      "conclusion": "success"
+    },
+    {
+      "name": "Minimum Supported Rust Version (Windows target)",
+      "id": 110147755236,
+      "url": "https://github.com/jaeyoung0509/neati/actions/runs/36792293604/job/110147755236",
+      "runner_image": "windows-2025-vs2026 20260922.246.2",
+      "rust_version": "1.95.0",
+      "conclusion": "success"
+    },
+    {
+      "name": "Package Smoke (Windows x64 NSIS)",
+      "id": 110149677555,
+      "url": "https://github.com/jaeyoung0509/neati/actions/runs/36792293604/job/110149677555",
+      "runner_image": "windows-2025-vs2026 20260925.250.1",
+      "conclusion": "success"
+    }
+  ],
+  "installer_smoke": [
+    {
+      "scope": "perUser",
+      "silent_install": "passed",
+      "doctor_checks": 14,
+      "doctor_failures": 0,
+      "silent_uninstall": "passed",
+      "install_directory_removed": true
+    },
+    {
+      "scope": "perMachine",
+      "elevated_session": true,
+      "silent_install": "passed",
+      "doctor_checks": 14,
+      "doctor_failures": 0,
+      "silent_uninstall": "passed",
+      "install_directory_removed": true
+    }
+  ],
+  "artifact": {
+    "name": "neati-windows-x64-nsis-debug",
+    "id": 11132363519,
+    "uploaded_file_count_from_job_log": 1,
+    "upload_path": "packaging/*-setup.exe",
+    "retained_installer": "neati-windows-x64-setup.exe",
+    "omitted_installer": "neati-windows-x64-setup-machine.exe",
+    "archive_downloaded_and_inspected": false,
+    "basis": "Job log reports one uploaded file; the recorded upload pattern matches the per-user filename and excludes the staged machine-wide filename."
+  },
+  "limitations": [
+    "This is evidence for 0.3.89 only. It does not validate the subsequent artifact-upload fix or another version.",
+    "The runner is Windows Server, not a supported Windows 11 interactive desktop run.",
+    "No rendered WebView, tray, Quick Panel, display scaling, interactive UAC, missing-WebView2 installation, managed policy, or ARM64 case was validated.",
+    "The doctor and installer smoke gates do not scan or clean valuable real-user data.",
+    "Debug packages are unsigned; no release was published by this follow-up."
+  ],
+  "remaining_owner_issue": "https://github.com/jaeyoung0509/neati/issues/380"
+}

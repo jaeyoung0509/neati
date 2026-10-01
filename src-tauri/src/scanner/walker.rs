@@ -4,9 +4,9 @@ use super::size::{describe_inspection_error, inspection_issue_for_io};
 use crate::models::ScanGapKind;
 use crate::models::{
     classify_structured_state, derive_cleanup_disposition, AgeObservation, CacheSizeSemantics,
-    CleanupEligibility, CleanupOwnership, CleanupUnit, DispositionFacts, EligibilityGate,
-    EntryKind, FileSize, ObservationQuality, PathFacts, ScanItem, Signature, StaleEntryObservation,
-    StructuredStateKind,
+    CleanStrategy, CleanupEligibility, CleanupOwnership, CleanupUnit, DispositionFacts,
+    EligibilityGate, EntryKind, FileSize, NeatiError, ObservationQuality, PathFacts, ScanItem,
+    Signature, StaleEntryObservation, StructuredStateKind,
 };
 use crate::safety::SymlinkGuard;
 use crate::scanner::{PathMeasurement, SizeCalculator};
@@ -125,6 +125,40 @@ fn is_executable(metadata: &fs::Metadata) -> bool {
 #[cfg(not(unix))]
 fn is_executable(_metadata: &fs::Metadata) -> bool {
     false
+}
+
+/// Windows may report a missing child when its existing parent is a file.
+/// Keep that blocked namespace observable instead of treating it as absent.
+fn qualify_manual_ancestor_error(error: NeatiError) -> Option<NeatiError> {
+    let NeatiError::Missing(missing_path) = &error else {
+        return Some(error);
+    };
+    let Some(parent) = Path::new(missing_path).parent() else {
+        return Some(error);
+    };
+    let io_error = |error: std::io::Error| match error.kind() {
+        std::io::ErrorKind::PermissionDenied => {
+            NeatiError::PermissionDenied(parent.display().to_string())
+        }
+        _ => NeatiError::Io(error.to_string()),
+    };
+    let metadata = match fs::symlink_metadata(parent) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return None,
+        Err(error) => return Some(io_error(error)),
+    };
+    match SymlinkGuard::is_symlink_from_metadata(parent, &metadata) {
+        Ok(true) => Some(NeatiError::SymlinkEscape(format!(
+            "Path ancestor is a symlink or reparse escape: {}",
+            parent.display()
+        ))),
+        Ok(false) if metadata.is_dir() => None,
+        Ok(false) => Some(NeatiError::Io(format!(
+            "Path ancestor is not a directory: {}",
+            parent.display()
+        ))),
+        Err(error) => Some(io_error(error)),
+    }
 }
 
 impl DirectoryScanner {
@@ -447,52 +481,82 @@ impl DirectoryScanner {
         // ordinary entry while an indirection is refused. `Path::exists()`
         // collapses every metadata error into `false`, so permission and I/O
         // failures stay observable instead of reading as an absent path.
-        let is_link = SymlinkGuard::is_symlink(path_buf);
-        let (exists, measurement, facts) = match fs::symlink_metadata(path_buf) {
-            Ok(_) if is_link => (
-                true,
-                PathMeasurement::unavailable(format!(
-                    "Configured path {} is a link, junction, or mount point; cleanup is blocked",
-                    path_buf.display()
-                ))
-                .with_inspection_issue(ScanGapKind::SafetyProtected),
-                None,
-            ),
-            Ok(metadata) => {
-                let facts = CandidateFacts::read(path_buf, &metadata);
-                (
-                    true,
-                    SizeCalculator::measure_path_with_pool(
-                        path_buf,
-                        &signature.exclusions,
-                        pool,
-                        context.environment,
-                        context.cancellation,
-                        context.limits,
-                        context.counters,
-                    ),
-                    Some(facts),
-                )
-            }
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => (
-                false,
-                PathMeasurement::complete(FileSize::default(), 0),
-                None,
-            ),
-            Err(err) => (
+        // Fixed advisory roots can be outside a standard cache directory (for
+        // example an injected XDG root). Refuse indirection in their ancestors
+        // before measuring anything there. A missing namespace is still
+        // absent, while access and inspection failures remain explicit gaps.
+        let ancestor_error = (signature.strategy == CleanStrategy::Manual)
+            .then(|| SymlinkGuard::validate_anchored_path(path_buf, environment).err())
+            .flatten()
+            .and_then(qualify_manual_ancestor_error);
+        let is_link = ancestor_error.is_none() && SymlinkGuard::is_symlink(path_buf);
+        let (exists, measurement, facts) = if let Some(error) = ancestor_error {
+            let issue = match &error {
+                NeatiError::SymlinkEscape(_) => ScanGapKind::SafetyProtected,
+                NeatiError::PermissionDenied(_) => inspection_issue_for_io(
+                    environment,
+                    path_buf,
+                    &std::io::Error::from(std::io::ErrorKind::PermissionDenied),
+                ),
+                _ => ScanGapKind::Unknown,
+            };
+            (
                 true,
                 PathMeasurement::unavailable(format!(
                     "Could not inspect configured path {}: {}",
                     path_buf.display(),
-                    describe_inspection_error(environment, path_buf, &err)
+                    error
                 ))
-                .with_inspection_issue(inspection_issue_for_io(
-                    environment,
-                    path_buf,
-                    &err,
-                )),
+                .with_inspection_issue(issue),
                 None,
-            ),
+            )
+        } else {
+            match fs::symlink_metadata(path_buf) {
+                Ok(_) if is_link => (
+                    true,
+                    PathMeasurement::unavailable(format!(
+                    "Configured path {} is a link, junction, or mount point; cleanup is blocked",
+                    path_buf.display()
+                ))
+                    .with_inspection_issue(ScanGapKind::SafetyProtected),
+                    None,
+                ),
+                Ok(metadata) => {
+                    let facts = CandidateFacts::read(path_buf, &metadata);
+                    (
+                        true,
+                        SizeCalculator::measure_path_with_pool(
+                            path_buf,
+                            &signature.exclusions,
+                            pool,
+                            context.environment,
+                            context.cancellation,
+                            context.limits,
+                            context.counters,
+                        ),
+                        Some(facts),
+                    )
+                }
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => (
+                    false,
+                    PathMeasurement::complete(FileSize::default(), 0),
+                    None,
+                ),
+                Err(err) => (
+                    true,
+                    PathMeasurement::unavailable(format!(
+                        "Could not inspect configured path {}: {}",
+                        path_buf.display(),
+                        describe_inspection_error(environment, path_buf, &err)
+                    ))
+                    .with_inspection_issue(inspection_issue_for_io(
+                        environment,
+                        path_buf,
+                        &err,
+                    )),
+                    None,
+                ),
+            }
         };
 
         let size = measurement.size;
@@ -523,7 +587,7 @@ impl DirectoryScanner {
             cache_metadata.size_semantics = CacheSizeSemantics::Informational;
         }
 
-        let last_modified = if exists {
+        let last_modified = if exists && facts.is_some() {
             fs::metadata(path_buf)
                 .ok()
                 .and_then(|m| m.modified().ok())
@@ -1719,6 +1783,37 @@ mod tests {
                 "/neati-fixture-home"
             },
         )
+    }
+
+    #[test]
+    fn a_missing_manual_child_beneath_a_file_remains_an_inspection_failure() {
+        let fixture = tempfile::tempdir().expect("fixture");
+        let parent = fixture.path().join("cache");
+        std::fs::write(&parent, b"not a directory").expect("file ancestor fixture");
+        let child = parent.join("gh");
+        // Reproduce Windows' NotFound classification on every runner rather
+        // than relying on the host's child-of-file error kind.
+        let error = super::qualify_manual_ancestor_error(crate::models::NeatiError::Missing(
+            child.display().to_string(),
+        ));
+        assert!(matches!(error, Some(crate::models::NeatiError::Io(_))));
+        assert_eq!(std::fs::read(parent).unwrap(), b"not a directory");
+    }
+
+    #[test]
+    fn genuinely_missing_manual_namespaces_keep_their_absence_state() {
+        let fixture = tempfile::tempdir().expect("fixture");
+        for child in [
+            fixture.path().join("gh"),
+            fixture.path().join("missing-parent").join("gh"),
+        ] {
+            assert!(
+                super::qualify_manual_ancestor_error(crate::models::NeatiError::Missing(
+                    child.display().to_string(),
+                ))
+                .is_none()
+            );
+        }
     }
 
     #[test]

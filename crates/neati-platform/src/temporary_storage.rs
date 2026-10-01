@@ -1518,8 +1518,12 @@ mod unix {
                     "The staged contents changed during the final use check. Scan again.".into(),
                 );
             }
-            if let Some((_, check)) = final_provenance {
-                check()?;
+            if let Some((check_staged, check_metadata)) = final_provenance {
+                // The final use probes may outlive an index-only ownership
+                // change. Re-derive the original Git namespace and complete
+                // generated contract again, even when the held tree matches.
+                check_staged(&staged_path)?;
+                check_metadata()?;
             }
             let rebound_root = bind_original_locator(reviewed, &root, &parent, uid)?;
             let rebound_stage = open_child(
@@ -1957,6 +1961,131 @@ mod tests {
                 "{scenario}"
             );
         }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tracking_the_original_output_during_final_use_restores_the_staged_unit() {
+        use neati_core::domain::storage::{ArtifactOwnershipEvidence, FrameworkGeneratedKind};
+        use std::sync::atomic::AtomicUsize;
+
+        let fixture = tempfile::tempdir().unwrap();
+        let base = fixture.path().canonicalize().unwrap();
+        let project = base.join("project");
+        let target = project.join(".next");
+        let relative = ".next/cache/webpack/client-development/index.pack";
+        let payload = project.join(relative);
+        std::fs::create_dir_all(payload.parent().unwrap()).unwrap();
+        let mut pack = 0x0163_7077u32.to_le_bytes().to_vec();
+        pack.extend(1u32.to_le_bytes());
+        pack.extend(4i32.to_le_bytes());
+        pack.extend([1, 2, 3, 4]);
+        std::fs::write(&payload, &pack).unwrap();
+        std::fs::write(
+            project.join("package.json"),
+            r#"{"dependencies":{"next":"15.5.14"}}"#,
+        )
+        .unwrap();
+        let git = |arguments: &[&str]| {
+            let output = std::process::Command::new("/usr/bin/git")
+                .args([
+                    "-c",
+                    "core.fsmonitor=",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "core.untrackedCache=false",
+                ])
+                .args(arguments)
+                .current_dir(&project)
+                .env_clear()
+                .env("GIT_CONFIG_GLOBAL", "/dev/null")
+                .env("GIT_CONFIG_NOSYSTEM", "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "fixture Git failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8(output.stdout).unwrap()
+        };
+        git(&["init", "-q", "--object-format=sha1"]);
+        git(&["add", "--", "package.json"]);
+        let object = git(&["hash-object", "-w", "--", relative]);
+        let object = object.trim();
+        assert_eq!(object.len(), 40);
+        assert!(object.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        let env = fixture_environment(&base).with_tool("git", "/usr/bin/git");
+        let reviewed = snapshot_framework_unit(
+            &env,
+            &project,
+            &target,
+            FrameworkGeneratedKind::NextOutput,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+        assert!(reviewed.blocked_reason.is_none());
+        let expected =
+            crate::framework_metadata::observe(&project, FrameworkGeneratedKind::NextOutput)
+                .unwrap()
+                .fingerprint;
+        let provenance_checks = AtomicUsize::new(0);
+        let final_project_probe = AtomicBool::new(false);
+        let check_provenance = |staged: &Path| {
+            provenance_checks.fetch_add(1, Ordering::Relaxed);
+            let evidence = crate::artifact_ownership::probe_staged_artifact_ownership(
+                &env,
+                &project,
+                &target,
+                staged,
+                &AtomicBool::new(false),
+            );
+            if final_project_probe.load(Ordering::Relaxed) {
+                assert_eq!(evidence, ArtifactOwnershipEvidence::TrackedContent);
+            } else {
+                assert_eq!(evidence, ArtifactOwnershipEvidence::VerifiedGenerated);
+            }
+            evidence
+                .refusal_message()
+                .map_or(Ok(()), |reason| Err(reason.to_string()))
+        };
+        let check_metadata = || {
+            let current =
+                crate::framework_metadata::observe(&project, FrameworkGeneratedKind::NextOutput)?;
+            if current.fingerprint != expected {
+                return Err("Fixture metadata unexpectedly changed".into());
+            }
+            Ok(())
+        };
+        let backend = crate::MockTrashBackend::new();
+        let result = unix::move_to_trash_with_final_check(
+            &env,
+            &reviewed,
+            false,
+            Some(&project),
+            &backend,
+            &|_, scope, _| {
+                if scope == project {
+                    assert!(!final_project_probe.swap(true, Ordering::Relaxed));
+                    let cacheinfo = format!("100644,{object},{relative}");
+                    git(&["update-index", "--add", "--cacheinfo", &cacheinfo]);
+                    assert_eq!(git(&["ls-files", "--", relative]).trim(), relative);
+                }
+                classify_usage(Some(1), b"", b"")
+            },
+            Some((&check_provenance, &check_metadata)),
+        );
+        assert!(final_project_probe.load(Ordering::Relaxed));
+        assert!(result.unwrap_err().contains("tracked"));
+        assert_eq!(provenance_checks.load(Ordering::Relaxed), 2);
+        assert!(backend.moved().is_empty());
+        assert_eq!(std::fs::read(payload).unwrap(), pack);
+        assert!(std::fs::read_dir(&project).unwrap().all(|entry| !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with(".neati-reviewed-")));
     }
 
     #[cfg(target_os = "macos")]

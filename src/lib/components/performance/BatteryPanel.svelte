@@ -9,6 +9,7 @@
   import { formatTimeAgo } from '../../utils/format';
   import BatteryIndicator from '../metrics/BatteryIndicator.svelte';
   import Card from '../Card.svelte';
+  import AnimatedValue from '../AnimatedValue.svelte';
   import EmptyState from '../EmptyState.svelte';
   import InlineNotice from '../InlineNotice.svelte';
   import { Battery } from '@lucide/svelte';
@@ -70,7 +71,7 @@
         <div class="min-w-0 space-y-0.5">
           {#if percent != null}
             <div class="text-metric font-mono font-semibold tabular-nums text-foreground">
-              {Math.round(percent)}<span class="text-body font-normal text-muted-foreground">%</span>
+              <AnimatedValue value={String(Math.round(percent))} class="min-w-[2ch]" /><span class="text-body font-normal text-muted-foreground">%</span>
             </div>
           {:else}
             <div class="text-body font-medium text-muted-foreground">Charge level unavailable</div>

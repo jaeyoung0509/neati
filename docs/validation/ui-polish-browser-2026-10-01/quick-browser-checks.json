@@ -1,0 +1,23 @@
+{
+  "version": "v0.3.93",
+  "mockData": true,
+  "viewport": 400,
+  "documentWidth": 400,
+  "theme": "light",
+  "bodyHeight": 740,
+  "visibleHeight": 740,
+  "shell": {
+    "x": 0,
+    "y": 0,
+    "width": 400,
+    "height": 740,
+    "top": 0,
+    "right": 400,
+    "bottom": 740,
+    "left": 0
+  },
+  "screenshot": "quick-light-400.png",
+  "passed": true,
+  "source": "Production App quick route with deterministic browser mocks; default light theme",
+  "nativeGlassAndNativeWindowFittingVerified": false
+}

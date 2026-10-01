@@ -802,6 +802,7 @@ export const mockApi = {
         reached.push('ai');
         // The walk names the root it is reading before it reports what is in
         // it, so the preview states the same progress the backend streams.
+        onEvent({ type: 'CategoryStarted', category: 'ai' });
         onEvent({
           type: 'RootStarted',
           category: 'ai',
@@ -809,7 +810,7 @@ export const mockApi = {
           name: 'Cursor Editor Cache',
           root: '~/Library/Caches/Cursor',
         });
-        onEvent({ type: 'CategoryStarted', category: 'ai' });
+
         onEvent({
           type: 'ItemFound',
           item: {
@@ -864,6 +865,7 @@ export const mockApi = {
       setTimeout(() => {
         if (mockScanCancelled) return;
         reached.push('developer');
+        onEvent({ type: 'CategoryStarted', category: 'developer' });
         onEvent({
           type: 'RootStarted',
           category: 'developer',
@@ -871,7 +873,7 @@ export const mockApi = {
           name: 'Go Build Cache',
           root: '~/Library/Caches/go-build',
         });
-        onEvent({ type: 'CategoryStarted', category: 'developer' });
+
         onEvent({
           type: 'ItemFound',
           item: {
@@ -1064,6 +1066,7 @@ export const mockApi = {
         };
 
         if (!cancelled) {
+          onEvent({ type: 'CategoryStarted', category: 'system' });
           onEvent({
             type: 'RootStarted',
             category: 'system',
@@ -1071,7 +1074,7 @@ export const mockApi = {
             name: 'Application Caches',
             root: '~/Library/Caches',
           });
-          onEvent({ type: 'CategoryStarted', category: 'system' });
+
           for (const item of systemItems) {
             onEvent({ type: 'ItemFound', item });
           }

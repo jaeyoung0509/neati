@@ -3,6 +3,7 @@
 
   import type { BatteryChargeState } from '../../models/types';
   import BatteryIndicator from './BatteryIndicator.svelte';
+  import AnimatedValue from '../AnimatedValue.svelte';
 
   interface Props {
     label: string;
@@ -14,6 +15,7 @@
     onclick: () => void;
     tone?: 'default' | 'warning' | 'critical';
     meter?: number | null;
+    active?: boolean;
   }
 
   let {
@@ -26,6 +28,7 @@
     onclick,
     tone = 'default',
     meter = null,
+    active = true,
   }: Props = $props();
   let MetricIcon = $derived(label === 'CPU' ? Cpu : label === 'Memory' ? MemoryStick : label === 'Disk' ? HardDrive : Gauge);
   let meterValue = $derived(
@@ -57,6 +60,6 @@
       </span>
     {/if}
   </span>
-  <span class="quick-data-value shrink-0 text-right font-semibold tabular-nums {tone === 'critical' ? 'text-destructive' : tone === 'warning' ? 'text-warning' : 'text-foreground'}">{value}</span>
+  <span class="quick-data-value shrink-0 text-right font-semibold tabular-nums {tone === 'critical' ? 'text-destructive' : tone === 'warning' ? 'text-warning' : 'text-foreground'}"><AnimatedValue {value} {active} /></span>
   <ChevronRight size={14} strokeWidth={1.75} class="shrink-0 text-muted-foreground" aria-hidden="true" />
 </button>

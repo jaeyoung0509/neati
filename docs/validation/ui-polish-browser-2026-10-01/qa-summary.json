@@ -1,0 +1,28 @@
+{
+  "version": "0.3.93",
+  "fixture": "file:///private/tmp/neati-ui-polish-final/ui-polish.html",
+  "completedAt": "2026-10-01T02:12:47.596271+00:00",
+  "layoutRows": 36,
+  "layoutPassed": 36,
+  "interactionRows": 11,
+  "interactionPassed": 11,
+  "browserErrors": 0,
+  "hostOS": "macOS 27.0.1",
+  "hostOSBuild": "26A434",
+  "previewData": true,
+  "nativeGlassAndWindowsDesktopVerified": false,
+  "uniqueLayoutCases": 36,
+  "pngFiles": 29,
+  "missingScreenshots": [],
+  "wrongScreenshotDimensions": [],
+  "preparingObserved": {
+    "foundCount": "0",
+    "elapsedText": "0s elapsed",
+    "stopDisabled": true
+  },
+  "interruptedInitialAttempt": "browser-transport-interruption.json",
+  "ownQaPNGs": 28,
+  "additionalPNGs": [
+    "quick-light-400.png"
+  ]
+}

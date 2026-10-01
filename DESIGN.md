@@ -24,14 +24,14 @@ stay on legible solid surfaces; amber, red, and green remain semantic signals
 for caution, failure, and observed success. The dark theme follows the same
 cool-neutral and periwinkle relationship.
 
-Celestial atmosphere gives the interface a distinct identity: quiet cobalt and
-ice-blue light on the shell, a small original planet with orbital dust in the
-Overview summary, and a soft lavender highlight. The planet is purely
-decorative, never a machine-health indicator. Its local SVG cloud layer rotates
-over 36 seconds and the orbital dust over 48 seconds. CSS animates transforms
-only; an IntersectionObserver and document visibility pause the scene when
-hidden. Reduced motion and reduced transparency stop it. No telemetry polling
-is added for this decoration.
+The owner-approved direction for issue #378 (October 1, 2026) pairs the
+handwritten neati identity with quiet water ripples. Overview and Cleanup use
+five thin SVG curves and six small particles as atmosphere on solid focal
+surfaces. Two transform-only CSS groups drift slowly over 18–22 seconds;
+there are no filters, frame loops, simulation, telemetry requests, or list
+animations. A shared IntersectionObserver pauses motion offscreen and in a
+hidden document. Reduced motion stops it; reduced transparency hides it.
+The former planet scene is no longer used by Overview.
 
 This document is the visual contract. The executable half of it — colour,
 radius, type, and motion tokens — lives in `src/app.css` and is enforced by
@@ -169,7 +169,7 @@ tokens change. Translucent chrome falls back to an opaque surface when the
 system requests reduced transparency.
 
 Decorative `--cosmic-*` tokens are separate from semantic status colours.
-Reduced transparency removes atmospheric backgrounds and the planet. Narrow
+Reduced transparency removes atmospheric backgrounds and the ripples. Narrow
 content areas hide the artwork before it can crowd text or actions. Cards and
 data tables retain solid surfaces in both themes.
 
@@ -252,8 +252,13 @@ chase a mockup radius.
 ## Motion specification
 
 Functional motion communicates state change; it never delays input, replays a
-list, or animates a number continuously. The user-requested celestial scene is
-the single decorative animation, subject to visibility and motion preferences.
+list, or animates a number continuously. The owner requested brief rising value
+updates and quiet ripples for #378. The actual new value appears immediately;
+a 180 ms, 5 px upward reveal settles it into place. No intermediate values are
+invented. Updates within 240 ms cancel the prior reveal and replace immediately,
+without a queue or an animation library. Tabular numbers and reserved metric
+slots keep the layout still. One shared, subscriber-owned observer handles
+visibility and accessibility preferences; no animation timers are added.
 
 ### Material and emphasis
 
@@ -284,7 +289,7 @@ the single decorative animation, subject to visibility and motion preferences.
 | Hover / focus / pressed | 100–140 ms (`--duration-instant`, `--duration-fast`) | Colour, border, or opacity only; dense rows never move |
 | Navigation / content change | 140–180 ms (`--duration-normal`) | Opacity plus at most 2–4 px translation; route changes never queue |
 | Dialog / sheet | 160–220 ms (`--duration-overlay`) | Opacity-led; focus is trapped on open and returned on close |
-| Value update | Immediate | The changed value is replaced in place; no counter roll, no list replay |
+| Value update | 180 ms, cubic ease out | Actual reading replaces immediately; at most 5 px reveal, interrupted bursts replace without replay |
 | Sidebar collapse | ≤ 180 ms | Width and padding only, labels fade; content stays fluid |
 | Observed working state | 2–3 s breathing dot | Only for an actually observed, currently running agent session while the surface is visible |
 
@@ -359,6 +364,8 @@ inventory is still valid.
   `outline`), at `text-caption` or above.
 - **ProgressBar**: 4–8 px tall, no looping shimmer, no indeterminate gradient.
 - **ByteValue**: monospace tabular numerals for every byte metric.
+- **AnimatedValue**: brief reveal for headline readings only; no row-list replay,
+  no interpolated totals, no motion while hidden or under reduced motion/transparency.
 - **SelectionToolbar**: reserved space in the content column; count, measured
   bytes, and risk summary, with one primary action.
 - **SegmentedTabs**: `role="tablist"` with one `tabindex="0"`, `aria-selected`
@@ -531,6 +538,13 @@ must not suggest that the account has exhausted its quota.
   beside checked-location copy when coverage is incomplete. Conditional byte
   amounts sit beside their review actions; unestimated actions keep a visible
   `Not estimated` count. Observed ranges retain a short overlap qualifier.
+  The scanning surface reserves the same focal height as the summary, shows the
+  actual current area, found-item count and request elapsed time, and exposes
+  Stop scan and current-path disclosure. Static result placeholders carry no
+  candidates, bytes, percentages or cleanup authority. Preparing and stopping
+  are named states; no invented percentage or completion time is shown. The
+  elapsed clock is owned by the mounted scan surface and stops in a hidden
+  document.
   One concise coverage notice precedes closed `Manage access` and `Scan details`
   disclosures. Typed inspection counts, retained reasons, rebuild consequences
   and detailed permission instructions remain available without repeating full
@@ -734,3 +748,12 @@ unavailability, unsupported adapters, safety exclusions and unknown causes do
 not open privacy setup. Only an actual access refusal at a protected macOS
 location offers contextual Full Disk Access guidance; ownership or ACLs may
 still be responsible. Diagnostics never change cleanup eligibility.
+
+### Settings presentation
+
+Appearance is the first settings group, with keyboard focus and explicit pressed
+states on System / Dark / Light. Preference lists remain on solid grouped
+surfaces, and saved navigation/provider order continues to control the shell.
+Page headers and measured-value components are shared across Overview, Storage,
+Performance / Memory, AI Activity, Settings and the compact Quick Panel. Numeric
+reveals do not participate in native panel fitting or change its durable bounds.

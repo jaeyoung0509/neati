@@ -27,11 +27,11 @@
   }: Props = $props();
 </script>
 
-<header class="page-header flex flex-col @2xl:flex-row @2xl:items-center justify-between gap-3 pb-3 border-b border-border {className}">
+<header class="page-header flex flex-col @2xl:flex-row @2xl:items-center justify-between gap-4 pb-4 border-b border-border {className}">
   <div class="flex items-center gap-3 min-w-0">
     {#if Icon}
-      <div class="h-9 w-9 rounded-lg border border-border bg-accent text-accent-foreground flex items-center justify-center shrink-0">
-        <Icon size={18} />
+      <div class="h-9 w-9 rounded-xl metric-icon-surface text-primary flex items-center justify-center shrink-0">
+        <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
       </div>
     {/if}
     <div class="min-w-0">

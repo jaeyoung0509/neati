@@ -1,0 +1,240 @@
+{
+  "version": "0.3.93",
+  "date": "2026-10-01",
+  "commands": [
+    {
+      "name": "frontend-check",
+      "command": [
+        "pnpm",
+        "check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 5.02
+    },
+    {
+      "name": "frontend-tests",
+      "command": [
+        "pnpm",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 22.731
+    },
+    {
+      "name": "frontend-build",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.36
+    },
+    {
+      "name": "browser-fixture",
+      "command": [
+        "node",
+        "scripts/build_ui_polish_validation.mjs",
+        "/private/tmp/neati-ui-polish-final"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.069
+    },
+    {
+      "name": "cargo-format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.802
+    },
+    {
+      "name": "cargo-check",
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "--locked",
+        "--workspace"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 41.423
+    },
+    {
+      "name": "cargo-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 23.799
+    },
+    {
+      "name": "cargo-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--no-fail-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 114.558
+    },
+    {
+      "name": "architecture",
+      "command": [
+        "just",
+        "check-architecture"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 6.775
+    },
+    {
+      "name": "bindings",
+      "command": [
+        "just",
+        "generate-bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 10.31
+    },
+    {
+      "name": "binding-drift",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "src/lib/bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.027
+    },
+    {
+      "name": "version",
+      "command": [
+        "just",
+        "check-version"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.058
+    },
+    {
+      "name": "bundle",
+      "command": [
+        "just",
+        "build-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 53.475
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.022
+    }
+  ],
+  "installed_or_launched": false,
+  "frontend_tests_passed": 483,
+  "rust": {
+    "passed": 1292,
+    "failed": 0,
+    "ignored": 6,
+    "measured": 0,
+    "filtered": 0
+  },
+  "bundle": {
+    "path": "target/debug/bundle/macos/neati.app",
+    "CFBundleShortVersionString": "0.3.93",
+    "CFBundleVersion": "0.3.93",
+    "icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+    "icon_matches_source": true,
+    "assets": [
+      {
+        "name": "assets/BrandIcon-Ccf4DtZo.js",
+        "sha256": "14ad1d5fe5ca285d69851fa364539c0c125a9871b22f5a233816ada34097f6f4",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-BfvICnT1.css",
+        "sha256": "3627784f0af0731b126f2bc42cab09150547622d5c3eca345aae06ad53827a98",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-DLUgWkBA.js",
+        "sha256": "21553f05781490974e59cdd78d2f2e036ea8b771f9bb3b6a2d21eee6489a79d9",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/QuickPanel-DkZZnlUi.js",
+        "sha256": "19bfc213dd1b757be45bd1f4035c07840edc9702014337e01eda2d6cf57d8df3",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/core-DNaw6KYU.js",
+        "sha256": "47fa86ad237989d8dca06a2bcbfc062f4627d45c70d4857731d1f5b7b76830d6",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/dpi-Cq0vR3n3.js",
+        "sha256": "ab852e58e16dd5dd5769a02937dcfd293e8fec9197a200cc69f8356f5c1b0de3",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/event-BlJUiB_z.js",
+        "sha256": "331a7d5879292307d786d6a8ea5b2a7dbcadd762a029bcf7b47b2dbc71982ba2",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-Cqlr3zj4.css",
+        "sha256": "4b745037752e453c76e32f8119cef7be534097179b4ff68239f5a79918f38a3a",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-u4r_o5GX.js",
+        "sha256": "70147ddc1fd9c78cb29c41e9d8090594be0af9b9df3f5e1630214dc0b8d19ff8",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/rolldown-runtime-DK3Fl9T5.js",
+        "sha256": "a526d1bb3288ef04d001028843220a24b0867a4edf8c685b69506d6525af36ff",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/webviewWindow-By8nsw2m.js",
+        "sha256": "8fb90bd281c6f5b2bd7e8b4abe85cd413e2b7681a35ea4f63ab2006e5345ba15",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/window-CGM1TOkC.js",
+        "sha256": "e68d69f7f320b3995afa83e938dd9e07ba7bdd83ce164417224c2017c08ce26c",
+        "name_embedded": true
+      }
+    ],
+    "installed_or_launched": false
+  },
+  "completed": true,
+  "target_develop": "48c1e7b3b6e5ba6bbbcb8cd0da11776af67d2821",
+  "host_os": "macOS 27.0.1",
+  "host_os_build": "26A434",
+  "frontend_test_files_passed": 50
+}

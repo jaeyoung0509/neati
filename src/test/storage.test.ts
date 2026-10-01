@@ -30,6 +30,7 @@ afterEach(() => {
   scanStore.isRefreshingAfterClean = false;
   scanStore.lastScanTrigger = null;
   scanStore.scanId = null;
+  scanStore.scanStartedAt = null;
   scanStore.currentRoot = null;
   scanStore.foundItemCount = 0;
   scanStore.isCancelling = false;
@@ -182,7 +183,8 @@ describe('Storage scan summary', () => {
     ], 'mixed');
     const summary = render(StorageSummary).body;
     const card = render(CategoryCard, { props: { categoryResult: category } }).body;
-    expect(summary).toMatch(/text-metric-lg[^>]*>\s*1 KB/);
+    const headline = summary.match(/<p class="[^"]*text-metric-lg[^"]*">([\s\S]*?)<\/p>/)?.[1];
+    expect(headline?.replace(/<[^>]*>/g, '').trim()).toBe('1 KB');
     expect(summary).toContain('1 GB requires idle apps');
     expect(card).toContain('1 GB requires idle apps');
     expect(card).toContain('Ready now');
@@ -593,6 +595,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
 
   it('shows the root it is reading, what it has found, and a Stop control while scanning', () => {
     scanStore.isScanning = true;
+    scanStore.scanId = 'active-scan';
     scanStore.currentRoot = { name: 'Cursor Editor Cache', path: '/Users/dev/Library/Caches/Cursor' };
     scanStore.foundItemCount = 3;
 
@@ -601,7 +604,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(rendered.body).toContain('Cursor Editor Cache');
     expect(rendered.body).toContain('/Users/dev/Library/Caches/Cursor');
     expect(rendered.body).toContain('Show current path');
-    expect(rendered.body).toContain('3 items found so far');
+    expect(rendered.body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')).toContain('Found so far 3 items');
     expect(stopControl(rendered.body)).not.toContain('disabled=""');
 
     // A stop already requested cannot be sent twice.
@@ -610,6 +613,20 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(stopping.body).toContain('Stopping…');
     expect(stopping.body).toContain('aria-label="Stopping scan"');
     expect(stopping.body).toContain('disabled=""');
+  });
+
+  it('waits for a current scan ID before allowing Stop', () => {
+    scanStore.isScanning = true;
+    scanStore.scanId = null;
+    const preparing = render(StorageView, { props: { onSelectCategory: vi.fn() } });
+    expect(preparing.body).toContain('Preparing scan…');
+    expect(stopControl(preparing.body)).toContain('disabled=""');
+    expect(stopControl(preparing.body)).toContain('Waiting for the scan to start.');
+
+    scanStore.scanId = 'new-scan';
+    const started = render(StorageView, { props: { onSelectCategory: vi.fn() } });
+    expect(started.body).toContain('Checking scan locations…');
+    expect(stopControl(started.body)).not.toContain('disabled=""');
   });
 
   it('keeps stale categories and review controls out of the post-cleanup verification phase', () => {

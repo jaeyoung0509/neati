@@ -9,7 +9,7 @@ substituted for a mutation test.
 | Evidence class | Current source | What it proves | What it does not prove |
 |---|---|---|---|
 | Simulated and disposable fixtures | `scan_benchmark`, environment fixtures, safety and cleanup tests | Deterministic traversal facts, cancellation, overlap handling, path algebra, safety refusals, and mutation outcomes against disposable test data | Behavior of a user's real profile, tool installation, permissions, or desktop shell |
-| Native CI API checks | macOS and Windows Rust jobs plus packaging smoke | Platform code compiles and the documented native API, junction, handle, and installer assertions execute on hosted runners | A supported Windows 11 desktop configuration or interactive user workflow |
+| Native CI API checks | macOS and Windows Rust jobs plus packaging smoke; [0.3.89 Windows hosted-CI record](validation/2026-10-01-windows-ci-0.3.89.json) | Platform code compiles and the documented native API, junction, handle, and installer assertions execute on hosted runners; both NSIS scope smoke checks passed in the recorded run | A supported Windows 11 desktop configuration, rendered WebView, interactive user workflow, or retention of both installers in the old one-file upload |
 | Real-machine read-only observation | [macOS 0.3.48 record](validation/2026-09-22-macos-0.3.48.json) | Apple M1 filesystem traversal, aggregate pnpm/npm cache inspection, a typed uv failure, provider progress/cancellation, a stopped Docker daemon, and OrbStack metadata | Cleanup, provider/container prune, Recycle Bin mutation, zero-item Cursor/Go paths, a running Docker daemon, or Windows behavior |
 | Disposable-fixture mutation | Automated cleanup/Trash/provider tests | Authorized mutation is revalidated and reported for controlled fixtures | Permission prompts, live Recycle Bin UX, locked application state, or valuable real-user data |
 | Supported desktop validation | [Windows manual matrix](WINDOWS_VALIDATION.md) | Nothing yet: the matrix remains a plan | All Windows 11 acceptance rows until a dated machine record is committed |
@@ -31,12 +31,18 @@ measurement. Paths, item names, command output, free-form errors, and
 
 ## Remaining sign-off
 
-- #224 remains open until a supported Windows 11 desktop record covers its
-  functional, performance, provider, and disposable-fixture checklist or a
-  deliberate product-scope decision moves every deferred row to owned work.
-- #227 remains open for the linked Windows record and the macOS cases that were
-  unavailable or produced no items in 0.3.48.
-- #221 remains open while either native-validation issue remains open.
+- Historical #224 and #227 are closed. Their issue state does not turn the
+  unexecuted Windows desktop matrix or the unavailable/zero-item 0.3.48 cases
+  into successful validation.
+- [#380](https://github.com/jaeyoung0509/neati/issues/380) owns the remaining
+  supported Windows 11 functional, performance, provider, and disposable-fixture
+  checklist. Hosted Server CI evidence remains separate from those cases.
+- Current coverage work is tracked in
+  [#362](https://github.com/jaeyoung0509/neati/issues/362); performance work is
+  tracked in [#379](https://github.com/jaeyoung0509/neati/issues/379). The older
+  macOS record remains partial where it was partial.
+- #221 is closed as a superseded umbrella. Focused issues own remaining work;
+  none may close by substituting automated checks for unrun desktop evidence.
 
 Future records must identify the neati version, exact OS build, UTC date,
 hardware, privilege/profile facts where relevant, and whether the operation was

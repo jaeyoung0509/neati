@@ -1,4 +1,8 @@
-# UI polish #378 — local verification
+# UI polish #378 — initial restricted-environment verification
+
+This historical record preserves the first 0.3.90 proposal and the restrictions
+encountered at that time. The final synchronized browser evidence and unrestricted
+verification supersede it in [the October 1 follow-up](../ui-polish-browser-2026-10-01/README.md).
 
 Version 0.3.89 → 0.3.90, starting from
 `develop@ddcfe3937e5380448dcde1d53036ff209352d39f`.
@@ -81,7 +85,7 @@ local server bind was refused (`EPERM`), the in-app browser was unavailable,
 and Computer Use did not approve Chrome access. No alternate permission path
 was used. Prior-version prototype captures do not prove this version's layout.
 
-## Required before leaving draft
+## Outstanding at the initial verification
 
 - Capture current light/dark Overview, Cleanup progress/results, Performance,
   Memory, AI Activity, Settings and Quick Panel at their supported minimum and
@@ -95,5 +99,5 @@ was used. Prior-version prototype captures do not prove this version's layout.
   fixtures and record CI separately. Windows native runtime remains unverified
   and belongs to #380.
 
-These items have not been executed here. No native permission transition,
+These items had not been executed during the initial verification. No native permission transition,
 real-user cleanup, app installation or Windows desktop test is claimed.

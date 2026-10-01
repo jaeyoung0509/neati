@@ -1,5 +1,33 @@
 # Cache cleanup policy
 
+## User-tool cache observations — #381
+
+The catalog observes the exact standard `~/.oh-my-zsh/cache` and
+`${XDG_CACHE_HOME}/oh-my-zsh` fallback namespaces, plus GitHub CLI's named
+`${XDG_CACHE_HOME}/gh` local cache on macOS/Linux. XDG defaults to `~/.cache`
+and uses the injected platform environment; invalid relative or traversing
+overrides do not fall back to another namespace. These entries are advisory:
+observed bytes never increase cleanable or selected bytes. File metadata is
+measured without reading HTTP responses, shell scripts or configuration contents.
+
+Oh My Zsh cache roots may contain generated/downloaded completion scripts,
+update state and unknown files. Both known namespaces can be reported when
+present; observation does not establish which one the current shell uses.
+Custom `ZSH`/`ZSH_CACHE_DIR` installations and completion dumps outside these
+namespaces are not resolved. GitHub CLI's `config clear-cache` removes its
+entire effective cache; a verified owner adapter is required before this
+operation is offered. No command, generic deletion or permission exception is
+added. Configuration, credentials and extension installations are not searched.
+An injected XDG root can alias another store, so the namespace's name alone
+never grants authority or proves its contents disposable.
+
+Fixed advisory roots are checked for linked ancestors before measurement.
+Linked roots/ancestors and inaccessible locations remain explicit unavailable
+observations; absent or verified empty locations are omitted. Existing depth,
+cancellation, blacklist and no-follow traversal rules retain their accounting
+qualifications. The vendor evidence, fixture coverage and remaining work are
+recorded in [the #381 scope report](evidence/user-tool-discovery-381.md).
+
 ## Google Updater downloads and retained Mole scopes — 0.3.89
 
 The exact current-user `~/Library/Application Support/Google/GoogleUpdater/crx_cache`

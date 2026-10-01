@@ -1,0 +1,627 @@
+{
+  "version": "0.3.93",
+  "environment": "Mounted Svelte browser fixture with deterministic mock IPC.",
+  "fixture": "file:///private/tmp/neati-ui-polish-final/ui-polish.html",
+  "viewport": {
+    "width": 800,
+    "height": 560
+  },
+  "checks": [
+    {
+      "activeTag": "BUTTON",
+      "alerts": [],
+      "bodyText": "Cleanup Storage toolsDeveloper ArtifactsLarge FilesApplicationsDisks Review Trash Scanning… Checking storage Scanning application and development caches. Stop scan Current area Preparing scan… Found so far 0 items 0s elapsed Your cleanup results Available after this scan",
+      "buttons": [
+        {
+          "disabled": true,
+          "text": "Review Trash"
+        },
+        {
+          "disabled": true,
+          "text": "Scanning…"
+        },
+        {
+          "disabled": true,
+          "text": "Stop scan"
+        }
+      ],
+      "checkboxes": [],
+      "documentWidth": 800,
+      "elapsedSeconds": 0,
+      "elapsedText": "0s elapsed",
+      "foundCount": "0",
+      "mainSummaryCount": 0,
+      "mockData": true,
+      "pathDetails": [],
+      "placeholder": true,
+      "statuses": [
+        "Checking storage"
+      ],
+      "stop": [
+        {
+          "disabled": true,
+          "text": "Stop scan",
+          "title": "Waiting for the scan to start."
+        }
+      ],
+      "title": "Cleanup",
+      "version": "v0.3.93",
+      "viewport": 800,
+      "name": "scan-preparing",
+      "capturedAt": "2026-10-01T02:12:39.054770+00:00",
+      "observations": {
+        "correct_route": true,
+        "waiting_label": true,
+        "stop_waiting_disabled": true,
+        "preparing_found_zero": true,
+        "preparing_start_near_now": true,
+        "placeholder_visible": true,
+        "no_old_selection": true,
+        "no_horizontal_overflow": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeTag": "BUTTON",
+      "alerts": [],
+      "bodyText": "Cleanup Storage toolsDeveloper ArtifactsLarge FilesApplicationsDisks Review Trash Scanning… Checking storage Scanning application and development caches. Stop scan Current area npm Cache Found so far 53 items 1m 11s elapsed Show current path /fixture/Library/Caches/npm Your cleanup results Available after this scan",
+      "buttons": [
+        {
+          "disabled": true,
+          "text": "Review Trash"
+        },
+        {
+          "disabled": true,
+          "text": "Scanning…"
+        },
+        {
+          "disabled": false,
+          "text": "Stop scan"
+        }
+      ],
+      "checkboxes": [],
+      "documentWidth": 800,
+      "elapsedSeconds": 71,
+      "elapsedText": "1m 11s elapsed",
+      "foundCount": "53",
+      "mainSummaryCount": 1,
+      "mockData": true,
+      "pathDetails": [
+        {
+          "open": false,
+          "path": "/fixture/Library/Caches/npm"
+        }
+      ],
+      "placeholder": true,
+      "statuses": [
+        "Checking storage"
+      ],
+      "stop": [
+        {
+          "disabled": false,
+          "text": "Stop scan",
+          "title": ""
+        }
+      ],
+      "title": "Cleanup",
+      "version": "v0.3.93",
+      "viewport": 800,
+      "name": "scan-running",
+      "capturedAt": "2026-10-01T02:12:39.722058+00:00",
+      "observations": {
+        "running_status": true,
+        "current_area": true,
+        "real_count": true,
+        "stop_enabled": true,
+        "path_closed": true,
+        "no_old_selection": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeTag": "SUMMARY",
+      "alerts": [],
+      "bodyText": "Cleanup Storage toolsDeveloper ArtifactsLarge FilesApplicationsDisks Review Trash Scanning… Checking storage Scanning application and development caches. Stop scan Current area npm Cache Found so far 53 items 1m 12s elapsed Show current path /fixture/Library/Caches/npm Your cleanup results Available after this scan",
+      "buttons": [
+        {
+          "disabled": true,
+          "text": "Review Trash"
+        },
+        {
+          "disabled": true,
+          "text": "Scanning…"
+        },
+        {
+          "disabled": false,
+          "text": "Stop scan"
+        }
+      ],
+      "checkboxes": [],
+      "documentWidth": 800,
+      "elapsedSeconds": 72,
+      "elapsedText": "1m 12s elapsed",
+      "foundCount": "53",
+      "mainSummaryCount": 1,
+      "mockData": true,
+      "pathDetails": [
+        {
+          "open": true,
+          "path": "/fixture/Library/Caches/npm"
+        }
+      ],
+      "placeholder": true,
+      "statuses": [
+        "Checking storage"
+      ],
+      "stop": [
+        {
+          "disabled": false,
+          "text": "Stop scan",
+          "title": ""
+        }
+      ],
+      "title": "Cleanup",
+      "version": "v0.3.93",
+      "viewport": 800,
+      "name": "scan-path-keyboard",
+      "capturedAt": "2026-10-01T02:12:40.603613+00:00",
+      "observations": {
+        "path_opened_with_enter": true,
+        "expected_mock_path": true,
+        "keyboard_focus_on_summary": true,
+        "no_selection_during_scan": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeTag": "BODY",
+      "alerts": [],
+      "bodyText": "Cleanup Storage toolsDeveloper ArtifactsLarge FilesApplicationsDisks Review Trash Scanning… Stopping scan Keeping the locations checked so far. Stopping… Current area npm Cache Found so far 53 items 1m 12s elapsed Show current path /fixture/Library/Caches/npm Your cleanup results Available after this scan",
+      "buttons": [
+        {
+          "disabled": true,
+          "text": "Review Trash"
+        },
+        {
+          "disabled": true,
+          "text": "Scanning…"
+        },
+        {
+          "disabled": true,
+          "text": "Stopping…"
+        }
+      ],
+      "checkboxes": [],
+      "documentWidth": 800,
+      "elapsedSeconds": 72,
+      "elapsedText": "1m 12s elapsed",
+      "foundCount": "53",
+      "mainSummaryCount": 1,
+      "mockData": true,
+      "pathDetails": [
+        {
+          "open": true,
+          "path": "/fixture/Library/Caches/npm"
+        }
+      ],
+      "placeholder": true,
+      "statuses": [
+        "Stopping scan"
+      ],
+      "stop": [
+        {
+          "disabled": true,
+          "text": "Stopping…",
+          "title": ""
+        }
+      ],
+      "title": "Cleanup",
+      "version": "v0.3.93",
+      "viewport": 800,
+      "name": "scan-stopping",
+      "capturedAt": "2026-10-01T02:12:41.139225+00:00",
+      "observations": {
+        "stopping_status": true,
+        "stopping_button_disabled": true,
+        "checked_locations_kept_copy": true,
+        "no_selection_during_stop": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeTag": "BODY",
+      "alerts": [
+        "Storage check needs attention Error: The storage check did not complete. Try scanning again."
+      ],
+      "bodyText": "Cleanup Storage toolsDeveloper ArtifactsLarge FilesApplicationsDisks Review Trash Scan Storage Last ready-to-clean estimate 9.7 GB Scan again to verify these results. Found in scanned locations 10.5 GB Storage check needs attention Error: The storage check did not complete. Try scanning again. Scan details Only verified items can be cleaned. Unread locations remain unknown and are excluded from totals. Apps may download or rebuild cleaned caches later. Why some bytes stay Includes items that must be kept. Managed by the owner640 MBCould not verify198.6 MB Inspection reasons Locations could not be read because of an I/O error · 1 Caches Largest cleanup first Developer 2 items 5.1 GB Ready now AI Tools 2 items 3.2 GB Ready now System 3 items 1.4 GB Ready now Item details (2) This is the last scan. Scan again before cleaning. Kept and unverified observations (2) vite-cache-8f3c640 MB observed vite-cache-8f3c · Managed by the owner Temporary developer workspace requires review in Developer Artifacts No cleanup actionApplication Cache (Mock Bundled App)198.6 MB observed com.example.bundled-cache · Could not verify Protected application bundle encountered in ~/Library/Caches/com.example.bundled-cache/nested/Tool.app Check in Storage 0 selected Storage Settings Clean selected",
+      "buttons": [
+        {
+          "disabled": false,
+          "text": "Review Trash"
+        },
+        {
+          "disabled": false,
+          "text": "Scan Storage"
+        },
+        {
+          "disabled": false,
+          "text": "Developer 2 items     5.1 GB Ready now"
+        },
+        {
+          "disabled": false,
+          "text": "AI Tools 2 items     3.2 GB Ready now"
+        },
+        {
+          "disabled": false,
+          "text": "System 3 items     1.4 GB Ready now"
+        },
+        {
+          "disabled": false,
+          "text": "Check in Storage"
+        },
+        {
+          "disabled": false,
+          "text": "Storage Settings"
+        },
+        {
+          "disabled": true,
+          "text": "Clean selected"
+        }
+      ],
+      "checkboxes": [
+        {
+          "checked": false,
+          "disabled": true,
+          "name": "Select all Developer items"
+        },
+        {
+          "checked": false,
+          "disabled": true,
+          "name": "Select all AI Tools items"
+        },
+        {
+          "checked": false,
+          "disabled": true,
+          "name": "Select all System items"
+        }
+      ],
+      "documentWidth": 800,
+      "elapsedSeconds": null,
+      "mainSummaryCount": 2,
+      "mockData": true,
+      "pathDetails": [],
+      "placeholder": false,
+      "statuses": [],
+      "stop": [],
+      "title": "Cleanup",
+      "version": "v0.3.93",
+      "viewport": 800,
+      "name": "scan-failed",
+      "capturedAt": "2026-10-01T02:12:41.773879+00:00",
+      "observations": {
+        "error_visible": true,
+        "no_active_clean": true,
+        "no_selectable_old_items": true,
+        "scan_retry_enabled": true,
+        "progress_removed": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeTag": "BODY",
+      "alerts": [],
+      "bodyText": "Cleanup Storage toolsDeveloper ArtifactsLarge FilesApplicationsDisks Review Trash Scan Storage Ready in checked locations Partial scan 9.7 GB Found in scanned locations 10.5 GB Some locations weren’t checked. Unknown bytes excluded. Scan details Only verified items can be cleaned. Unread locations remain unknown and are excluded from totals. Apps may download or rebuild cleaned caches later. Why some bytes stay Includes items that must be kept. Managed by the owner640 MBCould not verify198.6 MB Inspection reasons Locations could not be read because of an I/O error · 1 Caches Largest cleanup first Select all 5 available · running apps excluded Developer 2 items 5.1 GB Ready now AI Tools 2 items 3.2 GB Ready now System 3 items 1.4 GB Ready now Item details (2) Kept and unverified observations (2) vite-cache-8f3c640 MB observed vite-cache-8f3c · Managed by the owner Temporary developer workspace requires review in Developer Artifacts No cleanup actionApplication Cache (Mock Bundled App)198.6 MB observed com.example.bundled-cache · Could not verify Protected application bundle encountered in ~/Library/Caches/com.example.bundled-cache/nested/Tool.app Check in Storage 5 selected · 9.7 GB Storage Settings Clean selected",
+      "buttons": [
+        {
+          "disabled": false,
+          "text": "Review Trash"
+        },
+        {
+          "disabled": false,
+          "text": "Scan Storage"
+        },
+        {
+          "disabled": false,
+          "text": "Developer 2 items     5.1 GB Ready now"
+        },
+        {
+          "disabled": false,
+          "text": "AI Tools 2 items     3.2 GB Ready now"
+        },
+        {
+          "disabled": false,
+          "text": "System 3 items     1.4 GB Ready now"
+        },
+        {
+          "disabled": false,
+          "text": "Check in Storage"
+        },
+        {
+          "disabled": false,
+          "text": "Storage Settings"
+        },
+        {
+          "disabled": false,
+          "text": "Clean selected"
+        }
+      ],
+      "checkboxes": [
+        {
+          "checked": true,
+          "disabled": false,
+          "name": "Select all available cleanup items"
+        },
+        {
+          "checked": true,
+          "disabled": false,
+          "name": "Select all Developer items"
+        },
+        {
+          "checked": true,
+          "disabled": false,
+          "name": "Select all AI Tools items"
+        },
+        {
+          "checked": true,
+          "disabled": false,
+          "name": "Select all System items"
+        }
+      ],
+      "documentWidth": 800,
+      "elapsedSeconds": null,
+      "mainSummaryCount": 2,
+      "mockData": true,
+      "pathDetails": [],
+      "placeholder": false,
+      "statuses": [
+        "Some locations weren’t checked. Unknown bytes excluded."
+      ],
+      "stop": [],
+      "title": "Cleanup",
+      "version": "v0.3.93",
+      "viewport": 800,
+      "name": "scan-recovery",
+      "capturedAt": "2026-10-01T02:12:42.386867+00:00",
+      "observations": {
+        "error_cleared": true,
+        "ready_copy": true,
+        "bulk_selection_restored": true,
+        "clean_action_restored": true,
+        "progress_removed": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeTag": "BODY",
+      "alerts": [],
+      "bodyText": "Cleanup Storage toolsDeveloper ArtifactsLarge FilesApplicationsDisks Review Trash Scanning… Checking storage after cleanup Cleanup finished. A new scan is checking what remains before results appear. Stop scan Current area npm Cache Found so far 53 items 1m 11s elapsed Show current path /fixture/Library/Caches/npm Your cleanup results Available after this scan",
+      "buttons": [
+        {
+          "disabled": true,
+          "text": "Review Trash"
+        },
+        {
+          "disabled": true,
+          "text": "Scanning…"
+        },
+        {
+          "disabled": false,
+          "text": "Stop scan"
+        }
+      ],
+      "checkboxes": [],
+      "documentWidth": 800,
+      "elapsedSeconds": 71,
+      "elapsedText": "1m 11s elapsed",
+      "foundCount": "53",
+      "mainSummaryCount": 1,
+      "mockData": true,
+      "pathDetails": [
+        {
+          "open": false,
+          "path": "/fixture/Library/Caches/npm"
+        }
+      ],
+      "placeholder": true,
+      "statuses": [
+        "Checking storage after cleanup"
+      ],
+      "stop": [
+        {
+          "disabled": false,
+          "text": "Stop scan",
+          "title": ""
+        }
+      ],
+      "title": "Cleanup",
+      "version": "v0.3.93",
+      "viewport": 800,
+      "name": "scan-after-clean-refresh",
+      "capturedAt": "2026-10-01T02:12:42.753449+00:00",
+      "observations": {
+        "after_cleanup_status": true,
+        "fresh_results_copy": true,
+        "no_old_selection": true,
+        "placeholder_visible": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "allAnimations": 5,
+      "reducedMotion": false,
+      "tiles": [
+        {
+          "name": "Open Performance CPU detail",
+          "rect": {
+            "height": 180,
+            "width": 171.328125,
+            "x": 240,
+            "y": 373.796875
+          }
+        },
+        {
+          "name": "Open Performance memory detail",
+          "rect": {
+            "height": 180,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": 373.796875
+          }
+        },
+        {
+          "name": "Open Storage disk details",
+          "rect": {
+            "height": 180,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": 373.796875
+          }
+        }
+      ],
+      "values": [
+        {
+          "animations": 0,
+          "text": "9.7 GB"
+        },
+        {
+          "animations": 1,
+          "text": "73%"
+        },
+        {
+          "animations": 1,
+          "text": "12.4 GB"
+        },
+        {
+          "animations": 0,
+          "text": "69%"
+        }
+      ],
+      "name": "numeric-normal-motion",
+      "capturedAt": "2026-10-01T02:12:44.310666+00:00",
+      "observations": {
+        "actual_cpu_value_immediate": true,
+        "actual_memory_value_immediate": true,
+        "single_short_animation_per_changed_value": true,
+        "tile_rectangles_unchanged": true,
+        "normal_motion_preference": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "allAnimations": 0,
+      "reducedMotion": true,
+      "tiles": [
+        {
+          "name": "Open Performance CPU detail",
+          "rect": {
+            "height": 180,
+            "width": 171.328125,
+            "x": 240,
+            "y": 373.796875
+          }
+        },
+        {
+          "name": "Open Performance memory detail",
+          "rect": {
+            "height": 180,
+            "width": 171.328125,
+            "x": 423.328125,
+            "y": 373.796875
+          }
+        },
+        {
+          "name": "Open Storage disk details",
+          "rect": {
+            "height": 180,
+            "width": 171.328125,
+            "x": 606.65625,
+            "y": 373.796875
+          }
+        }
+      ],
+      "values": [
+        {
+          "animations": 0,
+          "text": "9.7 GB"
+        },
+        {
+          "animations": 0,
+          "text": "72%"
+        },
+        {
+          "animations": 0,
+          "text": "12.3 GB"
+        },
+        {
+          "animations": 0,
+          "text": "69%"
+        }
+      ],
+      "name": "numeric-reduced-motion",
+      "capturedAt": "2026-10-01T02:12:44.820456+00:00",
+      "observations": {
+        "actual_cpu_value_immediate": true,
+        "actual_memory_value_immediate": true,
+        "no_numeric_animation": true,
+        "no_ambient_animation": true,
+        "tile_rectangles_unchanged": true,
+        "reduced_motion_preference": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeText": "Dark",
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(17, 67, 167) 0px 0px 0px 2px, rgba(0, 0, 0, 0) 0px 0px 0px 0px",
+      "focusVisible": true,
+      "outlineStyle": "none",
+      "name": "settings-keyboard-focus",
+      "capturedAt": "2026-10-01T02:12:46.720810+00:00",
+      "observations": {
+        "tab_reaches_dark_theme": true,
+        "keyboard_focus_visible": true,
+        "visible_ring_style": true,
+        "version_is_final": true
+      },
+      "passed": true
+    },
+    {
+      "activeText": "Dark",
+      "darkClass": true,
+      "themes": [
+        {
+          "name": "System",
+          "pressed": "false"
+        },
+        {
+          "name": "Dark",
+          "pressed": "true"
+        },
+        {
+          "name": "Light",
+          "pressed": "false"
+        }
+      ],
+      "name": "settings-theme-keyboard-activation",
+      "capturedAt": "2026-10-01T02:12:47.189663+00:00",
+      "observations": {
+        "dark_theme_activated": true,
+        "dark_aria_pressed_true": true,
+        "other_themes_aria_pressed_false": true,
+        "focus_retained_on_dark": true,
+        "version_is_final": true
+      },
+      "passed": true
+    }
+  ],
+  "browserErrors": [],
+  "scope": "Browser interface only. Mock cancellation verifies the displayed stopping state; native cancellation, native glass, installation and Windows desktop are unverified."
+}

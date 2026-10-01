@@ -4,9 +4,9 @@ use super::size::{describe_inspection_error, inspection_issue_for_io};
 use crate::models::ScanGapKind;
 use crate::models::{
     classify_structured_state, derive_cleanup_disposition, AgeObservation, CacheSizeSemantics,
-    CleanupEligibility, CleanupOwnership, CleanupUnit, DispositionFacts, EligibilityGate,
-    EntryKind, FileSize, ObservationQuality, PathFacts, ScanItem, Signature, StaleEntryObservation,
-    StructuredStateKind,
+    CleanStrategy, CleanupEligibility, CleanupOwnership, CleanupUnit, DispositionFacts,
+    EligibilityGate, EntryKind, FileSize, NeatiError, ObservationQuality, PathFacts, ScanItem,
+    Signature, StaleEntryObservation, StructuredStateKind,
 };
 use crate::safety::SymlinkGuard;
 use crate::scanner::{PathMeasurement, SizeCalculator};
@@ -15,12 +15,64 @@ use neati_platform::PlatformEnvironment;
 use rayon::ThreadPool;
 use std::fs;
 use std::path::Path;
-use std::time::SystemTime;
+use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 
 pub struct DirectoryScanner;
+
+/// Pure path-policy vocabulary reused during one tree observation. Fresh
+/// metadata and cancellation checks stay at every recursive entry; this value
+/// has no filesystem identity or cleanup authorization in it.
+struct TreeObservationPolicy {
+    blacklist: crate::safety::blacklist::PreparedBlacklist,
+    exclusions: crate::signatures::exclusions::PreparedExclusions,
+}
+
+impl TreeObservationPolicy {
+    fn new(exclusions: &[String], environment: &PlatformEnvironment) -> Self {
+        Self {
+            blacklist: crate::safety::Blacklist::prepare(environment),
+            exclusions: crate::signatures::exclusions::PreparedExclusions::new(
+                exclusions,
+                environment,
+            ),
+        }
+    }
+}
+
+#[derive(Default)]
+struct SignatureTimings {
+    root_expansion: Duration,
+    policy_preparation: Duration,
+    tree_measurement: Duration,
+    child_enumeration: Duration,
+    measured_aged_children: bool,
+}
+
+impl SignatureTimings {
+    fn spans(self, signature: &Signature) -> Vec<neati_core::domain::scan::ScanSpan> {
+        let mut phases = vec![("root_expansion", self.root_expansion)];
+        if self.measured_aged_children {
+            phases.extend([
+                ("aged.policy_preparation", self.policy_preparation),
+                ("aged.tree_measurement", self.tree_measurement),
+                (
+                    "aged.enumeration_and_classification",
+                    self.child_enumeration,
+                ),
+            ]);
+        }
+        phases
+            .into_iter()
+            .map(|(phase, duration)| neati_core::domain::scan::ScanSpan {
+                source_id: format!("{}.{}", signature.id, phase),
+                duration_ms: duration.as_millis().min(u128::from(u64::MAX)) as u64,
+            })
+            .collect()
+    }
+}
 
 /// One concrete root a catalog pattern authorizes.
 ///
@@ -75,6 +127,40 @@ fn is_executable(_metadata: &fs::Metadata) -> bool {
     false
 }
 
+/// Windows may report a missing child when its existing parent is a file.
+/// Keep that blocked namespace observable instead of treating it as absent.
+fn qualify_manual_ancestor_error(error: NeatiError) -> Option<NeatiError> {
+    let NeatiError::Missing(missing_path) = &error else {
+        return Some(error);
+    };
+    let Some(parent) = Path::new(missing_path).parent() else {
+        return Some(error);
+    };
+    let io_error = |error: std::io::Error| match error.kind() {
+        std::io::ErrorKind::PermissionDenied => {
+            NeatiError::PermissionDenied(parent.display().to_string())
+        }
+        _ => NeatiError::Io(error.to_string()),
+    };
+    let metadata = match fs::symlink_metadata(parent) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return None,
+        Err(error) => return Some(io_error(error)),
+    };
+    match SymlinkGuard::is_symlink_from_metadata(parent, &metadata) {
+        Ok(true) => Some(NeatiError::SymlinkEscape(format!(
+            "Path ancestor is a symlink or reparse escape: {}",
+            parent.display()
+        ))),
+        Ok(false) if metadata.is_dir() => None,
+        Ok(false) => Some(NeatiError::Io(format!(
+            "Path ancestor is not a directory: {}",
+            parent.display()
+        ))),
+        Err(error) => Some(io_error(error)),
+    }
+}
+
 impl DirectoryScanner {
     /// Scan with explicit owner observations and default traversal bounds.
     pub fn scan_signature(
@@ -114,6 +200,7 @@ impl DirectoryScanner {
         let mut scanned_roots = Vec::new();
         let mut seen_roots = std::collections::HashSet::new();
         let mut selector_incomplete = false;
+        let mut timings = SignatureTimings::default();
 
         // If signature has no explicit file paths (e.g. Docker commands), return early or handle in Docker adapter
         if signature.paths.is_empty() {
@@ -126,7 +213,9 @@ impl DirectoryScanner {
             if context.cancellation.is_cancelled() {
                 break;
             }
+            let expansion_started = Instant::now();
             let Some(path_buf) = SignatureLoader::expand_path(pattern, context.environment) else {
+                timings.root_expansion += expansion_started.elapsed();
                 continue;
             };
 
@@ -138,6 +227,7 @@ impl DirectoryScanner {
             // reports as one.
             let (roots, failures, incomplete) =
                 Self::signature_roots(&path_buf, context.environment, context.cancellation);
+            timings.root_expansion += expansion_started.elapsed();
             selector_incomplete |= incomplete;
 
             for (fail_idx, failure) in failures.iter().enumerate() {
@@ -202,6 +292,10 @@ impl DirectoryScanner {
                 scanned_roots.push(root_path.clone());
                 if let Some(min_age_days) = signature.min_age_days {
                     if !unit_is_root {
+                        let started = Instant::now();
+                        let previous_measurement = timings.tree_measurement;
+                        let previous_preparation = timings.policy_preparation;
+                        timings.measured_aged_children = true;
                         items.extend(Self::scan_aged_children(
                             context,
                             signature,
@@ -211,7 +305,12 @@ impl DirectoryScanner {
                             gate,
                             root.key.as_deref(),
                             running_apps,
+                            &mut timings,
                         ));
+                        timings.child_enumeration += started
+                            .elapsed()
+                            .saturating_sub(timings.tree_measurement - previous_measurement)
+                            .saturating_sub(timings.policy_preparation - previous_preparation);
                         continue;
                     }
                     items.push(Self::scan_aged_unit(
@@ -267,6 +366,7 @@ impl DirectoryScanner {
             items,
             roots: scanned_roots,
             selector_incomplete,
+            spans: timings.spans(signature),
         }
     }
 
@@ -381,52 +481,82 @@ impl DirectoryScanner {
         // ordinary entry while an indirection is refused. `Path::exists()`
         // collapses every metadata error into `false`, so permission and I/O
         // failures stay observable instead of reading as an absent path.
-        let is_link = SymlinkGuard::is_symlink(path_buf);
-        let (exists, measurement, facts) = match fs::symlink_metadata(path_buf) {
-            Ok(_) if is_link => (
-                true,
-                PathMeasurement::unavailable(format!(
-                    "Configured path {} is a link, junction, or mount point; cleanup is blocked",
-                    path_buf.display()
-                ))
-                .with_inspection_issue(ScanGapKind::SafetyProtected),
-                None,
-            ),
-            Ok(metadata) => {
-                let facts = CandidateFacts::read(path_buf, &metadata);
-                (
-                    true,
-                    SizeCalculator::measure_path_with_pool(
-                        path_buf,
-                        &signature.exclusions,
-                        pool,
-                        context.environment,
-                        context.cancellation,
-                        context.limits,
-                        context.counters,
-                    ),
-                    Some(facts),
-                )
-            }
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => (
-                false,
-                PathMeasurement::complete(FileSize::default(), 0),
-                None,
-            ),
-            Err(err) => (
+        // Fixed advisory roots can be outside a standard cache directory (for
+        // example an injected XDG root). Refuse indirection in their ancestors
+        // before measuring anything there. A missing namespace is still
+        // absent, while access and inspection failures remain explicit gaps.
+        let ancestor_error = (signature.strategy == CleanStrategy::Manual)
+            .then(|| SymlinkGuard::validate_anchored_path(path_buf, environment).err())
+            .flatten()
+            .and_then(qualify_manual_ancestor_error);
+        let is_link = ancestor_error.is_none() && SymlinkGuard::is_symlink(path_buf);
+        let (exists, measurement, facts) = if let Some(error) = ancestor_error {
+            let issue = match &error {
+                NeatiError::SymlinkEscape(_) => ScanGapKind::SafetyProtected,
+                NeatiError::PermissionDenied(_) => inspection_issue_for_io(
+                    environment,
+                    path_buf,
+                    &std::io::Error::from(std::io::ErrorKind::PermissionDenied),
+                ),
+                _ => ScanGapKind::Unknown,
+            };
+            (
                 true,
                 PathMeasurement::unavailable(format!(
                     "Could not inspect configured path {}: {}",
                     path_buf.display(),
-                    describe_inspection_error(environment, path_buf, &err)
+                    error
                 ))
-                .with_inspection_issue(inspection_issue_for_io(
-                    environment,
-                    path_buf,
-                    &err,
-                )),
+                .with_inspection_issue(issue),
                 None,
-            ),
+            )
+        } else {
+            match fs::symlink_metadata(path_buf) {
+                Ok(_) if is_link => (
+                    true,
+                    PathMeasurement::unavailable(format!(
+                    "Configured path {} is a link, junction, or mount point; cleanup is blocked",
+                    path_buf.display()
+                ))
+                    .with_inspection_issue(ScanGapKind::SafetyProtected),
+                    None,
+                ),
+                Ok(metadata) => {
+                    let facts = CandidateFacts::read(path_buf, &metadata);
+                    (
+                        true,
+                        SizeCalculator::measure_path_with_pool(
+                            path_buf,
+                            &signature.exclusions,
+                            pool,
+                            context.environment,
+                            context.cancellation,
+                            context.limits,
+                            context.counters,
+                        ),
+                        Some(facts),
+                    )
+                }
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => (
+                    false,
+                    PathMeasurement::complete(FileSize::default(), 0),
+                    None,
+                ),
+                Err(err) => (
+                    true,
+                    PathMeasurement::unavailable(format!(
+                        "Could not inspect configured path {}: {}",
+                        path_buf.display(),
+                        describe_inspection_error(environment, path_buf, &err)
+                    ))
+                    .with_inspection_issue(inspection_issue_for_io(
+                        environment,
+                        path_buf,
+                        &err,
+                    )),
+                    None,
+                ),
+            }
         };
 
         let size = measurement.size;
@@ -457,7 +587,7 @@ impl DirectoryScanner {
             cache_metadata.size_semantics = CacheSizeSemantics::Informational;
         }
 
-        let last_modified = if exists {
+        let last_modified = if exists && facts.is_some() {
             fs::metadata(path_buf)
                 .ok()
                 .and_then(|m| m.modified().ok())
@@ -786,6 +916,7 @@ impl DirectoryScanner {
         gate: EligibilityGate,
         root_key: Option<&str>,
         _running_apps: &crate::applications::RunningApplications,
+        timings: &mut SignatureTimings,
     ) -> Vec<ScanItem> {
         let environment = context.environment;
         if context.cancellation.is_cancelled() {
@@ -900,6 +1031,9 @@ impl DirectoryScanner {
         let mut entry_failure = None;
         let mut entry_issue = None;
         let mut coverage_count = 0usize;
+        let preparation_started = Instant::now();
+        let observation_policy = TreeObservationPolicy::new(&signature.exclusions, environment);
+        timings.policy_preparation += preparation_started.elapsed();
         // Temp roots are deliberately a prefix-only catalog, even for read-only
         // accounting. Unrelated user/session files are outside this inventory.
         let observe_include_misses = ![
@@ -1037,8 +1171,15 @@ impl DirectoryScanner {
             };
 
             // Single-pass fail-closed tree measurement
-            let stats =
-                Self::measure_tree_stats(context, &path, &signature.exclusions, 0, stale_policy);
+            let measurement_started = Instant::now();
+            let stats = Self::measure_tree_stats_with_policy(
+                context,
+                &path,
+                &observation_policy,
+                0,
+                stale_policy,
+            );
+            timings.tree_measurement += measurement_started.elapsed();
             // An incomplete tree cannot prove the candidate's newest timestamp,
             // so retain it for observability but block cleanup.
             if !stats.complete {
@@ -1347,6 +1488,17 @@ impl DirectoryScanner {
         current_depth: usize,
         stale_policy: Option<crate::safety::StaleEntryPolicy>,
     ) -> TreeStats {
+        let policy = TreeObservationPolicy::new(exclusions, context.environment);
+        Self::measure_tree_stats_with_policy(context, path, &policy, current_depth, stale_policy)
+    }
+
+    fn measure_tree_stats_with_policy(
+        context: &WalkContext<'_>,
+        path: &Path,
+        policy: &TreeObservationPolicy,
+        current_depth: usize,
+        stale_policy: Option<crate::safety::StaleEntryPolicy>,
+    ) -> TreeStats {
         let environment = context.environment;
         let cancellation = context.cancellation;
         let max_depth = context.limits.max_depth;
@@ -1527,20 +1679,20 @@ impl DirectoryScanner {
             };
             let child_path = ent.path();
 
-            if crate::safety::Blacklist::is_blacklisted_with(&child_path, environment) {
+            if policy.blacklist.is_blacklisted(&child_path) {
                 stats.skipped_entries += 1;
                 continue;
             }
 
-            if crate::signatures::exclusions::is_excluded(&child_path, exclusions, environment) {
+            if policy.exclusions.is_excluded(&child_path) {
                 stats.skipped_entries += 1;
                 continue;
             }
 
-            let sub_stats = Self::measure_tree_stats(
+            let sub_stats = Self::measure_tree_stats_with_policy(
                 context,
                 &child_path,
-                exclusions,
+                policy,
                 current_depth + 1,
                 stale_policy,
             );
@@ -1616,7 +1768,7 @@ fn format_bytes(bytes: u64) -> String {
 mod tests {
     use crate::models::NeverCancelled;
 
-    use super::DirectoryScanner;
+    use super::{DirectoryScanner, TreeObservationPolicy};
     use crate::models::{
         CacheSizeSemantics, Category, CleanStrategy, ObservationQuality, RiskTier, Signature,
     };
@@ -1631,6 +1783,37 @@ mod tests {
                 "/neati-fixture-home"
             },
         )
+    }
+
+    #[test]
+    fn a_missing_manual_child_beneath_a_file_remains_an_inspection_failure() {
+        let fixture = tempfile::tempdir().expect("fixture");
+        let parent = fixture.path().join("cache");
+        std::fs::write(&parent, b"not a directory").expect("file ancestor fixture");
+        let child = parent.join("gh");
+        // Reproduce Windows' NotFound classification on every runner rather
+        // than relying on the host's child-of-file error kind.
+        let error = super::qualify_manual_ancestor_error(crate::models::NeatiError::Missing(
+            child.display().to_string(),
+        ));
+        assert!(matches!(error, Some(crate::models::NeatiError::Io(_))));
+        assert_eq!(std::fs::read(parent).unwrap(), b"not a directory");
+    }
+
+    #[test]
+    fn genuinely_missing_manual_namespaces_keep_their_absence_state() {
+        let fixture = tempfile::tempdir().expect("fixture");
+        for child in [
+            fixture.path().join("gh"),
+            fixture.path().join("missing-parent").join("gh"),
+        ] {
+            assert!(
+                super::qualify_manual_ancestor_error(crate::models::NeatiError::Missing(
+                    child.display().to_string(),
+                ))
+                .is_none()
+            );
+        }
     }
 
     #[test]
@@ -2083,6 +2266,69 @@ mod tests {
             .incomplete_reason
             .as_deref()
             .is_some_and(|reason| reason.contains("cancelled")));
+    }
+
+    #[test]
+    fn prepared_tree_observation_keeps_fresh_payload_and_age_facts() {
+        let fixture = tempfile::tempdir().unwrap();
+        let cache = fixture.path().join("cache");
+        let payload = cache.join("data.bin");
+        std::fs::create_dir(&cache).unwrap();
+        std::fs::write(&payload, vec![1; 4096]).unwrap();
+        age_entry(&payload, 10);
+        age_entry(&cache, 10);
+        let environment = environment().with_home(fixture.path());
+        let context = test_context(&environment);
+        let policy = TreeObservationPolicy::new(
+            &[cache.join("kept").to_string_lossy().into_owned()],
+            &environment,
+        );
+        let stale_policy = Some(crate::safety::StaleEntryPolicy::from_days(3));
+
+        let old = DirectoryScanner::measure_tree_stats_with_policy(
+            &context,
+            &cache,
+            &policy,
+            0,
+            stale_policy,
+        );
+        assert!(old.complete);
+        assert_eq!(old.logical, 4096);
+        assert_eq!(old.file_count, 1);
+        assert_eq!(old.stale_bytes, old.allocated);
+        assert_eq!(old.stale_file_count, 1);
+
+        std::fs::write(&payload, vec![2; 12_288]).unwrap();
+        age_entry(&payload, 0);
+        std::fs::create_dir_all(cache.join("kept")).unwrap();
+        std::fs::write(cache.join("kept/protected.bin"), vec![3; 8192]).unwrap();
+        std::fs::create_dir_all(cache.join(".git")).unwrap();
+        std::fs::write(cache.join(".git/config"), b"protected metadata").unwrap();
+
+        let fresh = DirectoryScanner::measure_tree_stats_with_policy(
+            &context,
+            &cache,
+            &policy,
+            0,
+            stale_policy,
+        );
+        assert!(fresh.complete);
+        assert_eq!(
+            fresh.logical, 12_288,
+            "payload metadata is read again even with the same prepared keys"
+        );
+        assert_eq!(fresh.file_count, 1);
+        assert_eq!(fresh.skipped_entries, 2);
+        assert_eq!(fresh.stale_bytes, 0);
+        assert_eq!(fresh.stale_file_count, 0);
+        assert!(fresh.newest_mtime.unwrap() > old.newest_mtime.unwrap());
+        assert_eq!(
+            std::fs::read(cache.join("kept/protected.bin"))
+                .unwrap()
+                .len(),
+            8192
+        );
+        assert!(cache.join(".git/config").exists());
     }
 
     /// One recently written child must not hide its stale sibling, and it must

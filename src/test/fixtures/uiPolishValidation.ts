@@ -82,10 +82,10 @@ async function scan(kind: string) {
   if (kind === 'scanning' || kind === 'refreshing' || kind === 'preparing') {
     scanStore.isScanning = true;
     scanStore.scanId = kind === 'preparing' ? null : 'synthetic-validation-scan';
-    scanStore.scanStartedAt = Date.now() - 71_000;
+    scanStore.scanStartedAt = kind === 'preparing' ? Date.now() : Date.now() - 71_000;
     scanStore.isRefreshingAfterClean = kind === 'refreshing';
     scanStore.currentRoot = kind === 'preparing' ? null : { name: 'npm Cache', path: '/fixture/Library/Caches/npm' };
-    scanStore.foundItemCount = 53;
+    scanStore.foundItemCount = kind === 'preparing' ? 0 : 53;
   }
   if (kind === 'cleaning') {
     scanStore.isCleaning = true;

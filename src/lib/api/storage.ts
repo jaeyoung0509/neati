@@ -20,6 +20,8 @@ import type {
 import { isSelectedAppTrashLowerBound } from '../utils/storageManagement';
 import { mockAppLeftoversForPlatform } from './mocks/appLeftovers';
 import { previewPlatform } from './mocks/previewPlatform';
+import { frameworkArtifactFixtures, frameworkArtifactForPreview } from './mocks/frameworkArtifacts';
+import { artifactPathsOverlap } from '../utils/developerArtifactSelection';
 type CommandResult<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E };
 
 async function unwrap<T, E>(promise: Promise<CommandResult<T, E>>): Promise<T> {
@@ -200,6 +202,7 @@ const mockDeveloperWorkspaces: DeveloperWorkspace[] = [
 ];
 
 const mockDeveloperArtifacts: DeveloperArtifact[] = [
+  ...frameworkArtifactFixtures,
   {
     id: 'artifact-rust-target',
     workspace_id: 'workspace-myproject',
@@ -602,7 +605,8 @@ const mockStorageApi: StorageManagementApi = {
             workspace_id: workspace.id,
           }))
         : mockDeveloperArtifacts.filter((item) => item.workspace_id === workspace.id);
-      for (const artifact of workspaceArtifacts) {
+      for (const observedArtifact of workspaceArtifacts) {
+        const artifact = frameworkArtifactForPreview(observedArtifact, previewPlatform());
         if (mockDeveloperScanCancelled) break;
         onEvent({
           type: 'project_discovered',
@@ -676,6 +680,9 @@ const mockStorageApi: StorageManagementApi = {
     }
     if (selected.some((item) => item.status === 'scan_cancelled')) {
       throw new Error('Cancelled artifacts require a new scan before cleanup.');
+    }
+    if (selected.some((item, index) => selected.slice(index + 1).some(other => artifactPathsOverlap(item.path, other.path)))) {
+      throw new Error('A whole artifact and its child overlap. Select one removal scope per directory.');
     }
     const planId = `mock-developer-trash-plan-${Date.now()}`;
     const preview: TrashPlanPreview = {

@@ -27,6 +27,8 @@
     tauriStartDeveloperArtifactScan,
   } from '../../lib/utils/tauri';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
+  import { observeWhileVisible } from '../../lib/utils/visiblePolling';
+  import { nonOverlappingArtifactIds, remainingArtifactScopes, toggleArtifactSelection } from '../../lib/utils/developerArtifactSelection';
   import { canReveal, revealUnavailableReason, runReveal } from '../../lib/utils/reveal';
   import {
     AlertCircle,
@@ -70,6 +72,7 @@
   let uninspected = $state<DeveloperArtifactUninspected[]>(seed?.uninspected ?? []);
   let plan = $state<TrashPlanPreview | null>(null);
   let trashResult = $state<TrashResult | null>(null);
+  let relatedScopesNeedRefresh = $state(false);
   let selectedIds = $state<string[]>([]);
   let sortBy = $state<SortKey>('size');
   let isScanning = $state(false);
@@ -91,6 +94,7 @@
   let hasMeasurementIncompleteSelected = $derived(
     selectedItems.some((item) => item.status === 'measurement_incomplete')
   );
+  let hasFrameworkSelection = $derived(selectedItems.some(item => ['svelte_kit_output', 'svelte_kit_types', 'next_output', 'next_webpack_cache'].includes(item.kind)));
   let sortedItems = $derived(
     [...items].sort((left, right) => {
       if (sortBy === 'activity') {
@@ -110,8 +114,7 @@
 
   $effect(() => {
     if (!plan) return;
-    const timer = setInterval(() => (now = Date.now()), 1000);
-    return () => clearInterval(timer);
+    return observeWhileVisible(() => { now = Date.now(); }, 1000);
   });
 
   $effect(() => {
@@ -154,6 +157,7 @@
   }
 
   function cleanupScopeLabel(item: DeveloperArtifact): string {
+    if (item.status === 'observation_only' && (item.kind === 'svelte_kit_output' || item.kind === 'next_output')) return 'Observed output · no cleanup scope';
     const labels: Record<DeveloperArtifact['kind'], string> = {
       cargo_target: 'target/',
       node_modules: 'node_modules/',
@@ -195,6 +199,7 @@
   function resetReview() {
     plan = null;
     trashResult = null;
+    relatedScopesNeedRefresh = false;
     expiryActionFocused = false;
     partialCleanupConfirmed = false;
   }
@@ -372,14 +377,13 @@
 
   function toggleItem(item: DeveloperArtifact) {
     if (!canManuallyClean(item) || isScanning || isExecuting) return;
-    selectedIds = selectedIdSet.has(item.id)
-      ? selectedIds.filter((id) => id !== item.id)
-      : [...selectedIds, item.id];
+    selectedIds = toggleArtifactSelection(selectedIds, item, items);
     resetReview();
   }
 
   function selectAll() {
-    selectedIds = items.filter((item) => item.status === 'complete' && canManuallyClean(item)).map((item) => item.id);
+    const eligible = items.filter((item) => item.status === 'complete' && canManuallyClean(item));
+    selectedIds = nonOverlappingArtifactIds(eligible);
     resetReview();
   }
 
@@ -418,8 +422,11 @@
       const result = await tauriExecuteTrashPlan(plan.id);
       trashResult = result;
       const moved = new Set(result.items.filter((item) => item.success).map((item) => item.item_id));
-      items = items.filter((item) => !moved.has(item.id));
-      selectedIds = selectedIds.filter((id) => !moved.has(id));
+      const remaining = remainingArtifactScopes(items, moved);
+      relatedScopesNeedRefresh = items.length - remaining.length > moved.size;
+      items = remaining;
+      const remainingIds = new Set(items.map(item => item.id));
+      selectedIds = selectedIds.filter((id) => remainingIds.has(id));
       plan = null;
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
@@ -447,6 +454,7 @@
       </div>
       <p class="mt-1 text-xs text-muted-foreground">
         Inspect rebuildable project environments across common ecosystems. Project source, manifests, lockfiles, and project roots are never cleanup targets.
+        Verified framework sync/cache-only defaults can move as whole units; deployment, offline, dynamic/custom and unknown output stays observed. Choose one whole folder or generated child per directory.
       </p>
     </div>
   </div>
@@ -596,6 +604,13 @@
         </span>
         <span class="font-mono text-muted-foreground">{trashResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(trashResult.moved_allocated_size)} · empty {platformContextStore.trashLabel} to reclaim</span>
       </div>
+      {#if relatedScopesNeedRefresh}<p class="mt-2 text-meta text-muted-foreground">Scan again to refresh related parent and child output scopes.</p>{/if}
+      {#if trashResult.items.some(item => !item.success)}
+        <details class="mt-2 text-meta text-muted-foreground">
+          <summary class="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Kept artifacts and recovery details</summary>
+          <ul class="mt-1 space-y-1">{#each trashResult.items.filter(item => !item.success) as item (item.item_id)}<li class="break-words">{item.message}</li>{/each}</ul>
+        </details>
+      {/if}
     </Card>
   {/if}
 
@@ -618,7 +633,8 @@
         </div>
       </div>
       <div class="rounded-lg border border-border/70 bg-background/60 p-3">
-        <p class="text-meta text-muted-foreground">Only the exact generated directories below will move. Project code and configuration stay in place.</p>
+        <p class="text-meta text-muted-foreground">Only the exact generated directories below will move. Project source and project configuration stay; verified generated metadata moves with its output.</p>
+        {#if hasFrameworkSelection}<p class="mt-1 text-meta text-muted-foreground">To restore a staged output, move it from {platformContextStore.trashLabel} back to its displayed project path. Put Back may refer to the private staging folder.</p>{/if}
         <div class="mt-2 max-h-32 space-y-1.5 overflow-y-auto scroll-stable">
           {#each selectedItems as item (item.id)}
             <div class="flex items-center justify-between gap-3 text-caption">

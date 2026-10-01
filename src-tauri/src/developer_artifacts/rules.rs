@@ -396,6 +396,8 @@ pub(crate) fn framework_generated_kind(
 ) -> Option<neati_core::domain::storage::FrameworkGeneratedKind> {
     use neati_core::domain::storage::FrameworkGeneratedKind;
     match kind {
+        DeveloperArtifactKind::SvelteKitOutput => Some(FrameworkGeneratedKind::SvelteKitOutput),
+        DeveloperArtifactKind::NextOutput => Some(FrameworkGeneratedKind::NextOutput),
         DeveloperArtifactKind::SvelteKitTypes => Some(FrameworkGeneratedKind::SvelteKitTypes),
         DeveloperArtifactKind::NextWebpackCache => Some(FrameworkGeneratedKind::NextWebpackCache),
         _ => None,
@@ -412,11 +414,11 @@ pub(crate) fn verify_framework_generated_contract(
     let Some(format) = framework_generated_kind(kind) else {
         return Ok(None);
     };
-    let found = framework_generated_matches(project)
-        .into_iter()
-        .find(|found| found.kind == kind)
-        .ok_or("The direct framework dependency changed or could not be verified")?;
-    if path != project.join(found.artifact_relative) {
+    let metadata = neati_platform::framework_metadata::observe(project, format)?;
+    if format.is_whole() {
+        metadata.whole_default.clone()?;
+    }
+    if path != project.join(format.relative()) {
         return Err("The generated subtree is outside its exact default scope.".into());
     }
     neati_platform::temporary_storage::verify_framework_generated_tree(
@@ -425,7 +427,65 @@ pub(crate) fn verify_framework_generated_contract(
         format,
         cancel,
     )
-    .map(Some)
+    .map(|tree| Some(format!("{}:{tree}", metadata.fingerprint)))
+}
+
+pub(crate) fn recheck_staged_framework_contract(
+    environment: &PlatformEnvironment,
+    project: &Path,
+    staged: &Path,
+    kind: DeveloperArtifactKind,
+    expected: &str,
+) -> Result<(), String> {
+    let format = framework_generated_kind(kind).ok_or("Missing framework contract")?;
+    let metadata = neati_platform::framework_metadata::observe(project, format)?;
+    if format.is_whole() {
+        metadata.whole_default.clone()?;
+    }
+    let tree = neati_platform::temporary_storage::verify_framework_generated_tree(
+        environment,
+        staged,
+        format,
+        &AtomicBool::new(false),
+    )?;
+    if format!("{}:{tree}", metadata.fingerprint) != expected {
+        return Err(
+            "Framework manifest, configuration or generated contents changed after review.".into(),
+        );
+    }
+    Ok(())
+}
+
+pub(crate) fn recheck_framework_metadata(
+    project: &Path,
+    kind: DeveloperArtifactKind,
+    expected: &str,
+) -> Result<(), String> {
+    let format = framework_generated_kind(kind).ok_or("Missing framework type")?;
+    let metadata = neati_platform::framework_metadata::observe(project, format)?;
+    if format.is_whole() {
+        metadata.whole_default.clone()?;
+    }
+    if expected.split_once(':').map(|(metadata, _)| metadata) != Some(metadata.fingerprint.as_str())
+    {
+        return Err("Framework project metadata changed during the final use observation.".into());
+    }
+    Ok(())
+}
+
+pub(super) fn framework_custom_matches(project: &Path) -> Vec<ArtifactMatch> {
+    use neati_core::domain::storage::FrameworkGeneratedKind;
+    [ (FrameworkGeneratedKind::SvelteKitOutput, DeveloperArtifactKind::SvelteKitOutput),
+      (FrameworkGeneratedKind::NextOutput, DeveloperArtifactKind::NextOutput) ].into_iter()
+        .flat_map(|(format, kind)| {
+            let Ok(metadata) = neati_platform::framework_metadata::observe(project, format) else { return vec![]; };
+            metadata.custom_outputs.into_iter().map(|relative| ArtifactMatch {
+                ecosystem: DeveloperEcosystem::Node, kind, project_root: project.into(), artifact_relative: relative,
+                marker_paths: metadata.marker_paths.clone(),
+                evidence: vec!["Unverified custom output path from bounded config metadata; the configuration was never executed and this observation grants no cleanup authority.".into()],
+                rebuild_hint: Some("Custom framework output stays advisory; inspect its actual owner and deployment/offline dependencies.".into()),
+            }).collect::<Vec<_>>()
+        }).collect()
 }
 
 pub(super) fn is_artifact_directory(name: &str) -> bool {
@@ -436,14 +496,12 @@ pub(super) fn is_artifact_directory(name: &str) -> bool {
 }
 
 pub(crate) fn artifact_relative_is_allowed(relative: &Path, kind: DeveloperArtifactKind) -> bool {
-    RULES.iter().any(|rule| {
-        rule.kind == kind
-            && relative == Path::new(rule.relative)
-            && !matches!(rule.recognition, Recognition::Framework { .. })
-    })
+    RULES
+        .iter()
+        .any(|rule| rule.kind == kind && relative == Path::new(rule.relative))
 }
 
-pub(crate) fn artifact_is_observation_only(kind: DeveloperArtifactKind) -> bool {
+pub(crate) fn artifact_is_framework_parent(kind: DeveloperArtifactKind) -> bool {
     RULES
         .iter()
         .any(|rule| rule.kind == kind && matches!(rule.recognition, Recognition::Framework { .. }))
@@ -628,8 +686,8 @@ mod tests {
             let recognized = recognize(&root, name).unwrap();
             assert_eq!(recognized.kind, kind);
             assert_eq!(recognized.marker_paths, vec![root.join("package.json")]);
-            assert!(artifact_is_observation_only(kind));
-            assert!(!artifact_relative_is_allowed(Path::new(name), kind));
+            assert!(artifact_is_framework_parent(kind));
+            assert!(artifact_relative_is_allowed(Path::new(name), kind));
             assert!(recognize(&root, "custom-output").is_none());
             for alias in ["npm:unrelated@1", " npm:unrelated@1"] {
                 fs::write(

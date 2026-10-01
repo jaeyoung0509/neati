@@ -101,15 +101,25 @@ that merge pass; it is not elapsed UI time including idle periods between scans.
 These spans complement the signature/provider timings without changing the
 meaning of traversal counters.
 
-Filesystem signatures add a bounded `.root_expansion` phase for
-environment/selector expansion. Enumerated aged
-roots also add `.aged.policy_preparation`, `.aged.tree_measurement`, and
-`.aged.enumeration_and_classification`. The latter includes child enumeration,
-classification and item construction, excluding the separately timed policy
-preparation and descendant measurement. These durations aggregate across all
-roots/children of a signature; there is no per-file span or new progress event.
-IDs contain only the catalog ID and phase name. The enclosing signature span
-includes these phases, so do not add the enclosing and nested durations together.
+The bounded phase vocabulary is:
+
+| Scope | Aggregate phases |
+|---|---|
+| Scan | `scan.process_snapshot`, `scan.pool_startup`, existing overlap resolution/merge and physical audit |
+| Filesystem signature | `.root_expansion`, `.use_checks`, `.owner_state_projection` |
+| Enumerated aged root | `.aged.policy_preparation`, `.aged.tree_measurement`, `.aged.enumeration_and_classification` |
+| Inside aged measurement | `.aged.metadata_and_links`, `.aged.age_evaluation`, `.aged.size_accounting`, `.aged.traversal_and_policy` |
+| Inside enumeration | `.aged.child_classification` |
+| Cache provider | `.discovery` (resolution/command startup/output), `.measurement` |
+| Owner provider | enclosing catalog ID and `.item_projection`; Homebrew additionally splits `.process_use_check`, `.executable_discovery`, `.prefix_query`, `.version_query`, `.dry_run_preview`, `.preview_parse` |
+
+Tree traversal is the measurement's remainder after metadata/link, age and size
+work; it includes path policy, enumeration, recursion and folding. Enumeration
+excludes policy preparation and descendant measurement. All phases aggregate
+across a signature's roots/children: no per-file span or progress event is added.
+IDs contain only catalog IDs and phase names. Millisecond values are truncated,
+so `0` can mean work below one millisecond. Enclosing and nested spans must not be
+summed. A catalog ID can have both a filesystem pass and an owner pass.
 
 `ScanResult.cancelled` states whether the run stopped because it was cancelled;
 a cancelled scan is `quality: partial` with a stated reason, and the flag is
@@ -136,6 +146,15 @@ Cancellation latency — the time from the request to the scan returning — is
 measured by the benchmark (`cancellation_latency_is_measured_from_the_first_candidate`),
 which also asserts the work actually stopped: the cancelled run reads fewer
 directories than the fixture contains and never produces the later candidates.
+
+Owner discovery checks Stop before and after each provider, and Homebrew's
+read-only child commands receive the signal. Generic cache use checks also
+receive it: an interrupted open-file read is unknown, and later unit probes do
+not start. Observed rows remain present without cleanup eligibility when their
+required check did not complete. Planning/execution retain fresh, uncancelled
+checks. Disposable command fixtures assert return within the unchanged one-second
+Stop ceiling, including process-group teardown; this is backend evidence, not
+native-window input latency.
 
 ## Benchmark and regression guard
 
@@ -248,6 +267,100 @@ latency. Homebrew preview, Codex runtime measurement and browser-use probes
 remain the leading live spans; no use verdict is cached. The frontend burst
 regression exercises real store callbacks and Stop dispatch with mocked IPC in
 Node, without DOM rendering or native-window evidence.
+
+### Full controlled matrix, 2026-10-01
+
+The [sanitized matrix record](validation/2026-10-01-scan-matrix-0.3.100.json)
+compares 0.3.96 production source `63a8a3e` with `00ca207` plus this change,
+still labelled 0.3.100 before the final version sync. The same debug harness
+is installed in both sources; retained binaries, harnesses and production files
+have recorded SHA-256 fingerprints. This is the cumulative comparison across
+the earlier shipped optimizations and current patch, not attribution of every
+difference to this patch.
+
+On MacBook Air M1, 16 GiB, macOS 27.0.1 (26A434), three alternating processes
+per source/case warmed once and measured five scans: 15 samples per source/case.
+The shared heavy-build lock was held; filesystem caches were warm and ordinary
+host/browser activity continued. All 324 scans, grouped by fixture case, retain
+equal inventory, eligibility, bytes/ranges, skipped/incomplete reasons and
+ordering; all 54 boundary-Stop inventories and event-kind sequences also match
+per case. No user directory or cleanup plan is used. Every original duration
+ceiling and task bound is retained.
+
+The committed disposable harness can be replayed with:
+
+```sh
+cargo test -p neati-desktop --test scan_benchmark controlled_profile \
+  -- --ignored --nocapture --test-threads=1
+```
+
+The paired archive uses `--exact controlled_profile::<case>` on each retained
+binary under `/usr/bin/time -l` so process peak RSS belongs to one fixture case.
+
+| Fixture | Median wall ms, before → after | CPU delta ms, before → after | First item ms, before → after |
+|---|---|---|---|
+| wide | 182.567 → 147.479 | 297.146 → 180.137 | 173.841 → 139.903 |
+| deep | 139.302 → 131.000 | 140.244 → 132.270 | 137.829 → 129.783 |
+| mixed_size | 128.679 → 127.212 | 128.726 → 126.658 | 128.226 → 126.712 |
+| mixed_age | 130.425 → 154.114 | 129.731 → 151.482 | 129.773 → 153.213 |
+| aged_observation | 258.242 → 262.251 | 258.054 → 260.518 | 241.080 → 245.464 |
+| plain_observation | 281.255 → 180.622 | 634.901 → 277.860 | 261.168 → 163.184 |
+| overlap | 126.717 → 131.111 | 127.029 → 130.803 | 125.625 → 130.146 |
+| link | 131.858 → 129.109 | 131.975 → 129.060 | 131.396 → 128.686 |
+| inaccessible | 134.281 → 131.446 | 134.339 → 131.128 | 133.775 → 130.937 |
+
+Root progress, full ranges, scan-end RSS and raw process-peak RSS bytes are in
+the record. Peak outstanding tasks remain at most 16. Boundary Stop took
+68–226 µs; separate active aged, unit-use and owned-child fixtures exercise
+mid-work Stop. Whole-process peak RSS includes setup, warmups, output and Stop;
+scan-end RSS is instantaneous. These data establish no memory improvement.
+Small-fixture medians sometimes worsened and ranges overlap. The fresh process
+snapshot dominates those current scans; ordinary background activity continued.
+No outlier was removed and no broad scan speedup is inferred.
+
+### Profiling decisions and read lifecycle audit
+
+The aged walk remains one pass for size/newest-age/per-entry stale policy.
+Child classification now reuses its own no-follow metadata for the link query;
+Windows reparse failures remain protected. Only immutable per-walk path policy
+and per-overlap-pass relationship facts are reused. No unit metadata, identity,
+use verdict or cleanup authorization survives into planning/execution.
+
+Current aggregate-only live observations were 28.918/27.424/27.145 s, partial,
+with changing inventory, existing Codex-shell privacy grants and an unsigned
+diagnostic child. Developer-temp took 77–88 ms: classification 1–2 ms, metadata
+4–5 ms, tree traversal/policy 68–79 ms. Homebrew prefix/version reads took
+39–65/39–45 ms, while its dry-run took 4,320–4,459 ms. npm/pnpm discovery took
+182–194/232–249 ms; overlap resolution 1,379–1,434 ms and physical audit
+508–509 ms. Nested spans are not additive. These diagnose remaining costs and
+establish no causal live improvement or installed-app permission behavior.
+
+Signature/category/provider orchestration retains its ordered single-writer
+progress sink. Parallel orchestration would require buffering/interleaving that
+stream and scheduling around nested walks and child-process admissions. Existing
+independent browser-unit fanout uses the shared four-worker pool and keeps each
+unit's fresh use verdict. Neither that pool nor the 16-task queue was increased.
+One mutable Homebrew preview dominates startup; caching it would carry an old
+mutation scope into a later read. Provider discovery performs one query per
+provider, and none of its output replaces fresh prepare/execute checks.
+
+| Read/recurring work | Audit outcome |
+|---|---|
+| Application inventory | Explicit view load/refresh; storage-read admission and blocking worker; no recurring collector. |
+| Model/container inventory | Concurrent view readers now share only an in-flight read; post-mutation refresh waits then reads anew; errors/retry covered. |
+| Developer/large-file scans | Explicit service-owned bounded reads, blocking workers and lifecycle cancellation; no automatic polling. |
+| Development listeners | Existing in-flight sharing retained; one idempotent subscription per visible view now prevents duplicate reference counts and foreign releases. |
+| Metrics and AI | Existing single-flight reads and keyed bounded backend snapshots retained; recurring view consumers own release and stop while hidden. |
+| Awake/plan clocks | Awake's countdown/state-read timers and application/large-file plan clocks now stop while hidden and refresh on return; native Keep Awake evaluation and backend plan expiry retain their own lifetimes. |
+
+Fake-timer/store regressions cover hidden/visible transitions, duplicate release,
+multiple consumers, in-flight sharing, failure/retry and post-mutation freshness.
+The associated developer-artifact clock change belongs to its workflow patch.
+Rust callback/encoding measurements and synthetic mounted DOM evidence do not
+measure native IPC. Actual native large-scan input/Stop and VoiceOver announcement
+acceptance remains pending. Computer Use connectivity was subsequently restored,
+but final-bundle native IPC/input/Stop and VoiceOver checks have not yet run.
+No native criterion is waived; #379 remains open until that evidence is obtained.
 
 ## Recorded real-machine baselines
 

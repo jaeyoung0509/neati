@@ -1,0 +1,20 @@
+{
+  "generator": "@sveltejs/kit 2.37.1 svelte-kit sync",
+  "typescript": "5.8.3",
+  "node": "26.7.0",
+  "date": "2026-10-01",
+  "config": "export default {\"kit\":{\"outDir\":\".svelte-kit\"}};",
+  "environment": "PATH only plus macOS-injected __CF_USER_TEXT_ENCODING name; no dotenv or environment values captured; one original +page.svelte fixture",
+  "sources": [
+    "https://github.com/sveltejs/kit/tree/%40sveltejs/kit%402.37.1/packages/kit/src/core/sync"
+  ],
+  "sha256": {
+    ".svelte-kit/ambient.d.ts": "4c5bbf53904c008b9ca1d353202158d2046fc7592639ea752250be11f99e7986",
+    ".svelte-kit/non-ambient.d.ts": "89c525132518be5db4673421249e71e692053da8e60bf45700f711eece963884",
+    ".svelte-kit/tsconfig.json": "99603c54fc9bda25f2b0ca5db4654d6745d33a13ee0177229bd1e1fd71d26b31",
+    ".svelte-kit/types/route_meta_data.json": "bd8b1bfc3b495236367c3d940a50fdc769befa217c808f3170f91625f88d6bec",
+    ".svelte-kit/types/src/routes/$types.d.ts": "8d2896d65e5bbb69f24ddfc0bd8256b5757da62f7fd9e0762bbec25a8c7bf9ea",
+    "package.json": "16f853d24b415845486f169750ff41359447f2c54c99bb94e023f0749035bd90",
+    "svelte.config.js": "2acbda26756da420f5543b115fd693064632ea7baca1e6f10bdcac9ef4616a35"
+  }
+}

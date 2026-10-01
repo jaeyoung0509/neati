@@ -2,8 +2,55 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
 import DeveloperArtifactsView from '../routes/dashboard/DeveloperArtifactsView.svelte';
 import { mockStorageApi } from '../lib/api/storage';
+import { artifactPathsOverlap, nonOverlappingArtifactIds, remainingArtifactScopes, toggleArtifactSelection } from '../lib/utils/developerArtifactSelection';
+import { frameworkArtifactFixtures } from '../lib/api/mocks/frameworkArtifacts';
+import { setPreviewPlatform } from '../lib/api/mocks/previewPlatform';
 
 describe('developer artifact review workflow', () => {
+  it('keeps framework mutation unavailable in Windows and Linux preview fixtures', async () => {
+    try {
+      for (const platform of ['windows', 'linux'] as const) {
+        setPreviewPlatform(platform);
+        const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-myproject'], () => undefined);
+        const whole = result.items.find(item => item.id === 'whole-next_output')!;
+        const child = result.items.find(item => item.id === 'whole-child-next_output')!;
+        expect(whole.status).toBe('observation_only');
+        expect(child.status).toBe('safety_blocked');
+        await expect(mockStorageApi.prepareDeveloperArtifactCleanup(result.scan_id, [whole.id])).rejects.toThrow('unavailable');
+        await expect(mockStorageApi.prepareDeveloperArtifactCleanup(result.scan_id, [child.id])).rejects.toThrow('safety checks');
+      }
+    } finally { setPreviewPlatform('macos'); }
+  });
+  it('exposes whole default and custom observed scopes with exact manual plan accounting', async () => {
+    const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-myproject'], () => undefined);
+    const whole = result.items.find(item => item.id === 'whole-next_output')!;
+    const child = result.items.find(item => item.id === 'whole-child-next_output')!;
+    const custom = result.items.find(item => item.id === 'custom-next-output')!;
+    expect(whole.selected_by_default).toBe(false);
+    expect(whole.status).toBe('complete');
+    await expect(mockStorageApi.prepareDeveloperArtifactCleanup(result.scan_id, [whole.id])).resolves.toMatchObject({ allocated_size: whole.allocated_bytes, item_count: 1 });
+    await expect(mockStorageApi.prepareDeveloperArtifactCleanup(result.scan_id, [whole.id, child.id])).rejects.toThrow('overlap');
+    await expect(mockStorageApi.prepareDeveloperArtifactCleanup(result.scan_id, [custom.id])).rejects.toThrow('unavailable');
+    const body = render(DeveloperArtifactsView, { props: { onBack: () => undefined, initialResult: { ...result, items: [whole, child, custom] } } }).body;
+    expect(body).toContain('generated/site');
+    expect(body).toContain('Observed output · no cleanup scope');
+    expect(body).toContain('whole folder or generated child');
+    expect(body).not.toContain('checked');
+  });
+
+  it('replaces a selected parent with its child and keeps unrelated sibling names', () => {
+    const [parent, child] = frameworkArtifactFixtures;
+    const sibling = { ...child, id: 'sibling', path: `${parent.path}-authored` };
+    expect(toggleArtifactSelection([parent.id, sibling.id], child, [parent, child, sibling])).toEqual([sibling.id, child.id]);
+    expect(toggleArtifactSelection([child.id, sibling.id], parent, [parent, child, sibling])).toEqual([sibling.id, parent.id]);
+    expect(new Set(nonOverlappingArtifactIds([child, parent, sibling]))).toEqual(new Set([parent.id, sibling.id]));
+    expect(artifactPathsOverlap('C:\\workspace\\.next', 'c:/WORKSPACE/.next/cache/webpack')).toBe(true);
+    expect(artifactPathsOverlap('/fixture/.next', '/fixture/.next-authored')).toBe(false);
+    expect(artifactPathsOverlap('/fixture/Case', '/fixture/case/child')).toBe(false);
+    expect(remainingArtifactScopes([parent, child, sibling], new Set([child.id]))).toEqual([sibling]);
+    expect(remainingArtifactScopes([parent, child, sibling], new Set([parent.id]))).toEqual([sibling]);
+    expect(remainingArtifactScopes([parent, child, sibling], new Set())).toEqual([parent, child, sibling]);
+  });
   it('streams marker-backed candidates with empty default selection', async () => {
     const events: string[] = [];
     const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-myproject'], (event) => {

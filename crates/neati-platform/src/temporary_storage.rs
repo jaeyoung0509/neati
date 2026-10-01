@@ -25,6 +25,7 @@ const UNIT_TIME: Duration = Duration::from_secs(5);
 
 #[derive(Debug, Clone)]
 pub struct TemporaryUnitSnapshot {
+    framework: Option<neati_core::domain::storage::FrameworkGeneratedKind>,
     pub root: PathBuf,
     pub root_identity: FileIdentity,
     pub path: PathBuf,
@@ -125,24 +126,57 @@ fn classify_usage_with_inspection_handles(
     let mut evidence = Vec::new();
     let mut excluded = 0usize;
     let mut named = 0usize;
+    // Ignoring our own inspection handles is safe only for a complete lsof
+    // field stream. A malformed suffix, orphan field or truncated descriptor
+    // must never turn a failed probe into a negative use observation.
+    let mut complete_fields = std::str::from_utf8(stdout).is_ok() && stdout.last() == Some(&b'\n');
+    let mut process_named = false;
+    let mut pending_descriptor = false;
     for line in text.lines() {
         if let Some(value) = line.strip_prefix('p') {
+            if pending_descriptor || (!pid.is_empty() && !process_named) {
+                complete_fields = false;
+            }
+            if value.parse::<u32>().ok().is_none_or(|value| value == 0) {
+                complete_fields = false;
+            }
             pid = value.to_string();
+            command.clear();
+            descriptor.clear();
+            process_named = false;
+            pending_descriptor = false;
+            continue;
         }
         if let Some(value) = line.strip_prefix('c') {
+            if pid.is_empty() || !command.is_empty() || pending_descriptor || value.is_empty() {
+                complete_fields = false;
+            }
             command = value.to_string();
+            continue;
         }
         if let Some(value) = line.strip_prefix('f') {
+            if pid.is_empty() || command.is_empty() || pending_descriptor || value.is_empty() {
+                complete_fields = false;
+            }
             descriptor = value.to_string();
+            pending_descriptor = true;
+            continue;
         }
         if let Some(value) = line.strip_prefix('n') {
+            if !pending_descriptor || value.is_empty() {
+                complete_fields = false;
+            }
+            pending_descriptor = false;
+            process_named = true;
             named += 1;
-            let fd = descriptor
-                .chars()
-                .take_while(char::is_ascii_digit)
-                .collect::<String>()
-                .parse::<i32>()
-                .ok();
+            let digits = descriptor.bytes().take_while(u8::is_ascii_digit).count();
+            let suffix = &descriptor[digits..];
+            let fd = matches!(suffix, "" | "r" | "w" | "u")
+                .then(|| descriptor[..digits].parse::<i32>().ok())
+                .flatten();
+            if digits > 0 && fd.is_none() {
+                complete_fields = false;
+            }
             if inspection_pid.is_some()
                 && pid.parse::<u32>().ok() == inspection_pid
                 && fd.is_some_and(|fd| inspection_fds.contains(&fd))
@@ -160,13 +194,19 @@ fn classify_usage_with_inspection_handles(
             if evidence.len() < 12 {
                 evidence.push(format!("{kind}: {value} · {command} (PID {pid})"));
             }
+            continue;
         }
+        complete_fields = false;
     }
+    complete_fields &= !pending_descriptor && (pid.is_empty() || process_named);
     let state = if !evidence.is_empty() {
         TemporaryUsageState::InUse
     } else if stderr.is_empty()
         && ((code == Some(1) && stdout.is_empty())
-            || (code == Some(0) && excluded > 0 && named == excluded))
+            || (matches!(code, Some(0 | 1))
+                && complete_fields
+                && excluded > 0
+                && named == excluded))
     {
         TemporaryUsageState::NoUseDetected
     } else {
@@ -219,12 +259,13 @@ pub fn snapshot_temporary_unit(
 ) -> TemporaryUnitSnapshot {
     #[cfg(unix)]
     {
-        unix::snapshot(environment, root, path, cancel)
+        unix::snapshot(environment, root, path, cancel, None)
     }
     #[cfg(not(unix))]
     {
         let _ = (environment, cancel);
         TemporaryUnitSnapshot {
+            framework: None,
             root: root.into(),
             path: path.into(),
             root_identity: FileIdentity::UNKNOWN,
@@ -253,7 +294,11 @@ pub fn recheck_temporary_unit(
     if reviewed.blocked_reason.is_some() {
         return Err(reviewed.blocked_reason.clone().unwrap_or_default());
     }
-    let current = snapshot_temporary_unit(environment, &reviewed.root, &reviewed.path, cancel);
+    let current = if let Some(kind) = reviewed.framework {
+        snapshot_framework_unit(environment, &reviewed.root, &reviewed.path, kind, cancel)?
+    } else {
+        snapshot_temporary_unit(environment, &reviewed.root, &reviewed.path, cancel)
+    };
     if let Some(reason) = &current.blocked_reason {
         return Err(reason.clone());
     }
@@ -324,6 +369,64 @@ pub fn verify_framework_generated_tree(
     }
 }
 
+/// Exact typed framework scope, independently of temporary-root facts. The
+/// domain planner still owns manifest/config/Git and explicit review consent.
+pub fn snapshot_framework_unit(
+    environment: &PlatformEnvironment,
+    project: &Path,
+    path: &Path,
+    kind: neati_core::domain::storage::FrameworkGeneratedKind,
+    cancel: &AtomicBool,
+) -> Result<TemporaryUnitSnapshot, String> {
+    if environment.platform() != PlatformKind::Macos || path != project.join(kind.relative()) {
+        return Err("Framework removal requires the exact reviewed macOS default scope.".into());
+    }
+    #[cfg(unix)]
+    {
+        Ok(unix::snapshot(
+            environment,
+            project,
+            path,
+            cancel,
+            Some(kind),
+        ))
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = cancel;
+        Err("No framework filesystem adapter on this host.".into())
+    }
+}
+
+pub fn move_reviewed_framework_unit(
+    environment: &PlatformEnvironment,
+    reviewed: &TemporaryUnitSnapshot,
+    backend: &dyn crate::trash::TrashBackend,
+    final_provenance: &dyn Fn(&Path) -> Result<(), String>,
+    final_metadata: &dyn Fn() -> Result<(), String>,
+) -> Result<(), String> {
+    if reviewed.framework.is_none() {
+        return Err("A typed framework snapshot is required.".into());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        unix::move_to_trash_with_final_check(
+            environment,
+            reviewed,
+            false,
+            Some(&reviewed.root),
+            backend,
+            &observe_with_inspection_handles,
+            Some((final_provenance, final_metadata)),
+        )
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (environment, backend, final_provenance, final_metadata);
+        Err("Framework removal is unavailable on this host.".into())
+    }
+}
+
 #[cfg(unix)]
 mod unix {
     use super::*;
@@ -333,6 +436,11 @@ mod unix {
     use std::os::fd::{AsRawFd, FromRawFd};
     use std::os::unix::ffi::OsStrExt;
     use std::os::unix::fs::MetadataExt;
+
+    type FinalFrameworkChecks<'a> = (
+        &'a dyn Fn(&Path) -> Result<(), String>,
+        &'a dyn Fn() -> Result<(), String>,
+    );
 
     fn identity(meta: &std::fs::Metadata) -> FileIdentity {
         FileIdentity::new(meta.dev(), meta.ino())
@@ -574,14 +682,14 @@ mod unix {
                 meta.len(),
                 meta.mtime() as u64,
                 meta.mtime_nsec() as u64,
-                if depth == 0 { 0 } else { meta.ctime() as u64 },
-                if depth == 0 {
-                    0
-                } else {
-                    meta.ctime_nsec() as u64
-                },
             ] {
                 self.hash.update(value.to_le_bytes());
+            }
+            // Staging renames the root and changes its ctime. Descendant ctime
+            // remains stable and catches edits that restore length and mtime.
+            if depth > 0 {
+                self.hash.update(meta.ctime().to_le_bytes());
+                self.hash.update(meta.ctime_nsec().to_le_bytes());
             }
             self.newest = self
                 .newest
@@ -676,6 +784,9 @@ mod unix {
     ) -> Result<String, String> {
         use neati_core::domain::storage::FrameworkGeneratedKind;
         use std::io::Read;
+        if kind.is_whole() {
+            return verify_whole_framework(environment, path, kind, cancel);
+        }
         let uid = environment
             .current_user_id()
             .ok_or("Current-user ownership could not be established")?;
@@ -812,6 +923,10 @@ mod unix {
                             return Err("Unknown or proxy type layouts remain observed; cleanup is unavailable.".into());
                         }
                     }
+                    FrameworkGeneratedKind::SvelteKitOutput
+                    | FrameworkGeneratedKind::NextOutput => {
+                        unreachable!("whole contracts use their own bounded inspector")
+                    }
                 }
             }
         }
@@ -830,13 +945,158 @@ mod unix {
         Ok(fingerprint)
     }
 
+    fn verify_whole_framework(
+        environment: &PlatformEnvironment,
+        path: &Path,
+        kind: neati_core::domain::storage::FrameworkGeneratedKind,
+        cancel: &AtomicBool,
+    ) -> Result<String, String> {
+        use neati_core::domain::storage::FrameworkGeneratedKind;
+        use std::io::Read;
+        let uid = environment
+            .current_user_id()
+            .ok_or("Current-user identity unavailable")?;
+        let root = open_root(path)?;
+        let device = root
+            .metadata()
+            .map_err(|_| "Framework root unreadable")?
+            .dev();
+        let mut before = Tree::new();
+        before.walk(&root, Path::new(""), 0, device, uid, cancel);
+        if let Some(reason) = before.reason {
+            return Err(reason);
+        }
+        let fingerprint = format!("{:x}", before.hash.finalize());
+        let (children, truncated) = names(&root, 32)?;
+        if truncated {
+            return Err("Whole framework metadata exceeds its layout budget.".into());
+        }
+        let mut positive = false;
+        for name in children {
+            if cancel.load(Ordering::Relaxed) {
+                return Err("Framework verification was cancelled.".into());
+            }
+            let name_text = name
+                .to_str()
+                .ok_or("Ambiguous framework names are protected")?;
+            let child = open_child(&root, &name, false)?;
+            let metadata = child.metadata().map_err(|_| "Framework entry unreadable")?;
+            if metadata.is_file() && (metadata.nlink() != 1 || metadata.mode() & 0o111 != 0) {
+                return Err(
+                    "Whole generated outputs refuse executable or hard-linked files.".into(),
+                );
+            }
+            match (kind, name_text, metadata.is_dir()) {
+                (FrameworkGeneratedKind::SvelteKitOutput, "types", true) => {
+                    verify_framework(environment, &path.join(&name), FrameworkGeneratedKind::SvelteKitTypes, cancel)?;
+                    // Whole authority attests every file, including full type
+                    // bodies. The existing generated-child contract remains
+                    // separate; an unknown route variant cannot expand it into
+                    // authority over the parent output.
+                    let (entries, overflow) = names(&child, 3)?;
+                    if overflow || entries != [std::ffi::OsString::from("route_meta_data.json"), std::ffi::OsString::from("src")] {
+                        return Err("This whole sync route layout is unverified.".into());
+                    }
+                    let src = open_child(&child, std::ffi::OsStr::new("src"), true)?;
+                    let routes = open_child(&src, std::ffi::OsStr::new("routes"), true)?;
+                    if names(&src, 2)?.0 != [std::ffi::OsString::from("routes")]
+                        || names(&routes, 2)?.0 != [std::ffi::OsString::from("$types.d.ts")] {
+                        return Err("This whole sync route layout is unverified.".into());
+                    }
+                    for (directory, filename, expected) in [
+                        (&child, "route_meta_data.json", "bd321925d3b07346350ddea68825ccef96a8cf32"),
+                        (&routes, "$types.d.ts", "0e4d4cef58b6ddd5d067d35a0b4775ebc550a02d"),
+                    ] {
+                        let file = open_child(directory, std::ffi::OsStr::new(filename), false)?;
+                        if file.metadata().map_err(|_| "Generated route metadata unreadable")?.len() > 1024 * 1024 {
+                            return Err("Generated route metadata exceeds its bound.".into());
+                        }
+                        let mut bytes = Vec::new(); file.take(1024 * 1024 + 1).read_to_end(&mut bytes).map_err(|_| "Generated route metadata unreadable")?;
+                        if format!("{:x}", Sha1::digest(&bytes)) != expected {
+                            return Err("This complete generated route variant is unverified; the whole output stays observed.".into());
+                        }
+                    }
+                    positive = true;
+                }
+                (FrameworkGeneratedKind::NextOutput, "cache", true) => {
+                    let (cache_entries, overflow) = names(&child, 2)?;
+                    if overflow || cache_entries != [std::ffi::OsString::from("webpack")] {
+                        return Err("Next data/fetch/image/offline or unknown caches remain protected.".into());
+                    }
+                    verify_framework(environment, &path.join("cache/webpack"), FrameworkGeneratedKind::NextWebpackCache, cancel)?;
+                    positive = true;
+                }
+                (FrameworkGeneratedKind::NextOutput, "package.json", false) => {
+                    if metadata.len() > 4096 { return Err("The generated package marker exceeds its bound.".into()); }
+                    let mut bytes = Vec::new();
+                    child.take(4097).read_to_end(&mut bytes).map_err(|_| "Generated package marker unreadable")?;
+                    serde_json::from_slice::<serde_json::Value>(&bytes).map_err(|_| "Generated package marker is not JSON")?;
+                    let value = neati_core::domain::storage::static_framework_config(std::str::from_utf8(&bytes).map_err(|_| "Generated package marker is not UTF-8")?)
+                        .ok_or("Unknown Next package marker is protected")?;
+                    if value != serde_json::json!({"type":"commonjs"}) { return Err("Unknown Next package marker is protected.".into()); }
+                }
+                (FrameworkGeneratedKind::SvelteKitOutput, "tsconfig.json", false) => {
+                    if metadata.len() > 64 * 1024 { return Err("The generated tsconfig exceeds its bound.".into()); }
+                    let mut bytes = Vec::new();
+                    child.take(64 * 1024 + 1).read_to_end(&mut bytes).map_err(|_| "Generated tsconfig unreadable")?;
+                    serde_json::from_slice::<serde_json::Value>(&bytes).map_err(|_| "Generated tsconfig is not JSON")?;
+                    let value = neati_core::domain::storage::static_framework_config(std::str::from_utf8(&bytes).map_err(|_| "Generated tsconfig is not UTF-8")?)
+                        .ok_or("Unknown or authored tsconfig is protected")?;
+                    // The inert config allowlist permits no custom files,
+                    // aliases or tsconfig transformer. Check every option and
+                    // path from the recorded 2.37.1 default writer.
+                    let generated = value == serde_json::json!({
+                        "compilerOptions": {
+                            "paths": {"$app/types": ["./types/index.d.ts"]},
+                            "rootDirs": ["..", "./types"], "verbatimModuleSyntax": true,
+                            "isolatedModules": true, "lib": ["esnext", "DOM", "DOM.Iterable"],
+                            "moduleResolution": "bundler", "module": "esnext", "noEmit": true, "target": "esnext"
+                        },
+                        "include": ["ambient.d.ts", "non-ambient.d.ts", "./types/**/$types.d.ts",
+                            "../vite.config.js", "../vite.config.ts", "../src/**/*.js", "../src/**/*.ts",
+                            "../src/**/*.svelte", "../tests/**/*.js", "../tests/**/*.ts", "../tests/**/*.svelte"],
+                        "exclude": ["../node_modules/**", "../src/service-worker.js", "../src/service-worker/**/*.js",
+                            "../src/service-worker.ts", "../src/service-worker/**/*.ts", "../src/service-worker.d.ts",
+                            "../src/service-worker/**/*.d.ts"]
+                    });
+                    if !generated { return Err("The generated SvelteKit tsconfig format is unverified.".into()); }
+                }
+                (FrameworkGeneratedKind::SvelteKitOutput, "ambient.d.ts" | "non-ambient.d.ts", false) => {
+                    let mut bytes = Vec::new();
+                    child.take(64 * 1024 + 1).read_to_end(&mut bytes).map_err(|_| "Generated declarations unreadable")?;
+                    let expected = if name_text == "ambient.d.ts" { "59a82452fa3e49b9f33d7a129ee075c50db0a23f" }
+                        else { "7d0ac5229014f84b6ae06ce68d8d909fd087348b" };
+                    // A banner can hide appended authored content. Only the
+                    // complete recorded declaration variant is authority.
+                    // Other env/route variants retain their observed bytes.
+                    if bytes.len() > 64 * 1024 || format!("{:x}", Sha1::digest(&bytes)) != expected {
+                        return Err("This generated declaration variant is unverified; the whole output stays observed.".into());
+                    }
+                }
+                _ => return Err("Deployment, offline, authored or unknown output entries remain protected; choose a verified generated child instead.".into()),
+            }
+        }
+        if !positive {
+            return Err("A whole default output needs positive generated-tree evidence.".into());
+        }
+        let rebound = open_root(path)?;
+        let mut after = Tree::new();
+        after.walk(&rebound, Path::new(""), 0, device, uid, cancel);
+        if after.reason.is_some() || format!("{:x}", after.hash.finalize()) != fingerprint {
+            return Err("The whole framework output changed during verification.".into());
+        }
+        Ok(fingerprint)
+    }
+
     pub(super) fn snapshot(
         environment: &PlatformEnvironment,
         root: &Path,
         path: &Path,
         cancel: &AtomicBool,
+        framework: Option<neati_core::domain::storage::FrameworkGeneratedKind>,
     ) -> TemporaryUnitSnapshot {
         let mut result = TemporaryUnitSnapshot {
+            framework,
             root: root.into(),
             path: path.into(),
             root_identity: FileIdentity::UNKNOWN,
@@ -853,10 +1113,11 @@ mod unix {
             contents: vec![],
         };
         let observed = (|| -> Result<(File, File, u32), String> {
-            if !environment
-                .temporary_roots()
-                .iter()
-                .any(|stated| root == stated)
+            if (framework.is_none()
+                && !environment
+                    .temporary_roots()
+                    .iter()
+                    .any(|stated| root == stated))
                 || path == root
                 || !path.starts_with(root)
             {
@@ -1100,8 +1361,30 @@ mod unix {
         backend: &dyn crate::trash::TrashBackend,
         final_probe: &dyn Fn(&PlatformEnvironment, &Path, &[i32]) -> TemporaryUsageObservation,
     ) -> Result<(), String> {
+        move_to_trash_with_final_check(
+            environment,
+            reviewed,
+            accept_unknown_usage,
+            final_owner_scope,
+            backend,
+            final_probe,
+            None,
+        )
+    }
+
+    #[cfg(target_os = "macos")]
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn move_to_trash_with_final_check(
+        environment: &PlatformEnvironment,
+        reviewed: &TemporaryUnitSnapshot,
+        accept_unknown_usage: bool,
+        final_owner_scope: Option<&Path>,
+        backend: &dyn crate::trash::TrashBackend,
+        final_probe: &dyn Fn(&PlatformEnvironment, &Path, &[i32]) -> TemporaryUsageObservation,
+        final_provenance: Option<FinalFrameworkChecks<'_>>,
+    ) -> Result<(), String> {
         if final_owner_scope.is_some_and(|scope| {
-            scope == reviewed.root
+            (scope == reviewed.root && reviewed.framework.is_none())
                 || scope == reviewed.path
                 || !scope.starts_with(&reviewed.root)
                 || !reviewed.path.starts_with(scope)
@@ -1191,6 +1474,9 @@ mod unix {
             // Close our measurement handle before lsof; our own held file or
             // directory must not manufacture an active-owner observation.
             drop(held);
+            if let Some((check, _)) = final_provenance {
+                check(&staged_path)?;
+            }
             let inspection_fds = [root.as_raw_fd(), parent.as_raw_fd(), stage.as_raw_fd()];
             if let Some(scope) = final_owner_scope {
                 // Generated scopes retain their complete project-use policy
@@ -1198,7 +1484,7 @@ mod unix {
                 // authorize this narrower generated-only operation.
                 let owner_use = final_probe(environment, scope, &inspection_fds);
                 if owner_use.state != TemporaryUsageState::NoUseDetected {
-                    return Err("Generated project use is active or unknown at the final boundary; the unit was kept.".into());
+                    return Err(format!("Generated project use is active or unknown at the final boundary; the unit was kept. {}", owner_use.evidence.join(" ")));
                 }
             }
             let usage = final_probe(environment, &staged_path, &inspection_fds);
@@ -1231,6 +1517,13 @@ mod unix {
                 return Err(
                     "The staged contents changed during the final use check. Scan again.".into(),
                 );
+            }
+            if let Some((check_staged, check_metadata)) = final_provenance {
+                // The final use probes may outlive an index-only ownership
+                // change. Re-derive the original Git namespace and complete
+                // generated contract again, even when the held tree matches.
+                check_staged(&staged_path)?;
+                check_metadata()?;
             }
             let rebound_root = bind_original_locator(reviewed, &root, &parent, uid)?;
             let rebound_stage = open_child(
@@ -1345,10 +1638,12 @@ mod tests {
     #[test]
     fn final_probe_excludes_only_its_exact_owned_inspection_fds() {
         let own = b"p42\ncNeati\nf6\nn/fixture/project\n";
-        assert_eq!(
-            classify_usage_with_inspection_handles(Some(0), own, b"", Some(42), &[6]).state,
-            TemporaryUsageState::NoUseDetected
-        );
+        for code in [0, 1] {
+            assert_eq!(
+                classify_usage_with_inspection_handles(Some(code), own, b"", Some(42), &[6]).state,
+                TemporaryUsageState::NoUseDetected
+            );
+        }
         assert_eq!(
             classify_usage_with_inspection_handles(
                 Some(0),
@@ -1385,6 +1680,43 @@ mod tests {
             )
             .state,
             TemporaryUsageState::InUse
+        );
+        for malformed in [
+            b"p42\ncNeati\nf6\nn/fixture/project\nunknown-field\n".as_slice(),
+            b"p42\ncNeati\nf6\nn/fixture/project\nf7\n".as_slice(),
+            b"p42\ncNeati\nf6\nn/fixture/project\np43\ncowner\n".as_slice(),
+            b"p42\nf6\nn/fixture/project\n".as_slice(),
+            b"p42\ncNeati\nf6\nn/fixture/\xff\n".as_slice(),
+            b"p42\ncNeati\nf6\nn/fixture/project".as_slice(),
+        ] {
+            assert_eq!(
+                classify_usage_with_inspection_handles(Some(1), malformed, b"", Some(42), &[6])
+                    .state,
+                TemporaryUsageState::UnableToDetermine,
+                "an incomplete field stream cannot establish idle"
+            );
+        }
+        assert_eq!(
+            classify_usage_with_inspection_handles(
+                Some(1),
+                b"p42\ncNeati\nf6invalid\nn/fixture/project\n",
+                b"",
+                Some(42),
+                &[6]
+            )
+            .state,
+            TemporaryUsageState::InUse
+        );
+        assert_eq!(
+            classify_usage_with_inspection_handles(
+                Some(1),
+                b"p42\ncNeati\nf6r\nn/fixture/project\nf7\nn/fixture/project/.next\n",
+                b"",
+                Some(42),
+                &[6, 7]
+            )
+            .state,
+            TemporaryUsageState::NoUseDetected
         );
     }
 
@@ -1535,6 +1867,264 @@ mod tests {
             &cancel
         )
         .is_err());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn framework_final_project_use_and_metadata_changes_restore_the_whole_accepted_unit() {
+        use neati_core::domain::storage::FrameworkGeneratedKind;
+        for scenario in ["active", "unknown", "marker"] {
+            let fixture = tempfile::tempdir().unwrap();
+            let base = fixture.path().canonicalize().unwrap();
+            let project = base.join("project");
+            let target = project.join(".next");
+            let cache = target.join("cache/webpack/client-development");
+            std::fs::create_dir_all(&cache).unwrap();
+            let mut pack = 0x0163_7077u32.to_le_bytes().to_vec();
+            pack.extend(1u32.to_le_bytes());
+            pack.extend(4i32.to_le_bytes());
+            pack.extend([1, 2, 3, 4]);
+            std::fs::write(cache.join("index.pack"), &pack).unwrap();
+            std::fs::write(
+                project.join("package.json"),
+                r#"{"dependencies":{"next":"15.5.14"}}"#,
+            )
+            .unwrap();
+            let env = fixture_environment(&base);
+            let reviewed = snapshot_framework_unit(
+                &env,
+                &project,
+                &target,
+                FrameworkGeneratedKind::NextOutput,
+                &AtomicBool::new(false),
+            )
+            .unwrap();
+            assert!(reviewed.blocked_reason.is_none());
+            let expected =
+                crate::framework_metadata::observe(&project, FrameworkGeneratedKind::NextOutput)
+                    .unwrap()
+                    .fingerprint;
+            let backend = crate::MockTrashBackend::new();
+            let project_probed = AtomicBool::new(false);
+            let check_metadata = || {
+                let current = crate::framework_metadata::observe(
+                    &project,
+                    FrameworkGeneratedKind::NextOutput,
+                )?;
+                if current.fingerprint != expected {
+                    return Err("Metadata changed during final use".into());
+                }
+                Ok(())
+            };
+            let result = unix::move_to_trash_with_final_check(
+                &env,
+                &reviewed,
+                false,
+                Some(&project),
+                &backend,
+                &|_, scope, _| {
+                    if scope != project {
+                        assert!(project_probed.load(Ordering::Relaxed));
+                        assert_eq!(
+                            scope.parent().and_then(Path::parent),
+                            Some(project.as_path())
+                        );
+                        return classify_usage(Some(1), b"", b"");
+                    }
+                    assert_eq!(
+                        scope, project,
+                        "the final use scope covers the entire project"
+                    );
+                    project_probed.store(true, Ordering::Relaxed);
+                    match scenario {
+                        "active" => classify_usage(Some(0), b"p42\ncnode\nfcwd\nn/project\n", b""),
+                        "unknown" => unknown_usage("incomplete fixture owner evidence"),
+                        "marker" => {
+                            std::fs::write(
+                                project.join("next.config.js"),
+                                "export default {\"distDir\":\"custom\"};",
+                            )
+                            .unwrap();
+                            classify_usage(Some(1), b"", b"")
+                        }
+                        _ => unreachable!(),
+                    }
+                },
+                Some((&|_| Ok(()), &check_metadata)),
+            );
+            assert!(result.is_err(), "{scenario}");
+            assert!(project_probed.load(Ordering::Relaxed));
+            assert!(backend.moved().is_empty(), "{scenario}");
+            assert_eq!(
+                std::fs::read(cache.join("index.pack")).unwrap(),
+                pack,
+                "{scenario}"
+            );
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn tracking_the_original_output_during_final_use_restores_the_staged_unit() {
+        use neati_core::domain::storage::{ArtifactOwnershipEvidence, FrameworkGeneratedKind};
+        use std::sync::atomic::AtomicUsize;
+
+        let fixture = tempfile::tempdir().unwrap();
+        let base = fixture.path().canonicalize().unwrap();
+        let project = base.join("project");
+        let target = project.join(".next");
+        let relative = ".next/cache/webpack/client-development/index.pack";
+        let payload = project.join(relative);
+        std::fs::create_dir_all(payload.parent().unwrap()).unwrap();
+        let mut pack = 0x0163_7077u32.to_le_bytes().to_vec();
+        pack.extend(1u32.to_le_bytes());
+        pack.extend(4i32.to_le_bytes());
+        pack.extend([1, 2, 3, 4]);
+        std::fs::write(&payload, &pack).unwrap();
+        std::fs::write(
+            project.join("package.json"),
+            r#"{"dependencies":{"next":"15.5.14"}}"#,
+        )
+        .unwrap();
+        let git = |arguments: &[&str]| {
+            let output = std::process::Command::new("/usr/bin/git")
+                .args([
+                    "-c",
+                    "core.fsmonitor=",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "core.untrackedCache=false",
+                ])
+                .args(arguments)
+                .current_dir(&project)
+                .env_clear()
+                .env("GIT_CONFIG_GLOBAL", "/dev/null")
+                .env("GIT_CONFIG_NOSYSTEM", "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "fixture Git failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8(output.stdout).unwrap()
+        };
+        git(&["init", "-q", "--object-format=sha1"]);
+        git(&["add", "--", "package.json"]);
+        let object = git(&["hash-object", "-w", "--", relative]);
+        let object = object.trim();
+        assert_eq!(object.len(), 40);
+        assert!(object.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        let env = fixture_environment(&base).with_tool("git", "/usr/bin/git");
+        let reviewed = snapshot_framework_unit(
+            &env,
+            &project,
+            &target,
+            FrameworkGeneratedKind::NextOutput,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+        assert!(reviewed.blocked_reason.is_none());
+        let expected =
+            crate::framework_metadata::observe(&project, FrameworkGeneratedKind::NextOutput)
+                .unwrap()
+                .fingerprint;
+        let provenance_checks = AtomicUsize::new(0);
+        let final_project_probe = AtomicBool::new(false);
+        let check_provenance = |staged: &Path| {
+            provenance_checks.fetch_add(1, Ordering::Relaxed);
+            let evidence = crate::artifact_ownership::probe_staged_artifact_ownership(
+                &env,
+                &project,
+                &target,
+                staged,
+                &AtomicBool::new(false),
+            );
+            if final_project_probe.load(Ordering::Relaxed) {
+                assert_eq!(evidence, ArtifactOwnershipEvidence::TrackedContent);
+            } else {
+                assert_eq!(evidence, ArtifactOwnershipEvidence::VerifiedGenerated);
+            }
+            evidence
+                .refusal_message()
+                .map_or(Ok(()), |reason| Err(reason.to_string()))
+        };
+        let check_metadata = || {
+            let current =
+                crate::framework_metadata::observe(&project, FrameworkGeneratedKind::NextOutput)?;
+            if current.fingerprint != expected {
+                return Err("Fixture metadata unexpectedly changed".into());
+            }
+            Ok(())
+        };
+        let backend = crate::MockTrashBackend::new();
+        let result = unix::move_to_trash_with_final_check(
+            &env,
+            &reviewed,
+            false,
+            Some(&project),
+            &backend,
+            &|_, scope, _| {
+                if scope == project {
+                    assert!(!final_project_probe.swap(true, Ordering::Relaxed));
+                    let cacheinfo = format!("100644,{object},{relative}");
+                    git(&["update-index", "--add", "--cacheinfo", &cacheinfo]);
+                    assert_eq!(git(&["ls-files", "--", relative]).trim(), relative);
+                }
+                classify_usage(Some(1), b"", b"")
+            },
+            Some((&check_provenance, &check_metadata)),
+        );
+        assert!(final_project_probe.load(Ordering::Relaxed));
+        assert!(result.unwrap_err().contains("tracked"));
+        assert_eq!(provenance_checks.load(Ordering::Relaxed), 2);
+        assert!(backend.moved().is_empty());
+        assert_eq!(std::fs::read(payload).unwrap(), pack);
+        assert!(std::fs::read_dir(&project).unwrap().all(|entry| !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with(".neati-reviewed-")));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn a_timestamp_restored_generated_edit_revokes_the_private_snapshot() {
+        use neati_core::domain::storage::FrameworkGeneratedKind;
+        use std::fs::{File, FileTimes};
+        let fixture = tempfile::tempdir().unwrap();
+        let base = fixture.path().canonicalize().unwrap();
+        let project = base.join("project");
+        let target = project.join(".next");
+        std::fs::create_dir_all(&target).unwrap();
+        let payload = target.join("payload");
+        std::fs::write(&payload, b"original").unwrap();
+        let env = fixture_environment(&base);
+        let reviewed = snapshot_framework_unit(
+            &env,
+            &project,
+            &target,
+            FrameworkGeneratedKind::NextOutput,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+        let modified = std::fs::metadata(&payload).unwrap().modified().unwrap();
+        std::fs::write(&payload, b"tampered").unwrap();
+        File::open(&payload)
+            .unwrap()
+            .set_times(FileTimes::new().set_modified(modified))
+            .unwrap();
+        assert_eq!(
+            std::fs::metadata(&payload).unwrap().modified().unwrap(),
+            modified
+        );
+        assert!(
+            recheck_temporary_unit(&env, &reviewed, &AtomicBool::new(false))
+                .unwrap_err()
+                .contains("changed")
+        );
+        assert_eq!(std::fs::read(&payload).unwrap(), b"tampered");
     }
 
     #[cfg(target_os = "macos")]

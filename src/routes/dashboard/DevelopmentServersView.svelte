@@ -37,11 +37,13 @@
   );
 
   onMount(() => {
+    let stopPolling: (() => void) | null = null;
     function updatePolling() {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        developmentPortsStore.startPolling(15000);
+        stopPolling ??= developmentPortsStore.observePolling(15000);
       } else {
-        developmentPortsStore.stopPolling();
+        stopPolling?.();
+        stopPolling = null;
       }
     }
 
@@ -50,7 +52,7 @@
 
     return () => {
       document.removeEventListener('visibilitychange', updatePolling);
-      developmentPortsStore.stopPolling();
+      stopPolling?.();
     };
   });
 

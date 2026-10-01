@@ -1,5 +1,6 @@
 //! One exclusion contract for discovery, measurement, and execution.
 use super::SignatureLoader;
+use crate::models::PlatformKind;
 use neati_platform::path_algebra::{self, PathFlavor};
 use neati_platform::selector::PathSelector;
 use neati_platform::PlatformEnvironment;
@@ -25,6 +26,22 @@ pub fn is_included_namespace(name: &str, prefixes: &[String]) -> bool {
     prefixes.is_empty() || prefixes.iter().any(|prefix| name.starts_with(prefix))
 }
 
+// A bare protected name must survive alternate casing on macOS too. Folding
+// exclusions only narrows authority; inclusions and rooted path algebra retain
+// their existing semantics, including on case-sensitive filesystems.
+fn excluded_name_matches(
+    candidate: &str,
+    name: &str,
+    flavor: PathFlavor,
+    fold_names: bool,
+) -> bool {
+    if fold_names {
+        candidate.to_lowercase() == name.to_lowercase()
+    } else {
+        path_algebra::equal(candidate, name, flavor)
+    }
+}
+
 pub fn is_excluded(path: &Path, exclusions: &[String], environment: &PlatformEnvironment) -> bool {
     exclusions.iter().any(|exclusion| {
         if let Some(expanded) = SignatureLoader::expand_exclusion(exclusion, environment) {
@@ -36,7 +53,14 @@ pub fn is_excluded(path: &Path, exclusions: &[String], environment: &PlatformEnv
         }
         path.file_name()
             .and_then(|name| name.to_str())
-            .is_some_and(|name| path_algebra::equal(name, exclusion, environment.flavor()))
+            .is_some_and(|name| {
+                excluded_name_matches(
+                    name,
+                    exclusion,
+                    environment.flavor(),
+                    environment.platform() == PlatformKind::Macos,
+                )
+            })
     })
 }
 
@@ -46,6 +70,7 @@ pub fn is_excluded(path: &Path, exclusions: &[String], environment: &PlatformEnv
 pub(crate) struct PreparedExclusions {
     entries: Vec<PreparedExclusion>,
     flavor: PathFlavor,
+    fold_names: bool,
 }
 
 enum PreparedExclusion {
@@ -66,6 +91,7 @@ impl PreparedExclusions {
                 )
                 .collect(),
             flavor: environment.flavor(),
+            fold_names: environment.platform() == PlatformKind::Macos,
         }
     }
 
@@ -77,7 +103,9 @@ impl PreparedExclusions {
             PreparedExclusion::Name(name) => path
                 .file_name()
                 .and_then(|name| name.to_str())
-                .is_some_and(|candidate| path_algebra::equal(candidate, name, self.flavor)),
+                .is_some_and(|candidate| {
+                    excluded_name_matches(candidate, name, self.flavor, self.fold_names)
+                }),
         })
     }
 }
@@ -222,6 +250,32 @@ mod tests {
             &["c:/cache/keep".into()],
             &windows
         ));
+    }
+
+    #[test]
+    fn protected_names_fold_case_on_macos_for_scan_and_execution_only() {
+        let exclusions = vec!["CloudKit".into(), "com.apple.Safari".into()];
+        let macos =
+            PlatformEnvironment::simulated(PathFlavor::Posix).with_platform(PlatformKind::Macos);
+        let prepared = PreparedExclusions::new(&exclusions, &macos);
+        for (name, denied) in [
+            ("cLoUdKiT", true),
+            ("cOm.ApPlE.SaFaRi", true),
+            ("CloudKit-neighbor", false),
+            ("com.apple.Safari-notes", false),
+        ] {
+            let path = std::path::PathBuf::from("/cache/nested").join(name);
+            assert_eq!(prepared.is_excluded(&path), denied, "{name}");
+            assert_eq!(is_excluded(&path, &exclusions, &macos), denied, "{name}");
+        }
+        let linux =
+            PlatformEnvironment::simulated(PathFlavor::Posix).with_platform(PlatformKind::Linux);
+        assert!(!is_excluded(
+            Path::new("/cache/cLoUdKiT"),
+            &exclusions,
+            &linux
+        ));
+        assert!(!is_included_namespace("cloudkit", &["CloudKit".into()]));
     }
 
     #[test]

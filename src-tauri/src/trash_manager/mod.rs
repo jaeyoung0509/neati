@@ -45,6 +45,7 @@ pub enum TrashScope {
         marker_identities: Vec<(PathBuf, ReviewedFileIdentity)>,
         kind: DeveloperArtifactKind,
         framework_fingerprint: Option<String>,
+        framework_snapshot: Option<Box<neati_platform::temporary_storage::TemporaryUnitSnapshot>>,
     },
 }
 
@@ -256,11 +257,30 @@ impl TrashPlanner {
                             record.artifact.kind,
                             &AtomicBool::new(false),
                         )?,
+                    framework_snapshot: crate::developer_artifacts::framework_generated_kind(
+                        record.artifact.kind,
+                    )
+                    .map(|format| {
+                        neati_platform::temporary_storage::snapshot_framework_unit(
+                            environment,
+                            &record.project_root,
+                            &record.path,
+                            format,
+                            &AtomicBool::new(false),
+                        )
+                    })
+                    .transpose()?
+                    .map(Box::new),
                 },
             };
             // Preparation re-derives ownership and scope rather than trusting
             // a discovery verdict or a complete byte measurement.
             validate_target(environment, &target)?;
+            if targets.iter().any(|prior: &TrashTarget| {
+                prior.path.starts_with(&target.path) || target.path.starts_with(&prior.path)
+            }) {
+                return Err("A whole artifact and its child overlap. Select one removal scope per directory.".into());
+            }
             targets.push(target);
         }
         if targets.is_empty() {
@@ -324,6 +344,47 @@ impl TrashExecutor {
     pub fn execute(&self, environment: &PlatformEnvironment, plan: TrashPlan) -> TrashResult {
         let backend = self.backend.as_ref();
         Self::execute_with(environment, plan, |approved| {
+            if let TrashScope::DeveloperArtifact {
+                project_root,
+                kind,
+                framework_fingerprint: Some(expected),
+                framework_snapshot: Some(snapshot),
+                ..
+            } = &approved.target.scope
+            {
+                return neati_platform::temporary_storage::move_reviewed_framework_unit(
+                    environment,
+                    snapshot,
+                    backend,
+                    &|staged| {
+                        let ownership =
+                            neati_platform::artifact_ownership::probe_staged_artifact_ownership(
+                                environment,
+                                project_root,
+                                approved.path(),
+                                staged,
+                                &AtomicBool::new(false),
+                            );
+                        if let Some(reason) = ownership.refusal_message() {
+                            return Err(reason.into());
+                        }
+                        crate::developer_artifacts::recheck_staged_framework_contract(
+                            environment,
+                            project_root,
+                            staged,
+                            *kind,
+                            expected,
+                        )
+                    },
+                    &|| {
+                        crate::developer_artifacts::recheck_framework_metadata(
+                            project_root,
+                            *kind,
+                            expected,
+                        )
+                    },
+                );
+            }
             backend.move_to_trash(approved.path())
         })
     }
@@ -495,7 +556,18 @@ fn validate_target_with_probe<'a>(
             marker_identities,
             kind,
             framework_fingerprint,
+            framework_snapshot,
         } => {
+            if crate::developer_artifacts::framework_generated_kind(*kind).is_some() {
+                let snapshot = framework_snapshot
+                    .as_ref()
+                    .ok_or("A typed framework snapshot is missing; scan again.")?;
+                if snapshot.path != target.path || snapshot.root != *project_root {
+                    return Err(
+                        "The framework snapshot is outside the reviewed target scope.".into(),
+                    );
+                }
+            }
             validate_developer_artifact_target(
                 environment,
                 target,
@@ -1817,6 +1889,7 @@ mod tests {
                 marker_identities: vec![(marker, marker_identity)],
                 kind: DeveloperArtifactKind::CargoTarget,
                 framework_fingerprint: None,
+                framework_snapshot: None,
             },
         };
         let environment = PlatformEnvironment::simulated(PathFlavor::current())

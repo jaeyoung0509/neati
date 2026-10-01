@@ -1,0 +1,16 @@
+{
+  "generator": "Next.js 15.5.14 bundled webpack 5.98.0; actual filesystem cache compiler close",
+  "date": "2026-10-01",
+  "mode": "development",
+  "name": "client-development",
+  "compression": false,
+  "entry": "export const fixture = \"neati original fixture\";",
+  "context": "isolated recovery-owned fixture project; never a user project or server",
+  "scope": "only recorded packs; production/server/static/offline output excluded",
+  "source": "https://github.com/vercel/next.js/tree/v15.5.14/packages/next/src/compiled/webpack",
+  "sha256": {
+    ".next/cache/webpack/client-development/0.pack": "dc8baa48dbd90f3afe5a8e60f4801be0247202c508bbb3c7a97a6bfdcb37265b",
+    ".next/cache/webpack/client-development/index.pack": "8d7efcd600342cb6f5c303181402b1627342ac0f49e94f5d91682432cff922e8",
+    "package.json": "1c204a8ef32b06d692fb0b54ba21f269237f05b2b11e0ff72ddef51af252e477"
+  }
+}

@@ -18,6 +18,7 @@ use neati_core::domain::cleanup::{
     RunningProcessProbe,
 };
 use neati_platform::{PlatformEnvironment, TrashBackend};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -29,6 +30,7 @@ const MAX_STORE_DEPTH: usize = 64;
 pub enum BrowserCacheKind {
     ComponentDownloads,
     OfflineCacheStorage,
+    RendererCaches,
 }
 
 impl BrowserCacheKind {
@@ -36,6 +38,7 @@ impl BrowserCacheKind {
         match self {
             Self::ComponentDownloads => "chromium.component_downloads",
             Self::OfflineCacheStorage => "chromium.offline_cache_storage",
+            Self::RendererCaches => "chromium.additional_renderer_caches",
         }
     }
 
@@ -44,6 +47,7 @@ impl BrowserCacheKind {
             Self::ComponentDownloads => {
                 "Downloaded component update archives move to Trash. Empty Trash to free disk space; the browser may download them again when an update needs them."
             }
+            Self::RendererCaches => "Named HTTP, code and GPU caches move to Trash and are downloaded or rebuilt again. Profile state, offline websites, extensions, credentials, settings and models remain intact.",
             Self::OfflineCacheStorage => {
                 "Offline website assets move to Trash. Sites and installed web apps may need a network connection to download them again; cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
             }
@@ -125,7 +129,57 @@ const MAC_LAYOUTS: &[BrowserLayout] = &[
     BrowserLayout {
         key: "arc",
         label: "Arc",
-        relative: "company.thebrowser.Browser",
+        relative: "Arc/User Data",
+    },
+    BrowserLayout {
+        key: "chrome-beta",
+        label: "Chrome Beta",
+        relative: "Google/Chrome Beta",
+    },
+    BrowserLayout {
+        key: "chrome-dev",
+        label: "Chrome Dev",
+        relative: "Google/Chrome Dev",
+    },
+    BrowserLayout {
+        key: "mcp-stable",
+        label: "Chrome DevTools MCP",
+        relative: "chrome-devtools-mcp/chrome-profile",
+    },
+    BrowserLayout {
+        key: "mcp-beta",
+        label: "Chrome DevTools MCP Beta",
+        relative: "chrome-devtools-mcp/chrome-profile-beta",
+    },
+    BrowserLayout {
+        key: "mcp-dev",
+        label: "Chrome DevTools MCP Dev",
+        relative: "chrome-devtools-mcp/chrome-profile-dev",
+    },
+    BrowserLayout {
+        key: "mcp-canary",
+        label: "Chrome DevTools MCP Canary",
+        relative: "chrome-devtools-mcp/chrome-profile-canary",
+    },
+    BrowserLayout {
+        key: "mcp-cli-stable",
+        label: "Chrome DevTools MCP CLI",
+        relative: "chrome-devtools-mcp-cli/chrome-profile",
+    },
+    BrowserLayout {
+        key: "mcp-cli-beta",
+        label: "Chrome DevTools MCP CLI Beta",
+        relative: "chrome-devtools-mcp-cli/chrome-profile-beta",
+    },
+    BrowserLayout {
+        key: "mcp-cli-dev",
+        label: "Chrome DevTools MCP CLI Dev",
+        relative: "chrome-devtools-mcp-cli/chrome-profile-dev",
+    },
+    BrowserLayout {
+        key: "mcp-cli-canary",
+        label: "Chrome DevTools MCP CLI Canary",
+        relative: "chrome-devtools-mcp-cli/chrome-profile-canary",
     },
 ];
 
@@ -222,10 +276,28 @@ impl ChromiumCacheProvider {
         }
     }
 
+    fn root(environment: &PlatformEnvironment, layout: &BrowserLayout) -> Option<PathBuf> {
+        if layout.key.starts_with("mcp-") {
+            environment
+                .user_home()
+                .map(|home| home.join(".cache").join(layout.relative))
+        } else {
+            Self::base(environment).map(|base| base.join(layout.relative))
+        }
+    }
+
     fn read_store(
         &self,
         environment: &PlatformEnvironment,
         _guard: &RunningProcessPolicy,
+    ) -> OwnerStoreObservation {
+        self.read_store_with_cancellation(environment, &crate::models::NeverCancelled)
+    }
+
+    fn read_store_with_cancellation(
+        &self,
+        environment: &PlatformEnvironment,
+        cancellation: &dyn crate::models::CancellationProbe,
     ) -> OwnerStoreObservation {
         let Some(base) = Self::base(environment) else {
             return OwnerStoreObservation::refused(
@@ -236,8 +308,73 @@ impl ChromiumCacheProvider {
         };
         let mut units = Vec::new();
         for layout in Self::layouts(environment) {
-            let browser_root = base.join(layout.relative);
+            if cancellation.is_cancelled() {
+                break;
+            }
+            if layout.key.starts_with("mcp-") && self.kind != BrowserCacheKind::RendererCaches {
+                continue;
+            }
+            let browser_root = Self::root(environment, layout).expect("resolved browser base");
             match self.kind {
+                BrowserCacheKind::RendererCaches => {
+                    // Stable Chrome/Brave leaves retain their existing registered pipeline.
+                    if environment.platform() != PlatformKind::Macos
+                        || !(layout.key == "arc"
+                            || layout.key.starts_with("mcp-")
+                            || matches!(layout.key, "chrome-beta" | "chrome-dev" | "chrome-canary"))
+                    {
+                        continue;
+                    }
+                    let profiles = match direct_profiles(&browser_root) {
+                        Ok(profiles) => profiles,
+                        Err(ProfileRead::Missing) => continue,
+                        Err(ProfileRead::Unsafe(detail)) => {
+                            units.push(OwnerUnitObservation::blocked(
+                                unit_key(layout.key, None),
+                                browser_root,
+                                0,
+                                0,
+                                0,
+                                detail,
+                            ));
+                            continue;
+                        }
+                    };
+                    for profile in profiles {
+                        if cancellation.is_cancelled() {
+                            break;
+                        }
+                        let cache_profile = if layout.key.starts_with("mcp-") {
+                            browser_root.join(&profile)
+                        } else {
+                            environment
+                                .user_home()
+                                .expect("resolved home")
+                                .join("Library/Caches")
+                                .join(layout.relative)
+                                .join(&profile)
+                        };
+                        for (leaf, path) in [
+                            ("Cache", cache_profile.join("Cache")),
+                            ("Code Cache", cache_profile.join("Code Cache")),
+                            ("GPUCache", browser_root.join(&profile).join("GPUCache")),
+                        ] {
+                            if cancellation.is_cancelled() {
+                                break;
+                            }
+                            if let Some(unit) = self.observe_unit(
+                                environment,
+                                layout,
+                                Some(&format!("{profile}/{leaf}")),
+                                &browser_root,
+                                path,
+                                &BrowserOwnerState::Idle,
+                            ) {
+                                units.push(unit);
+                            }
+                        }
+                    }
+                }
                 BrowserCacheKind::ComponentDownloads => {
                     let path = browser_root.join("component_crx_cache");
                     if fs::symlink_metadata(&path)
@@ -289,12 +426,18 @@ impl ChromiumCacheProvider {
                         self.owner_state(layout)
                     };
                     for (profile, path) in paths {
+                        if cancellation.is_cancelled() {
+                            break;
+                        }
                         let entries = SymlinkGuard::validate_anchored_path(&path, environment)
                             .map_err(|error| error.to_string())
                             .and_then(|()| offline_entries(&path));
                         match entries {
                             Ok(entries) => {
                                 let observe = |(entry, payload): &(PathBuf, bool)| {
+                                    if cancellation.is_cancelled() {
+                                        return None;
+                                    }
                                     let relative =
                                         entry.strip_prefix(&path).expect("enumerated child");
                                     let key = format!(
@@ -354,7 +497,13 @@ impl ChromiumCacheProvider {
                 }
             }
         }
-        OwnerStoreObservation::ready(Some(base), units)
+        let mut observation = OwnerStoreObservation::ready(Some(base), units);
+        if cancellation.is_cancelled() {
+            observation.detail =
+                Some("Browser inventory was cancelled; unvisited scopes remain unknown".into());
+            observation.inspection_issue = Some(crate::models::ScanGapKind::Cancelled);
+        }
+        observation
     }
 
     fn owner_state(&self, layout: &BrowserLayout) -> BrowserOwnerState {
@@ -436,7 +585,21 @@ impl ChromiumCacheProvider {
         if measurement.allocated_bytes == 0 {
             return None;
         }
-        let key = unit_key(layout.key, profile);
+        let fingerprint =
+            match unit_fingerprint(&path, browser_root, layout.key, environment, self.kind) {
+                Ok(fingerprint) => fingerprint,
+                Err(detail) => {
+                    return Some(OwnerUnitObservation::blocked(
+                        unit_key(layout.key, profile),
+                        path,
+                        measurement.logical_bytes,
+                        measurement.allocated_bytes,
+                        measurement.entry_count,
+                        detail,
+                    ))
+                }
+            };
+        let key = format!("{}@{fingerprint}", unit_key(layout.key, profile));
         let file_state;
         let owner = if matches!(owner, BrowserOwnerState::Idle)
             && environment.platform() == PlatformKind::Macos
@@ -512,6 +675,7 @@ impl ChromiumCacheProvider {
         for selection in selections {
             let found = observation.units.iter().find(|unit| {
                 unit.path == selection.path
+                    && selection.item_id.ends_with(&unit.unit_key)
                     && unit.state == OwnerUnitState::Ready
                     && unit.allocated_bytes == selection.expected_bytes
             });
@@ -573,16 +737,37 @@ impl ChromiumCacheProvider {
         environment: &PlatformEnvironment,
         unit: &OwnerUnitObservation,
     ) -> Option<PathBuf> {
-        let base = Self::base(environment)?;
-        let browser_key = unit.unit_key.split('/').next()?;
+        let key = unit.unit_key.split('@').next()?;
+        let browser_key = key.split('/').next()?;
         let layout = Self::layouts(environment)
             .iter()
             .find(|layout| layout.key == browser_key)?;
-        let root = base.join(layout.relative);
+        let root = Self::root(environment, layout)?;
         let expected = match self.kind {
+            BrowserCacheKind::RendererCaches => {
+                let mut parts = key.split('/').skip(1);
+                let profile = parts.next()?;
+                let leaf = parts.next()?;
+                if !profile_name(profile)
+                    || parts.next().is_some()
+                    || !matches!(leaf, "Cache" | "Code Cache" | "GPUCache")
+                {
+                    return None;
+                }
+                if leaf == "GPUCache" || layout.key.starts_with("mcp-") {
+                    root.join(profile).join(leaf)
+                } else {
+                    environment
+                        .user_home()?
+                        .join("Library/Caches")
+                        .join(layout.relative)
+                        .join(profile)
+                        .join(leaf)
+                }
+            }
             BrowserCacheKind::ComponentDownloads => root.join("component_crx_cache"),
             BrowserCacheKind::OfflineCacheStorage => {
-                let mut parts = unit.unit_key.split('/').skip(1);
+                let mut parts = key.split('/').skip(1);
                 let profile = parts.next()?;
                 let origin = parts.next()?;
                 let cache = parts.next()?;
@@ -664,6 +849,43 @@ impl ChromiumCacheProvider {
                 "This cache is in use or its use could not be verified; scan again".into(),
             );
         }
+        let browser_key = unit
+            .unit_key
+            .split('/')
+            .next()
+            .unwrap_or("")
+            .split('@')
+            .next()
+            .unwrap_or("");
+        let Some(layout) = Self::layouts(environment)
+            .iter()
+            .find(|layout| layout.key == browser_key)
+        else {
+            return refuse("Browser owner contract disappeared".into());
+        };
+        if self.kind == BrowserCacheKind::ComponentDownloads
+            && !matches!(self.owner_state(layout), BrowserOwnerState::Idle)
+        {
+            return refuse("The browser restarted or its state is unknown; scan again".into());
+        }
+        if SymlinkGuard::validate_anchored_path(&unit.root, environment).is_err()
+            || SymlinkGuard::validate_anchored_path(&unit.path, environment).is_err()
+            || ToctouGuard::verify(&unit.path, &unit.identity).is_err()
+        {
+            return refuse("Browser root or unit changed after the final use check".into());
+        }
+        match unit_fingerprint(&unit.path, &unit.root, layout.key, environment, self.kind) {
+            Ok(fingerprint)
+                if unit
+                    .unit_key
+                    .rsplit_once('@')
+                    .is_some_and(|(_, reviewed)| reviewed == fingerprint) => {}
+            _ => {
+                return refuse(
+                    "Browser entry layout or runtime changed after the final use check".into(),
+                )
+            }
+        }
         if let Err(error) = self.trash.move_to_trash(&unit.path) {
             return refuse(format!(
                 "The browser cache could not be moved to Trash: {error}"
@@ -692,7 +914,11 @@ impl OwnerScopedProvider for ChromiumCacheProvider {
     }
 
     fn platforms(&self) -> &'static [PlatformKind] {
-        &[PlatformKind::Macos, PlatformKind::Windows]
+        if self.kind == BrowserCacheKind::RendererCaches {
+            &[PlatformKind::Macos]
+        } else {
+            &[PlatformKind::Macos, PlatformKind::Windows]
+        }
     }
 
     fn consequence(&self) -> &'static str {
@@ -708,18 +934,20 @@ impl OwnerScopedProvider for ChromiumCacheProvider {
     }
 
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
-        let (browser_key, profile) = unit
-            .unit_key
+        let key = unit.unit_key.split('@').next().unwrap_or(&unit.unit_key);
+        let (browser_key, profile) = key
             .split_once('/')
-            .map_or((unit.unit_key.as_str(), None), |(browser, profile)| {
-                (browser, Some(profile))
-            });
+            .map_or((key, None), |(browser, profile)| (browser, Some(profile)));
         let browser = MAC_LAYOUTS
             .iter()
             .chain(WINDOWS_LAYOUTS.iter())
             .find(|layout| layout.key == browser_key)
             .map_or(browser_key, |layout| layout.label);
         match (self.kind, profile) {
+            (BrowserCacheKind::RendererCaches, _) => format!(
+                "{browser} {}",
+                unit.path.file_name().unwrap_or_default().to_string_lossy()
+            ),
             (BrowserCacheKind::ComponentDownloads, _) => format!("{browser} component downloads"),
             (BrowserCacheKind::OfflineCacheStorage, Some(profile)) => {
                 format!(
@@ -738,6 +966,17 @@ impl OwnerScopedProvider for ChromiumCacheProvider {
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
         self.read_store(environment, guard)
+    }
+
+    fn scan_with_spans(
+        &self,
+        environment: &PlatformEnvironment,
+        _guard: &RunningProcessPolicy,
+        _source_id: &str,
+        cancellation: &dyn crate::models::CancellationProbe,
+        _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        self.read_store_with_cancellation(environment, cancellation)
     }
 
     fn prepare(
@@ -784,7 +1023,7 @@ enum BrowserOwnerState {
 
 fn browser_guard(layout: &BrowserLayout) -> RunningProcessPolicy {
     let names: &[&str] = match layout.key {
-        "chrome" | "chrome-canary" => &[
+        "chrome" | "chrome-canary" | "chrome-beta" | "chrome-dev" => &[
             "Google Chrome",
             "Google Chrome Helper",
             "Google Chrome Helper (Renderer)",
@@ -809,6 +1048,14 @@ fn browser_guard(layout: &BrowserLayout) -> RunningProcessPolicy {
         "chromium" => &["Chromium", "Chromium Helper", "chromium", "chromium.exe"],
         "vivaldi" => &["Vivaldi", "Vivaldi Helper", "vivaldi", "vivaldi.exe"],
         "arc" => &["Arc", "Arc Helper", "arc", "arc.exe"],
+        key if key.starts_with("mcp-") => &[
+            "Google Chrome",
+            "Google Chrome for Testing",
+            "Google Chrome Helper",
+            "chrome",
+            "node",
+            "chrome-devtools-mcp",
+        ],
         _ => &[],
     };
     RunningProcessPolicy::guarding(names.iter().map(|name| (*name).to_string()).collect())
@@ -862,6 +1109,218 @@ fn profile_name(name: &str) -> bool {
 
 fn ordinary_component(name: &str) -> bool {
     !name.is_empty() && name != "." && name != ".." && !name.contains(['/', '\\'])
+}
+
+/// The public Arc 1.166.0 bundle establishes the macOS root contract. Only
+/// that reviewed installed identity enables its actionable layout; legacy
+/// spellings and another bundle/version do not inherit it.
+fn arc_contract_files(environment: &PlatformEnvironment) -> Result<Vec<PathBuf>, String> {
+    let mut roots = Vec::new();
+    if let Some(root) = environment.program_files() {
+        roots.push(root);
+    }
+    if let Some(home) = environment.user_home() {
+        roots.push(home.join("Applications"));
+    }
+    let mut proofs = Vec::new();
+    for root in roots {
+        let app = root.join("Arc.app");
+        if fs::symlink_metadata(&app)
+            .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound)
+        {
+            continue;
+        }
+        let files = [
+            app.join("Contents/Info.plist"),
+            app.join("Contents/Frameworks/ArcCore.framework/Versions/A/Resources/Info.plist"),
+        ];
+        let mut values = Vec::new();
+        for path in &files {
+            SymlinkGuard::validate_anchored_path(path, environment).map_err(|e| e.to_string())?;
+            let metadata = fs::symlink_metadata(path).map_err(|e| e.to_string())?;
+            if !metadata.is_file() || metadata.len() > 262_144 {
+                return Err("Arc bundle metadata is unsafe or exceeds its limit".into());
+            }
+            values
+                .push(plist::Value::from_file(path).map_err(|_| "Arc bundle metadata is invalid")?);
+        }
+        let value = |index: usize, name: &str| {
+            values[index]
+                .as_dictionary()
+                .and_then(|dictionary| dictionary.get(name))
+                .and_then(plist::Value::as_string)
+        };
+        if value(0, "CFBundleName") != Some("Arc")
+            || value(0, "CFBundleIdentifier") != Some("company.thebrowser.Browser")
+            || value(0, "CFBundleShortVersionString") != Some("1.166.0")
+            || value(0, "CFBundleVersion") != Some("87668")
+            || value(0, "CFBundleExecutable") != Some("Arc")
+            || value(1, "CFBundleIdentifier") != Some("company.thebrowser.browser.framework")
+            || value(1, "CFBundleShortVersionString") != Some("154.0.8037.58")
+        {
+            return Err("Arc's installed bundle/version does not match the verified 1.166.0 / ArcCore154 root contract; cache observations remain unavailable".into());
+        }
+        let executable = app.join("Contents/MacOS/Arc");
+        SymlinkGuard::validate_anchored_path(&executable, environment)
+            .map_err(|e| e.to_string())?;
+        if !fs::symlink_metadata(&executable).is_ok_and(|metadata| metadata.is_file()) {
+            return Err("Arc bundle executable identity is unavailable".into());
+        }
+        proofs.push(
+            files
+                .into_iter()
+                .chain(std::iter::once(executable))
+                .collect::<Vec<_>>(),
+        );
+    }
+    if proofs.len() != 1 {
+        return Err("Exactly one verified Arc bundle is required in the platform-stated application roots; no installed or ambiguous identity grants cleanup".into());
+    }
+    Ok(proofs.remove(0))
+}
+
+fn unit_fingerprint(
+    path: &Path,
+    root: &Path,
+    browser: &str,
+    environment: &PlatformEnvironment,
+    kind: BrowserCacheKind,
+) -> Result<String, String> {
+    let mut digest = Sha256::new();
+    let root_identity = ToctouGuard::capture(root).ok_or("Browser root identity is unavailable")?;
+    digest.update(format!("{root_identity:?}"));
+    if browser == "arc" && environment.platform() == PlatformKind::Macos {
+        for file in arc_contract_files(environment)? {
+            digest.update(file.as_os_str().as_encoded_bytes());
+            digest.update(format!(
+                "{:?}",
+                ToctouGuard::capture(&file).ok_or("Arc runtime identity is unavailable")?
+            ));
+            if file
+                .extension()
+                .is_some_and(|extension| extension == "plist")
+            {
+                digest.update(fs::read(file).map_err(|e| e.to_string())?);
+            }
+        }
+    }
+    let started = std::time::Instant::now();
+    let mut pending = vec![(path.to_path_buf(), 0usize)];
+    let mut count = 0usize;
+    while let Some((entry, depth)) = pending.pop() {
+        count += 1;
+        if count > MAX_STORE_ENTRIES
+            || depth > MAX_STORE_DEPTH
+            || started.elapsed() > std::time::Duration::from_secs(10)
+        {
+            return Err("Browser identity inventory exceeded its bounded budget".into());
+        }
+        let metadata = fs::symlink_metadata(&entry).map_err(|e| e.to_string())?;
+        if metadata.file_type().is_symlink() || (!metadata.is_dir() && !metadata.is_file()) {
+            return Err("Browser unit contains a link or unsupported filesystem entry".into());
+        }
+        #[cfg(unix)]
+        if metadata.is_file() {
+            use std::os::unix::fs::MetadataExt;
+            if metadata.nlink() != 1 {
+                return Err("Browser unit contains a shared hard link".into());
+            }
+        }
+        if kind == BrowserCacheKind::RendererCaches {
+            let name = entry
+                .file_name()
+                .and_then(|name| name.to_str())
+                .ok_or("Browser cache entry name is invalid")?;
+            let lower = name.to_ascii_lowercase();
+            let executable = {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::MetadataExt;
+                    metadata.is_file() && metadata.mode() & 0o111 != 0
+                }
+                #[cfg(not(unix))]
+                {
+                    false
+                }
+            };
+            let facts = crate::models::PathFacts::new(
+                name,
+                if metadata.is_dir() {
+                    crate::models::EntryKind::Directory
+                } else {
+                    crate::models::EntryKind::File
+                },
+            )
+            .executable(executable);
+            if crate::models::classify_structured_state(facts).is_some()
+                || (metadata.is_file()
+                    && matches!(
+                        entry
+                            .extension()
+                            .and_then(|extension| extension.to_str())
+                            .map(str::to_ascii_lowercase)
+                            .as_deref(),
+                        Some(
+                            "js" | "mjs"
+                                | "cjs"
+                                | "ts"
+                                | "tsx"
+                                | "jsx"
+                                | "py"
+                                | "rb"
+                                | "sh"
+                                | "wasm"
+                                | "node"
+                                | "dylib"
+                        )
+                    ))
+                || matches!(
+                    lower.as_str(),
+                    "cookies"
+                        | "history"
+                        | "login data"
+                        | "web data"
+                        | "local state"
+                        | "preferences"
+                        | "secure preferences"
+                        | "bookmarks"
+                        | "sessions"
+                        | "session storage"
+                        | "indexeddb"
+                        | "local storage"
+                        | "extensions"
+                        | "extension state"
+                        | "scriptcache"
+                        | "service worker"
+                        | "optguideondevicemodel"
+                        | "optimizationguidepredictionmodels"
+                )
+            {
+                return Err("Named renderer cache contains protected profile state, a database, configuration, credential, model or executable".into());
+            }
+        }
+        digest.update(entry.as_os_str().as_encoded_bytes());
+        digest.update(format!(
+            "{:?}",
+            ToctouGuard::capture(&entry).ok_or("Browser entry identity is unavailable")?
+        ));
+        if metadata.is_dir() {
+            let mut children = Vec::new();
+            for child in fs::read_dir(entry).map_err(|e| e.to_string())? {
+                if children.len() + pending.len() + count >= MAX_STORE_ENTRIES {
+                    return Err("Browser identity inventory exceeded its entry limit".into());
+                }
+                children.push(child.map_err(|e| e.to_string())?.path());
+            }
+            children.sort();
+            pending.extend(children.into_iter().map(|child| (child, depth + 1)));
+        }
+    }
+    Ok(digest
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
 }
 
 /// Disjoint observations: only directories exactly two levels below the store
@@ -935,6 +1394,391 @@ mod tests {
     use super::*;
     use crate::scanner::SizeCalculatorMeasurement;
     use std::sync::Mutex;
+
+    fn arc_bundle(environment: &PlatformEnvironment) -> PathBuf {
+        let app = environment
+            .user_home()
+            .unwrap()
+            .join("Applications/Arc.app");
+        let fields = [
+            (
+                "Contents/Info.plist",
+                vec![
+                    ("CFBundleName", "Arc"),
+                    ("CFBundleIdentifier", "company.thebrowser.Browser"),
+                    ("CFBundleShortVersionString", "1.166.0"),
+                    ("CFBundleVersion", "87668"),
+                    ("CFBundleExecutable", "Arc"),
+                ],
+            ),
+            (
+                "Contents/Frameworks/ArcCore.framework/Versions/A/Resources/Info.plist",
+                vec![
+                    ("CFBundleIdentifier", "company.thebrowser.browser.framework"),
+                    ("CFBundleShortVersionString", "154.0.8037.58"),
+                ],
+            ),
+        ];
+        for (name, values) in fields {
+            let path = app.join(name);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            let dictionary = values
+                .into_iter()
+                .map(|(name, value)| (name.to_string(), plist::Value::String(value.to_string())))
+                .collect();
+            plist::Value::Dictionary(dictionary)
+                .to_file_xml(path)
+                .unwrap();
+        }
+        fs::create_dir_all(app.join("Contents/MacOS")).unwrap();
+        fs::write(
+            app.join("Contents/MacOS/Arc"),
+            b"fixture metadata identity; never executed",
+        )
+        .unwrap();
+        app
+    }
+
+    fn isolated_mac_fixture() -> (tempfile::TempDir, PlatformEnvironment, RunningProcessPolicy) {
+        let temp = tempfile::tempdir().unwrap();
+        let paths = neati_platform::paths::SimulatedPaths::new()
+            .with_home(temp.path())
+            .with_program_files(temp.path().join("system-applications"));
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
+            .with_platform(PlatformKind::Macos)
+            .with_roots(Arc::new(paths));
+        (temp, environment, RunningProcessPolicy::none())
+    }
+
+    #[test]
+    fn arc_public_contract_enables_only_user_data_and_refuses_unknown_bundle_versions() {
+        let (_temp, environment, guard) = isolated_mac_fixture();
+        let app = arc_bundle(&environment);
+        let base = ChromiumCacheProvider::base(&environment).unwrap();
+        for root in ["Arc/User Data", "Arc", "company.thebrowser.Browser"] {
+            let path = base
+                .join(root)
+                .join("Default/Service Worker/CacheStorage/origin/unit");
+            fs::create_dir_all(&path).unwrap();
+            fs::write(path.join("payload"), vec![1; 4096]).unwrap();
+        }
+        let trash = Arc::new(FixtureTrash::default());
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(Idle),
+            trash.clone(),
+        );
+        let scan = provider.scan(&environment, &guard);
+        assert_eq!(scan.units.len(), 1);
+        assert!(scan.units[0].path.starts_with(base.join("Arc/User Data")));
+        assert_eq!(scan.units[0].state, OwnerUnitState::Ready);
+        let plan = provider
+            .prepare(&environment, &guard, &[selection(&scan.units[0])])
+            .unwrap();
+        let info = app.join("Contents/Info.plist");
+        let mut value = plist::Value::from_file(&info).unwrap();
+        value.as_dictionary_mut().unwrap().insert(
+            "CFBundleShortVersionString".into(),
+            plist::Value::String("1.167.0".into()),
+        );
+        value.to_file_xml(info).unwrap();
+        assert_eq!(
+            provider.execute(&environment, &plan).units[0].status,
+            ProviderStatus::Blocked
+        );
+        assert!(trash.moved.lock().unwrap().is_empty());
+        let scan = provider.scan(&environment, &guard);
+        assert_eq!(scan.units.len(), 1);
+        assert_eq!(scan.units[0].state, OwnerUnitState::Blocked);
+        assert!(scan.units[0].allocated_bytes > 0);
+        for root in ["Arc", "company.thebrowser.Browser"] {
+            assert!(base
+                .join(root)
+                .join("Default/Service Worker/CacheStorage/origin/unit/payload")
+                .exists());
+        }
+    }
+
+    #[test]
+    fn renderer_matrix_keeps_profiles_channels_and_all_adjacent_state_separate() {
+        let (_temp, environment, guard) = isolated_mac_fixture();
+        arc_bundle(&environment);
+        let home = environment.user_home().unwrap();
+        let arc = home.join("Library/Application Support/Arc/User Data");
+        let mcp = home.join(".cache/chrome-devtools-mcp-cli/chrome-profile-beta");
+        let beta = home.join("Library/Application Support/Google/Chrome Beta");
+        for root in [&arc, &mcp, &beta] {
+            for profile in ["Default", "Profile 2"] {
+                fs::create_dir_all(root.join(profile)).unwrap();
+                for state in [
+                    "Cookies",
+                    "History",
+                    "Login Data",
+                    "Preferences",
+                    "IndexedDB/db",
+                    "Service Worker/ScriptCache/script",
+                    "Service Worker/Database/db",
+                    "Extensions/installed",
+                    "OptGuideOnDeviceModel/model",
+                ] {
+                    let path = root.join(profile).join(state);
+                    fs::create_dir_all(path.parent().unwrap()).unwrap();
+                    fs::write(path, b"protected").unwrap();
+                }
+            }
+        }
+        let paths = [
+            home.join("Library/Caches/Arc/User Data/Default/Cache"),
+            arc.join("Profile 2/GPUCache"),
+            mcp.join("Default/Cache"),
+            mcp.join("Profile 2/Code Cache"),
+            home.join("Library/Caches/Google/Chrome Beta/Default/Cache"),
+        ];
+        for path in &paths {
+            fs::create_dir_all(path).unwrap();
+            fs::write(path.join("data_0"), vec![1; 4096]).unwrap();
+        }
+        let unknown = mcp.join("Custom/Cache");
+        fs::create_dir_all(&unknown).unwrap();
+        fs::write(unknown.join("data_0"), vec![1; 4096]).unwrap();
+        let trash = Arc::new(FixtureTrash::default());
+        let provider = provider(
+            BrowserCacheKind::RendererCaches,
+            Arc::new(Idle),
+            trash.clone(),
+        );
+        let scan = provider.scan(&environment, &guard);
+        assert_eq!(scan.units.len(), 5);
+        assert!(scan
+            .units
+            .iter()
+            .all(|unit| unit.state == OwnerUnitState::Ready));
+        let plan = provider
+            .prepare(
+                &environment,
+                &guard,
+                &scan.units.iter().map(selection).collect::<Vec<_>>(),
+            )
+            .unwrap();
+        let outcome = provider.execute(&environment, &plan);
+        assert!(outcome
+            .units
+            .iter()
+            .all(|unit| unit.status == ProviderStatus::Cleaned));
+        assert_eq!(trash.moved.lock().unwrap().len(), 5);
+        assert!(unknown.join("data_0").exists());
+        for root in [&arc, &mcp, &beta] {
+            for profile in ["Default", "Profile 2"] {
+                for state in [
+                    "Cookies",
+                    "History",
+                    "Login Data",
+                    "Preferences",
+                    "IndexedDB/db",
+                    "Service Worker/ScriptCache/script",
+                    "Service Worker/Database/db",
+                    "Extensions/installed",
+                    "OptGuideOnDeviceModel/model",
+                ] {
+                    assert_eq!(
+                        fs::read(root.join(profile).join(state)).unwrap(),
+                        b"protected"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn final_owner_boundary_renderer_state_and_forged_advisory_selection_never_reach_trash() {
+        let (_temp, environment, guard) = isolated_mac_fixture();
+        let home = environment.user_home().unwrap();
+        let cache = home.join(".cache/chrome-devtools-mcp/chrome-profile/Default/Cache");
+        fs::create_dir_all(&cache).unwrap();
+        fs::write(cache.join("data_0"), vec![1; 4096]).unwrap();
+        let trash = Arc::new(FixtureTrash::default());
+        let provider = provider(
+            BrowserCacheKind::RendererCaches,
+            Arc::new(Idle),
+            trash.clone(),
+        );
+        for name in [
+            "Cookies",
+            "History",
+            "credentials.json",
+            "index.db",
+            "index.db-wal",
+            "index.db-shm",
+            "settings.json",
+            "Model.app/payload",
+            "OptGuideOnDeviceModel/model",
+            "worker.js",
+            "Worker.JS",
+            "runtime.wasm",
+        ] {
+            let path = cache.join(name);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(&path, vec![2; 4096]).unwrap();
+            let scan = provider.scan(&environment, &guard);
+            assert_eq!(scan.units[0].state, OwnerUnitState::Blocked, "{name}");
+            assert!(scan.units[0].allocated_bytes > 0);
+            assert!(provider
+                .prepare(&environment, &guard, &[selection(&scan.units[0])])
+                .is_err());
+            if path.parent() != Some(cache.as_path()) {
+                fs::remove_dir_all(path.parent().unwrap()).unwrap();
+            } else {
+                fs::remove_file(path).unwrap();
+            }
+        }
+        let scan = provider.scan(&environment, &guard);
+        let mut forged = selection(&scan.units[0]);
+        forged.item_id = "manual-observation".into();
+        assert!(provider.prepare(&environment, &guard, &[forged]).is_err());
+        assert!(trash.moved.lock().unwrap().is_empty());
+        assert!(cache.join("data_0").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn browser_final_callback_ancestor_and_equal_size_entry_replacements_are_refused() {
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+        struct Replace {
+            root: PathBuf,
+            ancestor: bool,
+            armed: AtomicBool,
+            calls: AtomicUsize,
+        }
+        impl RunningProcessProbe for Replace {
+            fn running(&self, guard: &RunningProcessPolicy) -> Option<Vec<String>> {
+                if self.armed.load(Ordering::SeqCst)
+                    && guard.open_file_path().is_some()
+                    && self.calls.fetch_add(1, Ordering::SeqCst) == 1
+                {
+                    if self.ancestor {
+                        fs::rename(&self.root, self.root.with_extension("reviewed")).unwrap();
+                        std::os::unix::fs::symlink(self.root.with_extension("outside"), &self.root)
+                            .unwrap();
+                    } else {
+                        let unit = guard.open_file_path().unwrap();
+                        let file = unit.join("payload");
+                        let bytes = fs::read(&file).unwrap();
+                        let modified = fs::metadata(&file).unwrap().modified().unwrap();
+                        fs::rename(&file, unit.join("reviewed-payload")).unwrap();
+                        fs::write(&file, bytes).unwrap();
+                        fs::File::options()
+                            .write(true)
+                            .open(file)
+                            .unwrap()
+                            .set_modified(modified)
+                            .unwrap();
+                    }
+                }
+                Some(vec![])
+            }
+        }
+        for ancestor in [false, true] {
+            let (_temp, environment, guard) = isolated_mac_fixture();
+            let root = ChromiumCacheProvider::base(&environment)
+                .unwrap()
+                .join("Google/Chrome");
+            let unit = root.join("Default/Service Worker/CacheStorage/origin/unit");
+            fs::create_dir_all(&unit).unwrap();
+            fs::write(unit.join("payload"), vec![1; 4096]).unwrap();
+            let outside = root
+                .with_extension("outside")
+                .join("Default/Service Worker/CacheStorage/origin/unit");
+            fs::create_dir_all(&outside).unwrap();
+            fs::write(outside.join("private"), b"keep").unwrap();
+            let probe = Arc::new(Replace {
+                root: root.clone(),
+                ancestor,
+                armed: AtomicBool::new(false),
+                calls: AtomicUsize::new(0),
+            });
+            let trash = Arc::new(FixtureTrash::default());
+            let provider = provider(
+                BrowserCacheKind::OfflineCacheStorage,
+                probe.clone(),
+                trash.clone(),
+            );
+            let scan = provider.scan(&environment, &guard);
+            let plan = provider
+                .prepare(&environment, &guard, &[selection(&scan.units[0])])
+                .unwrap();
+            probe.armed.store(true, Ordering::SeqCst);
+            let result = provider.execute(&environment, &plan);
+            assert_eq!(result.units[0].status, ProviderStatus::Blocked);
+            assert_eq!(result.reclaimed_bytes(), 0);
+            assert_eq!(probe.calls.load(Ordering::SeqCst), 2);
+            assert!(trash.moved.lock().unwrap().is_empty());
+            assert_eq!(fs::read(outside.join("private")).unwrap(), b"keep");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn browser_hardlinks_and_stale_same_byte_selections_are_refused() {
+        let (temp, environment, guard) = isolated_mac_fixture();
+        let unit = ChromiumCacheProvider::base(&environment)
+            .unwrap()
+            .join("Google/Chrome/Default/Service Worker/CacheStorage/origin/unit");
+        fs::create_dir_all(&unit).unwrap();
+        let file = unit.join("payload");
+        fs::write(&file, vec![1; 4096]).unwrap();
+        let trash = Arc::new(FixtureTrash::default());
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(Idle),
+            trash.clone(),
+        );
+        let scan = provider.scan(&environment, &guard);
+        let selected = selection(&scan.units[0]);
+        let modified = fs::metadata(&file).unwrap().modified().unwrap();
+        fs::rename(&file, temp.path().join("old-payload")).unwrap();
+        fs::write(&file, vec![1; 4096]).unwrap();
+        fs::File::options()
+            .write(true)
+            .open(&file)
+            .unwrap()
+            .set_modified(modified)
+            .unwrap();
+        assert!(provider.prepare(&environment, &guard, &[selected]).is_err());
+        fs::hard_link(&file, temp.path().join("shared")).unwrap();
+        let scan = provider.scan(&environment, &guard);
+        assert_eq!(scan.units[0].state, OwnerUnitState::Blocked);
+        assert!(scan.units[0].allocated_bytes > 0);
+        assert!(trash.moved.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn cancelled_browser_inventory_starts_no_use_probes_and_qualifies_unknown_scope() {
+        struct Cancelled;
+        impl crate::models::CancellationProbe for Cancelled {
+            fn is_cancelled(&self) -> bool {
+                true
+            }
+        }
+        struct NoProbe;
+        impl RunningProcessProbe for NoProbe {
+            fn running(&self, _: &RunningProcessPolicy) -> Option<Vec<String>> {
+                panic!("cancelled inventory must not launch a process/handle probe")
+            }
+        }
+        let (_temp, environment, _guard) = isolated_mac_fixture();
+        let provider = provider(
+            BrowserCacheKind::OfflineCacheStorage,
+            Arc::new(NoProbe),
+            Arc::new(FixtureTrash::default()),
+        );
+        let result = provider.read_store_with_cancellation(&environment, &Cancelled);
+        assert!(result.units.is_empty());
+        assert_eq!(
+            result.inspection_issue,
+            Some(crate::models::ScanGapKind::Cancelled)
+        );
+        assert!(result.detail.unwrap().contains("unknown"));
+    }
 
     struct Idle;
     impl RunningProcessProbe for Idle {
@@ -1139,7 +1983,7 @@ mod tests {
 
     fn selection(unit: &OwnerUnitObservation) -> OwnerProviderSelection {
         OwnerProviderSelection {
-            item_id: "browser-item".into(),
+            item_id: format!("browser-item.{}", unit.unit_key),
             name: "Browser cache".into(),
             path: unit.path.clone(),
             expected_bytes: unit.allocated_bytes,
@@ -1466,11 +2310,11 @@ mod tests {
         assert!(observation
             .units
             .iter()
-            .any(|unit| unit.unit_key == "chrome/Default/origin/cache"));
+            .any(|unit| unit.unit_key.starts_with("chrome/Default/origin/cache@")));
         assert!(observation
             .units
             .iter()
-            .any(|unit| unit.unit_key == "chrome/Profile 2/origin/cache"));
+            .any(|unit| unit.unit_key.starts_with("chrome/Profile 2/origin/cache@")));
     }
 
     #[test]

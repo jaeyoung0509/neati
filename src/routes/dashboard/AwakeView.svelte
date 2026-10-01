@@ -4,6 +4,7 @@
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { formatTimeUntil } from '../../lib/utils/format';
   import { modalDialog } from '../../lib/utils/modalDialog';
+  import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { tauriPickKeepAwakeApplication } from '../../lib/utils/tauri';
   import {
     AWAKE_AGENT_OPTIONS,
@@ -62,23 +63,13 @@
   let pickerError = $state<string | null>(null);
 
   onMount(() => {
-    void awakeStore.refresh();
-
-    // Countdown is local only. The backend watcher remains event-driven and
-    // evaluates at its existing bounded interval only while work is enabled.
-    const countdownTimer = setInterval(() => {
-      now = Date.now();
-    }, 1000);
-
-    // get_awake_state is an in-memory read; no process scan or power query is
-    // performed by this UI refresh.
-    const stateTimer = setInterval(() => {
-      void awakeStore.refresh();
-    }, 5000);
-
+    // UI countdown/read ownership follows the visible route. The backend
+    // Keep Awake watcher remains independent and keeps enabled rules active.
+    const stopCountdown = observeWhileVisible(() => { now = Date.now(); }, 1000);
+    const stopRefresh = observeWhileVisible(() => { void awakeStore.refresh(); }, 5000);
     return () => {
-      clearInterval(countdownTimer);
-      clearInterval(stateTimer);
+      stopCountdown();
+      stopRefresh();
     };
   });
 

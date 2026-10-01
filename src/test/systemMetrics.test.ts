@@ -33,6 +33,34 @@ afterEach(() => {
 });
 
 describe('SystemMetricsStore polling lifecycle', () => {
+  it('keeps another consumer active when a panel release is called again after reopening', async () => {
+    vi.useFakeTimers();
+    const cpu = vi.fn().mockResolvedValue(cpuFixture());
+    const battery = vi.fn().mockResolvedValue(batteryFixture());
+    const store = new SystemMetricsStore(cpu, battery);
+    const releasePanel = store.observePolling(1000, 3000);
+    const releaseOverview = store.observePolling(1000, 3000);
+    releasePanel();
+    releasePanel();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(cpu).toHaveBeenCalledTimes(2);
+    expect(battery).toHaveBeenCalledTimes(1);
+    expect(store.isPolling).toBe(true);
+
+    releaseOverview();
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(cpu).toHaveBeenCalledTimes(2);
+    expect(battery).toHaveBeenCalledTimes(1);
+    expect(store.isPolling).toBe(false);
+
+    const releaseReopened = store.observePolling(1000, 3000);
+    releasePanel();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(cpu).toHaveBeenCalledTimes(4);
+    releaseReopened();
+    expect(store.isPolling).toBe(false);
+  });
+
   it('shares one timer across subscribers and stops when the last one leaves', async () => {
     vi.useFakeTimers();
     const cpu = vi.fn().mockResolvedValue(cpuFixture());

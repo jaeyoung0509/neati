@@ -465,6 +465,9 @@ Overview subscribes to the shared memory collector only while visible.
   repeated openings. Refit for saved section/provider preferences, capability
   availability, width or display work-area changes; preserve tray
   alignment when reopening the persistent window.
+- Visible metric subscriptions belong to the current activation and selected
+  sections. Removing a section, hiding, or unmounting releases that consumer
+  once; retries must not accumulate polling or stop another visible consumer.
 - Cleanup is the lead actionable summary. A missing or stale scan shows an
   explicit scan-needed state and `Scan Again`; it never presents stale bytes
   as verified cleanable space. A fresh non-zero estimate may use the focal

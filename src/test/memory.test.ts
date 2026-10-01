@@ -11,6 +11,33 @@ afterEach(() => {
 });
 
 describe('MemoryStore polling lifecycle', () => {
+  it('releases a panel subscription once without stopping another visible consumer', async () => {
+    vi.useFakeTimers();
+    const store = new MemoryStore();
+    const refresh = vi.spyOn(store, 'refreshMemory').mockResolvedValue(undefined);
+    const releasePanel = store.observePolling(1000);
+    const releaseOverview = store.observePolling(1000);
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    releasePanel();
+    releasePanel();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(store.isPolling).toBe(true);
+
+    releaseOverview();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(store.isPolling).toBe(false);
+
+    const releaseReopened = store.observePolling(1000);
+    releasePanel();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(refresh).toHaveBeenCalledTimes(4);
+    releaseReopened();
+    expect(store.isPolling).toBe(false);
+  });
+
   it('polls only while at least one visible subscriber is active', async () => {
     vi.useFakeTimers();
     const store = new MemoryStore();

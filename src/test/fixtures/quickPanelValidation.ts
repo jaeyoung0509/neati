@@ -12,6 +12,7 @@ import { awakeStore } from '../../lib/stores/awake.svelte';
 import { scanStore } from '../../lib/stores/scan.svelte';
 import { usageStore } from '../../lib/stores/usage.svelte';
 import { windowProbe } from './quickWindowMock';
+import type { QuickPanelSection } from '../../lib/models/types';
 
 Object.defineProperty(window, '__TAURI_INTERNALS__', { value: {}, configurable: true });
 settingsStore.settings.quick_panel_ai_providers = ['codex', 'antigravity'];
@@ -27,11 +28,13 @@ memoryStore.disk = await mockApi.getDiskMetrics();
 systemMetricsStore.cpu = await mockApi.getCpuMetrics();
 systemMetricsStore.battery = await mockApi.getBatteryMetrics();
 awakeStore.state = await mockApi.getAwakeState();
-memoryStore.startPolling = () => {};
-memoryStore.stopPolling = () => {};
+let memorySubscribers = 0;
+let metricsSubscribers = 0;
+memoryStore.startPolling = () => { memorySubscribers += 1; };
+memoryStore.stopPolling = () => { memorySubscribers -= 1; };
 memoryStore.refreshDisk = async () => {};
-systemMetricsStore.startPolling = () => {};
-systemMetricsStore.stopPolling = () => {};
+systemMetricsStore.startPolling = () => { metricsSubscribers += 1; };
+systemMetricsStore.stopPolling = () => { metricsSubscribers -= 1; };
 awakeStore.refresh = async () => {};
 scanStore.init = async () => {};
 scanStore.isStale = () => false;
@@ -70,7 +73,7 @@ function measurement() {
     meters: document.querySelectorAll('[role="meter"]').length,
     footerBottom: Math.round(footer.getBoundingClientRect().bottom),
     scrollable: scroller.scrollHeight > scroller.clientHeight,
-    subscribers, visible: windowProbe.visible,
+    subscribers, memorySubscribers, metricsSubscribers, visible: windowProbe.visible,
     requests: windowProbe.requests.map(request => ({ ...request })),
   };
 }
@@ -155,7 +158,11 @@ const driver = {
   },
   async visibility(visible: boolean) { windowProbe.setVisible(visible); await settle(); return measurement(); },
   async viewport(width: number, maximum = 740) { windowProbe.viewport(width, maximum); await settle(); return measurement(); },
-  async preferences() { settingsStore.settings.quick_panel_sections = ['cpu', 'memory', 'storage', 'agent_activity']; await settle(); return measurement(); },
+  async preferences(sections: QuickPanelSection[] = ['cpu', 'memory', 'storage', 'agent_activity']) {
+    settingsStore.settings.quick_panel_sections = sections;
+    await settle();
+    return measurement();
+  },
   async delayedMonitor() {
     let resolve!: (value: { scaleFactor: number; workArea: { size: { height: number } } }) => void;
     windowProbe.deferred = new Promise(done => { resolve = done; });

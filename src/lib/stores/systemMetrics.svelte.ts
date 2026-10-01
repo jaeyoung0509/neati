@@ -122,6 +122,16 @@ export class SystemMetricsStore {
     this.stopTimer = () => globalThis.clearInterval(handle);
   }
 
+  observePolling(intervalMs: number = 2500, batteryIntervalMs: number = 30_000): () => void {
+    this.startPolling(intervalMs, batteryIntervalMs);
+    let subscribed = true;
+    return () => {
+      if (!subscribed) return;
+      subscribed = false;
+      this.stopPolling();
+    };
+  }
+
   stopPolling(): void {
     this.subscriberCount = Math.max(0, this.subscriberCount - 1);
     if (this.subscriberCount === 0 && this.stopTimer) {

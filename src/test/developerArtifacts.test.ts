@@ -37,6 +37,33 @@ describe('developer artifact review workflow', () => {
     ).rejects.toThrow('safety checks');
   });
 
+  it('keeps framework observations visible and unavailable for cleanup', async () => {
+    const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-work'], () => undefined);
+    const observations = result.items.filter((item) => item.status === 'observation_only');
+    expect(observations.map((item) => item.kind).sort()).toEqual(['next_output', 'svelte_kit_output']);
+    expect(observations.every((item) => !item.selected_by_default && item.logical_bytes > 0)).toBe(true);
+    for (const item of observations) {
+      await expect(mockStorageApi.prepareDeveloperArtifactCleanup(result.scan_id, [item.id])).rejects.toThrow('cleanup is unavailable');
+    }
+    const rendered = render(DeveloperArtifactsView, { props: { onBack: () => undefined, initialResult: result } });
+    expect(rendered.body).toContain('SvelteKit output');
+    expect(rendered.body).toContain('Next.js output');
+    expect(rendered.body).toContain('Observed only · cleanup unavailable');
+    expect(rendered.body).toContain('Observed unit:');
+    expect(rendered.body).not.toContain('only · source stays');
+  });
+
+  it('refuses incomplete ownership independently from a partial byte measurement', async () => {
+    const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-work'], () => undefined);
+    const blocked = result.items.find((item) => item.status === 'safety_blocked')!;
+    expect(blocked.ownership).toMatchObject({ state: 'incomplete', reason: 'unreadable_metadata' });
+    expect(blocked.logical_bytes).toBeGreaterThan(0);
+    const forgedStatus = { ...blocked, status: 'measurement_incomplete' as const };
+    const rendered = render(DeveloperArtifactsView, { props: { onBack: () => undefined, initialResult: { ...result, items: [forgedStatus] } } });
+    expect(rendered.body).toContain('disabled');
+    expect(rendered.body).toContain('Partial measurement');
+  });
+
   it('rejects forged artifact IDs even when a valid ID is also selected', async () => {
     const result = await mockStorageApi.startDeveloperArtifactScan(['workspace-myproject'], () => undefined);
     const valid = result.items.find((item) => item.status === 'complete');

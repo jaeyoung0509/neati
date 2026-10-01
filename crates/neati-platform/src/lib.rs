@@ -34,6 +34,7 @@
 //! Moving those is separate work with its own invariants; claiming otherwise
 //! would make this crate's boundary unverifiable.
 
+pub mod artifact_ownership;
 pub mod capabilities;
 pub mod description;
 pub mod environment;

@@ -1,0 +1,35 @@
+neati environment self-check
+
+platform: macos
+fingerprint:
+  platform=macos
+  path_flavor=posix
+  arch=aarch64
+  profile_root=stated
+  local_app_data=stated
+  roaming_app_data=stated
+  program_files=stated
+  program_data=stated
+  known_folders=4/4
+  path_entries=31
+  volumes=os
+  separator=slash
+  case_folding=sensitive
+  known_folder_redirects=0
+  profile_is_broad_root=cleanable
+checks:
+  [PASS] normalize_is_idempotent: 6 samples normalized twice (flavor=posix)
+  [PASS] fold_is_idempotent: 6 samples folded twice (flavor=posix)
+  [PASS] separators_are_equivalent: 3 separator pairs compare equal (flavor=posix)
+  [PASS] verbatim_prefix_is_invariant: 3 verbatim and plain spellings normalize alike
+  [PASS] unc_paths_are_invariant: 2 UNC spellings compare equal
+  [PASS] trailing_separator_is_invariant: 1 trailing separators are ignored (flavor=posix)
+  [PASS] protected_root_is_drive_letter_independent: 4 protected roots are drive-letter independent
+  [PASS] containment_respects_component_boundaries: 4 component-boundary containment samples hold
+  [PASS] short_name_ambiguity_fails_closed: 5 8.3 alias ambiguity samples fail closed
+  [PASS] home_resolves: profile root absolute=true
+  [PASS] home_is_not_a_broad_root: profile root is a user directory
+  [PASS] known_folders_resolve_to_usable_locations: 4 of 4 folders resolve to usable absolute locations
+  [PASS] signature_catalog_lints_clean: 149 signatures checked
+  [PASS] log_writable: 1 write probe succeeded and was removed
+result: 0 of 14 checks failed

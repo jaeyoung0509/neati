@@ -122,6 +122,8 @@
     const labels: Record<DeveloperArtifact['kind'], string> = {
       cargo_target: 'Rust build output',
       node_modules: 'Node dependencies',
+      svelte_kit_output: 'SvelteKit output',
+      next_output: 'Next.js output',
       python_venv: 'Python environment',
       go_module_cache: 'Go module cache',
       maven_target: 'Maven target',
@@ -151,6 +153,8 @@
     const labels: Record<DeveloperArtifact['kind'], string> = {
       cargo_target: 'target/',
       node_modules: 'node_modules/',
+      svelte_kit_output: '.svelte-kit/',
+      next_output: '.next/',
       python_venv: item.path.endsWith('/.venv') ? '.venv/' : 'venv/',
       go_module_cache: 'pkg/mod/',
       maven_target: 'target/',
@@ -190,7 +194,7 @@
   }
 
   function canManuallyClean(item: DeveloperArtifact): boolean {
-    return item.status === 'complete' || item.status === 'measurement_incomplete';
+    return item.ownership.state === 'verified_generated' && (item.status === 'complete' || item.status === 'measurement_incomplete');
   }
 
   function statusLabel(status: DeveloperArtifactStatus): string {
@@ -201,6 +205,8 @@
         return 'Blocked · safety check';
       case 'scan_cancelled':
         return 'Blocked · scan incomplete';
+      case 'observation_only':
+        return 'Observed only · cleanup unavailable';
       default:
         return '';
     }
@@ -367,7 +373,7 @@
   }
 
   function selectAll() {
-    selectedIds = items.filter((item) => item.status === 'complete').map((item) => item.id);
+    selectedIds = items.filter((item) => item.status === 'complete' && canManuallyClean(item)).map((item) => item.id);
     resetReview();
   }
 
@@ -683,17 +689,17 @@
               <span class="text-xs font-semibold">{item.project_name}</span>
               <span class="text-caption text-muted-foreground">{ecosystemLabel(item)} · {kindLabel(item)}</span>
               {#if item.status !== 'complete'}
-                <span class={`rounded border px-1.5 py-0.5 text-caption ${item.status === 'measurement_incomplete' ? 'border-border bg-secondary/60 text-muted-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>{statusLabel(item.status)}</span>
+                <span class={`rounded border px-1.5 py-0.5 text-caption ${item.status === 'measurement_incomplete' || item.status === 'observation_only' ? 'border-border bg-secondary/60 text-muted-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>{statusLabel(item.status)}</span>
               {/if}
             </div>
             <div class="truncate font-mono text-caption text-muted-foreground" title={item.path}>{item.path}</div>
             <div class="flex flex-wrap gap-x-3 gap-y-1 text-meta text-muted-foreground">
               <span>{item.file_count.toLocaleString()} files</span>
               <span>Last changed {formatTimeAgo(item.newest_mtime ?? undefined)}</span>
-              <span>Cleanup scope: <span class="font-mono text-foreground">{cleanupScopeLabel(item)}</span> only · source stays</span>
+              <span>Observed unit: <span class="font-mono text-foreground">{cleanupScopeLabel(item)}</span></span>
             </div>
             {#if item.incomplete_reason}
-              <p class={`text-caption ${item.status === 'measurement_incomplete' ? 'text-muted-foreground' : 'text-destructive'}`}>
+              <p class={`text-caption ${item.status === 'measurement_incomplete' || item.status === 'observation_only' ? 'text-muted-foreground' : 'text-destructive'}`}>
                 {item.incomplete_reason}
               </p>
             {/if}

@@ -1,0 +1,5 @@
+
+> neati@0.3.95 icons:check $WORKTREE
+> node scripts/generate_icons.mjs --check
+
+Verified 61 neati icon assets and registry entries.

@@ -550,6 +550,10 @@ export type ApplicationIdentity = {
 	path: string,
 };
 
+export type ArtifactOwnershipEvidence = { state: "verified_generated" } | { state: "tracked_content" } | { state: "nested_repository" } | { state: "deployment_key_material" } | { state: "incomplete"; reason: ArtifactOwnershipUncertainty };
+
+export type ArtifactOwnershipUncertainty = "unreadable_metadata" | "malformed_metadata" | "missing_git" | "timed_out" | "cancelled" | "budget_exceeded" | "changed_during_probe" | "outside_scope" | "unsupported_index";
+
 export type AttentionReason = "approval" | "input" | "turn_complete" | "inactivity";
 
 export type AuditEntry = AuditEntry_Serialize | AuditEntry_Deserialize;
@@ -1512,7 +1516,7 @@ export type DashboardTab_Serialize = "overview" | "disk" | "storage" |
 
 export type DeveloperArtifact = DeveloperArtifact_Serialize | DeveloperArtifact_Deserialize;
 
-export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache";
+export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "svelte_kit_output" | "next_output" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache";
 
 export type DeveloperArtifactScanEvent = DeveloperArtifactScanEvent_Serialize | DeveloperArtifactScanEvent_Deserialize;
 
@@ -1567,8 +1571,8 @@ export type DeveloperArtifactStatus =
 "complete" |
 /**
  *  The generated-folder scope and project evidence are verified, but one
- *  or more descendants could not be measured. Manual cleanup is allowed
- *  after an explicit warning and execution-time revalidation.
+ *  or more descendants could not be measured. Manual cleanup also requires
+ *  independent complete ownership evidence and execution-time revalidation.
  */
 "measurement_incomplete" |
 /**
@@ -1577,7 +1581,9 @@ export type DeveloperArtifactStatus =
  */
 "safety_blocked" |
 /**  The scan was cancelled before this artifact could be fully validated. */
-"scan_cancelled";
+"scan_cancelled" |
+/**  Observed output whose owner-use and removal contracts are not verified. */
+"observation_only";
 
 /**
  *  A directory the whole-home scan could not inspect.
@@ -1621,6 +1627,7 @@ export type DeveloperArtifact_Deserialize = {
 	newest_mtime: number | null,
 	rebuild_hint: string | null,
 	evidence: string[],
+	ownership: ArtifactOwnershipEvidence,
 	status: DeveloperArtifactStatus,
 	incomplete_reason: string | null,
 	selected_by_default: boolean,
@@ -1639,6 +1646,7 @@ export type DeveloperArtifact_Serialize = {
 	newest_mtime: number | null,
 	rebuild_hint: string | null,
 	evidence: string[],
+	ownership: ArtifactOwnershipEvidence,
 	status: DeveloperArtifactStatus,
 	incomplete_reason: string | null,
 	selected_by_default: boolean,

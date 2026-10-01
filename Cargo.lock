@@ -2293,7 +2293,7 @@ dependencies = [
 
 [[package]]
 name = "neati-core"
-version = "0.3.95"
+version = "0.3.96"
 dependencies = [
  "crc32fast",
  "serde",
@@ -2305,7 +2305,7 @@ dependencies = [
 
 [[package]]
 name = "neati-desktop"
-version = "0.3.95"
+version = "0.3.96"
 dependencies = [
  "base64 0.23.1",
  "libc",
@@ -2342,12 +2342,13 @@ dependencies = [
 
 [[package]]
 name = "neati-platform"
-version = "0.3.95"
+version = "0.3.96"
 dependencies = [
  "libc",
  "neati-core",
  "serde",
  "serde_json",
+ "sha1",
  "tempfile",
  "tokio",
  "trash",
@@ -3728,6 +3729,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "170fb83ab34de17dc69aa7c67482b22218ddb85da56546f9bd6b929e32a05930"
 dependencies = [
  "stable_deref_trait",
+]
+
+[[package]]
+name = "sha1"
+version = "0.10.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a978451301f4db1d02937a4ab3ccce137717b81826e79b7d49ffe3244a13c3b8"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.2.17",
+ "digest 0.10.7",
 ]
 
 [[package]]

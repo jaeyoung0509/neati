@@ -1,0 +1,7 @@
+PASS: regenerated TypeScript bindings, both platform golden files, and Cargo.lock are byte-identical to the preceding export.
+{
+  "src/lib/bindings/tauri.ts": "b0726b367b4f38d088f52edb31310a6d687cf46e5ae8039b7fe6bb5ca06c4ce9",
+  "src/lib/bindings/platform-capabilities.golden.json": "37b5e6168ab317d3cc97c6915dee4e7c461d5381c72115cdcb4ff7e81c157d0e",
+  "src/lib/bindings/platform-context.golden.json": "c3a3412ed34a328273cd9cb0ef56bd05933da1b8255fdd04f9bd59a401ae9f75",
+  "Cargo.lock": "2446eb9ab41eaae9e466ca5970b4233394926f4889a4fec552ce0a5444a91c28"
+}

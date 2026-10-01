@@ -34,6 +34,11 @@ safety conventions below when changing neati.
   included issue, keep changes reviewable, and finish local verification before
   pushing the batch. When the user explicitly authorizes a merge-after-CI
   workflow, merge only after all checks, including packaging, have passed.
+- Keep at most three or four issue worktrees active at once. Store working Git
+  repositories and recovery records outside disposable temporary directories,
+  and do not copy large Cargo targets between worktrees. Preserve the PR,
+  verification evidence and remote feature commit or recovery bundle before
+  removing only completed worktrees and build outputs owned by the current task.
 - Every PR that changes shipped behavior or assets (including UI, logos, icons,
   and packaging) includes one patch bump by default. Documentation-only changes
   may retain the version; record that decision in the PR. An explicit user
@@ -372,6 +377,22 @@ safety conventions below when changing neati.
   signed-helper prerequisites in `docs/PRIVILEGED_CLEANUP_ADR.md` are satisfied.
 
 ## Scan accounting and coverage
+
+- Developer Artifact ownership is independently re-derived during discovery,
+  planning and immediately before the whole-unit Trash move. Git-tracked
+  descendants, nested `.git` entries and deployment `*-keypair.json` names
+  revoke authority; key contents are never inspected. An unfinished ownership
+  probe cannot be treated as an incomplete byte measurement. Read-only index
+  inspection uses the bounded platform adapter, sanitized routing, disabled
+  hooks/fsmonitor and denied network/lazy-fetch protocols. Git queries receive
+  private checksum-verified SHA-1 index copies and bounded configuration copies;
+  live repository metadata is rebound rather than passed to the child.
+  Split-index and non-SHA-1 layouts, unsupported file identities,
+  ambiguous Unicode path equivalence and unverified metadata remain blocked.
+  Default SvelteKit/Next outputs with direct bounded dependency evidence remain
+  observation-only until their owner-use and mutation contracts are verified;
+  unverified wrappers remain traversable and custom configuration never grants
+  path authority.
 
 - Excluded namespaces may be measured through the bounded coverage observer.
   Its synthetic IDs are unregistered and must never grant cleanup authority.

@@ -607,6 +607,14 @@ must not suggest that the account has exhausted its quota.
   explicit partial-cleanup consent, rather than tinting each project row. Keep evidence and rebuild guidance in an
   accessible disclosure. No automatic whole-home scan and no unreviewed
   project deletion.
+  Tracked content, nested repository/worktree metadata, deployment keypair names
+  and unfinished ownership checks retain their observed bytes and a visible
+  reason, with selection disabled. Byte measurement and ownership completeness
+  are separate facts. Default SvelteKit `.svelte-kit` and Next.js `.next` outputs
+  backed by a direct framework dependency are shown as `Observed only · cleanup
+  unavailable`; their build/dev use and deployment/offline removal contracts
+  remain unverified. Do not suggest that configured custom output paths were
+  evaluated or that those observations contribute to ordinary cleanup totals.
 - `Large Files`, `Applications`, `Disks`: searchable size-sorted files,
   installed-app rows with related data, and volume capacity. No invented
   disk-map engine.

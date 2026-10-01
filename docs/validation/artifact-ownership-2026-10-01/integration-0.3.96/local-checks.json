@@ -1,0 +1,288 @@
+{
+  "version": "0.3.96",
+  "verified_at_utc": "2026-10-01T09:49:26.501877+00:00",
+  "source_commit": "876bea5404fba7d336347f04d8bbfc9034fca981",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+  "environment": {
+    "CARGO_BUILD_JOBS": "3",
+    "CARGO_INCREMENTAL": "0"
+  },
+  "merged_target_commit": "f03f42ef1fe66b97fc7bc0561499fc56ef837373",
+  "commands": [
+    {
+      "name": "frontend-check",
+      "command": [
+        "pnpm",
+        "check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 5.624,
+      "log": "frontend-check.log",
+      "log_sha256": "cdb9297b324e3b75194a15c4c13b99e2ec397d5ae5ee8a15c6658b8f9382b001"
+    },
+    {
+      "name": "frontend-tests",
+      "command": [
+        "pnpm",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 25.98,
+      "log": "frontend-tests.log",
+      "log_sha256": "212b2dfbb53b0d009ef2dd22119122cd2d4935b6b79bef3ad2f4add9d982fb14"
+    },
+    {
+      "name": "frontend-build",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 2.295,
+      "log": "frontend-build.log",
+      "log_sha256": "141a743540db4d522a9812796bfc19fbb68d8ceeff8217021a06bfaeeee375d2"
+    },
+    {
+      "name": "cargo-format",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 1.069,
+      "log": "cargo-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cargo-check",
+      "command": [
+        "cargo",
+        "check",
+        "--offline",
+        "--locked",
+        "--workspace"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 22.352,
+      "log": "cargo-check.log",
+      "log_sha256": "5fb8446cf81f95f6fe0786d7a1ebb7a00ee862960da638762f8fd10e2422c305"
+    },
+    {
+      "name": "cargo-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 15.346,
+      "log": "cargo-clippy.log",
+      "log_sha256": "09822f4fb8401d2c1acf4075fde831e9c277abb19a6beac75415edc03d45cdd4"
+    },
+    {
+      "name": "cargo-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--no-fail-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 95.283,
+      "log": "cargo-tests.log",
+      "log_sha256": "c5925afbb602601fcbe77d1ca891b6d6bb58d92793c3caf9f5c0f7ec23aa74f1"
+    },
+    {
+      "name": "architecture",
+      "command": [
+        "just",
+        "check-architecture"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 4.503,
+      "log": "architecture.log",
+      "log_sha256": "7b0cbc80a53d1030aa48256bc15be6f34187d93164fd49fc4073e7f5693ed3bb"
+    },
+    {
+      "name": "bindings",
+      "command": [
+        "just",
+        "generate-bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 24.93,
+      "log": "bindings.log",
+      "log_sha256": "6125f03447792a9e54cc7c3616404b9d84709161db25ea3607acabc13a6b4055"
+    },
+    {
+      "name": "binding-drift",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "--",
+        "src/lib/bindings"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.024,
+      "log": "binding-drift.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "version",
+      "command": [
+        "just",
+        "check-version"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.061,
+      "log": "version.log",
+      "log_sha256": "464edb7944345e1cce9548852fa1ff2b223fdfa38d4fe0d929c27bd46ad1c392"
+    },
+    {
+      "name": "icons",
+      "command": [
+        "pnpm",
+        "icons:check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 1.806,
+      "log": "icons.log",
+      "log_sha256": "42c1cd9e07a17b95699e3a7365cf181a3b2b97b872fac83a96d1a75041e0f167"
+    },
+    {
+      "name": "bundle",
+      "command": [
+        "just",
+        "build-fast"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 44.369,
+      "log": "bundle.log",
+      "log_sha256": "1084b7e8170691dfd06b43f248638e37c1e83614de979e8395b54913a90ac3c4"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_s": 0.016,
+      "log": "diff-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "installed_or_launched_gui": false,
+  "frontend_tests_passed": 485,
+  "rust": {
+    "passed": 1343,
+    "failed": 0,
+    "ignored": 6,
+    "measured": 0,
+    "filtered": 0
+  },
+  "bundle": {
+    "path": "target/debug/bundle/macos/neati.app",
+    "CFBundleShortVersionString": "0.3.96",
+    "CFBundleVersion": "0.3.96",
+    "icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+    "icon_matches_source": true,
+    "assets": [
+      {
+        "name": "assets/BrandIcon-CgaiXU_L.js",
+        "sha256": "f9aac6d20f353b65b44cb9216072f654501f0cb54903c7dd03aaf661f82b8ccc",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/BrandIcon-DhGGHqZf.css",
+        "sha256": "1d3925e72795e08443b03eb22dd60ad2fa4fc51aaacbd7f64152508950726c64",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-Bg0PQ8-V.js",
+        "sha256": "57deebbc9a213e1cb84b50fcf480d6998757db06f3deabc7146674f800d028e7",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/Dashboard-DrpCTGOC.css",
+        "sha256": "d3b3f70d254f6eef13e74a511b1850d9ae2740d9a80c72d5dff8b1d3eb9f3c98",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/QuickPanel-r2-q9R2j.js",
+        "sha256": "c07d0e05523a044ff2ff620ac32de7cbd50cb522b59fe0b8907b1cba0b8cb123",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/core-DNaw6KYU.js",
+        "sha256": "47fa86ad237989d8dca06a2bcbfc062f4627d45c70d4857731d1f5b7b76830d6",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/dpi-Cq0vR3n3.js",
+        "sha256": "ab852e58e16dd5dd5769a02937dcfd293e8fec9197a200cc69f8356f5c1b0de3",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/event-BlJUiB_z.js",
+        "sha256": "331a7d5879292307d786d6a8ea5b2a7dbcadd762a029bcf7b47b2dbc71982ba2",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-Cn6B8yri.js",
+        "sha256": "f9e31a0393bf53566cd13cb2c7ea14e750267d281603c8dde51e9194979a37d0",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/index-DT8eupiP.css",
+        "sha256": "804d9b1fdeefce35208cacaac12433744a0502bdc06eb7d2b94fcd3fd74198ef",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/rolldown-runtime-DK3Fl9T5.js",
+        "sha256": "a526d1bb3288ef04d001028843220a24b0867a4edf8c685b69506d6525af36ff",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/webviewWindow-By8nsw2m.js",
+        "sha256": "8fb90bd281c6f5b2bd7e8b4abe85cd413e2b7681a35ea4f63ab2006e5345ba15",
+        "name_embedded": true
+      },
+      {
+        "name": "assets/window-CGM1TOkC.js",
+        "sha256": "e68d69f7f320b3995afa83e938dd9e07ba7bdd83ce164417224c2017c08ce26c",
+        "name_embedded": true
+      }
+    ],
+    "installed_or_launched_gui": false,
+    "executable_sha256": "fba5ff1578c7a1e6a9c726a8206a64f4696a3a121742fbeb67b0634f86d56f22"
+  },
+  "doctor": {
+    "exit_code": 0,
+    "report": "doctor.json"
+  },
+  "completed": true,
+  "logs_location": "Durable task recovery archive outside temporary storage; log files are not committed.",
+  "merge_order": [
+    398,
+    399
+  ],
+  "version_recipe": "just bump-patch after the merged target consumed 0.3.95; no individual version edits.",
+  "user_authorized_merge_without_windows_packaging_wait": true,
+  "remote_ci_result_for_this_checkpoint": "Not awaited; report separately from local checks."
+}

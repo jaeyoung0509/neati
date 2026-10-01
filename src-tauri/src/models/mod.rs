@@ -93,5 +93,6 @@ pub use neati_core::domain::scan::{
     ScanGapKind, ScanItem, ScanResult, StaleEntryObservation, UnitRelationship,
 };
 pub use neati_core::domain::storage::{
-    AppInstallSource, AppRelatedConfidence, AppRelatedKind, LargeFileFilter, LargeFileKind,
+    AppInstallSource, AppRelatedConfidence, AppRelatedKind, ArtifactOwnershipEvidence,
+    ArtifactOwnershipUncertainty, LargeFileFilter, LargeFileKind,
 };

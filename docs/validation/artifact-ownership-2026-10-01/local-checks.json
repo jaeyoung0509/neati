@@ -1,0 +1,113 @@
+{
+  "version": "0.3.95",
+  "previous_version": "0.3.94",
+  "source_commit": "e333f75d55fef8ddcc8dd26fc621ad5517fe05c1",
+  "verified_at_utc": "2026-10-01T07:07:04.384710+00:00",
+  "os": {
+    "name": "macOS",
+    "version": "27.0.1",
+    "build": "26A434",
+    "architecture": "arm64"
+  },
+  "cargo_build_jobs": 3,
+  "results": [
+    {
+      "command": "cargo check --workspace",
+      "exit_code": 0,
+      "result": "All three workspace crates compiled."
+    },
+    {
+      "command": "cargo test --workspace",
+      "exit_code": 0,
+      "result": "1,334 passed; 0 failed; 6 default ignored. Code-generation exports and scan baseline were run separately."
+    },
+    {
+      "command": "just lint-rust",
+      "exit_code": 0,
+      "result": "Rust format and workspace/all-targets Clippy passed with -D warnings."
+    },
+    {
+      "command": "just check-architecture",
+      "exit_code": 0,
+      "result": "Core: 39 runtime crates. Platform: 95 runtime crates. No forbidden dependencies or reverse edges."
+    },
+    {
+      "command": "just generate-bindings",
+      "exit_code": 0,
+      "result": "Three exports passed; repeated generation left tauri.ts, both platform golden files and Cargo.lock byte-identical."
+    },
+    {
+      "command": "cargo test -p neati-desktop --test scan_benchmark -- --ignored --exact export_scan_baseline",
+      "exit_code": 0,
+      "result": "Passed; committed scan-baseline.json has no diff."
+    },
+    {
+      "command": "pnpm check",
+      "exit_code": 0,
+      "result": "0 errors; 0 warnings."
+    },
+    {
+      "command": "pnpm test -- --run",
+      "exit_code": 0,
+      "result": "485 passed across 50 test files."
+    },
+    {
+      "command": "pnpm build",
+      "exit_code": 0,
+      "result": "Production build and Tailwind utility verification passed."
+    },
+    {
+      "command": "python3 -m unittest discover -s scripts -p test_cleanup_*.py",
+      "exit_code": 0,
+      "result": "12 passed."
+    },
+    {
+      "command": "just test-release-installer",
+      "exit_code": 0,
+      "result": "Release-recipe and replacement/rollback temporary-fixture regressions passed."
+    },
+    {
+      "command": "just check-version",
+      "exit_code": 0,
+      "result": "package.json, workspace Cargo.toml, all three Cargo.lock members and Tauri config synchronized at 0.3.95."
+    },
+    {
+      "command": "pnpm icons:check",
+      "exit_code": 0,
+      "result": "61 icon assets and registry entries verified; branding unchanged."
+    },
+    {
+      "command": "just build-fast",
+      "exit_code": 0,
+      "result": "Debug arm64 neati.app bundle built with current production frontend."
+    },
+    {
+      "command": "target/debug/bundle/macos/neati.app/Contents/MacOS/Neati --doctor",
+      "exit_code": 0,
+      "result": "14 passed; 0 failed."
+    },
+    {
+      "command": "Embedded production asset comparison",
+      "exit_code": 0,
+      "result": "All 20 dist/assets files match the decompressed assets embedded in the packaged executable; embedded HTML references index-Ej6E9PNk.js."
+    },
+    {
+      "command": "git diff --check origin/develop",
+      "exit_code": 0,
+      "result": "Passed."
+    }
+  ],
+  "browser": {
+    "checks": 43,
+    "passed": 43,
+    "screenshots": 7,
+    "surface": "deterministic Chromium browser mock and production-dist preview; not native Tauri"
+  },
+  "ci_status": "Not run for this feature head at local handoff. Remote PR/CI is owned by the coordinating agent.",
+  "platform_limits": [
+    "Native Windows FileIdInfo/SetFileTime fixture is present but was not run on this macOS host.",
+    "Windows and Linux runtime/packaging behavior was not validated locally.",
+    "Native Tauri GUI and real cleanup were not exercised."
+  ],
+  "installed_app_replaced": false
+}

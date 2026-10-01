@@ -1,12 +1,13 @@
 mod rules;
+pub(crate) use rules::artifact_is_observation_only;
 pub(crate) use rules::artifact_relative_is_allowed;
 
 use crate::large_files::identity_from_path;
 use crate::models::{
-    DeveloperArtifact, DeveloperArtifactKind, DeveloperArtifactScanEvent,
-    DeveloperArtifactScanResult, DeveloperArtifactStatus, DeveloperArtifactUninspected,
-    DeveloperArtifactUninspectedReason, DeveloperEcosystem, DeveloperWorkspace,
-    ReviewedFileIdentity,
+    ArtifactOwnershipEvidence, DeveloperArtifact, DeveloperArtifactKind,
+    DeveloperArtifactScanEvent, DeveloperArtifactScanResult, DeveloperArtifactStatus,
+    DeveloperArtifactUninspected, DeveloperArtifactUninspectedReason, DeveloperEcosystem,
+    DeveloperWorkspace, ReviewedFileIdentity,
 };
 use crate::safety::{Blacklist, SymlinkGuard};
 use neati_platform::description::PlatformEnvironment;
@@ -141,6 +142,7 @@ enum MeasurementMessage {
     Finished {
         candidate: Box<Candidate>,
         stats: TreeStats,
+        ownership: ArtifactOwnershipEvidence,
     },
 }
 
@@ -237,6 +239,7 @@ impl DeveloperArtifactScanner {
         let mut truncated = false;
         let mut uninspected: Vec<DeveloperArtifactUninspected> = Vec::new();
         let mut uninspected_seen: HashSet<PathBuf> = HashSet::new();
+        let mut seen_paths = HashSet::new();
 
         for workspace in workspaces {
             if cancel.load(Ordering::Relaxed) {
@@ -260,7 +263,6 @@ impl DeveloperArtifactScanner {
                 workspace: workspace.workspace.clone(),
             });
 
-            let mut seen_paths = HashSet::new();
             if let Some(candidate) =
                 global_go_module_candidate(environment, workspace, &mut seen_paths)
             {
@@ -320,20 +322,21 @@ impl DeveloperArtifactScanner {
         let (sender, receiver) = mpsc::channel();
         let worker_cancel = cancel.clone();
         let worker_candidates = candidates;
+        let worker_environment = environment.clone();
         let worker = std::thread::spawn(move || {
             if let Some(pool) = crate::execution_budget::shared_scan_pool() {
                 pool.install(|| {
                     worker_candidates
                         .into_par_iter()
                         .for_each_with(sender, |tx, candidate| {
-                            measure_candidate(candidate, tx, &worker_cancel);
+                            measure_candidate(&worker_environment, candidate, tx, &worker_cancel);
                         });
                 });
             } else {
                 // Single-worker fallback: measure sequentially without
                 // touching the global Rayon pool.
                 for candidate in worker_candidates {
-                    measure_candidate(candidate, &sender, &worker_cancel);
+                    measure_candidate(&worker_environment, candidate, &sender, &worker_cancel);
                 }
             }
         });
@@ -351,9 +354,14 @@ impl DeveloperArtifactScanner {
                     project_name,
                     kind,
                 }),
-                MeasurementMessage::Finished { candidate, stats } => {
+                MeasurementMessage::Finished {
+                    candidate,
+                    stats,
+                    ownership,
+                } => {
                     measured_count = measured_count.saturating_add(1);
-                    let Some(mut record) = record_from_measurement(*candidate, stats) else {
+                    let Some(mut record) = record_from_measurement(*candidate, stats, ownership)
+                    else {
                         skipped_entries = skipped_entries.saturating_add(1);
                         continue;
                     };
@@ -414,6 +422,9 @@ impl DeveloperArtifactScanner {
         let mut records = records;
         if progress.cancelled {
             for record in records.values_mut() {
+                record.artifact.ownership = ArtifactOwnershipEvidence::Incomplete(
+                    crate::models::ArtifactOwnershipUncertainty::Cancelled,
+                );
                 record.artifact.status = DeveloperArtifactStatus::ScanCancelled;
                 record.artifact.incomplete_reason = Some(
                     "The scan was cancelled before this artifact could be fully verified. Scan again before cleanup."
@@ -844,6 +855,11 @@ fn discover_workspace<F>(
             }
 
             if let Some(candidate) = recognize_artifact(workspace, &directory, &name) {
+                if seen_paths.iter().any(|seen| {
+                    candidate.path.starts_with(seen) || seen.starts_with(&candidate.path)
+                }) {
+                    continue;
+                }
                 if !seen_paths.insert(candidate.path.clone()) {
                     continue;
                 }
@@ -1303,6 +1319,7 @@ fn should_skip_protected_discovery_path(
 }
 
 fn measure_candidate(
+    environment: &PlatformEnvironment,
     candidate: Candidate,
     tx: &mpsc::Sender<MeasurementMessage>,
     cancel: &AtomicBool,
@@ -1321,9 +1338,16 @@ fn measure_candidate(
         cancel,
         0,
     );
+    let ownership = neati_platform::artifact_ownership::probe_artifact_ownership(
+        environment,
+        &candidate.project_root,
+        &candidate.path,
+        cancel,
+    );
     let _ = tx.send(MeasurementMessage::Finished {
         candidate: Box::new(candidate),
         stats,
+        ownership,
     });
 }
 
@@ -1391,9 +1415,6 @@ fn measure_tree(path: &Path, _root_device: u64, cancel: &AtomicBool, depth: usiz
             continue;
         };
         let child = entry.path();
-        if child.file_name().and_then(|value| value.to_str()) == Some(".git") {
-            continue;
-        }
         let child_stats = measure_tree(&child, _root_device, cancel, depth + 1);
         stats.logical_bytes = stats
             .logical_bytes
@@ -1420,10 +1441,12 @@ fn measure_tree(path: &Path, _root_device: u64, cancel: &AtomicBool, depth: usiz
 fn record_from_measurement(
     candidate: Candidate,
     stats: TreeStats,
+    ownership: ArtifactOwnershipEvidence,
 ) -> Option<DeveloperArtifactRecord> {
     if stats.complete
         && !stats.safety_blocked
         && !stats.cancelled
+        && ownership.allows_cleanup()
         && stats.logical_bytes == 0
         && stats.allocated_bytes == 0
     {
@@ -1438,8 +1461,13 @@ fn record_from_measurement(
         .collect::<Vec<_>>();
     let status = if stats.cancelled {
         DeveloperArtifactStatus::ScanCancelled
-    } else if stats.safety_blocked || marker_identities.len() != candidate.marker_paths.len() {
+    } else if stats.safety_blocked
+        || marker_identities.len() != candidate.marker_paths.len()
+        || !ownership.allows_cleanup()
+    {
         DeveloperArtifactStatus::SafetyBlocked
+    } else if artifact_is_observation_only(candidate.kind) {
+        DeveloperArtifactStatus::ObservationOnly
     } else if stats.complete {
         DeveloperArtifactStatus::Complete
     } else {
@@ -1451,7 +1479,9 @@ fn record_from_measurement(
             "Some entries could not be measured; displayed size and file counts may be partial."
                 .to_string(),
         ),
-        DeveloperArtifactStatus::SafetyBlocked => Some(if stats.safety_blocked {
+        DeveloperArtifactStatus::SafetyBlocked => Some(if let Some(reason) = ownership.refusal_message() {
+            reason.to_string()
+        } else if stats.safety_blocked {
             "A symbolic link or filesystem boundary could not be verified; cleanup is blocked."
                 .to_string()
         } else {
@@ -1460,6 +1490,9 @@ fn record_from_measurement(
         DeveloperArtifactStatus::ScanCancelled => Some(
             "The scan was cancelled before this artifact could be fully verified. Scan again before cleanup."
                 .to_string(),
+        ),
+        DeveloperArtifactStatus::ObservationOnly => Some(
+            "Framework output is observed only; cleanup is unavailable until build/dev use and deployment/offline ownership can be verified. Custom configuration is not evaluated.".into(),
         ),
     };
     let artifact = DeveloperArtifact {
@@ -1478,6 +1511,7 @@ fn record_from_measurement(
             .map(|duration| duration.as_secs()),
         rebuild_hint: candidate.rebuild_hint,
         evidence: candidate.evidence,
+        ownership,
         status,
         incomplete_reason,
         selected_by_default: false,
@@ -1597,7 +1631,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let environment = environment_with_home(temp.path());
         let root = temp.path().join("workspace");
-        for wrapper in ["dist", "out", ".next", ".nuxt"] {
+        for wrapper in ["dist", "out", ".next", ".nuxt", ".svelte-kit"] {
             let project = root.join(wrapper).join("real-project");
             fs::create_dir_all(project.join("target")).unwrap();
             fs::write(project.join("Cargo.toml"), "[package]\nname='fixture'\n").unwrap();
@@ -1613,7 +1647,7 @@ mod tests {
             |_| {},
         )
         .unwrap();
-        assert_eq!(inventory.records.len(), 4);
+        assert_eq!(inventory.records.len(), 5);
         for record in inventory.records.values() {
             assert_eq!(record.artifact.kind, DeveloperArtifactKind::CargoTarget);
             assert_eq!(record.artifact_relative, Path::new("target"));
@@ -2137,7 +2171,12 @@ mod tests {
             0,
         );
 
-        assert!(record_from_measurement(candidate, stats).is_none());
+        assert!(record_from_measurement(
+            candidate,
+            stats,
+            ArtifactOwnershipEvidence::VerifiedGenerated
+        )
+        .is_none());
     }
 
     #[test]
@@ -2170,7 +2209,12 @@ mod tests {
         );
         stats.complete = false;
 
-        let record = record_from_measurement(candidate, stats).unwrap();
+        let record = record_from_measurement(
+            candidate,
+            stats,
+            ArtifactOwnershipEvidence::VerifiedGenerated,
+        )
+        .unwrap();
         assert_eq!(
             record.artifact.status,
             DeveloperArtifactStatus::MeasurementIncomplete
@@ -2350,7 +2394,12 @@ mod tests {
         assert!(!stats.safety_blocked);
         assert_eq!(stats.file_count, 2);
 
-        let record = record_from_measurement(candidate, stats).unwrap();
+        let record = record_from_measurement(
+            candidate,
+            stats,
+            ArtifactOwnershipEvidence::VerifiedGenerated,
+        )
+        .unwrap();
         assert_eq!(
             record.artifact.status,
             DeveloperArtifactStatus::MeasurementIncomplete
@@ -2397,7 +2446,12 @@ mod tests {
             &AtomicBool::new(false),
             0,
         );
-        let record = record_from_measurement(candidate, stats).unwrap();
+        let record = record_from_measurement(
+            candidate,
+            stats,
+            ArtifactOwnershipEvidence::VerifiedGenerated,
+        )
+        .unwrap();
         assert!(!record.identity.is_unknown());
         assert_eq!(
             identity_from_path(&record.path),
@@ -2407,5 +2461,211 @@ mod tests {
             &record.identity,
             &identity_from_path(&record.path).unwrap()
         ));
+    }
+
+    #[test]
+    fn framework_observations_stay_unselected_and_preserve_protected_bytes_and_nested_packages() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        for (name, output, dependency) in [
+            ("kit", ".svelte-kit", "@sveltejs/kit"),
+            ("next", ".next", "next"),
+        ] {
+            let project = root.join("packages").join(name);
+            fs::create_dir_all(project.join(output)).unwrap();
+            fs::write(
+                project.join("package.json"),
+                format!(r#"{{"dependencies":{{"{dependency}":"1.0.0"}}}}"#),
+            )
+            .unwrap();
+            fs::write(project.join(output).join("generated.bin"), [1u8; 100]).unwrap();
+            fs::write(
+                project.join(if name == "next" {
+                    "next.config.js"
+                } else {
+                    "svelte.config.js"
+                }),
+                "throw new Error('configuration must not execute')",
+            )
+            .unwrap();
+        }
+        let protected = root.join("packages/protected");
+        fs::create_dir_all(protected.join(".next/deploy")).unwrap();
+        fs::write(
+            protected.join("package.json"),
+            r#"{"dependencies":{"next":"16"}}"#,
+        )
+        .unwrap();
+        fs::write(
+            protected.join(".next/deploy/example-keypair.json"),
+            [3u8; 20],
+        )
+        .unwrap();
+        let vendor = root.join("node_modules/hidden");
+        fs::create_dir_all(vendor.join(".next")).unwrap();
+        fs::write(
+            vendor.join("package.json"),
+            r#"{"dependencies":{"next":"16"}}"#,
+        )
+        .unwrap();
+        fs::write(vendor.join(".next/generated.bin"), [4u8; 50]).unwrap();
+        let inventory = DeveloperArtifactScanner::scan_workspaces(
+            &environment_with_home(temp.path()),
+            &[workspace_record(&root)],
+            FolderAccess::NotGated,
+            Arc::new(AtomicBool::new(false)),
+            |_| {},
+        )
+        .unwrap();
+        assert_eq!(inventory.records.len(), 3);
+        assert_eq!(
+            inventory
+                .records
+                .values()
+                .filter(|record| record.artifact.status == DeveloperArtifactStatus::ObservationOnly)
+                .count(),
+            2
+        );
+        assert!(inventory
+            .records
+            .values()
+            .all(|record| !record.artifact.selected_by_default));
+        let protected = inventory
+            .records
+            .values()
+            .find(|record| record.artifact.project_name == "protected")
+            .unwrap();
+        assert_eq!(
+            protected.artifact.ownership,
+            ArtifactOwnershipEvidence::DeploymentKeyMaterial
+        );
+        assert_eq!(protected.artifact.logical_bytes, 20);
+        assert_eq!(
+            protected.artifact.status,
+            DeveloperArtifactStatus::SafetyBlocked
+        );
+        assert!(!protected.artifact.status.allows_manual_cleanup());
+    }
+
+    #[test]
+    fn overlapping_workspace_registrations_cannot_duplicate_framework_units() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("workspace");
+        let project = root.join("packages/project");
+        fs::create_dir_all(project.join(".next")).unwrap();
+        fs::write(
+            project.join("package.json"),
+            r#"{"dependencies":{"next":"16"}}"#,
+        )
+        .unwrap();
+        fs::write(project.join(".next/generated.bin"), [1u8; 100]).unwrap();
+        let inventory = DeveloperArtifactScanner::scan_workspaces(
+            &environment_with_home(temp.path()),
+            &[workspace_record(&root), workspace_record(&project)],
+            FolderAccess::NotGated,
+            Arc::new(AtomicBool::new(false)),
+            |_| {},
+        )
+        .unwrap();
+        assert_eq!(inventory.discovered_count, 1);
+        assert_eq!(inventory.records.len(), 1);
+        assert_eq!(
+            result_from_inventory(&inventory).items[0].logical_bytes,
+            100
+        );
+    }
+
+    #[test]
+    fn complete_measurement_cannot_override_incomplete_ownership_evidence() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join("project");
+        fs::create_dir_all(project.join("target")).unwrap();
+        fs::write(project.join("Cargo.toml"), "[package]\nname='fixture'\n").unwrap();
+        fs::write(project.join("target/output.bin"), [1u8; 100]).unwrap();
+        let candidate =
+            recognize_artifact(&workspace_record(temp.path()), &project, "target").unwrap();
+        let stats = measure_tree(
+            &candidate.path,
+            candidate.workspace.identity.device(),
+            &AtomicBool::new(false),
+            0,
+        );
+        assert!(stats.complete);
+        let evidence = ArtifactOwnershipEvidence::Incomplete(
+            crate::models::ArtifactOwnershipUncertainty::TimedOut,
+        );
+        let record = record_from_measurement(candidate, stats, evidence).unwrap();
+        assert_eq!(record.artifact.logical_bytes, 100);
+        assert_eq!(record.artifact.ownership, evidence);
+        assert_eq!(
+            record.artifact.status,
+            DeveloperArtifactStatus::SafetyBlocked
+        );
+    }
+
+    #[test]
+    fn framework_candidate_budget_and_cancelled_discovery_remain_explicit() {
+        let temp = tempfile::tempdir().unwrap();
+        for index in 0..=MAX_CANDIDATES {
+            let project = temp.path().join(format!("package-{index:03}"));
+            fs::create_dir_all(project.join(".next")).unwrap();
+            fs::write(
+                project.join("package.json"),
+                r#"{"dependencies":{"next":"15"}}"#,
+            )
+            .unwrap();
+            fs::write(project.join(".next/output.bin"), b"observed").unwrap();
+        }
+        let environment = environment_with_home(temp.path());
+        let workspace = workspace_record(temp.path());
+        let mut candidates = Vec::new();
+        let mut discovered = 0;
+        let mut skipped = 0;
+        let mut truncated = false;
+        let mut events = Vec::new();
+        discover_workspace(
+            &environment,
+            &workspace,
+            FolderAccess::NotGated,
+            &AtomicBool::new(false),
+            &mut candidates,
+            &mut discovered,
+            &mut skipped,
+            &mut truncated,
+            &mut HashSet::new(),
+            &mut Vec::new(),
+            &mut HashSet::new(),
+            &mut |event| events.push(event),
+        );
+        assert_eq!(candidates.len(), MAX_CANDIDATES);
+        assert_eq!(discovered, MAX_CANDIDATES as u64);
+        assert_eq!(events.len(), MAX_CANDIDATES);
+        assert!(truncated);
+        assert!(candidates
+            .iter()
+            .all(|candidate| artifact_is_observation_only(candidate.kind)));
+
+        candidates.clear();
+        events.clear();
+        discovered = 0;
+        truncated = false;
+        discover_workspace(
+            &environment,
+            &workspace,
+            FolderAccess::NotGated,
+            &AtomicBool::new(true),
+            &mut candidates,
+            &mut discovered,
+            &mut skipped,
+            &mut truncated,
+            &mut HashSet::new(),
+            &mut Vec::new(),
+            &mut HashSet::new(),
+            &mut |event| events.push(event),
+        );
+        assert!(candidates.is_empty());
+        assert!(events.is_empty());
+        assert_eq!(discovered, 0);
+        assert!(!truncated);
     }
 }

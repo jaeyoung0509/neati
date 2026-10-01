@@ -9,6 +9,9 @@
 
 use serde::{Deserialize, Serialize};
 
+mod artifact_ownership;
+pub use artifact_ownership::{ArtifactOwnershipEvidence, ArtifactOwnershipUncertainty};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
 pub enum LargeFileKind {

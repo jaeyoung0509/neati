@@ -1438,21 +1438,36 @@ mod tests {
             std::task::Poll::Ready(())
         })
         .await;
+        assert!(service.scan_lifecycle.try_lock().is_err());
+        assert_eq!(
+            service.scan_admissions.available_permits(),
+            CleanupService::MAX_ADMITTED_SCAN_SESSIONS - 1
+        );
         assert_eq!(service.get_last_scan().unwrap(), initial);
         assert_eq!(
             service.scan_store.get().unwrap().scan_id,
             initial.result.scan_id
         );
         drop(waiting);
+        // Cancellation before dispatch releases both guards synchronously.
+        // Check that boundary directly instead of timing an unrelated full
+        // scan on the shared blocking executor.
+        assert!(
+            service.scan_lifecycle.try_lock().is_ok(),
+            "abandoning a pre-dispatch scan must release its lifecycle immediately"
+        );
+        assert_eq!(
+            service.scan_admissions.available_permits(),
+            CleanupService::MAX_ADMITTED_SCAN_SESSIONS,
+            "abandoning a pre-dispatch scan must return its admission slot"
+        );
+        assert_eq!(service.get_last_scan().unwrap(), initial);
         drop(held_reads);
 
-        let current = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
-            service.start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {})),
-        )
-        .await
-        .expect("abandoning a pre-dispatch scan must release its lifecycle")
-        .unwrap();
+        let current = service
+            .start_scan_complete(ScanRequest::default(), Arc::new(|_: ScanEvent| {}))
+            .await
+            .unwrap();
         assert_eq!(current.discovery, ScanDiscovery::Exhausted);
         assert_ne!(current.result.scan_id, initial.result.scan_id);
     }

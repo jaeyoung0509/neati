@@ -71,7 +71,7 @@ fn stamp(path: &Path, metadata: &Metadata) -> Result<Stamp, Uncertainty> {
         {
             return Err(Uncertainty::ChangedDuringProbe);
         }
-        return stamp_opened(&file, &opened);
+        stamp_opened(&file, &opened)
     }
     #[cfg(unix)]
     Ok(Stamp {

@@ -483,6 +483,92 @@ fn repeated_aged_observation_reports_scan_cost() {
     }
 }
 
+/// The ordinary size walker, independently of age/provider policy. This is an
+/// opt-in comparison harness; its tree and event facts are asserted on every run.
+#[test]
+#[ignore = "local repeated read-only fixture benchmark; never scans user caches"]
+fn repeated_plain_observation_reports_scan_cost() {
+    let fixture = plain_observation_fixture();
+    for iteration in 0..6 {
+        let before_rss_bytes = resident_bytes();
+        let before_cpu = process_cpu_us();
+        let started = Instant::now();
+        let mut first_root_us = None;
+        let mut first_item_us = None;
+        let mut events = 0usize;
+        let result = fixture.scan_with(&NeverCancelled, |event| {
+            events += 1;
+            match event {
+                ScanEvent::RootStarted { .. } if first_root_us.is_none() => {
+                    first_root_us = Some(started.elapsed().as_micros());
+                }
+                ScanEvent::ItemFound { .. } if first_item_us.is_none() => {
+                    first_item_us = Some(started.elapsed().as_micros());
+                }
+                _ => {}
+            }
+        });
+        let wall_us = started.elapsed().as_micros();
+        let cpu_us = before_cpu
+            .zip(process_cpu_us())
+            .map(|(before, after)| after - before);
+        let after_rss_bytes = resident_bytes();
+        let rss_growth_bytes = before_rss_bytes
+            .zip(after_rss_bytes)
+            .map(|(before, after)| after - before);
+        assert_eq!(result.metrics.visited_entries, 2_305);
+        assert_eq!(result.metrics.directories_read, 257);
+        assert_eq!(candidate_count(&result), 1);
+        assert_eq!(logical_bytes(&result), 8 * 1024 * 1024);
+        assert_eq!(result.cleanable_bytes, 0);
+        assert_eq!(result.skipped_entry_count, 0);
+        assert!(!result.cancelled);
+        assert_eq!(events, 4 + 2 * CATEGORIES.len());
+        assert!(
+            result.metrics.peak_outstanding_directory_tasks
+                <= ScanLimits::default().max_concurrent_directory_reads as u64
+        );
+        assert!(first_root_us.is_some());
+        assert!(first_item_us.is_some());
+        eprintln!(
+            "plain_observation_repeat {}",
+            serde_json::json!({
+                "version": env!("CARGO_PKG_VERSION"), "iteration": iteration,
+                "warmup": iteration == 0, "wall_us": wall_us, "cpu_us": cpu_us,
+                "rss_before_bytes": before_rss_bytes, "rss_after_bytes": after_rss_bytes,
+                "rss_growth_bytes": rss_growth_bytes, "first_root_us": first_root_us,
+                "first_item_us": first_item_us, "events": events,
+                "visited_entries": result.metrics.visited_entries,
+                "directories_read": result.metrics.directories_read,
+                "candidate_count": candidate_count(&result), "logical_bytes": logical_bytes(&result),
+                "peak_tasks": result.metrics.peak_outstanding_directory_tasks,
+            })
+        );
+    }
+}
+
+#[cfg(unix)]
+fn process_cpu_us() -> Option<u64> {
+    let mut usage = std::mem::MaybeUninit::<libc::rusage>::uninit();
+    // SAFETY: getrusage initializes the correctly sized output on success.
+    if unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) } != 0 {
+        return None;
+    }
+    let usage = unsafe { usage.assume_init() };
+    let micros = |time: libc::timeval| {
+        u64::try_from(time.tv_sec)
+            .ok()?
+            .checked_mul(1_000_000)?
+            .checked_add(u64::try_from(time.tv_usec).ok()?)
+    };
+    micros(usage.ru_utime)?.checked_add(micros(usage.ru_stime)?)
+}
+
+#[cfg(not(unix))]
+fn process_cpu_us() -> Option<u64> {
+    None
+}
+
 #[test]
 fn aged_observation_phase_spans_are_bounded_and_do_not_add_progress_events() {
     let fixture = aged_observation_fixture();
@@ -638,6 +724,10 @@ fn metrics_row(fixture: &str, result: &ScanResult, rss_growth_kib: i64) -> Metri
 /// A machine that cannot answer returns `None`, and the row states no memory
 /// rather than a synthesized number.
 fn resident_kib() -> Option<i64> {
+    resident_bytes().map(|bytes| bytes / 1024)
+}
+
+fn resident_bytes() -> Option<i64> {
     let mut system = sysinfo::System::new();
     system.refresh_processes(
         sysinfo::ProcessesToUpdate::Some(&[sysinfo::Pid::from_u32(std::process::id())]),
@@ -645,9 +735,7 @@ fn resident_kib() -> Option<i64> {
     );
     system
         .process(sysinfo::Pid::from_u32(std::process::id()))
-        // `sysinfo` reports bytes; the row states KiB so it reads at the same
-        // scale as the fixtures it describes.
-        .map(|process| (process.memory() / 1024) as i64)
+        .map(|process| process.memory() as i64)
 }
 
 fn baseline_of(rows: &[(Fixture, ScanResult)]) -> Baseline {
@@ -897,6 +985,29 @@ fn aged_observation_fixture() -> Fixture {
     entry.include_prefixes = vec!["tool-".into()];
     registry.register(entry);
     Fixture::new("aged_observation", 10_000, directory, registry)
+}
+
+fn plain_observation_fixture() -> Fixture {
+    let directory = tempfile::tempdir().expect("fixture directory");
+    let root = directory.path().join("plain-observation");
+    for index in 0..256 {
+        for file in 0..8 {
+            write_file(&root.join(format!("d{index:03}/data-{file}.bin")), 4_096);
+        }
+    }
+    let mut registry = SignatureRegistry::new();
+    let mut entry = signature(
+        "benchmark.plain-observation",
+        "Advisory measured tree",
+        Category::System,
+        &[root],
+        None,
+        None,
+        CleanStrategy::Manual,
+    );
+    entry.risk = RiskTier::Manual;
+    registry.register(entry);
+    Fixture::new("plain_observation", 10_000, directory, registry)
 }
 
 /// Mixed age: a stale subtree and a fresh one under a namespace signature that

@@ -96,3 +96,15 @@ pub enum AppRelatedKind {
     HttpStorage,
     WebKit,
 }
+
+/// An observation about a Library resource's possible owner, never removal
+/// authorization. Absence from bounded app roots is not proof of uninstall.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub enum AppLeftoverClassification {
+    InstalledOwner,
+    PossibleRemovedOwner,
+    AmbiguousSharedOwner,
+    IncompleteInventory,
+    ProtectedState,
+}

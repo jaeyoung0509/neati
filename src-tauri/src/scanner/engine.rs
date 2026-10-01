@@ -15,12 +15,47 @@ use neati_core::domain::scan::ScanSpan;
 use neati_core::domain::ScanMetrics;
 use neati_platform::PlatformEnvironment;
 use std::cell::RefCell;
+use std::path::Path;
 use std::time::{Instant, SystemTime};
 use uuid::Uuid;
 
 use crate::scanner::relationship::ScanRelationships;
 
 pub struct ScanEngine;
+
+fn route_exact_owner_observations(
+    categories: &mut [CategoryResult],
+    registry: &SignatureRegistry,
+    relationships: &RefCell<ScanRelationships>,
+) {
+    neati_core::domain::scan::overlap::route_exact_observations_to_owners_with(
+        categories,
+        |observation, owner| {
+            let (Some(observation_signature), Some(owner_signature)) = (
+                registry.get(&observation.signature_id),
+                registry.get(&owner.signature_id),
+            ) else {
+                return false;
+            };
+            observation_signature.strategy == crate::models::CleanStrategy::Manual
+                && observation_signature.provider_id.is_none()
+                && owner_signature.strategy == crate::models::CleanStrategy::OwnerProvider
+                && owner_signature
+                    .provider_id
+                    .as_ref()
+                    .is_some_and(|id| !id.is_empty())
+                && crate::safety::ToctouGuard::capture(Path::new(&observation.unit.path))
+                    .zip(crate::safety::ToctouGuard::capture(Path::new(
+                        &owner.unit.path,
+                    )))
+                    .is_some_and(|(left, right)| {
+                        !left.entity().is_unknown() && left.entity().same_entity(right.entity())
+                    })
+                && relationships.borrow_mut().relationship(observation, owner)
+                    == UnitRelationship::Equivalent
+        },
+    );
+}
 
 /// The relationship two units have, together with the cleanup policy the scan
 /// can act on.
@@ -646,6 +681,7 @@ impl ScanEngine {
         let overlap_started = Instant::now();
         super::coverage::route_to_owners(&mut category_results);
         let relationships = RefCell::new(ScanRelationships::default());
+        route_exact_owner_observations(&mut category_results, registry, &relationships);
         let overlap = resolve_unit_overlaps_with(
             &mut category_results,
             &[],
@@ -811,6 +847,7 @@ impl ScanEngine {
         }
         super::coverage::route_to_owners(&mut categories);
         let relationships = RefCell::new(ScanRelationships::default());
+        route_exact_owner_observations(&mut categories, registry, &relationships);
         let overlap = resolve_unit_overlaps_with(
             &mut categories,
             &[],
@@ -969,8 +1006,8 @@ impl<F: FnMut(ScanEvent)> RootProgressSink for ScanEvents<'_, F> {
 #[cfg(test)]
 mod tests {
     use super::{
-        add_scan_gap, aggregate_quality, apply_verified_cache_owner_state, scan_gap_kind,
-        CategoryAccumulator, ScanEngine,
+        add_scan_gap, aggregate_quality, apply_verified_cache_owner_state,
+        route_exact_owner_observations, scan_gap_kind, CategoryAccumulator, ScanEngine,
     };
     use crate::cache_providers::{CacheProviderFailure, CacheProviderScan, CacheProviderScanner};
     use crate::cleaner::LifecycleProviderRegistry;
@@ -1371,6 +1408,116 @@ mod tests {
             vec![suppressed],
             "the rule that did not count the bytes is still named on the unit that did"
         );
+    }
+
+    #[test]
+    fn observation_routing_requires_registered_owner_contracts_and_existing_entry_identity() {
+        let fixture = tempfile::tempdir().unwrap();
+        let path = fixture.path().join("provider-cache");
+        std::fs::create_dir(&path).unwrap();
+        let mut observation_signature = signature(
+            "test.observation",
+            "Observation",
+            Category::Developer,
+            &path,
+            vec![],
+            None,
+        );
+        observation_signature.strategy = CleanStrategy::Manual;
+        observation_signature.risk = RiskTier::Manual;
+        observation_signature.owner = "Cache owner".into();
+        observation_signature.provider = "Cache owner".into();
+        let mut owner_signature = observation_signature.clone();
+        owner_signature.id = "test.owner".into();
+        owner_signature.strategy = CleanStrategy::OwnerProvider;
+        owner_signature.risk = RiskTier::Rebuild;
+        owner_signature.paths.clear();
+        owner_signature.provider_id = Some("test.owner-operation".into());
+
+        for boundary in [
+            "verified",
+            "unregistered owner",
+            "unregistered observation",
+            "missing provider id",
+            "generic filesystem contract",
+            "non-manual observation",
+            "missing entry",
+        ] {
+            let mut observation = ScanItem::mock(
+                "observation",
+                &observation_signature.id,
+                "Observation",
+                Category::Developer,
+                RiskTier::Manual,
+                path.to_string_lossy(),
+                FileSize::new(1_000, Some(1_000)),
+                1,
+            );
+            observation.cache_metadata = observation_signature.cache_metadata();
+            observation.ownership = observation_signature.ownership();
+            observation.rederive_disposition();
+            let mut owner = ScanItem::mock(
+                "opaque-owner-unit",
+                &owner_signature.id,
+                "Owner operation",
+                Category::Developer,
+                RiskTier::Rebuild,
+                path.to_string_lossy(),
+                FileSize::new(1_000, Some(1_000)),
+                1,
+            );
+            owner.cache_metadata = owner_signature.cache_metadata();
+            owner.ownership = owner_signature.ownership();
+            owner.unit.kind = crate::models::CleanupUnitKind::ProviderAction;
+            owner.lifecycle_provider_action = true;
+            owner.requires_confirmation = true;
+            owner.rederive_disposition();
+            let mut observation_contract = observation_signature.clone();
+            let mut owner_contract = owner_signature.clone();
+            match boundary {
+                "missing provider id" => owner_contract.provider_id = None,
+                "generic filesystem contract" => {
+                    owner_contract.strategy = CleanStrategy::DeleteDirectory
+                }
+                "non-manual observation" => {
+                    observation_contract.strategy = CleanStrategy::DeleteDirectory
+                }
+                "missing entry" => {
+                    let missing = path.join("absent").to_string_lossy().into_owned();
+                    for item in [&mut observation, &mut owner] {
+                        item.path = missing.clone();
+                        item.unit.path = missing.clone();
+                        item.unit.root = missing.clone();
+                    }
+                }
+                _ => {}
+            }
+            let mut registry = SignatureRegistry::new();
+            if boundary != "unregistered observation" {
+                registry.register(observation_contract);
+            }
+            if boundary != "unregistered owner" {
+                registry.register(owner_contract);
+            }
+            let original = vec![observation, owner.clone()];
+            let mut accumulator = CategoryAccumulator::new();
+            for item in &original {
+                accumulator.push(item.clone());
+            }
+            let mut categories = vec![accumulator.finalize(Category::Developer, None)];
+            route_exact_owner_observations(
+                &mut categories,
+                &registry,
+                &std::cell::RefCell::new(crate::scanner::relationship::ScanRelationships::default()),
+            );
+            if boundary == "verified" {
+                assert_eq!(categories[0].items, [owner]);
+                assert_eq!(categories[0].total_bytes, 1_000);
+            } else {
+                assert_eq!(categories[0].items, original, "{boundary}");
+                assert_eq!(categories[0].suppressed_duplicate_count, 0, "{boundary}");
+            }
+        }
     }
 
     #[test]

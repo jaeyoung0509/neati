@@ -15,9 +15,9 @@ use tauri::State;
 use crate::commands::DesktopState;
 use crate::events::storage::{TauriDeveloperArtifactProgress, TauriLargeFileScanProgress};
 use crate::models::{
-    AppUninstallInspection, DeveloperArtifactScanEvent, DeveloperArtifactScanResult,
-    DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent, LargeFileScanRequest,
-    LargeFileScanResult, TrashPlanPreview, TrashResult,
+    AppLeftoverInventory, AppUninstallInspection, DeveloperArtifactScanEvent,
+    DeveloperArtifactScanResult, DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent,
+    LargeFileScanRequest, LargeFileScanResult, TrashPlanPreview, TrashResult,
 };
 use crate::services::progress::{DeveloperArtifactScanSink, LargeFileScanSink};
 
@@ -185,6 +185,14 @@ pub async fn get_installed_apps(
     state: State<'_, DesktopState>,
 ) -> Result<InstalledAppInventory, String> {
     state.storage.installed_apps().await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_app_leftovers(
+    state: State<'_, DesktopState>,
+) -> Result<AppLeftoverInventory, String> {
+    state.storage.app_leftovers().await
 }
 
 #[tauri::command]

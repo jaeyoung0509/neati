@@ -38,7 +38,7 @@ use crate::developer_artifacts::{
 use crate::execution_budget::ExecutionBudgets;
 use crate::large_files::{LargeFileInventory, LargeFileScanner};
 use crate::models::{
-    AppUninstallInspection, CapabilityAccess, DeveloperArtifactScanEvent,
+    AppLeftoverInventory, AppUninstallInspection, CapabilityAccess, DeveloperArtifactScanEvent,
     DeveloperArtifactScanResult, DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent,
     LargeFileScanRequest, LargeFileScanResult, PlatformCapabilitiesProvider, PlatformFeature,
     TrashPlanPreview, TrashResult,
@@ -594,6 +594,25 @@ impl StorageService {
             skipped_entry_count,
             incomplete_reasons,
         })
+    }
+
+    /// Metadata-only review, kept separate from installed uninstall authority.
+    pub async fn app_leftovers(&self) -> Result<AppLeftoverInventory, String> {
+        self.platform_capabilities
+            .capabilities()
+            .require(PlatformFeature::InstalledApps, CapabilityAccess::Inspect)
+            .map_err(|error| error.to_string())?;
+        let operation_gate = self.operation_gate.clone();
+        let environment = self.environment.clone();
+        let permit = self.budgets.acquire_storage_read().await?;
+        crate::blocking::run_blocking(
+            move || -> Result<_, String> {
+                let _permit = permit;
+                Ok(operation_gate.run_read(|| crate::applications::leftovers::scan(&environment)))
+            },
+            "Application resource review worker panicked",
+        )
+        .await
     }
 
     /// Inspects one installed application and the data related to it.

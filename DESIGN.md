@@ -632,6 +632,11 @@ must not suggest that the account has exhausted its quota.
 - `Large Files`, `Applications`, `Disks`: searchable size-sorted files,
   installed-app rows with related data, and volume capacity. No invented
   disk-map engine.
+- Applications keeps possible leftover resources in a closed, read-only
+  disclosure. Show observed size, typed ownership uncertainty and Reveal;
+  protected or incomplete rows never become removal selections or Cleanup
+  totals. Refresh public bundle identities explicitly; absence from the checked
+  Applications folders is not proof of uninstall.
 
 ### Performance
 

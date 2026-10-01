@@ -327,6 +327,12 @@
           "markdownDescription": "Enables the get_ai_usage command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_app_leftovers command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-app-leftovers",
+          "markdownDescription": "Enables the get_app_leftovers command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_app_version command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-app-version",
@@ -817,6 +823,12 @@
           "type": "string",
           "const": "deny-get-ai-usage",
           "markdownDescription": "Denies the get_ai_usage command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_app_leftovers command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-app-leftovers",
+          "markdownDescription": "Denies the get_app_leftovers command without any pre-configured scope."
         },
         {
           "description": "Denies the get_app_version command without any pre-configured scope.",

@@ -44,3 +44,22 @@ across app replacement. No system data or real user cache is modified by tests.
 References: [Apple file-access controls](https://support.apple.com/en-ca/guide/security/secddd1d86a6/web),
 [Apple filesystem access layers](https://developer.apple.com/documentation/security/accessing-files-from-the-macos-app-sandbox),
 [Apple file permissions](https://support.apple.com/guide/mac-help/change-permissions-for-files-folders-or-disks-mchlp1203/mac).
+
+## October 1 current-user access probe
+
+Recorded October 1, 2026, macOS 27.0.1 (26A434), neati source 0.3.98,
+effective uid 501. `lstat` and `access(R_OK|X_OK / W_OK|X_OK)` checked the named
+roots only. No traversal, deletion test, permission change or daemon command ran.
+The shell process is not evidence of the app bundle's TCC grant.
+
+| Root | uid / mode | Read/search | Write/search | Per-operation decision |
+| --- | --- | --- | --- | --- |
+| `/Library/Caches` | 0 / 1777 | yes | yes | Mixed namespaces and sticky directory rules. Root writability does not authorize another owner's entry; no complete disposable-unit adapter. Advisory. |
+| `/Library/Logs/DiagnosticReports` | 0 / 0770 | yes | yes | This process can access the root, but no reviewed system-report retention/writer/entry-ownership adapter exists. No new operation. |
+| `/private/var/log` and `asl` | 0 / 0755 | yes | no | System-managed writers and current-user write restriction; unavailable for mutation. No elevation fallback. |
+| `/private/var/log/DiagnosticMessages` | 0 / 0750 | yes | no | System-managed diagnostic state; no current-user mutation adapter. |
+| `/private/var/db/diagnostics` | 0 / 0750 | yes | no | OS diagnostic database root; this probe does not establish a DiagnosticPipeline disposable unit. Unsupported. |
+| `/private/var/db/powerlog` | 0 / 0755 | yes | no | Power diagnostic state; current-user write restriction and no complete owner lifecycle. Unsupported. |
+
+ACLs, each entry's ownership, privacy and SIP remain independent of these bits.
+Native grant/deny/revoke/relaunch/replacement checks remain unverified here.

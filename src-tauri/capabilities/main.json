@@ -82,6 +82,7 @@
     "allow-cancel-developer-artifact-scan",
     "allow-prepare-developer-artifact-cleanup",
     "allow-get-installed-apps",
+    "allow-get-app-leftovers",
     "allow-inspect-app-uninstall",
     "allow-prepare-app-uninstall",
     "allow-execute-trash-plan",

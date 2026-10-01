@@ -16,6 +16,151 @@ use std::path::Path;
 
 const IDS: [&str; 2] = ["dev.oh_my_zsh.cache", "dev.github_cli.http_cache"];
 
+#[test]
+fn composition_snapshot_shell_overrides_are_bounded_advisory_and_do_not_execute_configuration() {
+    let fixture = tempfile::tempdir().unwrap();
+    let home = fixture.path().canonicalize().unwrap();
+    let custom = home.join(".local/omz-cache");
+    let installation = home.join(".local/oh-my-zsh");
+    let env = environment(&home)
+        .with_cache_path_override("ZSH_CACHE_DIR", &custom)
+        .with_cache_path_override("ZSH", &installation);
+    write(&custom.join("completions/_generated"));
+    write(&installation.join("cache/.zsh-update"));
+    write(&home.join(".zshrc"));
+    let registry = catalog();
+    let items = observe(&registry, IDS[0], &env);
+    let observed: Vec<_> = items.iter().filter(|item| item.exists).collect();
+    assert_eq!(observed.len(), 2);
+    assert!(observed.iter().all(|item| {
+        Path::new(&item.path) == custom || Path::new(&item.path) == installation.join("cache")
+    }));
+    for item in &items {
+        assert_advisory(item);
+    }
+    // DirectoryScanner retains absent fixed-root facts; ScanEngine drops them
+    // from visible observations. They never become bytes or authority.
+    let absent: Vec<_> = items.iter().filter(|item| !item.exists).collect();
+    assert_eq!(absent.len(), 2);
+    for item in absent {
+        assert_eq!(item.size.logical, 0);
+        assert_eq!(item.file_count, 0);
+        assert!(
+            Path::new(&item.path) == home.join(".oh-my-zsh/cache")
+                || Path::new(&item.path) == home.join(".cache/oh-my-zsh")
+        );
+    }
+    for broad in [
+        &home,
+        &home.join("Documents"),
+        &home.join(".config/gh"),
+        Path::new("relative"),
+    ] {
+        assert!(env
+            .clone()
+            .with_cache_path_override("ZSH_CACHE_DIR", broad)
+            .expand_placeholder("${ZSH_CACHE_DIR}")
+            .is_none());
+    }
+    assert!(home.join(".zshrc").exists());
+}
+
+#[test]
+fn additional_named_browser_and_tool_scopes_preserve_adjacent_state_and_never_authorize_cleanup() {
+    let fixture = tempfile::tempdir().unwrap();
+    let home = fixture.path().canonicalize().unwrap();
+    let env = environment(&home);
+    let registry = SignatureRegistry::load_embedded_catalog().unwrap();
+    let cases = [
+        (
+            "system.arc.profile_cache_observations",
+            "Library/Application Support/Arc/User Data/Default/Cache/response",
+        ),
+        (
+            "system.arc.profile_cache_observations",
+            "Library/Application Support/Arc/Profile 1/Code Cache/response",
+        ),
+        (
+            "system.arc.profile_cache_observations",
+            "Library/Application Support/company.thebrowser.Browser/Profile 2/GPUCache/response",
+        ),
+        (
+            "system.chrome_devtools.profile_cache_observations",
+            ".cache/chrome-devtools-mcp/chrome-profile/Default/Code Cache/data",
+        ),
+        (
+            "system.chrome_devtools.profile_cache_observations",
+            ".cache/chrome-devtools-mcp/chrome-profile-beta/Profile 1/Cache/data",
+        ),
+        (
+            "system.chrome_devtools.profile_cache_observations",
+            ".cache/chrome-devtools-mcp/chrome-profile-canary/Default/GPUCache/data",
+        ),
+        (
+            "system.chrome_devtools.profile_cache_observations",
+            ".cache/chrome-devtools-mcp/chrome-profile-dev/Default/Cache/data",
+        ),
+        (
+            "dev.kubernetes.cached_metadata",
+            ".kube/cache/http/metadata",
+        ),
+        (
+            "dev.precommit.environment_observation",
+            ".cache/pre-commit/repo/environment/bin/python",
+        ),
+        (
+            "dev.pyenv.download_observation",
+            ".pyenv/cache/python.tar.gz",
+        ),
+        (
+            "dev.pyinstaller.binary_observation",
+            "Library/Application Support/pyinstaller/bincache/executable",
+        ),
+    ];
+    for (id, relative) in cases {
+        write(&home.join(relative));
+        let items = observe(&registry, id, &env);
+        assert!(!items.is_empty(), "{id}");
+        for item in items {
+            assert_advisory(&item);
+            if item.exists && item.observed_bytes() > 0 {
+                let mut forged = item.clone();
+                forged.is_selected = true;
+                forged.risk = RiskTier::Rebuild;
+                forged.cache_metadata.management_mode = CacheManagementMode::Neati;
+                forged.cache_metadata.size_semantics = CacheSizeSemantics::PhysicalReclaimable;
+                forged.disposition = forged.derive_disposition();
+                assert!(matches!(SafetyPlanner::create_plan_with_environment(
+                    &[forged], &registry, &env, &OwnerProviderRegistry::new(vec![]) ),
+                    Err(NeatiError::RefusedSelection(ref refused)) if refused.len() == 1 && refused[0].reason == CleanFailureReason::OwnerManaged));
+            }
+        }
+    }
+    for relative in [
+        "Library/Application Support/Arc/User Data/Default/Cookies",
+        "Library/Application Support/Arc/User Data/Default/Service Worker/ScriptCache/keep",
+        ".cache/chrome-devtools-mcp/chrome-profile/Default/IndexedDB/keep",
+        ".cache/chrome-devtools-mcp/chrome-profile-custom/Default/Cache/keep",
+        ".kube/config",
+        ".pyenv/versions/3.14/bin/python",
+    ] {
+        let path = home.join(relative);
+        write(&path);
+        for id in [
+            "system.arc.profile_cache_observations",
+            "system.chrome_devtools.profile_cache_observations",
+            "dev.kubernetes.cached_metadata",
+            "dev.pyenv.download_observation",
+        ] {
+            assert!(
+                !registry.path_is_in_scope(registry.get(id).unwrap(), &path, &env),
+                "{id}: {relative}"
+            );
+        }
+        assert!(path.exists());
+    }
+}
+
 fn environment(home: &Path) -> PlatformEnvironment {
     PlatformEnvironment::simulated(PathFlavor::current())
         .with_platform(PlatformKind::Macos)
@@ -56,12 +201,111 @@ fn assert_advisory(item: &ScanItem) {
     assert_eq!(item.cleanable_bytes(), 0);
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn verified_github_owner_supersedes_the_same_advisory_namespace_without_double_counting() {
+    use neati_core::domain::cleanup::{OwnerProviderAuthorization, OwnerProviderExecution};
+    use neati_lib::cleaner::OwnerScopedProvider;
+    use neati_lib::models::{
+        OwnerProviderRefusal, OwnerProviderSelection, OwnerStoreObservation, OwnerUnitObservation,
+        RunningProcessPolicy,
+    };
+    use std::{os::unix::fs::MetadataExt, sync::Arc};
+    struct ObservedOwner;
+    impl OwnerScopedProvider for ObservedOwner {
+        fn id(&self) -> &'static str {
+            "github_cli.local_cache_clear"
+        }
+        fn platforms(&self) -> &'static [PlatformKind] {
+            &[PlatformKind::Macos]
+        }
+        fn consequence(&self) -> &'static str {
+            "Fixture whole-owner operation"
+        }
+        fn requires_confirmation(&self) -> bool {
+            true
+        }
+        fn scan(
+            &self,
+            env: &PlatformEnvironment,
+            _: &RunningProcessPolicy,
+        ) -> OwnerStoreObservation {
+            let root = env.user_home().unwrap().join(".cache/gh");
+            let allocated = fs::metadata(root.join("payload")).unwrap().blocks() * 512;
+            OwnerStoreObservation::ready(
+                Some(root.clone()),
+                vec![OwnerUnitObservation::ready(
+                    "fixture-complete-scope",
+                    root,
+                    8192,
+                    allocated,
+                    1,
+                )],
+            )
+        }
+        fn prepare(
+            &self,
+            _: &PlatformEnvironment,
+            _: &RunningProcessPolicy,
+            _: &[OwnerProviderSelection],
+        ) -> Result<OwnerProviderAuthorization, OwnerProviderRefusal> {
+            panic!("Observation accounting never prepares an operation")
+        }
+        fn execute(
+            &self,
+            _: &PlatformEnvironment,
+            _: &OwnerProviderAuthorization,
+        ) -> OwnerProviderExecution {
+            panic!("Observation accounting never executes an operation")
+        }
+    }
+    let fixture = tempfile::tempdir().unwrap();
+    let home = fixture.path().canonicalize().unwrap();
+    let payload = home.join(".cache/gh/payload");
+    write(&payload);
+    let allocated = fs::metadata(&payload).unwrap().blocks() * 512;
+    let embedded = SignatureRegistry::load_embedded_catalog().unwrap();
+    let mut registry = catalog();
+    registry.register(
+        embedded
+            .get("dev.github_cli.local_cache_clear")
+            .unwrap()
+            .clone(),
+    );
+    let result = ScanEngine::scan(
+        &registry,
+        &LifecycleProviderRegistry::new(Vec::new()),
+        &OwnerProviderRegistry::new(vec![Arc::new(ObservedOwner)]),
+        Some(&[Category::Developer]),
+        &[],
+        false,
+        &environment(&home),
+        &NeverCancelled,
+        |_| {},
+    );
+    assert_eq!(result.categories[0].items.len(), 1);
+    let item = &result.categories[0].items[0];
+    assert_eq!(item.signature_id, "dev.github_cli.local_cache_clear");
+    assert!(item.allows_cleanup());
+    assert!(!item.is_selected);
+    assert!(item.requires_confirmation);
+    assert_eq!(result.total_bytes, allocated);
+    assert_eq!(result.cleanable_bytes, allocated);
+    assert_eq!(result.ambiguous_overlap_bytes, 0);
+    assert_eq!(fs::read(payload).unwrap(), vec![b'x'; 8192]);
+}
+
 #[test]
 fn user_tool_catalog_names_only_vendor_cache_namespaces() {
     let registry = catalog();
     assert_eq!(
         registry.get(IDS[0]).unwrap().paths,
-        ["~/.oh-my-zsh/cache", "${XDG_CACHE_HOME}/oh-my-zsh"]
+        [
+            "~/.oh-my-zsh/cache",
+            "${XDG_CACHE_HOME}/oh-my-zsh",
+            "${ZSH}/cache",
+            "${ZSH_CACHE_DIR}"
+        ]
     );
     assert_eq!(
         registry.get(IDS[1]).unwrap().paths,

@@ -16,8 +16,8 @@ pub fn supported_webpack_pack(header: &[u8], file_len: u64) -> bool {
         return false;
     }
     let mut total = header.len() as u64;
-    for chunk in header[8..].chunks_exact(4) {
-        let value = i32::from_le_bytes(chunk.try_into().unwrap());
+    for chunk in header[8..].as_chunks::<4>().0 {
+        let value = i32::from_le_bytes(*chunk);
         if value == i32::MIN {
             return false;
         }

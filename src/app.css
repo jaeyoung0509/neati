@@ -292,35 +292,6 @@ html.native-material-window #app {
   scrollbar-gutter: stable;
 }
 
-@keyframes gentle-spin {
-  from {
-    rotate: 0deg;
-  }
-  to {
-    rotate: 360deg;
-  }
-}
-
-.animate-gentle-spin {
-  animation: gentle-spin 0.75s linear infinite;
-  transform-origin: center;
-}
-
-/* Paint-only progress motion for WKWebView surfaces. Animating the dash phase
-   avoids transform/opacity compositor layers that can survive state teardown. */
-@keyframes loading-dash {
-  from {
-    stroke-dashoffset: 0;
-  }
-  to {
-    stroke-dashoffset: -100;
-  }
-}
-
-.animate-loading-dash {
-  animation: loading-dash 0.75s linear infinite;
-}
-
 /* A breath used only for a currently observed working state (agent session
    running while its window is visible). Ordinary running/idle is a steady dot. */
 @keyframes breathe {
@@ -337,8 +308,6 @@ html.native-material-window #app {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-gentle-spin,
-  .animate-loading-dash,
   .animate-breathe {
     animation: none !important;
   }

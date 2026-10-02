@@ -14,7 +14,7 @@
   } from '../../lib/models/types';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
-  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
   import {
     refusalForPreview,
@@ -467,7 +467,7 @@
         <div class="text-xs font-medium">Scan scope</div>
         <p class="mt-1 text-meta text-muted-foreground">Scan your user-owned files in one pass. System, credential, media, and installed-application paths are bypassed.</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         {#if isScanning && activeScanId}
           <Button variant="outline" size="md" onclick={cancelScan} class="gap-1.5">
             <X size={14} />
@@ -475,16 +475,18 @@
           </Button>
         {/if}
         <Button variant="primary" size="md" onclick={scanThisComputer} disabled={isScanning} class="gap-1.5">
-          {#if isScanning}<LoadingIndicator size="sm" />{:else}<HardDrive size={14} />{/if}
-          {isScanning ? 'Scanning this computer…' : 'Scan this computer'}
+          <LoadingActionContent busy={isScanning} busyLabel="Scanning…" word="scanning">
+            <HardDrive size={14} aria-hidden="true" />Scan this computer
+          </LoadingActionContent>
         </Button>
         <Button variant="outline" size="md" onclick={addWorkspace} disabled={isScanning} class="gap-1.5">
           <FolderOpen size={14} />
           Add folder
         </Button>
         <Button variant="outline" size="md" onclick={scanArtifacts} disabled={isScanning || selectedWorkspaceIds.length === 0} class="gap-1.5">
-          {#if isScanning}<LoadingIndicator size="sm" />{:else}<RefreshCw size={14} />{/if}
-          Scan selected
+          <LoadingActionContent busy={isScanning} busyLabel="Scanning…" word="scanning">
+            <RefreshCw size={14} aria-hidden="true" />Scan selected
+          </LoadingActionContent>
         </Button>
       </div>
     </div>
@@ -587,8 +589,9 @@
               onclick={rescanAfterUninspected}
               disabled={isScanning || selectedWorkspaceIds.length === 0}
             >
-              {#if isScanning}<LoadingIndicator size="sm" />{:else}<RefreshCw size={13} />{/if}
-              Scan again
+              <LoadingActionContent busy={isScanning} busyLabel="Scanning…" word="scanning">
+                <RefreshCw size={13} aria-hidden="true" />Scan again
+              </LoadingActionContent>
             </Button>
           </div>
         </div>
@@ -624,11 +627,12 @@
           </div>
           <p class="mt-1 text-xs text-muted-foreground">{plan.item_count} selected artifact{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" onclick={() => { plan = null; partialCleanupConfirmed = false; }}>Cancel</Button>
           <Button variant="destructive" size="md" onclick={executeCleanup} disabled={isExecuting || isExpired || (hasMeasurementIncompleteSelected && !partialCleanupConfirmed)} class="gap-1.5">
-            {#if isExecuting}<LoadingIndicator size="sm" />{:else}<Trash2 size={14} />{/if}
-            {isExecuting ? 'Moving…' : isExpired ? 'Expired' : `Move generated folders to ${platformContextStore.trashLabel}`}
+            <LoadingActionContent busy={isExecuting} busyLabel="Moving…" word="cleaning">
+              <Trash2 size={14} aria-hidden="true" />{isExpired ? 'Expired' : `Move generated folders to ${platformContextStore.trashLabel}`}
+            </LoadingActionContent>
           </Button>
         </div>
       </div>
@@ -688,8 +692,9 @@
         <Button variant="ghost" size="sm" onclick={selectAll} disabled={isScanning || isExecuting}><CheckSquare size={13} /> Select rebuildable</Button>
         <Button variant="ghost" size="sm" onclick={deselectAll} disabled={isScanning || isExecuting}><Square size={13} /> Clear</Button>
         <Button variant="primary" size="md" onclick={reviewCleanup} disabled={isScanning || isPreparing || isExecuting || selectedIds.length === 0} class="gap-1.5">
-          {#if isPreparing}<LoadingIndicator size="sm" />{:else}<Trash2 size={14} />{/if}
-          {isPreparing ? 'Reviewing…' : `Review ${formatBytes(selectedBytes)}`}
+          <LoadingActionContent busy={isPreparing} busyLabel="Reviewing…" word="working">
+            <Trash2 size={14} aria-hidden="true" />Review {formatBytes(selectedBytes)}
+          </LoadingActionContent>
         </Button>
       {/if}
     </div>

@@ -9,6 +9,7 @@
   import { formatProcessAge } from '../../lib/utils/format';
   import { withMinimumDuration } from '../../lib/utils/async';
   import { modalDialog } from '../../lib/utils/modalDialog';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
@@ -131,8 +132,9 @@
         class="gap-1.5 text-xs"
         title="Refresh development server listeners"
       >
-        <RotateCw size={13} class={isRefreshing || developmentPortsStore.isLoading ? 'animate-gentle-spin' : ''} />
-        <span>Refresh</span>
+        <LoadingActionContent busy={isRefreshing || developmentPortsStore.isLoading} busyLabel="Refreshing…">
+          <RotateCw size={13} aria-hidden="true" /><span>Refresh</span>
+        </LoadingActionContent>
       </Button>
     {/snippet}
   </PageHeader>

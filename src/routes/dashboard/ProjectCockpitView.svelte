@@ -3,6 +3,7 @@
   import { FolderGit2, RefreshCw, Sparkles } from '@lucide/svelte';
   import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
   import { usageStore } from '../../lib/stores/usage.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import ProjectsPanel from '../../lib/components/ai-activity/ProjectsPanel.svelte';
@@ -136,8 +137,9 @@
         title={`Refresh ${activeTabLabel.toLowerCase()}`}
         onclick={handleRefreshActive}
       >
-        <RefreshCw size={13} class={activeTabLoading ? 'animate-gentle-spin' : ''} />
-        {activeTabLoading ? `Refreshing ${activeTabLabel.toLowerCase()}` : `Refresh ${activeTabLabel.toLowerCase()}`}
+        <LoadingActionContent busy={activeTabLoading} busyLabel="Refreshing…">
+          <RefreshCw size={13} aria-hidden="true" />Refresh {activeTabLabel.toLowerCase()}
+        </LoadingActionContent>
       </Button>
     {/snippet}
   </PageHeader>

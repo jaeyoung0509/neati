@@ -91,11 +91,10 @@
       </div>
       <MetricSparkline
         samples={history}
-        expectedIntervalMs={cpu?.sample_interval_ms ?? 2500}
-        class="h-10"
+        endAt={systemMetricsStore.cpuHistoryEndAt}
       />
       <p class="text-caption text-muted-foreground">
-        Samples appear as they were recorded; a gap means no reading was taken for that period.
+        Last 2m 30s. Gaps show periods without a recorded reading.
       </p>
     </div>
   </Card>

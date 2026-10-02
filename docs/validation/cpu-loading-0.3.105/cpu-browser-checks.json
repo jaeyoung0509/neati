@@ -1,0 +1,112 @@
+{
+  "checks": [
+    {
+      "details": {
+        "height": 112,
+        "viewBox": "0 0 100 112"
+      },
+      "name": "continuous fixed scale",
+      "pass": true
+    },
+    {
+      "details": {
+        "runs": 1
+      },
+      "name": "continuous segments",
+      "pass": true
+    },
+    {
+      "details": {
+        "label": "CPU history over the last 2 minutes 30 seconds, on a 0 to 100 percent scale. 17 recorded samples. Most recent: 18.5 percent. "
+      },
+      "name": "continuous accessible description",
+      "pass": true
+    },
+    {
+      "details": {
+        "height": 112,
+        "viewBox": "0 0 100 112"
+      },
+      "name": "gaps fixed scale",
+      "pass": true
+    },
+    {
+      "details": {
+        "runs": 2
+      },
+      "name": "gaps segments",
+      "pass": true
+    },
+    {
+      "details": {
+        "label": "CPU history over the last 2 minutes 30 seconds, on a 0 to 100 percent scale. 17 recorded samples. Most recent: 18.5 percent. 1 recording gap; missing readings are not connected."
+      },
+      "name": "gaps accessible description",
+      "pass": true
+    },
+    {
+      "details": {
+        "height": 112,
+        "viewBox": "0 0 100 112"
+      },
+      "name": "single fixed scale",
+      "pass": true
+    },
+    {
+      "details": {
+        "runs": 0
+      },
+      "name": "single segments",
+      "pass": true
+    },
+    {
+      "details": {
+        "label": "CPU history over the last 2 minutes 30 seconds, on a 0 to 100 percent scale. 1 recorded sample. Most recent: 18.5 percent. "
+      },
+      "name": "single accessible description",
+      "pass": true
+    },
+    {
+      "name": "single point stays circular",
+      "pass": true
+    },
+    {
+      "details": {
+        "height": 112,
+        "viewBox": "0 0 100 112"
+      },
+      "name": "empty fixed scale",
+      "pass": true
+    },
+    {
+      "details": {
+        "runs": 0
+      },
+      "name": "empty segments",
+      "pass": true
+    },
+    {
+      "details": {
+        "label": "No CPU readings recorded in the last 2 minutes 30 seconds."
+      },
+      "name": "empty accessible description",
+      "pass": true
+    },
+    {
+      "name": "empty state without artificial line",
+      "pass": true
+    },
+    {
+      "details": {
+        "viewport": [
+          1440,
+          900
+        ]
+      },
+      "name": "no horizontal overflow",
+      "pass": true
+    }
+  ],
+  "scope": "Mounted production Svelte in Chromium with synthetic API data; no native IPC",
+  "version": "0.3.105"
+}

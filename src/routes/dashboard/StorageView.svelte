@@ -328,12 +328,12 @@
     {#if scanStore.isCleaning}
       <Card class="p-4 bg-secondary/60 border-primary/40 transition-colors duration-200">
         <div class="space-y-2" role="status" aria-live="polite">
-          <div class="flex items-center justify-between text-xs">
-            <span class="font-medium text-foreground flex items-center gap-2">
-              <LoadingIndicator size="xs" />
-              <span>Cleaning: {scanStore.cleanProgress.currentItem}</span>
+          <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <span class="min-w-0 font-medium text-foreground flex items-center gap-2">
+              <LoadingIndicator word="cleaning" size="xs" />
+              <span class="min-w-0 break-words">Cleaning: {scanStore.cleanProgress.currentItem}</span>
             </span>
-            <span class="font-mono text-muted-foreground font-semibold">
+            <span class="shrink-0 font-mono text-muted-foreground font-semibold">
               {scanStore.cleanProgress.index} / {scanStore.cleanProgress.total} ({scanStore.cleanProgress.percent}%)
             </span>
           </div>

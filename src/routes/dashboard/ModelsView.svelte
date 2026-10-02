@@ -11,6 +11,7 @@
   import Card from '../../lib/components/Card.svelte';
   import Badge from '../../lib/components/Badge.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
@@ -103,8 +104,9 @@
         onclick={handleRefresh}
         class="gap-1.5 text-xs"
       >
-        <RotateCw size={13} class={isRefreshing || localModelsStore.isLoading ? 'animate-gentle-spin' : ''} />
-        <span>Rescan Models</span>
+        <LoadingActionContent busy={isRefreshing || localModelsStore.isLoading} busyLabel="Discovering…" word="scanning">
+          <RotateCw size={13} aria-hidden="true" /><span>Rescan Models</span>
+        </LoadingActionContent>
       </Button>
     {/snippet}
   </PageHeader>
@@ -148,8 +150,8 @@
 
   <!-- Models List -->
   {#if localModelsStore.isLoading}
-    <div class="py-16 text-center text-xs text-muted-foreground space-y-2">
-      <RotateCw size={20} class="animate-spin mx-auto opacity-50" />
+    <div class="py-16 text-center text-meta text-muted-foreground space-y-2" role="status">
+      <LoadingIndicator size="md" word="scanning" class="text-primary" />
       <p>Discovering installed local models...</p>
     </div>
   {:else if filteredModels.length > 0}
@@ -279,13 +281,9 @@
             onclick={executeDeleteModel}
             class="min-w-[95px] gap-1.5"
           >
-            {#if localModelsStore.isDeleting}
-              <LoadingIndicator size="xs" />
-              <span>Deleting…</span>
-            {:else}
-              <Trash2 size={12} />
-              <span>Delete Model</span>
-            {/if}
+            <LoadingActionContent busy={localModelsStore.isDeleting} busyLabel="Deleting…" word="cleaning">
+              <Trash2 size={12} aria-hidden="true" /><span>Delete Model</span>
+            </LoadingActionContent>
           </Button>
         </div>
       </Card>

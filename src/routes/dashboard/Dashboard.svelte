@@ -27,6 +27,7 @@
   import { formatBytes } from '../../lib/utils/format';
   import { DEFAULT_DASHBOARD_TABS, dashboardGroup, groupedDashboardTabs, dashboardNavigationOwner, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
   import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation, observeDashboardNavigation } from '../../lib/utils/tauri';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import BrandIcon from '../../lib/components/BrandIcon.svelte';
   import Card from '../../lib/components/Card.svelte';
@@ -458,8 +459,9 @@
             onclick={() => void refreshCapabilities(true)}
             class="mx-auto gap-1.5"
           >
-            <RotateCw size={14} class={platformCapabilitiesStore.isLoading ? 'animate-gentle-spin' : ''} />
-            <span>{platformCapabilitiesStore.isLoading ? 'Retrying…' : 'Retry'}</span>
+            <LoadingActionContent busy={platformCapabilitiesStore.isLoading} busyLabel="Retrying…">
+              <RotateCw size={14} aria-hidden="true" /><span>Retry</span>
+            </LoadingActionContent>
           </Button>
         </Card>
       </div>

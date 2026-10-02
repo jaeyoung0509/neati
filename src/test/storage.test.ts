@@ -777,20 +777,12 @@ describe('StorageView CTA and responsive toolbar layout', () => {
   });
 
   it('keeps Storage scan feedback off transform and opacity compositor animations', () => {
-    const css = readFileSync(new URL('../app.css', import.meta.url), 'utf-8');
-    const keyframesIndex = css.indexOf('@keyframes loading-dash');
-    expect(keyframesIndex).toBeGreaterThan(0);
-    const keyframesBlock = css.slice(keyframesIndex, css.indexOf('.animate-loading-dash'));
-    expect(keyframesBlock).toContain('stroke-dashoffset:');
-    expect(keyframesBlock).not.toContain('transform:');
-    expect(keyframesBlock).not.toContain('rotate:');
-    expect(keyframesBlock).not.toContain('opacity:');
-
-    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    const reducedMotionIndex = css.indexOf('@media (prefers-reduced-motion: reduce)');
-    const reducedMotionBlock = css.slice(reducedMotionIndex);
-    expect(reducedMotionBlock).toContain('.animate-loading-dash');
-    expect(reducedMotionBlock).toContain('animation: none !important');
+    const loader = readFileSync(new URL('../lib/components/LoadingIndicator.svelte', import.meta.url), 'utf-8');
+    expect(loader).toContain('stroke-dashoffset:');
+    expect(loader).toContain('stroke-opacity:');
+    expect(loader).not.toMatch(/(?:^|[;{])\s*(?:transform|rotate|opacity)\s*:/m);
+    expect(loader).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(loader).toContain('animation: none !important');
 
     const storageView = readFileSync(
       new URL('../routes/dashboard/StorageView.svelte', import.meta.url),
@@ -808,7 +800,7 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(storageView).toContain('motion="paint"');
     expect(storageTools).toContain('motion="paint"');
     expect(storageView).toContain('<LoadingIndicator');
-    expect(storageTools).toContain('<LoadingSpinner');
+    expect(storageTools).toContain('<LoadingActionContent');
     expect(quickPanel).toContain('<LoadingIndicator');
     expect(storageView).not.toContain('animate-gentle-spin');
     expect(storageTools).not.toContain('animate-gentle-spin');

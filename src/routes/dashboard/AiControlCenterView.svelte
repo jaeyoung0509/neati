@@ -4,6 +4,8 @@
   import { aiControlStore } from '../../lib/stores/aiControl.svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { formatBytes } from '../../lib/utils/format';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
@@ -111,7 +113,7 @@
           <span>AI Activity</span>
         </Button>
       {/if}
-      <Button variant="outline" size="sm" class="gap-1.5" disabled={aiControlStore.isLoading} onclick={() => aiControlStore.refresh(true)}><RefreshCw size={13} class={aiControlStore.isLoading ? 'animate-gentle-spin' : ''} />Refresh</Button>
+      <Button variant="outline" size="sm" class="gap-1.5" disabled={aiControlStore.isLoading} onclick={() => aiControlStore.refresh(true)}><LoadingActionContent busy={aiControlStore.isLoading} busyLabel="Refreshing…"><RefreshCw size={13} aria-hidden="true" />Refresh</LoadingActionContent></Button>
     {/snippet}
   </PageHeader>
 
@@ -126,7 +128,7 @@
   <div id={controlPanelId} role="tabpanel" aria-label={controlSections.find((item) => item.id === selectedSection)?.label} tabindex="0" class="space-y-6 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring">
 
   {#if aiControlStore.error}<div class="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-xs text-destructive">{aiControlStore.error}</div>{/if}
-  {#if aiControlStore.isLoading && !aiControlStore.snapshot}<div class="py-20 text-center text-xs text-muted-foreground"><RefreshCw size={22} class="mx-auto mb-3 animate-gentle-spin" />Building a verified snapshot…</div>
+  {#if aiControlStore.isLoading && !aiControlStore.snapshot}<div class="py-20 text-center text-meta text-muted-foreground" role="status"><LoadingIndicator size="md" class="text-primary" /><p class="mt-3">Building a verified snapshot…</p></div>
   {:else if aiControlStore.snapshot}
     {@const snapshot = aiControlStore.snapshot}
     {@const runtimeHealth = aiControlStore.runtimeHealth ?? snapshot.runtime_health}

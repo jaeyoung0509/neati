@@ -8,7 +8,7 @@
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import Badge from '../../lib/components/Badge.svelte';
-  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
@@ -77,8 +77,9 @@
         onclick={handleRefresh}
         class="gap-1.5 text-xs"
       >
-        <RotateCw size={13} class={isRefreshing || dockerStore.isLoading ? 'animate-gentle-spin' : ''} />
-        <span>Refresh</span>
+        <LoadingActionContent busy={isRefreshing || dockerStore.isLoading} busyLabel="Refreshing…">
+          <RotateCw size={13} aria-hidden="true" /><span>Refresh</span>
+        </LoadingActionContent>
       </Button>
     {/snippet}
   </PageHeader>
@@ -127,13 +128,9 @@
           onclick={() => dockerStore.pruneTarget('container.docker.builder')}
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
-          {#if dockerStore.isPruning}
-            <LoadingIndicator size="xs" />
-            <span>Pruning…</span>
-          {:else}
-            <Trash2 size={12} />
-            <span>Prune Cache</span>
-          {/if}
+          <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
+            <Trash2 size={12} aria-hidden="true" /><span>Prune Cache</span>
+          </LoadingActionContent>
         </Button>
       </Card>
 
@@ -161,13 +158,9 @@
           onclick={() => dockerStore.pruneTarget('container.docker.dangling_images')}
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
-          {#if dockerStore.isPruning}
-            <LoadingIndicator size="xs" />
-            <span>Pruning…</span>
-          {:else}
-            <Trash2 size={12} />
-            <span>Prune Dangling</span>
-          {/if}
+          <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
+            <Trash2 size={12} aria-hidden="true" /><span>Prune Dangling</span>
+          </LoadingActionContent>
         </Button>
       </Card>
 
@@ -195,13 +188,9 @@
           onclick={() => dockerStore.pruneTarget('container.docker.unused_images')}
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
-          {#if dockerStore.isPruning}
-            <LoadingIndicator size="xs" />
-            <span>Pruning…</span>
-          {:else}
-            <Trash2 size={12} />
-            <span>Remove Unused</span>
-          {/if}
+          <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
+            <Trash2 size={12} aria-hidden="true" /><span>Remove Unused</span>
+          </LoadingActionContent>
         </Button>
       </Card>
 
@@ -229,13 +218,9 @@
           onclick={() => dockerStore.pruneTarget('container.docker.stopped_containers')}
           class="w-full text-xs gap-1.5 min-h-[30px]"
         >
-          {#if dockerStore.isPruning}
-            <LoadingIndicator size="xs" />
-            <span>Pruning…</span>
-          {:else}
-            <Trash2 size={12} />
-            <span>Prune Containers</span>
-          {/if}
+          <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
+            <Trash2 size={12} aria-hidden="true" /><span>Prune Containers</span>
+          </LoadingActionContent>
         </Button>
       </Card>
 
@@ -263,13 +248,9 @@
           onclick={() => (confirmVolumePrune = true)}
           class="w-full text-xs gap-1.5 text-destructive hover:text-destructive min-h-[30px]"
         >
-          {#if dockerStore.isPruning}
-            <LoadingIndicator size="xs" />
-            <span>Pruning…</span>
-          {:else}
-            <Trash2 size={12} />
-            <span>Prune Volumes</span>
-          {/if}
+          <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
+            <Trash2 size={12} aria-hidden="true" /><span>Prune Volumes</span>
+          </LoadingActionContent>
         </Button>
       </Card>
     </div>

@@ -237,6 +237,18 @@ const driver = {
     };
     await tick();
   },
+  async cpuHistory(kind: 'continuous' | 'gaps' | 'single' | 'empty' = 'continuous') {
+    const now = Date.now();
+    systemMetricsStore.cpuHistoryEndAt = now;
+    const values = [20, 23, 18, 30, 28, 44, 37, 55, 42, 32, 30, 48, 62, 47, 39, 31, 18.5];
+    systemMetricsStore.cpuHistory = kind === 'empty' ? [] : kind === 'single'
+      ? [{ at: now, percent: 18.5 }]
+      : values.map((percent, index) => ({
+          at: now - (values.length - 1 - index) * 2500 - (kind === 'gaps' && index < 10 ? 50_000 : 0), percent,
+        }));
+    if (systemMetricsStore.cpu) Object.assign(systemMetricsStore.cpu, { usage_percent: 18.5, sampled_at: now, state: 'fresh' });
+    await tick();
+  },
   async providerLoading(loading = true) {
     const snapshot = structuredClone(cachedUsage);
     snapshot.fetched_at = Math.floor(Date.now() / 1000);

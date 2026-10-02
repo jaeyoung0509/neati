@@ -17,6 +17,7 @@
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import CleanupReviewDialog from '../../lib/components/CleanupReviewDialog.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
   import Card from '../../lib/components/Card.svelte';
   import ScanFreshnessNotice from '../../lib/components/ScanFreshnessNotice.svelte';
@@ -168,13 +169,10 @@
         disabled={summary.selected_count === 0 || !scanStore.canClean || isPreparingReview}
         onclick={cleanSelected}
       >
-        {#if scanStore.isCleaning || isPreparingReview}
-          <LoadingIndicator size="xs" />
-          <span>{isPreparingReview ? 'Preparing…' : 'Cleaning…'}</span>
-        {:else}
-          <ListChecks size={13} />
+        <LoadingActionContent busy={scanStore.isCleaning || isPreparingReview} busyLabel={isPreparingReview ? 'Preparing…' : 'Cleaning…'} word={isPreparingReview ? 'working' : 'cleaning'}>
+          <ListChecks size={13} aria-hidden="true" />
           <span>{categorySelectedBytes > 0 ? `Clean ${formatBytes(categorySelectedBytes)}` : 'Clean selected'}</span>
-        {/if}
+        </LoadingActionContent>
       </Button>
     </div>
   </div>
@@ -219,13 +217,13 @@
   <!-- Cleaning In Progress Bar -->
   {#if scanStore.isCleaning}
     <Card class="p-3.5 bg-secondary/60 border-primary/40 transition-colors duration-200">
-      <div class="space-y-1.5">
-        <div class="flex items-center justify-between text-xs">
-          <span class="font-medium text-foreground flex items-center gap-2">
-            <LoadingIndicator size="xs" />
-            <span>Cleaning: {scanStore.cleanProgress.currentItem}</span>
+      <div class="space-y-1.5" role="status">
+        <div class="flex items-center justify-between gap-3 text-xs">
+          <span class="min-w-0 font-medium text-foreground flex items-center gap-2">
+            <LoadingIndicator size="xs" word="cleaning" motion="flow" />
+            <span class="min-w-0 break-words">Cleaning: {scanStore.cleanProgress.currentItem}</span>
           </span>
-          <span class="font-mono text-muted-foreground font-semibold">
+          <span class="shrink-0 font-mono text-muted-foreground font-semibold">
             {scanStore.cleanProgress.percent}%
           </span>
         </div>

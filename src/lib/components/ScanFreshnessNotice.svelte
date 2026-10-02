@@ -2,6 +2,7 @@
   import { scanStore } from '../stores/scan.svelte';
   import Button from './Button.svelte';
   import { scanInspectionDetails } from '../utils/scanInspectionDetails';
+  import { scanCompletionNotice } from '../utils/cleanupSummary';
   import StorageAccessSetup from './StorageAccessSetup.svelte';
 
   let { compact = false, showRetry = true }: { compact?: boolean; showRetry?: boolean } = $props();
@@ -21,10 +22,8 @@
     <div class="min-w-0 flex-1">
       {#if scanStore.freshness === 'refreshing'}
         Checking storage…
-      {:else if scanStore.discovery.status === 'paused'}
-        Checking storage…
-      {:else if scanStore.discovery.status === 'stopped'}
-        {scanStore.discovery.reason}
+      {:else if scanStore.discovery.status !== 'exhausted'}
+        {scanCompletionNotice(scanStore.discovery)}
       {:else if scanStore.freshness === 'partial' && scanStore.cancelledScanNotice}
         {scanStore.cancelledScanNotice}
       {:else if scanStore.freshness === 'partial' && compact}

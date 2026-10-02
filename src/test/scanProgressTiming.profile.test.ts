@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { ScanStore } from '../lib/stores/scan.svelte';
 import type { ScanEvent, ScanResult } from '../lib/models/types';
 import { tauriCancelScan, tauriScan, tauriScanDiscovery } from '../lib/utils/tauri';
+import { retainedScanFixture } from './fixtures/retainedScan';
 
 vi.mock('../lib/utils/tauri', async (importOriginal) => ({
   ...await importOriginal<typeof import('../lib/utils/tauri')>(),
@@ -44,15 +45,19 @@ it('profiles representative progress bursts while keeping Stop and inventory sep
     await store.cancelScan();
     const stopDispatchMs = performance.now() - stopStarted;
     expect(tauriCancelScan).toHaveBeenLastCalledWith('profile');
-    const result = {
-      scan_id: 'profile', valid_for_seconds: 300, started_at: 1, finished_at: 2,
-      total_bytes: 0, safe_bytes: 0, rebuild_bytes: 0, manual_bytes: 0,
-      quality: 'partial', incomplete_reasons: [], gaps: [], categories: [], cancelled: true,
-    } as ScanResult;
+    const published = retainedScanFixture({ status: 'stopped', reason: 'Scan was cancelled.' },
+      Math.floor(Date.now() / 1000), 'profile');
+    const result = published.result;
+    vi.mocked(tauriScanDiscovery).mockReturnValue(published.discovery);
     emit({ type: 'Finished', result });
     finish(result);
     await running;
     expect(store.isScanning).toBe(false);
+    expect(store.discovery.status).toBe('stopped');
+    expect(store.lastScan?.categories[0].items).toHaveLength(3);
+    expect(store.freshness).toBe('partial');
+    expect(store.canClean).toBe(false);
+    expect(store.selectedCount).toBe(0);
     console.log(JSON.stringify({ scope: 'Svelte store callbacks; mocked IPC; no DOM rendering',
       iteration, warmup: iteration === 0, events: 1558, burstMs, stopDispatchMs }));
   }

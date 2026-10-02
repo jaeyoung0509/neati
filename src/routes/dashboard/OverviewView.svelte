@@ -12,7 +12,7 @@
   import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { formatBytes, formatCountdown, formatTimeAgo } from '../../lib/utils/format';
-  import { cleanupSummaryState } from '../../lib/utils/cleanupSummary';
+  import { cleanupSummaryState, scanCompletionNotice } from '../../lib/utils/cleanupSummary';
   import {
     batteryChargeStateLabel,
     memoryPressureLabel,
@@ -89,6 +89,7 @@
     scanning: scanStore.isScanning,
     cleaning: scanStore.isCleaning,
     freshness: scanStore.freshness,
+    discovery: scanStore.discovery,
     cleanableBytes: quickCleanableBytes,
   }));
   let cleanupBusy = $derived(
@@ -110,6 +111,8 @@
       case 'unknown':
       case 'stale': return 'Scan needed';
       case 'failed': return 'Scan failed';
+      case 'paused': return 'Scan incomplete';
+      case 'stopped': return 'Scan stopped';
       case 'partial': return quickCleanableBytes > 0 ? formatBytes(quickCleanableBytes) : 'Partial scan';
       case 'ready':
       case 'clean': return formatBytes(quickCleanableBytes);
@@ -123,6 +126,8 @@
       case 'unknown': return 'No storage inventory has been measured yet.';
       case 'stale': return 'Scan again before reviewing cleanup.';
       case 'failed': return 'Scan could not finish. Open Storage for details.';
+      case 'paused':
+      case 'stopped': return scanCompletionNotice(scanStore.discovery) ?? '';
       case 'partial': return 'Some locations were not checked. Review measured items.';
       case 'ready': return 'Safe development and app caches neati can reclaim.';
       case 'clean': return 'Nothing verifiably cleanable in the last measured inventory.';

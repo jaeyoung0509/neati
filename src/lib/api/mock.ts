@@ -38,6 +38,7 @@ import type {
   PublishedScan,
   RecommendationPreview,
   SafetySnapshot,
+  ScanDiscovery,
   ScanEvent,
   ScanItem,
   ScanResult,
@@ -322,7 +323,7 @@ function mockControlSnapshot(): AiControlCenterSnapshot {
   };
 }
 
-let lastMockScan: ScanResult | null = null;
+let lastMockScan: (PublishedScan & { discovery: ScanDiscovery }) | null = null;
 
 /** The preview scan a `cancelScan` call can still stop. */
 let activeMockScanId: string | null = null;
@@ -1242,9 +1243,9 @@ export const mockApi = {
             categories.filter((category) => reached.includes(category.category))
           );
           activeMockScanId = null;
-          lastMockScan = stopped;
+          lastMockScan = { result: stopped, discovery: { status: 'stopped', reason: 'Scan was cancelled.' } };
           onEvent({ type: 'Finished', result: stopped });
-          resolve({ result: stopped, discovery: { status: 'stopped', reason: 'Scan was cancelled.' } });
+          resolve(lastMockScan);
           return;
         }
 
@@ -1286,9 +1287,9 @@ export const mockApi = {
         };
 
         activeMockScanId = null;
-        lastMockScan = result;
+        lastMockScan = { result, discovery: { status: 'exhausted' } };
         onEvent({ type: 'Finished', result });
-        resolve({ result, discovery: { status: 'exhausted' } });
+        resolve(lastMockScan);
       }, 450);
     });
   },
@@ -1309,9 +1310,7 @@ export const mockApi = {
   },
 
   async getLastScan(): Promise<PublishedScan | null> {
-    return lastMockScan
-      ? { result: lastMockScan, discovery: { status: 'exhausted' } }
-      : null;
+    return lastMockScan;
   },
 
   previewEmptyTrash: emptyTrashMock.previewEmptyTrash,
@@ -1511,10 +1510,11 @@ export const mockApi = {
     selectedItemIds: string[],
     onEvent: (event: CleanEvent) => void
   ): Promise<CleanResult> {
-    if (!lastMockScan || lastMockScan.scan_id !== scanId || selectedItemIds.length === 0) {
+    if (!lastMockScan || lastMockScan.discovery.status !== 'exhausted'
+      || lastMockScan.result.scan_id !== scanId || selectedItemIds.length === 0) {
       throw new Error('The reviewed scan is no longer available.');
     }
-    const allowed = lastMockScan.categories.flatMap((category) => category.items)
+    const allowed = lastMockScan.result.categories.flatMap((category) => category.items)
       .filter(isAutoCleanable);
     const selected = allowed.filter((item) => selectedItemIds.includes(item.id));
     if (selected.length !== selectedItemIds.length || new Set(selectedItemIds).size !== selectedItemIds.length) {

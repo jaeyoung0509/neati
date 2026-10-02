@@ -82,7 +82,7 @@
     }
   });
   let scan = $derived(scanStore.lastScan);
-  let presentation = $derived(cleanupView(scan, scanStore.freshness, !!scanStore.error));
+  let presentation = $derived(cleanupView(scan, scanStore.freshness, scanStore.discovery, !!scanStore.error));
   let orderedCategories = $derived(
     [...(scan?.categories ?? [])].sort((a, b) =>
       summarizeCategory(b.items).cleanable_bytes - summarizeCategory(a.items).cleanable_bytes
@@ -354,10 +354,10 @@
     <!-- Scan freshness / remediation notice -->
     {#if scan && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
     <div class="space-y-2">
-    {#if scanStore.freshness !== 'fresh' && scanStore.freshness !== 'failed'}
+    {#if (scanStore.freshness !== 'fresh' && scanStore.freshness !== 'failed') || scanStore.discovery.status !== 'exhausted'}
       <ScanFreshnessNotice compact showRetry={false} />
     {/if}
-      <StorageScanDetails {scan} />
+      <StorageScanDetails {scan} discovery={scanStore.discovery} />
     </div>
     {/if}
 

@@ -3,6 +3,7 @@
   import { formatBytes } from '../utils/format';
   import { cleanupAvailability, emptyCategoryMessage, isBulkSelectable, presentedItems, summarizeCategory } from '../utils/cleanup';
   import { scanStore } from '../stores/scan.svelte';
+  import { cleanupEstimateLabels } from '../utils/cleanupView';
   import Checkbox from './Checkbox.svelte';
   import {
     Bot,
@@ -37,6 +38,7 @@
   let cleanableItems = $derived(categoryResult.items.filter(isBulkSelectable));
   let summary = $derived(summarizeCategory(categoryResult.items, scanStore.selectedMap));
   let availability = $derived(cleanupAvailability(categoryResult.items));
+  let estimateLabels = $derived(cleanupEstimateLabels(scanStore.freshness, scanStore.discovery));
   let emptyMessage = $derived(emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category));
 
   let allSelected = $derived.by(() => {
@@ -111,7 +113,7 @@
         {formatBytes(availability.ready)}
       </span>
       <span class="block whitespace-nowrap text-caption text-muted-foreground">
-        Ready now
+        {estimateLabels.categoryLabel}
       </span>
     </div>
 

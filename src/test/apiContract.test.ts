@@ -55,7 +55,10 @@ describe('browser preview scan cancellation', () => {
       await mockApi.cancelScan(await startedScanId(events));
       await vi.advanceTimersByTimeAsync(450);
 
-      const result = (await scan).result;
+      const publication = await scan;
+      const result = publication.result;
+      expect(publication.discovery).toEqual({ status: 'stopped', reason: 'Scan was cancelled.' });
+      expect(await mockApi.getLastScan()).toEqual(publication);
       expect(result.cancelled).toBe(true);
       expect(result.quality).toBe('partial');
       expect(result.incomplete_reasons?.some((reason) => reason.includes('cancelled'))).toBe(true);
@@ -70,6 +73,8 @@ describe('browser preview scan cancellation', () => {
         (event) => event.type === 'Finished' && event.result.cancelled === true
       )).toBe(true);
       expect(result.total_bytes).toBe(result.categories[0].total_bytes);
+      await expect(mockApi.reviewedQuickCleanSafe(result.scan_id, [result.categories[0].items[0].id], () => {}))
+        .rejects.toThrow('The reviewed scan is no longer available.');
     });
   });
 
@@ -80,7 +85,10 @@ describe('browser preview scan cancellation', () => {
         events.push(event);
       });
       await vi.advanceTimersByTimeAsync(450);
-      const result = (await scan).result;
+      const publication = await scan;
+      const result = publication.result;
+      expect(publication.discovery).toEqual({ status: 'exhausted' });
+      expect(await mockApi.getLastScan()).toEqual(publication);
 
       await expect(mockApi.cancelScan(result.scan_id)).resolves.toBeUndefined();
 

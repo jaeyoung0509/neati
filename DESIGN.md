@@ -553,6 +553,11 @@ must not suggest that the account has exhausted its quota.
   beside checked-location copy when coverage is incomplete. Conditional byte
   amounts sit beside their review actions; unestimated actions keep a visible
   `Not estimated` count. Observed ranges retain a short overlap qualifier.
+  Paused and stopped inventories retain their checked estimates without
+  ready-to-clean labels or automatic selection. Cleanup requires exhausted
+  discovery; a completed partial-coverage scan can still authorize its verified
+  eligible rows. The next step is shown concisely, with a stopped scan's detailed
+  reason kept in the closed scan details.
   The scanning surface reserves the same focal height as the summary, shows the
   actual current area, found-item count and request elapsed time, and exposes
   Stop scan and current-path disclosure. Static result placeholders carry no

@@ -14,7 +14,8 @@ import { scanStore } from '../../lib/stores/scan.svelte';
 import { usageStore } from '../../lib/stores/usage.svelte';
 import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
 import { developmentPortsStore } from '../../lib/stores/developmentPorts.svelte';
-import type { PublishedScan, ScanEvent, ScanItem, ScanResult } from '../../lib/models/types';
+import type { PublishedScan, ScanEvent, ScanResult } from '../../lib/models/types';
+import { retainedScanFixture } from './retainedScan';
 
 const published = await mockApi.startScan(() => {});
 const inventory = published.result;
@@ -109,18 +110,14 @@ async function beginProgress() {
   document.querySelector('[aria-label="Stop scan"]')?.addEventListener('click', () => {
     progressEvidence.stopClickAt = performance.now();
   }, { capture: true, once: true });
-  const item: ScanItem = {
-    id: 'fixture', signature_id: 'fixture', name: 'Fixture', category: 'system',
-    risk: 'manual', path: '/fixture', size: { logical: 10, allocated: 10 },
-    file_count: 1, description: '', is_selected: false, last_modified: null, exists: true,
-    quality: 'fresh', incomplete_reason: null,
-    disposition: { eligibility: 'advisory', reason: null, cleanable_bytes: null },
-  };
+  const measuredItems = retainedScanFixture({ status: 'exhausted' }).result.categories[0].items;
   const started = performance.now();
   for (let index = 0; index < 1092; index++) {
     emit({ type: 'RootStarted', category: 'system', signature_id: 'fixture',
       name: 'Measured root', root: `/fixture/${index}` });
-    if (index < 466) emit({ type: 'ItemFound', item });
+    // Repeat a small, measured inventory to exercise event traffic. The burst
+    // count is synthetic throughput, not a claim of 466 native cleanup units.
+    if (index < 466) emit({ type: 'ItemFound', item: measuredItems[index % measuredItems.length] });
   }
   progressEvidence.events = 1558;
   progressEvidence.burstMs = performance.now() - started;
@@ -136,6 +133,9 @@ function progressMeasurement() {
     isCancelling: scanStore.isCancelling, canClean: scanStore.canClean,
     selectedCount: scanStore.selectedCount,
     selectedBytes: scanStore.safeSelectedBytes + scanStore.rebuildSelectedBytes + scanStore.manualSelectedBytes,
+    discovery: scanStore.discovery.status,
+    retainedItemCount: scanStore.lastScan?.categories.reduce((count, category) => count + category.items.length, 0) ?? 0,
+    checkedBytes: scanStore.lastScan?.cleanable_bytes ?? 0,
     cancelled: scanStore.lastScan?.cancelled ?? false,
     progressText: document.querySelector('[aria-label="Storage scan progress"]')?.textContent?.trim(),
   };
@@ -143,14 +143,9 @@ function progressMeasurement() {
 
 async function endProgress() {
   if (!progressRun || !finishProgress) throw new Error('No synthetic scan is running.');
-  const result = structuredClone(inventory);
-  result.scan_id = 'mounted-progress-fixture';
-  result.categories = [];
-  result.total_bytes = result.safe_bytes = result.rebuild_bytes = result.manual_bytes = 0;
-  result.eligibility = undefined;
-  result.quality = 'partial';
-  result.cancelled = progressEvidence.cancelCalls > 0;
-  finishProgress({ result, discovery: { status: 'exhausted' } });
+  finishProgress(retainedScanFixture(progressEvidence.cancelCalls > 0
+    ? { status: 'stopped', reason: 'Scan was cancelled.' } : { status: 'exhausted' },
+    Math.floor(Date.now() / 1000), 'mounted-progress-fixture'));
   await progressRun;
   progressRun = null;
   finishProgress = null;
@@ -168,7 +163,12 @@ async function scan(kind: string) {
   scanStore.currentRoot = null;
   scanStore.scanStartedAt = null;
   scanStore.scanId = null;
-  const result = structuredClone(inventory);
+  const publication: PublishedScan = kind === 'stopped' || kind === 'paused'
+    ? retainedScanFixture(kind === 'stopped'
+      ? { status: 'stopped', reason: 'Scan was cancelled.' }
+      : { status: 'paused', continuation_id: 'synthetic-validation-continuation' })
+    : { result: structuredClone(inventory), discovery: { status: 'exhausted' } };
+  const result = publication.result;
   result.started_at = Math.floor(Date.now() / 1000) - 2;
   result.finished_at = Math.floor(Date.now() / 1000);
   if (kind === 'empty' || kind === 'unavailable' || kind === 'privacy') {
@@ -176,10 +176,10 @@ async function scan(kind: string) {
     result.total_bytes = result.safe_bytes = result.rebuild_bytes = result.manual_bytes = 0;
     result.eligibility = undefined;
   }
-  if (kind === 'partial' || kind === 'stopped' || kind === 'unavailable' || kind === 'privacy') {
+  if (kind === 'partial' || kind === 'unavailable' || kind === 'privacy') {
     result.quality = kind === 'unavailable' || kind === 'privacy' ? 'unavailable' : 'partial';
     result.gaps = [{ kind: kind === 'privacy' ? 'full_disk_access' : 'permission_denied', count: 3 }];
-    result.cancelled = kind === 'stopped';
+    result.cancelled = false;
   }
   if (kind === 'retained') {
     for (const category of result.categories) for (const item of category.items) {
@@ -189,7 +189,7 @@ async function scan(kind: string) {
   }
   // Use the public workflow so failed and subsequently accepted inventories
   // follow the production invalidation rules, including selection authority.
-  mockApi.startScan = async () => ({ result, discovery: { status: 'exhausted' } });
+  mockApi.startScan = async () => publication;
   await scanStore.runScan();
   if (kind === 'initial') {
     scanStore.lastScan = null;

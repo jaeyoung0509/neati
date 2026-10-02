@@ -50,6 +50,9 @@ function global:Start-Sleep {
   Add-Content -LiteralPath $env:NEATI_CI_NSIS_DELAYS -Value $Seconds
 }
 & $Helper -Config $Config
+# A nested script's exit sets LASTEXITCODE without terminating this wrapper.
+# Match the GitHub Actions pwsh wrapper by forwarding that code explicitly.
+exit $LASTEXITCODE
 '@
   $runnerPath = Join-Path $fixtureRoot 'invoke-helper.ps1'
   [System.IO.File]::WriteAllText($runnerPath, $runner)

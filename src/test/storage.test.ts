@@ -712,18 +712,19 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(rendered.body).not.toContain('Scan Again');
   });
 
-  it('renders the header scan control with a stable square wrapper and paint-only motion', () => {
+  it('reserves the header scan action width with paint-only three-dot feedback', () => {
     scanStore.isScanning = false;
     const idleRender = render(StorageView, { props: { onSelectCategory: vi.fn() } });
     expect(idleRender.body).toContain('id="storage-scan-button"');
-    expect(idleRender.body).toContain('inline-flex items-center justify-center shrink-0 w-3.5 h-3.5');
+    expect(idleRender.body).toContain('inline-grid items-center');
     expect(idleRender.body).toContain('transition-[background-color,color,border-color]');
 
     scanStore.isScanning = true;
     const scanningRender = render(StorageView, { props: { onSelectCategory: vi.fn() } });
     expect(scanningRender.body).toContain('id="storage-scan-button"');
-    expect(scanningRender.body).toContain('inline-flex items-center justify-center shrink-0 w-3.5 h-3.5');
+    expect(scanningRender.body).toContain('inline-grid items-center');
     expect(scanningRender.body).toContain('data-loading-indicator');
+    expect(scanningRender.body).toContain('data-loading-variant="dots"');
   });
 
   it('labels the native workflow selector and keeps its region programmatically focusable', () => {

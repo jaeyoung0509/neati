@@ -86,7 +86,7 @@ describe('Checkbox component SSR / visual contracts', () => {
 });
 
 describe('LoadingIndicator accessibility contract', () => {
-  it('keeps the brand motif decorative beside the named operation', () => {
+  it('keeps loading feedback decorative beside the named operation', () => {
     const rendered = render(LoadingIndicator, { props: { size: 'sm' } });
     expect(rendered.body).toContain('data-loading-indicator');
     expect(rendered.body).toContain('aria-hidden="true"');

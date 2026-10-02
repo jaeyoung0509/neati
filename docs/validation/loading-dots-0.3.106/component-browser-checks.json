@@ -1,0 +1,37 @@
+{
+  "scope": "Mounted production Svelte components in Chromium; synthetic data; no native IPC",
+  "cases": [
+    {
+      "actionHasDots": true,
+      "busyWidth": 157.15625,
+      "idleWidth": 157.15625,
+      "inactive": true,
+      "sizes": [
+        {
+          "circles": 3,
+          "decorative": "true",
+          "height": 16,
+          "width": 20
+        },
+        {
+          "circles": 3,
+          "decorative": "true",
+          "height": 20,
+          "width": 23
+        },
+        {
+          "circles": 3,
+          "decorative": "true",
+          "height": 28,
+          "width": 26
+        }
+      ]
+    },
+    {
+      "animations": 0,
+      "case": "Gallery reduced motion",
+      "count": 16,
+      "static": true
+    }
+  ]
+}

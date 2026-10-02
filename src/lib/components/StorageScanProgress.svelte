@@ -30,7 +30,7 @@
   <div class="scan-ripples"><RippleScene activity={scanStore.isCancelling ? 'stopping' : 'working'} /></div>
   <div class="relative flex flex-wrap items-start justify-between gap-3">
     <div class="flex min-w-0 flex-1 items-start gap-3">
-      <span class="shrink-0 text-primary" aria-hidden="true"><LoadingIndicator size="md" word={scanStore.isCancelling ? 'working' : 'scanning'} active={!scanStore.isCancelling} /></span>
+      <span class="shrink-0 text-primary" aria-hidden="true"><LoadingIndicator variant="handwriting" size="md" word={scanStore.isCancelling ? 'working' : 'scanning'} active={!scanStore.isCancelling} /></span>
       <div class="min-w-0">
         <p class="text-sm font-semibold" role="status">
           {scanStore.isCancelling ? 'Stopping scan' : scanStore.isRefreshingAfterClean ? 'Checking storage after cleanup' : 'Checking storage'}

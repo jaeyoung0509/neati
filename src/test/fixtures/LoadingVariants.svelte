@@ -20,13 +20,24 @@
   <h1 class="text-title font-semibold">neati working indicators</h1>
   <p class="mt-1 text-body text-muted-foreground">Mounted production components · synthetic operations · v{__APP_VERSION__}</p>
   <div class="mt-6 space-y-4">
+    <section class="rounded-xl border border-border bg-card p-4" aria-label="Three-dot loading">
+      <p class="text-meta text-muted-foreground">Default three-dot loading</p>
+      <div class="mt-2 flex flex-wrap items-center gap-6">
+        {#each sizes as size}
+          <div class="flex items-center gap-2" data-dot-slot={size}>
+            <LoadingIndicator {size} {active} />
+            <span class="text-caption text-muted-foreground">{size}</span>
+          </div>
+        {/each}
+      </div>
+    </section>
     {#each words as word}
       <section class="rounded-xl border border-border bg-card p-4" aria-label={word}>
         <p class="text-meta text-muted-foreground">{word}</p>
         <div class="mt-2 flex flex-wrap items-center gap-6">
           {#each sizes as size}
             <div class="flex items-center gap-2" data-word-slot={word} data-size-slot={size}>
-              <LoadingIndicator {word} {size} {tone} {motion} {active} />
+              <LoadingIndicator variant="handwriting" {word} {size} {tone} {motion} {active} />
               <span class="text-caption text-muted-foreground">{size}</span>
             </div>
           {/each}

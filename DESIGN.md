@@ -29,21 +29,27 @@ handwritten neati identity with quiet water ripples. Overview and Cleanup use
 five thin SVG curves as atmosphere on solid focal surfaces. Two bounded
 transform/opacity groups drift over 18–22 seconds at rest and 7–9 seconds during
 an actual scan. Stopping freezes the scene into its static composition. The
-shared loading indicator (owner revision #409, October 2, 2026) writes the
-operation word (`loading`, `scanning`, `cleaning` or `working`) with original
-connected cursive pen paths inspired by the neati wordmark. Callers choose the
-typed word from their workflow state; labels are never parsed to infer it. A 3.8-second paint-only cycle writes for 2.4 seconds, dots
-the i, holds the complete word for about 0.8 seconds and gently clears it. It
-has no moving n, ripple, tile or badge; the canonical brand assets stay unchanged. There are no
+shared loading indicator defaults to the familiar three staggered bouncing dots
+(owner revision #411, October 2, 2026). Quick Panel statuses, busy actions,
+Overview and all other main-window loaders use dots. The main Cleanup scan-progress
+card alone opts into the handwritten operation word from #409: original connected
+cursive pen paths inspired by the neati wordmark. Callers choose its typed word
+from workflow state; labels are never parsed to infer it. A 3.8-second paint-only
+cycle writes for 2.4 seconds, dots the i, holds the complete word for about 0.8
+seconds and gently clears it. There is no moving n, tile or badge; the canonical
+brand assets stay unchanged. There are no
 filters, frame loops, simulation, telemetry requests, dynamic particles or list
 animations. A shared IntersectionObserver removes motion offscreen and in a
 hidden document. Reduced motion keeps a static readable indicator; reduced
-transparency also removes decorative scenes. The brand tone has a readable blue/azure/cyan gradient and a staggered
+transparency also removes decorative scenes. Dots inherit their foreground and
+retain the original 1.2-second cycle, 0.18-second stagger and 4.5 px rise through
+SVG centre geometry and fill opacity. The handwritten brand tone has a readable blue/azure/cyan gradient and a staggered
 left-to-right colour pass. Ink tone inherits the action foreground, preserving
 contrast on coloured/destructive buttons. `write` draws the pen stroke and
-then dots the i; compact `flow` keeps the whole word readable while the gradient
-moves (or a thicker pen segment travels in monochrome). Loading motion uses only
-stroke dash offset, stroke opacity and gradient stop colour, preserving
+then dots the i; the artwork's `flow` option keeps the whole word readable while
+the gradient moves (or a thicker pen segment travels in monochrome). Loading
+motion uses only SVG geometry, fill/stroke opacity, stroke dash offset and
+gradient stop colour, preserving
 the paint-only WKWebView teardown contract without transform/compositor layers.
 The former planet scene is no longer used by Overview.
 
@@ -379,20 +385,21 @@ inventory is still valid.
   `outline`), at `text-caption` or above.
 - **ProgressBar**: 4–8 px tall, no looping shimmer, no indeterminate gradient.
 - **ByteValue**: monospace tabular numerals for every byte metric.
-- **LoadingIndicator**: original connected cursive operation-word pen paths;
-  adjacent system text names the operation throughout every stroke. Wide word
-  slots (64×24 / 76×28 / 104×38 px for `loading`) replace square icon slots.
-  Longer words grow proportionally in width, retaining the same letter height.
-  Typed `word`, `size`, `tone` and `motion` options let scanning, cleanup,
-  fetching and other work share geometry without sharing inaccurate copy. Quick Panel status
-  areas reserve two lines in every state, and compact actions reserve their
-  complete content width. A fully written static word replaces motion on hidden,
-  offscreen, inactive, reduced-motion and reduced-transparency surfaces. The
-  artwork is decorative for accessibility; its operation owns the status.
+- **LoadingIndicator**: three staggered bouncing dots by default, in compact
+  20×16 / 23×20 / 26×28 px slots for `xs` / `sm` / `md`. Only the main Cleanup
+  scan-progress card sets `variant="handwriting"`; its connected cursive word
+  uses 64×24 / 76×28 / 104×38 px slots for `loading`, with longer words growing
+  proportionally at the same letter height. Typed `word`, `size`, `tone` and
+  `motion` options remain available for that artwork. Adjacent system text names
+  the operation, and compact actions reserve their complete content width.
+  Quick Panel dots sit inline with one short status sentence rather than a
+  separate word row. Static dots or a fully written word replace motion on
+  hidden, offscreen, inactive, reduced-motion and reduced-transparency surfaces.
+  Both variants are decorative for accessibility; their operation owns the status.
   `LoadingActionContent` overlaps the idle and busy slots so both determine
   the reserved action width; only the active operation is exposed. Buttons use
-  readable ink/write, while Quick Panel statuses use brand/flow and accurate
-  system-font operation text. It never supplies a percentage, completion time
+  dots in the readable action foreground, while Quick Panel statuses use inline
+  dots and accurate system-font operation text. It never supplies a percentage, completion time
   or new telemetry requests.
 - **AnimatedValue**: brief reveal for headline readings only; no row-list replay,
   no interpolated totals, no motion while hidden or under reduced motion/transparency.
@@ -495,7 +502,7 @@ Overview subscribes to the shared memory collector only while visible.
   explicit scan-needed state and `Scan Again`; it never presents stale bytes
   as verified cleanable space. A fresh non-zero estimate may use the focal
   value treatment. Scanning, cleanup, and post-clean verification use the
-  shared handwritten loading word beside one short status sentence. Hide stale
+  shared three-dot loader beside one short status sentence. Hide stale
   category rows and review actions until the new inventory is ready.
 - Current complete and partial scans offer one-click `Clean` for backend-verified
   Safe and Rebuild caches. There is no mandatory review dialog for ordinary
@@ -522,7 +529,7 @@ Overview subscribes to the shared memory collector only while visible.
   use a readable name and an explicit loading/stale/unavailable state, and
   express reset times with units rather than a bare minute counter. AI activity
   uses typography and grouping for identity, with no separate purple brand.
-- Loading provider usage uses the shared handwritten loading word. Stale usage has
+- Loading provider usage uses inline three-dot feedback. Stale usage has
   a labeled refresh action in place. The battery row uses the same filled
   indicator as the dashboard, including a bolt only for actual charging.
 - On macOS the Quick Panel follows the protected native glass contract above:

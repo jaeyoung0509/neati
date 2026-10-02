@@ -1,0 +1,68 @@
+{
+  "issue": 411,
+  "date": "2026-10-02",
+  "platform": "macOS 27.0.1 (26A434)",
+  "version_transition": {
+    "from": "0.3.105",
+    "to": "0.3.106"
+  },
+  "local_checks": {
+    "cargo check": "passed",
+    "cargo test": {
+      "passed": 1432,
+      "failed": 0,
+      "ignored": 17,
+      "doc_tests": "passed"
+    },
+    "pnpm check": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "pnpm test -- --run": {
+      "files": 58,
+      "passed": 531,
+      "failed": 0
+    },
+    "pnpm build": "passed, including Tailwind utility checks",
+    "cargo fmt --all -- --check": "passed",
+    "cargo clippy --workspace --all-targets -- -D warnings": "passed",
+    "just check-architecture": "passed",
+    "just check-version": "passed",
+    "just build-fast": "passed"
+  },
+  "browser_cases": {
+    "main": 7,
+    "quick_panel": 38,
+    "components": 2
+  },
+  "debug_bundle": {
+    "version": "0.3.106",
+    "executable": "Neati",
+    "binary_sha256": "853cd6e506f9efa08ec37ede0ff4cf7b1ce91576b18c51553d1a9a595b26bc1c",
+    "icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+    "icon_matches_source": true,
+    "embedded_frontend_entries": [
+      "BrandIcon-B8G_s8WI.js",
+      "Dashboard-CEwdviyA.js",
+      "QuickPanel-UkH6PmgY.js",
+      "core-DNaw6KYU.js",
+      "dpi-Cq0vR3n3.js",
+      "event-BlJUiB_z.js",
+      "index-qqlk0kY3.js",
+      "rolldown-runtime-DK3Fl9T5.js",
+      "webviewWindow-By8nsw2m.js",
+      "window-CGM1TOkC.js"
+    ]
+  },
+  "installation": {
+    "replaced": false,
+    "launched": false,
+    "installed_version": "0.3.105"
+  },
+  "remote_ci": "Reported separately in the PR",
+  "manual_platform_limits": [
+    "Native WKWebView paint and teardown",
+    "Native glass composition",
+    "Windows runtime behavior"
+  ]
+}

@@ -1,22 +1,15 @@
 import type { BatteryMetrics, CpuMetrics } from '../models/types';
 import { tauriGetBatteryMetrics, tauriGetCpuMetrics } from '../utils/tauri';
-
-/** One real CPU observation. The short history is built only from these. */
-export interface CpuSample {
-  /** Unix milliseconds of the reading. */
-  at: number;
-  /** System-wide busy percentage, 0-100. */
-  percent: number;
-}
-
-/** ~2.5 minutes of foreground history at the default 2.5 s cadence. */
-const HISTORY_LIMIT = 60;
+import { CPU_HISTORY_EXPECTED_INTERVAL_MS, recentCpuSamples, type CpuSample } from '../utils/cpuHistory';
+export type { CpuSample } from '../utils/cpuHistory';
 
 export class SystemMetricsStore {
   cpu = $state<CpuMetrics | null>(null);
   battery = $state<BatteryMetrics | null>(null);
   /** Real samples only: nothing is interpolated across a gap. */
   cpuHistory = $state<CpuSample[]>([]);
+  /** Advances only with the existing foreground refresh, never a chart timer. */
+  cpuHistoryEndAt = $state(Date.now());
   cpuError = $state<string | null>(null);
   batteryError = $state<string | null>(null);
   isPolling = $state(false);
@@ -50,6 +43,7 @@ export class SystemMetricsStore {
   }
 
   private async loadCpu(): Promise<void> {
+    this.expireHistory();
     try {
       const metrics = await this.getCpuFn();
       this.cpu = metrics;
@@ -63,7 +57,15 @@ export class SystemMetricsStore {
       }
     } catch (error) {
       this.cpuError = error instanceof Error ? error.message : String(error);
+      if (this.cpu) this.cpu = { ...this.cpu, state: 'failed', reason: this.cpuError };
+    } finally {
+      this.expireHistory();
     }
+  }
+
+  private expireHistory(): void {
+    this.cpuHistoryEndAt = Date.now();
+    this.cpuHistory = recentCpuSamples(this.cpuHistory, this.cpuHistoryEndAt);
   }
 
   refreshBattery(): Promise<void> {
@@ -89,10 +91,10 @@ export class SystemMetricsStore {
    */
   private recordSample(sample: CpuSample): void {
     const last = this.cpuHistory[this.cpuHistory.length - 1];
-    if (last && last.at === sample.at) {
+    if (last && last.at >= sample.at) {
       return;
     }
-    this.cpuHistory = [...this.cpuHistory, sample].slice(-HISTORY_LIMIT);
+    this.cpuHistory = recentCpuSamples([...this.cpuHistory, sample], Date.now());
   }
 
   /**
@@ -104,7 +106,7 @@ export class SystemMetricsStore {
    * is read on the first tick and then once per `batteryIntervalMs` instead of
    * re-probing the power source at the CPU rate.
    */
-  startPolling(intervalMs: number = 2500, batteryIntervalMs: number = 30_000): void {
+  startPolling(intervalMs: number = CPU_HISTORY_EXPECTED_INTERVAL_MS, batteryIntervalMs: number = 30_000): void {
     this.subscriberCount++;
     if (this.subscriberCount !== 1) return;
 
@@ -122,7 +124,7 @@ export class SystemMetricsStore {
     this.stopTimer = () => globalThis.clearInterval(handle);
   }
 
-  observePolling(intervalMs: number = 2500, batteryIntervalMs: number = 30_000): () => void {
+  observePolling(intervalMs: number = CPU_HISTORY_EXPECTED_INTERVAL_MS, batteryIntervalMs: number = 30_000): () => void {
     this.startPolling(intervalMs, batteryIntervalMs);
     let subscribed = true;
     return () => {
@@ -149,6 +151,7 @@ export class SystemMetricsStore {
     this.cpu = null;
     this.battery = null;
     this.cpuHistory = [];
+    this.cpuHistoryEndAt = Date.now();
     this.cpuError = null;
     this.batteryError = null;
     this.cpuRequest = null;

@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-02",
+  "host": {
+    "os": "macOS 27.0.1",
+    "os_build": "26A434"
+  },
+  "baseline": {
+    "branch": "origin/develop",
+    "commit": "a1d99f38f9896366380429f5323649be4ecd0f6b",
+    "version": "0.3.104"
+  },
+  "version": "0.3.105",
+  "checks": {
+    "cargo_check": "passed",
+    "cargo_test_workspace": {
+      "passed": 1432,
+      "failed": 0,
+      "ignored": 17,
+      "rustdoc": "passed"
+    },
+    "cargo_fmt": "passed",
+    "cargo_clippy": "passed",
+    "check_architecture": "passed",
+    "pnpm_check": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "pnpm_test": {
+      "files": 58,
+      "passed": 531,
+      "failed": 0
+    },
+    "pnpm_build": "passed through just build-fast",
+    "just_build_fast": "passed",
+    "just_check_version": "passed"
+  },
+  "bundle": {
+    "path": "target/debug/bundle/macos/neati.app",
+    "short_version": "0.3.105",
+    "bundle_version": "0.3.105",
+    "packaged_icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+    "source_icon_sha256": "6762519752de4ffc84865d6edc7a80462f3d1edebf4d7c2d94cd9ffa1c460dc9",
+    "current_frontend_assets_embedded": {
+      "assets/index-DDEmA8l3.js": true,
+      "assets/core-DNaw6KYU.js": true,
+      "assets/rolldown-runtime-DK3Fl9T5.js": true,
+      "assets/dpi-Cq0vR3n3.js": true,
+      "assets/event-BlJUiB_z.js": true,
+      "assets/window-CGM1TOkC.js": true,
+      "assets/index-BIJl1Msm.css": true
+    }
+  },
+  "native_manual_testing": "Deferred to owner by explicit request; app was not launched, installed or replaced.",
+  "ci": "Not represented by local results; check the PR for current CI status."
+}

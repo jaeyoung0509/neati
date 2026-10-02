@@ -1,0 +1,768 @@
+{
+  "checks": [
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 320
+        },
+        "words": [
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 ready width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 ready status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 320
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 scanning width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 scanning status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 320
+        },
+        "words": [
+          "cleaning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 cleaning width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "cleaning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 cleaning status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 320
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 refreshing width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 refreshing status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 320
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 stopping width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "320 stopping status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "states": [
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "ready",
+            "width": 320
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "scanning",
+            "width": 320
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "cleaning",
+            "width": 320
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "refreshing",
+            "width": 320
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "stopping",
+            "width": 320
+          }
+        ]
+      },
+      "name": "320 operation bounds reserved",
+      "pass": true
+    },
+    {
+      "details": {
+        "loadingHeight": 715,
+        "readyHeight": 715
+      },
+      "name": "320 provider loading bounds stable",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 360
+        },
+        "words": [
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 ready width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 ready status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 360
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 scanning width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 scanning status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 360
+        },
+        "words": [
+          "cleaning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 cleaning width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "cleaning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 cleaning status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 360
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 refreshing width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 refreshing status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 360
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 stopping width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "360 stopping status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "states": [
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "ready",
+            "width": 360
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "scanning",
+            "width": 360
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "cleaning",
+            "width": 360
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "refreshing",
+            "width": 360
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "stopping",
+            "width": 360
+          }
+        ]
+      },
+      "name": "360 operation bounds reserved",
+      "pass": true
+    },
+    {
+      "details": {
+        "loadingHeight": 715,
+        "readyHeight": 715
+      },
+      "name": "360 provider loading bounds stable",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "words": [
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 ready width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 ready status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 scanning width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 scanning status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "words": [
+          "cleaning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 cleaning width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "cleaning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 cleaning status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 refreshing width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 refreshing status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "measurement": {
+          "contentHeight": 593,
+          "footerBottom": 714,
+          "gaugeSlots": 2,
+          "height": 715,
+          "memorySubscribers": 1,
+          "meters": 0,
+          "metricsSubscribers": 1,
+          "requests": [
+            {
+              "height": 715,
+              "type": "Logical",
+              "width": 360
+            }
+          ],
+          "scrollable": false,
+          "subscribers": 1,
+          "visible": true,
+          "width": 400
+        },
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 stopping width",
+      "pass": true
+    },
+    {
+      "details": {
+        "words": [
+          "scanning",
+          "loading",
+          "loading"
+        ]
+      },
+      "name": "400 stopping status wording",
+      "pass": true
+    },
+    {
+      "details": {
+        "states": [
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "ready",
+            "width": 400
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "scanning",
+            "width": 400
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "cleaning",
+            "width": 400
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "refreshing",
+            "width": 400
+          },
+          {
+            "contentHeight": 593,
+            "height": 715,
+            "kind": "stopping",
+            "width": 400
+          }
+        ]
+      },
+      "name": "400 operation bounds reserved",
+      "pass": true
+    },
+    {
+      "details": {
+        "loadingHeight": 715,
+        "readyHeight": 715
+      },
+      "name": "400 provider loading bounds stable",
+      "pass": true
+    }
+  ],
+  "scope": "Mounted production Quick Panel in Chromium; mocked display/window APIs and synthetic data, no native IPC",
+  "version": "0.3.105"
+}

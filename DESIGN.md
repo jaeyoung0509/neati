@@ -29,14 +29,22 @@ handwritten neati identity with quiet water ripples. Overview and Cleanup use
 five thin SVG curves as atmosphere on solid focal surfaces. Two bounded
 transform/opacity groups drift over 18–22 seconds at rest and 7–9 seconds during
 an actual scan. Stopping freezes the scene into its static composition. The
-shared loading indicator uses the canonical handwritten n stroke from
-`src-tauri/icons/neati-mark.svg` with one small expanding water ripple on a
-2.4-second cycle; it has no tile, badge or extra logo geometry. There are no
+shared loading indicator (owner revision #409, October 2, 2026) writes the
+operation word (`loading`, `scanning`, `cleaning` or `working`) with original
+connected cursive pen paths inspired by the neati wordmark. Callers choose the
+typed word from their workflow state; labels are never parsed to infer it. A 3.8-second paint-only cycle writes for 2.4 seconds, dots
+the i, holds the complete word for about 0.8 seconds and gently clears it. It
+has no moving n, ripple, tile or badge; the canonical brand assets stay unchanged. There are no
 filters, frame loops, simulation, telemetry requests, dynamic particles or list
 animations. A shared IntersectionObserver removes motion offscreen and in a
 hidden document. Reduced motion keeps a static readable indicator; reduced
-transparency also removes decorative scenes. Existing paint-only header
-spinners retain their WKWebView teardown contract.
+transparency also removes decorative scenes. The brand tone has a readable blue/azure/cyan gradient and a staggered
+left-to-right colour pass. Ink tone inherits the action foreground, preserving
+contrast on coloured/destructive buttons. `write` draws the pen stroke and
+then dots the i; compact `flow` keeps the whole word readable while the gradient
+moves (or a thicker pen segment travels in monochrome). Loading motion uses only
+stroke dash offset, stroke opacity and gradient stop colour, preserving
+the paint-only WKWebView teardown contract without transform/compositor layers.
 The former planet scene is no longer used by Overview.
 
 This document is the visual contract. The executable half of it — colour,
@@ -371,9 +379,21 @@ inventory is still valid.
   `outline`), at `text-caption` or above.
 - **ProgressBar**: 4–8 px tall, no looping shimmer, no indeterminate gradient.
 - **ByteValue**: monospace tabular numerals for every byte metric.
-- **LoadingIndicator**: the canonical handwritten n and one quiet water ripple;
-  adjacent copy names the operation. Fixed icon slots, no status percentage, and
-  static fallback for hidden/offscreen/reduced-motion/transparency surfaces.
+- **LoadingIndicator**: original connected cursive operation-word pen paths;
+  adjacent system text names the operation throughout every stroke. Wide word
+  slots (64×24 / 76×28 / 104×38 px for `loading`) replace square icon slots.
+  Longer words grow proportionally in width, retaining the same letter height.
+  Typed `word`, `size`, `tone` and `motion` options let scanning, cleanup,
+  fetching and other work share geometry without sharing inaccurate copy. Quick Panel status
+  areas reserve two lines in every state, and compact actions reserve their
+  complete content width. A fully written static word replaces motion on hidden,
+  offscreen, inactive, reduced-motion and reduced-transparency surfaces. The
+  artwork is decorative for accessibility; its operation owns the status.
+  `LoadingActionContent` overlaps the idle and busy slots so both determine
+  the reserved action width; only the active operation is exposed. Buttons use
+  readable ink/write, while Quick Panel statuses use brand/flow and accurate
+  system-font operation text. It never supplies a percentage, completion time
+  or new telemetry requests.
 - **AnimatedValue**: brief reveal for headline readings only; no row-list replay,
   no interpolated totals, no motion while hidden or under reduced motion/transparency.
 - **SelectionToolbar**: reserved space in the content column; count, measured
@@ -475,7 +495,7 @@ Overview subscribes to the shared memory collector only while visible.
   explicit scan-needed state and `Scan Again`; it never presents stale bytes
   as verified cleanable space. A fresh non-zero estimate may use the focal
   value treatment. Scanning, cleanup, and post-clean verification use the
-  three-dot working indicator beside one short status sentence. Hide stale
+  shared handwritten loading word beside one short status sentence. Hide stale
   category rows and review actions until the new inventory is ready.
 - Current complete and partial scans offer one-click `Clean` for backend-verified
   Safe and Rebuild caches. There is no mandatory review dialog for ordinary
@@ -502,7 +522,7 @@ Overview subscribes to the shared memory collector only while visible.
   use a readable name and an explicit loading/stale/unavailable state, and
   express reset times with units rather than a bare minute counter. AI activity
   uses typography and grouping for identity, with no separate purple brand.
-- Loading provider usage uses the shared three-dot indicator. Stale usage has
+- Loading provider usage uses the shared handwritten loading word. Stale usage has
   a labeled refresh action in place. The battery row uses the same filled
   indicator as the dashboard, including a bolt only for actual charging.
 - On macOS the Quick Panel follows the protected native glass contract above:
@@ -653,7 +673,14 @@ must not suggest that the account has exhausted its quota.
 ### Performance
 
 - CPU, memory, and battery summaries with local tabs and a short real history
-  when samples exist.
+  when samples exist. CPU history uses a fixed trailing 2m 30s window, capped at
+  60 real samples. The existing foreground refresh advances its right edge and
+  expires old entries, including on failed/stale refreshes and reactivation; no
+  chart timer or hidden-window sampling is added. Performance uses a 112 px
+  plot with visible 0/50/100% and relative-time labels. Overview retains the
+  compact plot with the same window. Recording gaps remain disconnected; empty
+  history is named rather than drawn at zero. Single samples and the latest
+  point use non-scaling round strokes, never stretched circles.
 - The direct Memory destination reuses the subscriber-owned memory panel in a
   focused page titled Memory, without a second navigation strip. Selecting
   Memory from Performance opens the same destination.

@@ -49,8 +49,8 @@
   {:else if usageStore.isLoading}
     <div role="status" aria-label="Loading usage metadata">
       <Card class="p-8 text-center">
-        <LoadingIndicator size="sm" class="text-primary" />
-        <p class="mt-3 text-xs text-muted-foreground">Loading usage metadata…</p>
+        <LoadingIndicator size="md" class="text-primary" />
+        <p class="mt-3 text-meta text-muted-foreground">Checking account usage…</p>
       </Card>
     </div>
   {:else}

@@ -19,6 +19,7 @@
   } from '../../lib/utils/systemReadings';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
@@ -224,8 +225,9 @@
         disabled={refreshing}
         onclick={() => void refreshReadings()}
       >
-        {#if refreshing}<LoadingIndicator size="sm" />{:else}<RefreshCw size={14} aria-hidden="true" />{/if}
-        <span>Refresh</span>
+        <LoadingActionContent busy={refreshing} busyLabel="Refreshing…">
+          <RefreshCw size={14} aria-hidden="true" /><span>Refresh</span>
+        </LoadingActionContent>
       </Button>
     {/snippet}
   </PageHeader>
@@ -243,8 +245,8 @@
       </div>
       {#if cleanupBusy}
         <p class="flex min-h-8 items-center gap-2 text-body font-medium text-foreground" role="status" aria-live="polite">
-          <LoadingIndicator size="sm" class="text-primary" />
-          <span>{cleanupState === 'cleaning' ? 'Cleaning safe caches…' : scanStore.isRefreshingAfterClean ? 'Checking storage after cleanup…' : 'Checking storage…'}</span>
+          <LoadingIndicator size="sm" word={cleanupState === 'cleaning' ? 'cleaning' : 'scanning'} class="text-primary" />
+          <span class="min-w-0">{cleanupState === 'cleaning' ? 'Cleaning safe caches…' : scanStore.isRefreshingAfterClean ? 'Checking storage after cleanup…' : 'Checking storage…'}</span>
         </p>
       {:else}
         <p class="{cleanupState === 'ready' || cleanupState === 'clean' || (cleanupState === 'partial' && quickCleanableBytes > 0) ? 'overview-hero-value font-medium' : 'text-body font-semibold'} tabular-nums text-foreground"><AnimatedValue value={cleanupValue} /></p>
@@ -294,7 +296,7 @@
     >
       {#snippet visual()}
         {#if systemMetricsStore.cpuHistory.length > 0}
-          <MetricSparkline samples={systemMetricsStore.cpuHistory} class="h-8" />
+          <MetricSparkline samples={systemMetricsStore.cpuHistory} endAt={systemMetricsStore.cpuHistoryEndAt} compact />
         {:else}
           <span class="text-caption text-muted-foreground">No history recorded yet</span>
         {/if}

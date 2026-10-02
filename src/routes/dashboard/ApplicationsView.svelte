@@ -9,6 +9,7 @@
     TrashPlanPreview,
     TrashResult,
   } from '../../lib/models/types';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
@@ -387,8 +388,10 @@
           <h2 class="text-sm font-semibold">Installed apps</h2>
           <p class="text-caption text-muted-foreground mt-0.5">Configured application folders</p>
         </div>
-        <Button variant="ghost" size="icon" onclick={loadApps} disabled={isLoading || !isInstalledAppsInspectable} ariaLabel="Refresh applications">
-          <RefreshCw size={14} class={isLoading ? 'animate-gentle-spin' : ''} />
+        <Button variant="ghost" size="sm" class="w-24 shrink-0" onclick={loadApps} disabled={isLoading || !isInstalledAppsInspectable} ariaLabel="Refresh applications" title="Refresh applications">
+          <LoadingActionContent busy={isLoading} busyLabel="" word="scanning">
+            <RefreshCw size={14} aria-hidden="true" /><span>Refresh</span>
+          </LoadingActionContent>
         </Button>
       </div>
 

@@ -11,6 +11,7 @@
   } from '../../lib/utils/tauri';
   import { formatBytes } from '../../lib/utils/format';
   import { observedByteRange } from '../../lib/utils/cleanup';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
@@ -90,8 +91,9 @@
         Storage Settings
       </Button>
       <Button variant="outline" size="sm" class="gap-1.5" disabled={isLoading} onclick={refresh}>
-        <RefreshCw size={13} class={isLoading ? 'animate-gentle-spin' : ''} />
-        Refresh
+        <LoadingActionContent busy={isLoading} busyLabel="Refreshing…">
+          <RefreshCw size={13} aria-hidden="true" />Refresh
+        </LoadingActionContent>
       </Button>
     {/snippet}
   </PageHeader>

@@ -80,7 +80,24 @@ describe('performance readings', () => {
     const { body } = render(CpuPanel);
     expect(body).toContain('Warming up');
     expect(body).not.toContain('0.0%');
-    expect(body).not.toContain('>0%');
+    expect(body).toContain('No readings in this window');
+    expect(body).not.toContain('<polyline');
+  });
+
+  it('a long CPU measurement window does not connect missing foreground readings', () => {
+    systemMetricsStore.cpu = { ...cpuBase, state: 'fresh', usage_percent: 40, sample_interval_ms: 45_000, sampled_at: 150_000 };
+    systemMetricsStore.cpuHistoryEndAt = 150_000;
+    systemMetricsStore.cpuHistory = [
+      { at: 100_000, percent: 10 },
+      { at: 102_500, percent: 20 },
+      { at: 147_500, percent: 30 },
+      { at: 150_000, percent: 40 },
+    ];
+
+    const body = render(CpuPanel).body;
+    expect(body).toContain('45.0 s');
+    expect(body.match(/<polyline /g)).toHaveLength(2);
+    expect(body).toContain('1 recording gap; missing readings are not connected.');
   });
 
   it('cpu stale keeps the last real reading and labels it paused', () => {

@@ -8,6 +8,8 @@
   import { withMinimumDuration } from '../../utils/async';
   import { filterProcesses } from '../../utils/memory';
   import { memoryPressureLabel } from '../../utils/systemReadings';
+  import LoadingIndicator from '../LoadingIndicator.svelte';
+  import LoadingActionContent from '../LoadingActionContent.svelte';
   import Button from '../Button.svelte';
   import Card from '../Card.svelte';
   import Badge from '../Badge.svelte';
@@ -171,8 +173,9 @@
           onclick={handleRefresh}
           class="gap-1.5"
         >
-          <RotateCw size={13} class={isRefreshing || memoryStore.isLoading ? 'animate-gentle-spin' : ''} />
-          <span>Refresh</span>
+          <LoadingActionContent busy={isRefreshing || memoryStore.isLoading} busyLabel="Refreshing…">
+            <RotateCw size={13} aria-hidden="true" /><span>Refresh</span>
+          </LoadingActionContent>
         </Button>
       </div>
 
@@ -343,8 +346,8 @@
     </div>
 
   {:else}
-    <div class="space-y-2 py-16 text-center text-meta text-muted-foreground">
-      <RotateCw size={20} class="mx-auto animate-gentle-spin opacity-50" aria-hidden="true" />
+    <div class="space-y-2 py-16 text-center text-meta text-muted-foreground" role="status">
+      <LoadingIndicator size="md" class="text-primary" />
       <p>Reading system memory statistics...</p>
     </div>
   {/if}

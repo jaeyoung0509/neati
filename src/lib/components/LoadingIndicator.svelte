@@ -1,34 +1,81 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import neatiMark from '../../../src-tauri/icons/neati-mark.svg';
   import { observeMotion } from '../utils/motionVisibility';
+  import { handwrittenStatus, type LoadingWord, type LoadingTone, type LoadingMotion } from '../utils/handwrittenStatus';
 
-  let { size = 'md', active = true, class: className = '' }: {
+  let { size = 'md', word = 'loading', tone = 'brand', motion = 'write', active = true, class: className = '' }: {
     size?: 'xs' | 'sm' | 'md';
+    word?: LoadingWord;
+    tone?: LoadingTone;
+    motion?: LoadingMotion;
     active?: boolean;
     class?: string;
   } = $props();
   let element: HTMLSpanElement;
   let allowed = $state(false);
-  const dimensions = { xs: 16, sm: 20, md: 28 };
+  const instanceId = $props.id();
+  const inkId = `${instanceId}-loading-ink`;
+  const dimensions = { xs: [64, 24], sm: [76, 28], md: [104, 38] };
+  let artwork = $derived(handwrittenStatus[word]);
+  let width = $derived(Math.ceil(dimensions[size][0] * artwork.width / handwrittenStatus.loading.width));
   onMount(() => observeMotion(element, (next) => { allowed = next; }));
 </script>
 
-<!-- The canonical handwritten stroke, with one ripple; nearby text names the work. -->
-<span bind:this={element} data-loading-indicator data-moving={allowed && active}
-  class="neati-loading shrink-0 {className}" style:--loading-size={`${dimensions[size]}px`}
-  aria-hidden="true">
-  <span class="loading-stroke" style={`mask-image: url("${neatiMark}"); -webkit-mask-image: url("${neatiMark}")`}></span>
-  <span class="loading-ripple"></span>
+<!-- The nearby operation owns accessible status; pen/colour cycles are decorative. -->
+<span bind:this={element} data-loading-indicator data-loading-word={word} data-moving={allowed && active}
+  data-tone={tone} data-motion={motion} class="neati-loading shrink-0 {className}"
+  style:width={`${width}px`} style:height={`${dimensions[size][1]}px`} aria-hidden="true">
+  <svg viewBox={`0 0 ${artwork.width} 64`} fill="none" stroke-width="3.8"
+    stroke-linecap="round" stroke-linejoin="round" focusable="false">
+    <defs>
+      <linearGradient id={inkId} x1="0" y1="0" x2={artwork.width} y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0" style="--ink-base: var(--primary); --ink-wave: var(--meter-end); --ink-delay: 0s" />
+        <stop offset="0.52" style="--ink-base: var(--meter-middle); --ink-wave: var(--primary); --ink-delay: 0.16s" />
+        <stop offset="1" style="--ink-base: var(--meter-end); --ink-wave: var(--primary); --ink-delay: 0.32s" />
+      </linearGradient>
+    </defs>
+    <g stroke={tone === 'brand' ? `url(#${inkId})` : 'currentColor'}>
+      <path class="loading-writing" pathLength="1" d={artwork.path} />
+      <path class="loading-dot" pathLength="1" d={artwork.dots} stroke-width="5" />
+      {#if tone === 'ink' && motion === 'flow'}
+        <path class="loading-ink-pass" pathLength="1" d={artwork.path} stroke-width="5.2" />
+      {/if}
+    </g>
+  </svg>
 </span>
 
 <style>
-  .neati-loading { position: relative; display: inline-block; vertical-align: middle; width: var(--loading-size); height: var(--loading-size); }
-  .loading-stroke { position: absolute; inset: 0; background: currentColor; mask-size: contain; mask-repeat: no-repeat; mask-position: center; -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; }
-  .loading-ripple { position: absolute; left: 22%; right: 10%; bottom: 4%; height: 16%; border: 1px solid currentColor; border-radius: 50%; opacity: 0.3; }
-  [data-moving='true'] .loading-stroke { animation: stroke-float 2.4s ease-in-out infinite; }
-  [data-moving='true'] .loading-ripple { animation: ripple-out 2.4s ease-out infinite; transform-origin: center; }
-  @keyframes stroke-float { 0%, 100% { transform: translateY(0); opacity: 0.8; } 45% { transform: translateY(-1px); opacity: 1; } }
-  @keyframes ripple-out { 0%, 15% { transform: scale(0.8); opacity: 0.1; } 40% { opacity: 0.45; } 100% { transform: scale(1.25); opacity: 0; } }
-  @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) { .loading-stroke, .loading-ripple { animation: none !important; } }
+  .neati-loading { display: inline-flex; align-items: center; vertical-align: middle; flex-shrink: 0; }
+  svg { width: 100%; height: 100%; overflow: visible; }
+  .loading-writing, .loading-dot { stroke-dasharray: 1; stroke-dashoffset: 0; }
+  stop { stop-color: hsl(var(--ink-base)); }
+  [data-moving='true'][data-motion='write'] .loading-writing { animation: loading-write 3.8s linear infinite; }
+  [data-moving='true'][data-motion='write'] .loading-dot { animation: loading-dot 3.8s linear infinite; }
+  [data-moving='true'][data-tone='brand'] stop { animation: ink-flow 3.8s ease-in-out infinite; animation-delay: var(--ink-delay); }
+  .loading-ink-pass { stroke-dasharray: 0.12 1; stroke-opacity: 0; }
+  [data-moving='true'] .loading-ink-pass { animation: ink-pass 3.8s linear infinite; }
+  @keyframes ink-pass {
+    0% { stroke-dashoffset: 0.12; stroke-opacity: 1; }
+    88% { stroke-dashoffset: -1; stroke-opacity: 1; }
+    89%, 100% { stroke-dashoffset: -1; stroke-opacity: 0; }
+  }
+  @keyframes ink-flow {
+    0%, 62%, 94%, 100% { stop-color: hsl(var(--ink-base)); }
+    72%, 80% { stop-color: hsl(var(--ink-wave)); }
+  }
+  @keyframes loading-write {
+    0% { stroke-dashoffset: 1; stroke-opacity: 1; }
+    64%, 88% { stroke-dashoffset: 0; stroke-opacity: 1; }
+    98%, 100% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  }
+  @keyframes loading-dot {
+    0%, 64% { stroke-dashoffset: 1; stroke-opacity: 0; }
+    68%, 88% { stroke-dashoffset: 0; stroke-opacity: 1; }
+    98%, 100% { stroke-dashoffset: 0; stroke-opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+    .loading-writing, .loading-dot { animation: none !important; stroke-dashoffset: 0; stroke-opacity: 1; }
+    stop { animation: none !important; }
+    .loading-ink-pass { animation: none !important; stroke-opacity: 0; }
+  }
 </style>

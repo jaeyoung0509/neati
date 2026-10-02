@@ -3,6 +3,7 @@
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import { TemporaryReviewStore } from '../../lib/stores/temporaryReview.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { formatBytes, formatTimeAgo } from '../../lib/utils/format';
@@ -43,7 +44,7 @@
   <div class="flex flex-wrap items-start gap-3">
     <Button variant="ghost" size="icon" ariaLabel="Back to Developer Artifacts" title="Back to Developer Artifacts" onclick={onBack}><ArrowLeft size={18} /></Button>
     <div class="min-w-0 flex-1 basis-48"><h1 class="text-title font-semibold">Temporary folders</h1><p class="mt-1 text-body text-muted-foreground">Review build directories, worktrees and scratch data. Nothing is preselected.</p></div>
-    <Button disabled={!!review.busy} onclick={() => review.scan()} class="gap-1.5">{#if review.busy === 'scan'}<LoadingIndicator size="sm" />{:else}<RefreshCw size={14} />{/if}Scan temporary folders</Button>
+    <Button disabled={!!review.busy} onclick={() => review.scan()} class="gap-1.5"><LoadingActionContent busy={review.busy === 'scan'} busyLabel="Inspecting…" word="scanning"><RefreshCw size={14} aria-hidden="true" />Scan temporary folders</LoadingActionContent></Button>
   </div>
   {#if !isTauri()}<p role="status" class="text-meta text-muted-foreground">Browser fixture · native inspection and Trash moves require the desktop app.</p>{/if}
   <Card class="p-4 space-y-2">
@@ -51,7 +52,7 @@
     <details class="text-meta text-muted-foreground"><summary class="cursor-pointer focus-ring">Scope and limits</summary><p class="mt-2">Only direct units under the platform’s user and shared temporary roots are inventoried. Age informs your decision. Access, current-user ownership, stable identity and no-follow boundaries remain required. Usage uncertainty can be accepted only in this review.</p>{#if review.inventory}<ul class="mt-2 space-y-1">{#each review.inventory.roots as root}<li class="break-all font-mono">{root}</li>{/each}</ul>{/if}</details>
   </Card>
   {#if review.error && !review.preview}<p role="alert" class="text-body text-destructive">{review.error}</p>{/if}
-  {#if review.busy === 'scan'}<div role="status" class="flex items-center gap-3 text-body"><LoadingIndicator size="sm" />Inspecting temporary folders…<Button variant="outline" onclick={() => review.stop()}><X size={14} />Stop scan</Button></div>{/if}
+  {#if review.busy === 'scan'}<div role="status" class="flex flex-wrap items-center gap-3 text-body"><LoadingIndicator size="sm" word="scanning" /><span class="min-w-0">Inspecting temporary folders…</span><Button variant="outline" onclick={() => review.stop()}><X size={14} />Stop scan</Button></div>{/if}
   {#if review.inventory}
     {#if !review.inventory.available}<p role="status" class="text-body">{review.inventory.unavailable_reason}</p>
     {:else}

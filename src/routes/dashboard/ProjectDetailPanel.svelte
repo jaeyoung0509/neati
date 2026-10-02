@@ -18,6 +18,7 @@
     ProjectContext,
   } from '../../lib/models/types';
   import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { formatBytes } from '../../lib/utils/format';
@@ -162,8 +163,9 @@
         title="Refresh project activity"
         ariaLabel="Refresh project activity"
       >
-        <RefreshCw size={13} class={agentActivityStore.isLoading ? 'animate-spin' : ''} />
-        Refresh
+        <LoadingActionContent busy={agentActivityStore.isLoading} busyLabel="Refreshing…">
+          <RefreshCw size={13} aria-hidden="true" />Refresh
+        </LoadingActionContent>
       </Button>
     </div>
   </div>

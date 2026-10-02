@@ -104,6 +104,8 @@ describe('SystemMetricsStore polling lifecycle', () => {
 
 describe('SystemMetricsStore cpu history', () => {
   it('records one point per real reading and never invents a value', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(3000);
     const store = new SystemMetricsStore(
       vi.fn().mockResolvedValue(cpuFixture({ state: 'warmup', usage_percent: null, sampled_at: null })),
       vi.fn().mockResolvedValue(batteryFixture())

@@ -9,6 +9,7 @@
     TrashPlanPreview,
     TrashResult,
   } from '../../lib/models/types';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
@@ -384,8 +385,9 @@
           disabled={isScanning || selectedRoots.length === 0}
           class="gap-1.5 min-w-[120px]"
         >
-          <RefreshCw size={14} class={isScanning ? 'animate-gentle-spin' : ''} />
-          {isScanning ? 'Scanning…' : 'Scan Files'}
+          <LoadingActionContent busy={isScanning} busyLabel="Scanning…" word="scanning">
+            <RefreshCw size={14} aria-hidden="true" />Scan Files
+          </LoadingActionContent>
         </Button>
       </div>
     </div>

@@ -109,7 +109,7 @@ struct ArtifactMatch {
 }
 
 /// Reuse the central generated-artifact catalog for the temporary workflow.
-/// Framework parent observations and unrecognized wrappers grant no authority.
+/// Whole framework outputs and unknown wrappers grant no authority here.
 pub(crate) fn temporary_generated_evidence(
     project: &Path,
     path: &Path,
@@ -340,27 +340,41 @@ impl DeveloperArtifactScanner {
             }
         }
 
-        // Reuse the explicitly bounded shared scan pool instead of expanding a
-        // separate pool per request (see `execution_budget`). Cooperative
-        // cancellation stays checked per candidate and per tree entry because
-        // aborting an already-started blocking task cannot stop its closure.
+        // Reuse the bounded shared scan pool for independent projects. Candidates
+        // with overlapping project-use scopes run sequentially: another
+        // measurement's descriptors or Git subprocess must not manufacture
+        // active use in a sibling's exact project probe.
+        // Cancellation remains checked per candidate and per tree entry.
         let (sender, receiver) = mpsc::channel();
         let worker_cancel = cancel.clone();
-        let worker_candidates = candidates;
+        let worker_groups = project_measurement_groups(candidates);
         let worker_environment = environment.clone();
         let worker = std::thread::spawn(move || {
             if let Some(pool) = crate::execution_budget::shared_scan_pool() {
                 pool.install(|| {
-                    worker_candidates
+                    worker_groups
                         .into_par_iter()
-                        .for_each_with(sender, |tx, candidate| {
-                            measure_candidate(&worker_environment, candidate, tx, &worker_cancel);
+                        .for_each_with(sender, |tx, group| {
+                            for candidate in group {
+                                if worker_cancel.load(Ordering::Relaxed) {
+                                    break;
+                                }
+                                measure_candidate(
+                                    &worker_environment,
+                                    candidate,
+                                    tx,
+                                    &worker_cancel,
+                                );
+                            }
                         });
                 });
             } else {
                 // Single-worker fallback: measure sequentially without
                 // touching the global Rayon pool.
-                for candidate in worker_candidates {
+                for candidate in worker_groups.into_iter().flatten() {
+                    if worker_cancel.load(Ordering::Relaxed) {
+                        break;
+                    }
                     measure_candidate(&worker_environment, candidate, &sender, &worker_cancel);
                 }
             }
@@ -1432,6 +1446,24 @@ fn should_skip_protected_discovery_path(
             | ".vscode"
             | ".vscode-insiders"
     )
+}
+
+fn project_measurement_groups(mut candidates: Vec<Candidate>) -> Vec<Vec<Candidate>> {
+    // Place ancestors first so each group's first root covers every member's
+    // project-use scope. Discovery already bounds the number of candidates.
+    candidates.sort_by_key(|candidate| candidate.project_root.components().count());
+    let mut groups: Vec<Vec<Candidate>> = Vec::new();
+    for candidate in candidates {
+        if let Some(group) = groups
+            .iter_mut()
+            .find(|group| candidate.project_root.starts_with(&group[0].project_root))
+        {
+            group.push(candidate);
+        } else {
+            groups.push(vec![candidate]);
+        }
+    }
+    groups
 }
 
 fn measure_candidate(

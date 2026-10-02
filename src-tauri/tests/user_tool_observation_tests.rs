@@ -610,13 +610,19 @@ fn existing_fixed_manual_namespace_preserves_absence_and_regular_observation() {
     assert!(!absent[0].exists);
     assert_eq!(absent[0].quality, ObservationQuality::Fresh);
     assert_eq!(absent[0].inspection_issue, None);
-    write(&home.join(".cache/node/corepack/manager.bin"));
+    let sibling = home.join(".cache/node/corepack/lastKnownGood.json");
+    write(&sibling);
+    let still_absent = observe(&registry, "dev.corepack.distributions", &env);
+    assert_eq!(still_absent.len(), 1);
+    assert!(!still_absent[0].exists);
+    write(&home.join(".cache/node/corepack/v1/manager.bin"));
     let present = observe(&registry, "dev.corepack.distributions", &env);
     assert_eq!(present.len(), 1);
     assert!(present[0].exists);
     assert_eq!(present[0].quality, ObservationQuality::Fresh);
     assert_eq!(present[0].size.logical, 8192);
     assert_advisory(&present[0]);
+    assert!(sibling.exists());
 }
 
 #[test]

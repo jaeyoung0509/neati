@@ -127,14 +127,23 @@ No recovered free space, committed work or offline recoverability is promised.
 
 ### Narrow framework generated units — #391
 
-Default `.svelte-kit` and `.next` parents remain observation-only. Direct
-framework dependencies and positive, bounded file contracts allow only
-`.svelte-kit/types` route declarations/route metadata or uncompressed Webpack
-v1 packs under `.next/cache/webpack`. Unknown/proxy/compressed layouts,
-configured custom outputs, deployment artifacts and offline/image stores stay
-observed. Fresh project use must be completely negative at planning/execution;
-manifest, ownership and content fingerprints are checked again. Unknown-use
-consent from Temporary Folders cannot authorize these units.
+Whole default output removal is limited to the recorded SvelteKit 2.37.1
+sync-only `.svelte-kit` and Next.js 15.5.14 cache-only `.next` variants, backed
+by direct exact dependency declarations and complete generated-only contents.
+Their `.svelte-kit/types` route declarations/route metadata and uncompressed
+Webpack v1 `.next/cache/webpack` units may qualify independently. Other whole
+layouts, unknown/proxy/compressed formats, custom outputs, deployment artifacts
+and offline/image stores retain observed bytes without authority.
+
+Fresh project-use checks must be completely negative during scanning, planning
+and execution. Overlapping project scopes are measured sequentially so neati's
+own sibling inspection cannot manufacture an active-use result; independent
+project groups retain bounded parallel measurement. Manifest/config identity,
+the original Git namespace, ownership and complete generated content are
+rechecked after final use before the exact unit moves to Trash. Parent/child
+scopes cannot share a plan. Unknown-use consent from Temporary Folders cannot
+authorize these units. See the
+[recorded framework removal contract](FRAMEWORK_ARTIFACT_CONTRACT.md).
 
 Contracts: [SvelteKit generated types](https://svelte.dev/docs/kit/types),
 [Next.js build caching](https://nextjs.org/docs/pages/guides/ci-build-caching),

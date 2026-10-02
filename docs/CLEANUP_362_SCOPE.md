@@ -224,3 +224,61 @@ The current-user system access probe is recorded in
 [SYSTEM_CLEANUP_ACCESS.md](SYSTEM_CLEANUP_ACCESS.md#october-1-current-user-access-probe).
 Readable or writable roots still require an exact disposable unit and adapter;
 neither probe results nor Full Disk Access enable system deletion.
+
+## Final owner follow-up — October 1, 2026 checkpoint
+
+The current batch records tested Corepack 0.36.0/Node 26.7.0 complete default
+v1 cleanup and CocoaPods 1.17.0/Homebrew portable Ruby 4.0.7 (ABI 4.0.0) alongside
+the existing exact tuples. Arc 1.166.0/build 87668/ArcCore154 has a verified
+`Arc/User Data` contract; unknown/legacy roots stay observed. New renderer units
+cover only the named verified channel/MCP leaves. The generic Arc cache mirror
+is excluded so it cannot override unsupported owner/runtime or protected-state
+verdicts. Source/runtime files and inconsistent Corepack version markers remain
+blocked.
+
+[The owner evidence and incomplete validation ledger](validation/final-owner-coverage/README.md)
+classifies resumable Android staging, installed SDK packages, OrbStack VM/reset
+state and Playwright/Puppeteer executable distributions individually. Existing
+Docker operations retain their separate Containers contracts. The SDK and VM
+stores do not acquire generic cleanup permission. CloudKit/Safari/index and
+system decisions are recorded in [the system matrix](SYSTEM_CLEANUP_ACCESS.md).
+
+The named residual namespaces were remeasured without cleanup; partial bytecode
+coverage remains explicitly partial. This section does not close #362/#382 or
+claim a complete platform/runtime matrix.
+
+### October 2 resumed evidence (0.3.102)
+
+The additional [compatibility record](validation/final-owner-coverage/tool-compatibility.json)
+and sanitized response fixtures establish the following exact decisions:
+
+- Official mise 2026.9.18 was exercised through the production adapter in fresh
+  task-owned standard launcher roots. Default and external-task scopes each
+  removed 16,384 allocated fixture bytes. Recursive replacement after review or
+  during the final handle callback, busy handles and unknown handles all refused
+  mutation. An explicit `MISE_TASK_CACHE_DIR` must match the doctor response's
+  `env_vars` before its complete `v2` scope is accepted. Installed tools,
+  configuration, trust state and projects remain outside the command scope.
+- The signed Swift.org 6.4.0 extracted distribution reports the already recorded
+  `Swift 6.4.0-dev` banner, and its actual owner command preserved protected
+  sentinels. Its extracted installation root remains outside the production
+  Apple SwiftPM launcher contract; no installation-root acceptance was added.
+- Official Conda 26.9.0's PEP distribution reported its version but rejected the
+  exact read-only clean preview at its `main_pip` initialization gate. It remains
+  advisory/fail-closed. No `conda init`, alternate entry-point bypass or blanket
+  inference about every 26.9.0 distribution is made.
+
+The [browser layout matrix](validation/final-owner-coverage/browser-layouts.md)
+records Dia 1.50.1's actual public metadata, pinned Firefox cache-root source and
+Antigravity 2.15.1's public metadata plus authored/resumable-state documentation.
+No new unverified whole-profile or offline-store operation is enabled for them.
+Existing ordinary registered payload policies retain their own scope and guards.
+
+Local resumed suites passed: browser 22, coverage 15, user-tool observations 18
+and owner tools 17. The Windows failures were repaired with portable fixture path
+flavor and structural path comparisons, without skipping their assertions.
+These are local checks, not a successful Windows CI result. The independent
+actual Chrome busy/idle attempt failed before CDP/native lsof and was not retried;
+only positively identified task-owned startup updater artifacts were removed.
+Native TCC transitions, actual browser use evidence, final integrated checks,
+bundle verification and CI remain pending in the existing four-batch workflow.

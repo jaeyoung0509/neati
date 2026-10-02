@@ -35,6 +35,8 @@ pub mod cargo;
 #[cfg(target_os = "macos")]
 mod cocoapods;
 #[cfg(target_os = "macos")]
+mod corepack;
+#[cfg(target_os = "macos")]
 pub mod dotslash;
 #[cfg(target_os = "macos")]
 mod github_cli;
@@ -182,6 +184,11 @@ impl OwnerProviderRegistry {
         let mut providers: Vec<Arc<dyn OwnerScopedProvider>> = vec![
             #[cfg(target_os = "macos")]
             Arc::new(tool_cleanup::ToolCleanupProvider::native(
+                tool_cleanup::ToolCacheKind::Corepack,
+                process.clone(),
+            )),
+            #[cfg(target_os = "macos")]
+            Arc::new(tool_cleanup::ToolCleanupProvider::native(
                 tool_cleanup::ToolCacheKind::GithubCli,
                 process.clone(),
             )),
@@ -213,6 +220,12 @@ impl OwnerProviderRegistry {
             )),
             Arc::new(browser::ChromiumCacheProvider::new(
                 browser::BrowserCacheKind::OfflineCacheStorage,
+                process.clone(),
+                measuring.clone(),
+                trash.clone(),
+            )),
+            Arc::new(browser::ChromiumCacheProvider::new(
+                browser::BrowserCacheKind::RendererCaches,
                 process.clone(),
                 measuring.clone(),
                 trash.clone(),

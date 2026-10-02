@@ -329,10 +329,25 @@ impl Signature {
         }
 
         if self.artifact_kind == CacheArtifactKind::RendererCache {
-            // Each relaxed unit is named here as well as in the catalog. A
-            // new renderer cache cannot inherit this policy by copying the
-            // artifact kind onto an arbitrary application directory.
-            let contract: Option<(&str, Category, CleanerFamily, &str, &[&str])> = match self.id.as_str() {
+            if self.id == "system.chromium.additional_renderer_caches"
+                && self.strategy == CleanStrategy::OwnerProvider
+            {
+                if self.provider_id.as_deref() != Some("chromium.additional_renderer_caches")
+                    || self.platforms.as_slice() != [PlatformKind::Macos]
+                    || !self.paths.is_empty()
+                    || self.risk != RiskTier::Rebuild
+                    || self.category != Category::System
+                    || self.family != CleanerFamily::Applications
+                    || self.owner != "Chromium browsers"
+                    || self.consequence.trim().is_empty()
+                {
+                    return invalid("the additional renderer provider must retain its exact registered macOS owner contract and no generic filesystem roots".into());
+                }
+            } else {
+                // Each relaxed unit is named here as well as in the catalog. A
+                // new renderer cache cannot inherit this policy by copying the
+                // artifact kind onto an arbitrary application directory.
+                let contract: Option<(&str, Category, CleanerFamily, &str, &[&str])> = match self.id.as_str() {
                 "ai.cursor.renderer_cache" => Some((
                     "~/Library/Application Support/Cursor/{Cache,CachedData,Code Cache,GPUCache,ShaderCache}",
                     Category::Ai,
@@ -384,42 +399,43 @@ impl Signature {
                 )),
                 _ => None,
             };
-            let Some((expected_path, category, family, owner, required_processes)) = contract
-            else {
-                return invalid(
-                    "an unregistered renderer cache has no reviewed unit contract".to_string(),
-                );
-            };
-            let owner_process_guard = required_processes.iter().all(|required| {
-                self.fail_if_running
-                    .iter()
-                    .any(|name| name.eq_ignore_ascii_case(required))
-            });
-            if self.family != family
-                || self.category != category
-                || self.risk != RiskTier::Rebuild
-                || self.strategy != CleanStrategy::DeleteDirectory
-                || self.platforms.as_slice() != [PlatformKind::Macos]
-                || self.paths.len() != 1
-                || self.paths[0] != expected_path
-                || self.unit != Some(CleanupUnitKind::NamedSubtree)
-                || self.min_age_days
-                    != (if self.id.starts_with("system.chrome.")
-                        || self.id.starts_with("system.brave.")
-                    {
-                        Some(0)
-                    } else {
-                        None
-                    })
-                || self.intensive_only
-                || !owner_process_guard
-                || self.owner != owner
-                || self.consequence.trim().is_empty()
-            {
-                return invalid(
+                let Some((expected_path, category, family, owner, required_processes)) = contract
+                else {
+                    return invalid(
+                        "an unregistered renderer cache has no reviewed unit contract".to_string(),
+                    );
+                };
+                let owner_process_guard = required_processes.iter().all(|required| {
+                    self.fail_if_running
+                        .iter()
+                        .any(|name| name.eq_ignore_ascii_case(required))
+                });
+                if self.family != family
+                    || self.category != category
+                    || self.risk != RiskTier::Rebuild
+                    || self.strategy != CleanStrategy::DeleteDirectory
+                    || self.platforms.as_slice() != [PlatformKind::Macos]
+                    || self.paths.len() != 1
+                    || self.paths[0] != expected_path
+                    || self.unit != Some(CleanupUnitKind::NamedSubtree)
+                    || self.min_age_days
+                        != (if self.id.starts_with("system.chrome.")
+                            || self.id.starts_with("system.brave.")
+                        {
+                            Some(0)
+                        } else {
+                            None
+                        })
+                    || self.intensive_only
+                    || !owner_process_guard
+                    || self.owner != owner
+                    || self.consequence.trim().is_empty()
+                {
+                    return invalid(
                     "a renderer cache must name its registered macOS unit, use a whole-unit Rebuild deletion, state the owner process, and include a consequence"
                         .to_string(),
                 );
+                }
             }
         }
 
@@ -642,7 +658,9 @@ impl Signature {
     /// an explicit owner process guard, so an unrelated broad discovery rule
     /// cannot enable the relaxed cache contract.
     pub fn structured_state_policy(&self) -> StructuredStatePolicy {
-        if self.artifact_kind == CacheArtifactKind::RendererCache {
+        if self.artifact_kind == CacheArtifactKind::RendererCache
+            && self.strategy == CleanStrategy::DeleteDirectory
+        {
             StructuredStatePolicy::VerifiedRegenerableCache
         } else {
             StructuredStatePolicy::ProtectAll

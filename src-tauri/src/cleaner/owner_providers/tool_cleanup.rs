@@ -48,7 +48,10 @@ impl ToolPreview {
         self.fingerprint.clone()
     }
     fn operation_path(&self, kind: ToolCacheKind) -> &Path {
-        if matches!(kind, ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli) {
+        if matches!(
+            kind,
+            ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli | ToolCacheKind::Corepack
+        ) {
             self.candidates
                 .first()
                 .map(PathBuf::as_path)
@@ -104,6 +107,7 @@ pub enum ToolCacheKind {
     Swiftpm,
     Cocoapods,
     GithubCli,
+    Corepack,
 }
 impl ToolCacheKind {
     fn executable(self) -> &'static str {
@@ -113,6 +117,7 @@ impl ToolCacheKind {
             Self::Swiftpm => "swift-package",
             Self::Cocoapods => "pod",
             Self::GithubCli => "gh",
+            Self::Corepack => "corepack",
         }
     }
 }
@@ -127,6 +132,9 @@ impl NativeToolCommandRunner {
             crate::tooling::resolve_with(self.kind.executable(), environment)
                 .ok_or("Tool is not installed")?
         };
+        if matches!(self.kind, ToolCacheKind::Corepack) {
+            return super::corepack::resolve_distribution(&path, environment);
+        }
         let canonical = std::fs::canonicalize(&path).map_err(|e| e.to_string())?;
         let mut roots = vec![
             PathBuf::from("/opt/homebrew"),
@@ -178,6 +186,9 @@ impl NativeToolCommandRunner {
         match self.kind {
             ToolCacheKind::GithubCli => {
                 return Err("GitHub CLI requires its isolated command".into())
+            }
+            ToolCacheKind::Corepack => {
+                return Err("Corepack uses an isolated versioned runtime command".into());
             }
             ToolCacheKind::Cocoapods => {
                 return Err("CocoaPods requires its isolated launcher".into())
@@ -248,10 +259,14 @@ impl NativeToolCommandRunner {
             ToolCacheKind::Swiftpm => swiftpm_candidates(output, environment)?,
             ToolCacheKind::Cocoapods => cocoapods_candidates(output, environment)?,
             ToolCacheKind::GithubCli => super::github_cli::candidates(output, environment)?,
+            ToolCacheKind::Corepack => super::corepack::candidates(output, environment)?,
         };
         let mut digest = Sha256::new();
         if matches!(self.kind, ToolCacheKind::Cocoapods) {
             fingerprint_cocoapods_runtime(output, &mut digest)?;
+        }
+        if matches!(self.kind, ToolCacheKind::Corepack) {
+            super::corepack::fingerprint_runtime(&executable, environment, &mut digest)?;
         }
         digest.update(executable.as_os_str().as_encoded_bytes());
         let executable_identity =
@@ -291,7 +306,11 @@ impl NativeToolCommandRunner {
             digest.update(measurement.allocated_bytes.to_le_bytes());
             if matches!(
                 self.kind,
-                ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+                ToolCacheKind::Mise
+                    | ToolCacheKind::Swiftpm
+                    | ToolCacheKind::Cocoapods
+                    | ToolCacheKind::GithubCli
+                    | ToolCacheKind::Corepack
             ) {
                 fingerprint_tree(path, &mut digest)?;
             }
@@ -301,6 +320,8 @@ impl NativeToolCommandRunner {
                 cocoapods_download_root(environment)?
             } else if matches!(self.kind, ToolCacheKind::GithubCli) {
                 super::github_cli::cache_root(environment)?
+            } else if matches!(self.kind, ToolCacheKind::Corepack) {
+                super::corepack::cache_root(environment)?
             } else {
                 executable
                     .parent()
@@ -353,7 +374,10 @@ impl NativeToolCommandRunner {
         }
         let scratch = if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) {
             Some(
                 tempfile::Builder::new()
@@ -374,6 +398,16 @@ impl NativeToolCommandRunner {
                     .path(),
                 dry_run,
                 environment,
+            )?
+        } else if matches!(self.kind, ToolCacheKind::Corepack) {
+            super::corepack::command(
+                &executable,
+                environment,
+                scratch
+                    .as_ref()
+                    .ok_or("Isolated workspace unavailable")?
+                    .path(),
+                dry_run,
             )?
         } else if matches!(self.kind, ToolCacheKind::GithubCli) {
             super::github_cli::command(
@@ -411,6 +445,20 @@ impl NativeToolCommandRunner {
                 &executable,
                 reviewed.ok_or("GitHub CLI requires a reviewed scope")?,
             )?;
+        }
+        if !dry_run
+            && matches!(
+                self.kind,
+                ToolCacheKind::Mise
+                    | ToolCacheKind::Corepack
+                    | ToolCacheKind::Cocoapods
+                    | ToolCacheKind::Swiftpm
+            )
+        {
+            let final_preview = self.preview(environment)?;
+            if final_preview.key() != reviewed.ok_or("Owner requires a reviewed scope")?.key() {
+                return Err("Owner scope or runtime changed after the final use check; no command was launched".into());
+            }
         }
         let output = neati_platform::subprocess::run_with_timeout(
             command,
@@ -472,7 +520,11 @@ impl ToolCommandRunner for NativeToolCommandRunner {
         }
         if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Mise
+                | ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) {
             verify_swiftpm_idle(&current.candidates, processes, guard)?;
         }
@@ -484,7 +536,8 @@ impl ToolCommandRunner for NativeToolCommandRunner {
             ToolCacheKind::Mise
             | ToolCacheKind::Swiftpm
             | ToolCacheKind::Cocoapods
-            | ToolCacheKind::GithubCli => Ok(()),
+            | ToolCacheKind::GithubCli
+            | ToolCacheKind::Corepack => Ok(()),
         }
     }
 }
@@ -752,7 +805,10 @@ impl ToolCleanupProvider {
     ) -> OwnerStoreObservation {
         if !matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) && crate::tooling::resolve_with(self.kind.executable(), environment).is_none()
         {
             return OwnerStoreObservation::ready(None, Vec::new());
@@ -794,7 +850,11 @@ impl ToolCleanupProvider {
         };
         if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm | ToolCacheKind::Cocoapods | ToolCacheKind::GithubCli
+            ToolCacheKind::Mise
+                | ToolCacheKind::Swiftpm
+                | ToolCacheKind::Cocoapods
+                | ToolCacheKind::GithubCli
+                | ToolCacheKind::Corepack
         ) {
             if let Err(error) =
                 verify_swiftpm_idle(&preview.candidates, self.process.as_ref(), guard)
@@ -994,6 +1054,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
             ToolCacheKind::Swiftpm => "swiftpm.purge_cache",
             ToolCacheKind::Cocoapods => "cocoapods.download_cache",
             ToolCacheKind::GithubCli => "github_cli.local_cache_clear",
+            ToolCacheKind::Corepack => "corepack.distribution_cache_clear",
         }
     }
 
@@ -1003,6 +1064,7 @@ impl OwnerScopedProvider for ToolCleanupProvider {
 
     fn consequence(&self) -> &'static str {
         match self.kind {
+            ToolCacheKind::Corepack => "Corepack permanently removes its verified v1 package-manager distributions. Projects pinned to those versions need network access to download them again; offline execution can fail. Project package.json/lockfiles, shims, credentials and lastKnownGood.json remain intact.",
             ToolCacheKind::Cocoapods => "CocoaPods permanently clears its complete default download cache, including cached pod sources, specifications and its version marker. Dependencies may need downloading again. Repositories, project Pods, credentials, configuration and installed tools remain intact.",
             ToolCacheKind::Swiftpm => "SwiftPM purges global repository downloads, registry downloads and its manifest cache. Dependencies may need downloading again. Project builds, installed toolchains, artifacts, configuration and security state stay intact.",
             ToolCacheKind::Conda => "Conda removes downloaded package archives, index caches and logs. Extracted packages and installed environments remain intact.",
@@ -1090,10 +1152,32 @@ fn parse_mise_roots(
             .get("cache_dir")
             .unwrap_or(&serde_json::Value::Null),
     };
-    let task = match task_setting {
-        serde_json::Value::Null => cache.join("task-artifacts/v2"),
-        serde_json::Value::String(path) if !path.is_empty() => PathBuf::from(path).join("v2"),
-        _ => return Err("mise returned an unsupported task cache setting".into()),
+    // The actual 2026.9.18 doctor omits this environment override from
+    // settings.task, while cache clear still removes that external v2 root.
+    // Bind it to the exact environment sent to both owner commands instead of
+    // mistaking absent settings for the default mutation scope.
+    let reported_override = value
+        .get("env_vars")
+        .and_then(|vars| vars.get("MISE_TASK_CACHE_DIR"));
+    let task = if let Some(expected) = environment.cache_path_override("MISE_TASK_CACHE_DIR") {
+        if reported_override
+            .and_then(serde_json::Value::as_str)
+            .map(PathBuf::from)
+            .as_deref()
+            != Some(expected)
+        {
+            return Err("mise did not verify the configured task cache override".into());
+        }
+        expected.join("v2")
+    } else {
+        if reported_override.is_some() {
+            return Err("mise reported an unexpected task cache environment override".into());
+        }
+        match task_setting {
+            serde_json::Value::Null => cache.join("task-artifacts/v2"),
+            serde_json::Value::String(path) if !path.is_empty() => PathBuf::from(path).join("v2"),
+            _ => return Err("mise returned an unsupported task cache setting".into()),
+        }
     };
     let mut roots = vec![
         cache,
@@ -1356,6 +1440,100 @@ mod tests {
         report["dirs"]["cache"] = serde_json::json!("/profile/.local/share/mise");
         assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).is_err());
     }
+
+    #[test]
+    fn mise_actual_environment_task_override_covers_the_complete_scope_or_refuses() {
+        let home = tempfile::tempdir().unwrap();
+        let external = home.path().join(".cache/task-output");
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(home.path())
+            .with_cache_path_override("MISE_TASK_CACHE_DIR", &external);
+        // Actual 2026.9.18 reports only experimental in settings, and the
+        // external task override separately in env_vars.
+        let mut report = serde_json::json!({
+            "version": "2026.9.18 macos-arm64 (2026-09-30)",
+            "dirs": {"cache": home.path().join("Library/Caches/mise"),
+                "state": home.path().join(".local/state/mise"),
+                "data": home.path().join(".local/share/mise"),
+                "config": home.path().join(".config/mise")},
+            "settings": {"experimental": true},
+            "env_vars": {"MISE_TASK_CACHE_DIR": external}
+        });
+        let roots = parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).unwrap();
+        assert_eq!(roots.len(), 4);
+        assert!(roots.contains(&external.join("v2")));
+        report["env_vars"]["MISE_TASK_CACHE_DIR"] =
+            serde_json::json!(home.path().join("Documents"));
+        assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).is_err());
+        report["env_vars"].as_object_mut().unwrap().clear();
+        assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).is_err());
+        report["env_vars"]["MISE_TASK_CACHE_DIR"] = serde_json::json!(external);
+        let no_override = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(home.path());
+        assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &no_override).is_err());
+    }
+
+    #[test]
+    fn recorded_mise_doctor_and_conda_initialization_error_keep_their_exact_contracts() {
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
+            .with_home("/profile")
+            .with_cache_path_override("MISE_TASK_CACHE_DIR", "/profile/.cache/task-output");
+        let roots = parse_mise_roots(
+            include_bytes!(
+                "../../../tests/fixtures/owner-tools/mise-2026.9.18-external-doctor.json"
+            ),
+            &environment,
+        )
+        .unwrap();
+        assert_eq!(roots.len(), 4);
+        assert!(roots.contains(&PathBuf::from("/profile/.cache/task-output/v2")));
+        assert!(parse_candidates(include_bytes!(
+            "../../../tests/fixtures/owner-tools/conda-26.9.0-pep-error.json"
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn mise_review_binds_same_size_descendant_replacement_without_parent_change() {
+        let temp = tempfile::tempdir().unwrap();
+        let executable = temp.path().join(".local/bin/mise");
+        let cache = temp.path().join(".cache/mise");
+        let payload = cache.join("nested/payload");
+        std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        std::fs::write(&executable, b"not executed").unwrap();
+        std::fs::create_dir_all(payload.parent().unwrap()).unwrap();
+        std::fs::write(&payload, vec![3; 4096]).unwrap();
+        let report = serde_json::to_vec(&serde_json::json!({
+            "dirs": {"cache": cache, "state": temp.path().join(".local/state/mise"),
+                "data": temp.path().join(".local/share/mise"),
+                "config": temp.path().join(".config/mise")}, "settings": {}
+        }))
+        .unwrap();
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(temp.path());
+        let runner = NativeToolCommandRunner {
+            kind: ToolCacheKind::Mise,
+        };
+        let before = runner
+            .scope_snapshot(&environment, executable.clone(), &report)
+            .unwrap();
+        let parent_identity = ToctouGuard::capture(&cache).unwrap();
+        let modified = std::fs::metadata(&payload).unwrap().modified().unwrap();
+        std::fs::rename(&payload, temp.path().join("reviewed-payload")).unwrap();
+        std::fs::write(&payload, vec![3; 4096]).unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&payload)
+            .unwrap()
+            .set_modified(modified)
+            .unwrap();
+        let after = runner
+            .scope_snapshot(&environment, executable, &report)
+            .unwrap();
+        assert_eq!(before.estimated_bytes, after.estimated_bytes);
+        assert_eq!(ToctouGuard::capture(&cache).unwrap(), parent_identity);
+        assert_ne!(before.key(), after.key());
+    }
     #[test]
     fn reviewed_inventory_and_executable_are_rechecked_before_the_fixed_command() {
         let temp = tempfile::tempdir().unwrap();
@@ -1522,7 +1700,9 @@ mod tests {
                 ToolCacheKind::Mise => assert_eq!(args, ["cache", "clear"]),
                 ToolCacheKind::Swiftpm => assert_eq!(args, ["--version"]),
                 ToolCacheKind::Cocoapods => panic!("CocoaPods uses a separate isolated command"),
-                ToolCacheKind::GithubCli => panic!("GitHub CLI uses a separate isolated command"),
+                ToolCacheKind::GithubCli | ToolCacheKind::Corepack => {
+                    panic!("The owner uses a separate isolated command")
+                }
             }
             assert_eq!(command.get_current_dir(), Some(Path::new("/profile")));
         }

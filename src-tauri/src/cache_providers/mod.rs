@@ -70,6 +70,7 @@ pub(crate) struct CacheProviderScan {
     pub items: Vec<ScanItem>,
     pub failures: Vec<CacheProviderFailure>,
     pub cancelled: bool,
+    pub spans: Vec<neati_core::domain::scan::ScanSpan>,
 }
 
 pub(crate) trait CacheProviderScanner: Send + Sync {
@@ -277,6 +278,7 @@ impl CacheProviderRegistry {
                 progress,
                 runner,
                 measurer,
+                &mut result.spans,
             ) {
                 Ok(Some(item)) => result.items.push(item),
                 Ok(None) => {}
@@ -315,6 +317,7 @@ impl CacheProviderRegistry {
         progress: &dyn RootProgressSink,
         runner: &dyn ProviderCommandRunner,
         measurer: &dyn ProviderMeasurer,
+        spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
     ) -> Result<Option<ScanItem>, CacheProviderFailure> {
         let signature_id = provider.signature_id();
         let Some(signature) = registry.get(signature_id) else {
@@ -332,7 +335,15 @@ impl CacheProviderRegistry {
         if !signature.supports_current_platform() {
             return Ok(None);
         }
+        let discovery_started = std::time::Instant::now();
         let command = runner.discover(provider, environment, cancellation);
+        spans.push(neati_core::domain::scan::ScanSpan {
+            source_id: format!("{signature_id}.discovery"),
+            duration_ms: discovery_started
+                .elapsed()
+                .as_millis()
+                .min(u128::from(u64::MAX)) as u64,
+        });
         let path = match command {
             ProviderCommandResult::Absent => return Ok(None),
             ProviderCommandResult::Cancelled => {
@@ -404,7 +415,15 @@ impl CacheProviderRegistry {
             }
         };
         progress.root_started(signature, &path);
+        let measurement_started = std::time::Instant::now();
         let measurement = measurer.measure(&path, environment, cancellation, limits, counters);
+        spans.push(neati_core::domain::scan::ScanSpan {
+            source_id: format!("{signature_id}.measurement"),
+            duration_ms: measurement_started
+                .elapsed()
+                .as_millis()
+                .min(u128::from(u64::MAX)) as u64,
+        });
         if measurement.size.reclaimable() == 0 && measurement.complete {
             return Ok(None);
         }

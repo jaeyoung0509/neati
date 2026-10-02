@@ -1,7 +1,7 @@
 import type { LocalModelItem, ObservationQuality } from '../models/types';
 import { refusalForPreview, tauriDeleteLocalModel, tauriGetLocalModels } from '../utils/tauri';
 
-class LocalModelsStore {
+export class LocalModelsStore {
   models = $state<LocalModelItem[]>([]);
   quality = $state<ObservationQuality>('fresh');
   skippedEntryCount = $state<number>(0);
@@ -22,7 +22,23 @@ class LocalModelsStore {
     return this.models.reduce((acc, m) => acc + m.size_bytes, 0);
   });
 
-  async refresh() {
+  private refreshPromise: Promise<void> | null = null;
+
+  async refresh(afterMutation = false): Promise<void> {
+    // Share only the same in-flight observation. A mutation must wait for an
+    // older read and then obtain a fresh inventory; it never reuses that read.
+    if (afterMutation && this.refreshPromise) await this.refreshPromise;
+    if (this.refreshPromise) return this.refreshPromise;
+    const pending = this.load();
+    this.refreshPromise = pending;
+    try {
+      await pending;
+    } finally {
+      if (this.refreshPromise === pending) this.refreshPromise = null;
+    }
+  }
+
+  private async load(): Promise<void> {
     this.isLoading = true;
     this.error = null;
     try {
@@ -48,14 +64,14 @@ class LocalModelsStore {
     this.error = null;
     try {
       await tauriDeleteLocalModel(model.id);
-      await this.refresh();
+      await this.refresh(true);
       return true;
     } catch (e: any) {
       const deletionError = e?.toString() || `Failed to delete model ${model.name}`;
       // A native tree deletion can make partial progress before reporting an
       // error. Re-read the inventory so the row does not keep showing files
       // that were already removed, while preserving the mutation failure.
-      await this.refresh();
+      await this.refresh(true);
       const refreshError = this.error;
       this.error = refreshError
         ? `${deletionError} The model list could not be refreshed: ${refreshError}`

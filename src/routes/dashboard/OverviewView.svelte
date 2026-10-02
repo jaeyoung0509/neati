@@ -265,7 +265,7 @@
         size="md"
         disabled={!cleanupAvailable}
         onclick={() => onNavigateTab?.('storage')}
-        ariaLabel={`${cleanupActionLabel} in Storage`}
+        ariaLabel={cleanupActionLabel === 'Open Storage' ? cleanupActionLabel : `${cleanupActionLabel} in Storage`}
         class="gap-1.5"
       >
         <span>{cleanupActionLabel}</span>

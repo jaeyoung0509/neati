@@ -2,7 +2,10 @@
 
 Recorded on **October 2, 2026**, with neati **0.3.104**. Native observations used
 macOS **27.0.1 (26A434)** on Apple Silicon, WebView **22625.1.29.11.28**.
-The installed `/Applications/neati.app` was not replaced. No user files were cleaned.
+The installed `/Applications/neati.app` was not replaced. Agent validation did not
+execute cleanup in real user directories. An existing real cleanup result was
+visible on returning to the app; it was not initiated by this validation and is
+not a controlled cleanup benchmark.
 
 ## Browser evidence
 
@@ -26,6 +29,18 @@ and mock IPC. They do not establish native compositing or OS permission behavior
 - The original six progress/Stop fixture checks returned empty, exhausted results.
   They did **not** exercise the native nonempty stopped result described below.
 
+## Final stopped-result browser check
+
+Source `ee85ab6`, light and dark: actual Stop button interaction followed by a
+mocked retained Stopped publication preserves three rows and 385,024 measured
+bytes, with zero selection, disabled cleanup, Checked estimate and rescan copy.
+The current-path keyboard disclosure responds while cancellation is pending;
+one cancel request is sent. A completed partial control selects all three rows
+and retains cleanup availability in both themes. This is synthetic IPC evidence.
+
+![Stopped scan, light synthetic fixture](stopped-nonempty-light.png)
+![Stopped scan, dark synthetic fixture](stopped-nonempty-dark.png)
+
 ## Native observations and owner check
 
 The exact preserved 0.3.104 `996c164` application was launched. A native scan
@@ -45,6 +60,13 @@ said Ready now. The follow-up in this PR preserves stopped/paused measurements
 as **Checked estimate**, keeps zero selections and requires completion before
 cleanup. Completed partial scans still permit their verified items. The regression
 fixture now retains the same nonempty stopped shape and positive measured bytes.
+
+The rebuilt `ee85ab6` native bundle was rechecked: Stop after progress appeared
+retained 338 items and a positive 100 MB checked estimate, with zero selections,
+disabled category controls and disabled cleanup. Overview also said Scan stopped.
+No superseded-publication error appeared. `--doctor` again passed 14/14. A
+duplicated Overview accessible label observed in this run was also corrected to
+Open Storage, with paused/stopped rendering regressions.
 
 ## Settings and remaining native acceptance
 

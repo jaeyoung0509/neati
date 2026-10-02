@@ -194,6 +194,8 @@ describe('Storage scan summary', () => {
       settingsStore.settings = { ...previousSettings, quick_panel_sections: ['cleanup'] };
       const overview = render(OverviewView).body;
       expect(overview).toContain(status === 'stopped' ? 'Scan stopped' : 'Scan incomplete');
+      expect(markupDocument(overview).querySelector('button[aria-label="Open Storage"]')).not.toBeNull();
+      expect(overview).not.toContain('Open Storage in Storage');
       const quickDocument = markupDocument(render(QuickPanel).body);
       const quickSummary = quickDocument.querySelector('#quick-cleanup-summary')!;
       expect(quickSummary.textContent).toContain(status === 'stopped' ? 'Scan stopped' : 'Scan incomplete');

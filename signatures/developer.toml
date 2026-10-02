@@ -904,7 +904,7 @@ owner = "CocoaPods"
 provider = "CocoaPods"
 artifact_kind = "package_store"
 consequence = "Permanently clears the entire default CocoaPods download cache. Pods may need downloading again; repositories, project Pods, configuration and installed tools remain intact."
-description = "Reviewed CocoaPods 1.16.2 owner command with isolated configuration, disabled plugins, complete cache and Ruby runtime identities, and final idle-handle checks. Custom roots, unknown layouts and versions remain blocked."
+description = "Reviewed CocoaPods 1.16.2/system Ruby 2.6.10 and 1.17.0/portable Ruby 4.0.7 owner tuples, with isolated configuration, disabled plugins, complete cache and runtime identities, and final idle-handle checks. Custom roots, unknown layouts and versions remain blocked."
 
 [[signatures]]
 id = "dev.android.sdk_installation"

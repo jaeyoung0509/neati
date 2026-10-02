@@ -1,0 +1,255 @@
+{
+  "mise": {
+    "date": "2026-10-01T14:50:07.421016+00:00",
+    "os_build": "26A434",
+    "architecture": "arm64",
+    "artifact_sha256": "484c135bd4329975d608d3f77e26c2ece5d2f5590f18ca71f44440294f8cfa6f",
+    "official_artifact_digest_match": true,
+    "command_environment": "explicit isolated HOME/cache/state/data/config; update warnings, auto-update and incidental cache pruning disabled; no inherited secrets/configuration",
+    "real_user_cleanup": false,
+    "actual_provider_adapter": "not invoked; exact owner command/schema fixture with source comparison",
+    "results": [
+      {
+        "mode": "default",
+        "banner": "2026.9.18 macos-arm64 (2026-09-30)",
+        "doctor_top_level_keys": [
+          "activated",
+          "aqua",
+          "build_info",
+          "config_files",
+          "dirs",
+          "env_files",
+          "env_vars",
+          "ignored_config_files",
+          "paths",
+          "plugins",
+          "self_update_available",
+          "settings",
+          "shell",
+          "shims_on_path",
+          "toolset",
+          "version"
+        ],
+        "doctor_settings": {
+          "experimental": true
+        },
+        "roots": [
+          ".local/state/mise/env-cache",
+          ".local/state/mise/task-artifacts",
+          "Library/Caches/mise"
+        ],
+        "disposable_removed": [
+          "Library/Caches/mise/fixture-tool/metadata.msgpack",
+          "Library/Caches/mise/task-artifacts/v2/fixture-task/manifest.json",
+          ".local/state/mise/env-cache/fixture.env",
+          ".local/state/mise/task-artifacts/fixture-task/state.json"
+        ],
+        "protected_preserved": [
+          ".local/share/mise/installs/fixture-tool/1.0/bin/tool",
+          ".config/mise/fixture-authored.toml",
+          ".local/state/mise/trusted-configs/fixture",
+          "project/output.txt"
+        ],
+        "stdout": "",
+        "stderr": "mise cache cleared\n",
+        "complete_scope_verified": true
+      },
+      {
+        "mode": "external-task",
+        "banner": "2026.9.18 macos-arm64 (2026-09-30)",
+        "doctor_top_level_keys": [
+          "activated",
+          "aqua",
+          "build_info",
+          "config_files",
+          "dirs",
+          "env_files",
+          "env_vars",
+          "ignored_config_files",
+          "paths",
+          "plugins",
+          "self_update_available",
+          "settings",
+          "shell",
+          "shims_on_path",
+          "toolset",
+          "version"
+        ],
+        "doctor_settings": {
+          "experimental": true
+        },
+        "roots": [
+          ".cache/task-output/v2",
+          ".local/state/mise/env-cache",
+          ".local/state/mise/task-artifacts",
+          "Library/Caches/mise"
+        ],
+        "disposable_removed": [
+          "Library/Caches/mise/fixture-tool/metadata.msgpack",
+          ".cache/task-output/v2/fixture-task/manifest.json",
+          ".local/state/mise/env-cache/fixture.env",
+          ".local/state/mise/task-artifacts/fixture-task/state.json"
+        ],
+        "protected_preserved": [
+          ".local/share/mise/installs/fixture-tool/1.0/bin/tool",
+          ".config/mise/fixture-authored.toml",
+          ".local/state/mise/trusted-configs/fixture",
+          "project/output.txt"
+        ],
+        "stdout": "",
+        "stderr": "mise cache cleared\n",
+        "complete_scope_verified": true
+      }
+    ]
+  },
+  "swift": {
+    "date_utc": "2026-10-01T14:57:02.992590+00:00",
+    "os_build": "26A434",
+    "architecture": "arm64",
+    "distribution": "Swift.org 6.4.0 RELEASE signed/notarized package, independently extracted minimal toolchain; no system install",
+    "actual_banner": "Swift Package Manager - Swift 6.4.0-dev\n",
+    "binary_sha256": "dcfa941b8ffec3aa150e016db96581b6856c69c0ba8a8d843f4bc8224bd238a3",
+    "command": [
+      "swift-package",
+      "--cache-path",
+      "<fixture-cache>",
+      "--config-path",
+      "<fixture-scratch>/configuration",
+      "--security-path",
+      "<fixture-scratch>/security",
+      "--scratch-path",
+      "<fixture-scratch>/build",
+      "purge-cache"
+    ],
+    "exit_code": 0,
+    "removed_units": [
+      "repositories",
+      "registry/downloads",
+      "manifests/manifest.db"
+    ],
+    "preserved": [
+      "Library/Caches/org.swift.swiftpm/artifacts/fixture.asset",
+      "Library/Caches/org.swift.swiftpm/prebuilts/fixture.lib",
+      "Library/Caches/org.swift.swiftpm/configuration/fixture.toml",
+      "Library/Caches/org.swift.swiftpm/security/fingerprints/fixture.json",
+      "project/.build/fixture.o",
+      "scratch/configuration/fixture.toml",
+      "scratch/security/fingerprints/fixture.json"
+    ],
+    "all_scope_tests_passed": true,
+    "actual_provider_adapter": "not invoked; exact native owner-command contract with fresh isolated inputs; no real user cleanup",
+    "stdout": "",
+    "stderr": ""
+  },
+  "conda": {
+    "date_utc": "2026-10-01",
+    "os_build": "26A434",
+    "architecture": "arm64",
+    "distribution": "Official Conda 26.9.0 source distribution installed into task-owned Miniforge 26.7.2-0 runtime; existing Miniforge dependencies retained",
+    "version_banner": "conda 26.9.0",
+    "command": [
+      "conda",
+      "clean",
+      "--yes",
+      "--index-cache",
+      "--tarballs",
+      "--logfiles",
+      "--json",
+      "--dry-run"
+    ],
+    "environment": "Explicit isolated HOME, PATH, CONDARC, CONDA_PKGS_DIRS and CONDA_ENVS_PATH; CONDA_NO_PLUGINS=true; NO_COLOR; no conda init",
+    "exit_code": 1,
+    "preview": {
+      "caused_by": "None",
+      "error": "CondaError: Conda has not been initialized.\n\nTo enable full conda functionality, please run 'conda init'.\nFor additional information, see 'conda init --help'.\n",
+      "exception_name": "CondaError",
+      "exception_type": "<class 'conda.CondaError'>",
+      "message": "Conda has not been initialized.\n\nTo enable full conda functionality, please run 'conda init'.\nFor additional information, see 'conda init --help'.\n"
+    },
+    "installed_launcher": "conda.cli.main_pip:main",
+    "installed_main_pip_sha256": "df896d82dd72d9c9e692d6bb3c7d0e468fb0bc29d48fe5bbb2e7f0224afcbb7d",
+    "outcome": "Uninitialized PEP-installed distribution rejects clean. No mutation or schema compatibility claimed; fail-closed advisory behavior is required.",
+    "scope_limit": "Does not prove all Conda 26.9.0 distributions unsupported. No module-entry bypass, launcher patch, inherited Conda activation or conda init was used.",
+    "actual_provider_adapter": "Not invoked; isolated owner-command research. Runtime is not an adapter-approved standard installation root.",
+    "provenance": "Official release asset SHA matched; official pinned pyproject source maps console script to main_pip. This copied main_pip file is the actual installed file, not a remote-source fetch."
+  },
+  "source_provenance": {
+    "mise": {
+      "repo": "jdx/mise",
+      "ref": "v2026.9.18",
+      "commit": "5a63dc5e8536b70c2d6661a8fe9d099aeb742ab7",
+      "files": [
+        {
+          "path": "src/cli/cache/clear.rs",
+          "git_blob_sha": "0c4081f8d3a3acc36c784350335eb472017207c4",
+          "url": "https://github.com/jdx/mise/blob/5a63dc5e8536b70c2d6661a8fe9d099aeb742ab7/src/cli/cache/clear.rs"
+        }
+      ]
+    },
+    "conda": {
+      "repo": "conda/conda",
+      "ref": "26.9.0",
+      "commit": "c6d16bc0528d6c023cca2d13db06a37fa8c7099a",
+      "files": [
+        {
+          "path": "conda/cli/main_clean.py",
+          "git_blob_sha": "fd0899542f2e6380e1a3be0f1a9f000b56d5139d",
+          "url": "https://github.com/conda/conda/blob/c6d16bc0528d6c023cca2d13db06a37fa8c7099a/conda/cli/main_clean.py"
+        },
+        {
+          "path": "pyproject.toml",
+          "git_blob_sha": "69bf2a538a011e84571e3495a764c93aece29fa0",
+          "url": "https://github.com/conda/conda/blob/c6d16bc0528d6c023cca2d13db06a37fa8c7099a/pyproject.toml"
+        }
+      ]
+    },
+    "swiftpm": {
+      "repo": "swiftlang/swift-package-manager",
+      "ref": "swift-6.4.0-RELEASE",
+      "commit": "18da3eb1e770679f6910890fbd52e95af53f67d2",
+      "files": [
+        {
+          "path": "Sources/CoreCommands/SwiftCommandState.swift",
+          "git_blob_sha": "453d084644f7b86400813456cc6722b84fb18754",
+          "url": "https://github.com/swiftlang/swift-package-manager/blob/18da3eb1e770679f6910890fbd52e95af53f67d2/Sources/CoreCommands/SwiftCommandState.swift"
+        },
+        {
+          "path": "Sources/Workspace/Workspace.swift",
+          "git_blob_sha": "9c50d75417343f3c9f20dbe157f0ccf49da52d89",
+          "url": "https://github.com/swiftlang/swift-package-manager/blob/18da3eb1e770679f6910890fbd52e95af53f67d2/Sources/Workspace/Workspace.swift"
+        },
+        {
+          "path": "Sources/PackageLoading/ManifestLoader.swift",
+          "git_blob_sha": "c3ee04f840efe728956aba2069967fff8957492f",
+          "url": "https://github.com/swiftlang/swift-package-manager/blob/18da3eb1e770679f6910890fbd52e95af53f67d2/Sources/PackageLoading/ManifestLoader.swift"
+        }
+      ]
+    }
+  },
+  "mise_production_adapter_validation": {
+    "date_utc": "2026-10-02T00:29:07.441132+00:00",
+    "source_version": "0.3.102",
+    "base_commit": "3edceec6f506f83858e5819f7a125224e536fbc0",
+    "command": "cargo run -p neati-desktop --example validate_mise_cleanup -- <verified-official-binary>",
+    "exit_code": 0,
+    "default_and_external_task_modes": {
+      "permanent_removed_allocated_bytes_each": 16384,
+      "installed_tools_configuration_trust_project_preserved": true
+    },
+    "refusal_modes": [
+      "same-byte descendant replacement after review",
+      "same-byte replacement during final handle callback",
+      "busy handles",
+      "unknown handles"
+    ],
+    "removed_allocated_bytes_per_refusal": 0,
+    "process_handle_ports": "fixture",
+    "supported_fixture_launcher": "<fixture-home>/.local/bin/mise",
+    "real_user_cleanup": false
+  },
+  "production_decisions": {
+    "mise": "2026.9.18 actual adapter validated in task-owned standard launcher/home; complete schema/scope and fresh checks remain required",
+    "swift": "Signed Swift.org 6.4.0 extracted subset: owner command verified, production installation root remains unsupported; no Apple toolchain compatibility expansion",
+    "conda": "Conda26.9.0 PEP main_pip initialization gate rejects exact preview; advisory/fail-closed, no version-wide inference"
+  }
+}

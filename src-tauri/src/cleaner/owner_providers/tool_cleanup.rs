@@ -306,7 +306,8 @@ impl NativeToolCommandRunner {
             digest.update(measurement.allocated_bytes.to_le_bytes());
             if matches!(
                 self.kind,
-                ToolCacheKind::Swiftpm
+                ToolCacheKind::Mise
+                    | ToolCacheKind::Swiftpm
                     | ToolCacheKind::Cocoapods
                     | ToolCacheKind::GithubCli
                     | ToolCacheKind::Corepack
@@ -448,7 +449,10 @@ impl NativeToolCommandRunner {
         if !dry_run
             && matches!(
                 self.kind,
-                ToolCacheKind::Corepack | ToolCacheKind::Cocoapods | ToolCacheKind::Swiftpm
+                ToolCacheKind::Mise
+                    | ToolCacheKind::Corepack
+                    | ToolCacheKind::Cocoapods
+                    | ToolCacheKind::Swiftpm
             )
         {
             let final_preview = self.preview(environment)?;
@@ -516,7 +520,8 @@ impl ToolCommandRunner for NativeToolCommandRunner {
         }
         if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm
+            ToolCacheKind::Mise
+                | ToolCacheKind::Swiftpm
                 | ToolCacheKind::Cocoapods
                 | ToolCacheKind::GithubCli
                 | ToolCacheKind::Corepack
@@ -845,7 +850,8 @@ impl ToolCleanupProvider {
         };
         if matches!(
             self.kind,
-            ToolCacheKind::Swiftpm
+            ToolCacheKind::Mise
+                | ToolCacheKind::Swiftpm
                 | ToolCacheKind::Cocoapods
                 | ToolCacheKind::GithubCli
                 | ToolCacheKind::Corepack
@@ -1146,10 +1152,32 @@ fn parse_mise_roots(
             .get("cache_dir")
             .unwrap_or(&serde_json::Value::Null),
     };
-    let task = match task_setting {
-        serde_json::Value::Null => cache.join("task-artifacts/v2"),
-        serde_json::Value::String(path) if !path.is_empty() => PathBuf::from(path).join("v2"),
-        _ => return Err("mise returned an unsupported task cache setting".into()),
+    // The actual 2026.9.18 doctor omits this environment override from
+    // settings.task, while cache clear still removes that external v2 root.
+    // Bind it to the exact environment sent to both owner commands instead of
+    // mistaking absent settings for the default mutation scope.
+    let reported_override = value
+        .get("env_vars")
+        .and_then(|vars| vars.get("MISE_TASK_CACHE_DIR"));
+    let task = if let Some(expected) = environment.cache_path_override("MISE_TASK_CACHE_DIR") {
+        if reported_override
+            .and_then(serde_json::Value::as_str)
+            .map(PathBuf::from)
+            .as_deref()
+            != Some(expected)
+        {
+            return Err("mise did not verify the configured task cache override".into());
+        }
+        expected.join("v2")
+    } else {
+        if reported_override.is_some() {
+            return Err("mise reported an unexpected task cache environment override".into());
+        }
+        match task_setting {
+            serde_json::Value::Null => cache.join("task-artifacts/v2"),
+            serde_json::Value::String(path) if !path.is_empty() => PathBuf::from(path).join("v2"),
+            _ => return Err("mise returned an unsupported task cache setting".into()),
+        }
     };
     let mut roots = vec![
         cache,
@@ -1411,6 +1439,100 @@ mod tests {
         );
         report["dirs"]["cache"] = serde_json::json!("/profile/.local/share/mise");
         assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).is_err());
+    }
+
+    #[test]
+    fn mise_actual_environment_task_override_covers_the_complete_scope_or_refuses() {
+        let home = tempfile::tempdir().unwrap();
+        let external = home.path().join(".cache/task-output");
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(home.path())
+            .with_cache_path_override("MISE_TASK_CACHE_DIR", &external);
+        // Actual 2026.9.18 reports only experimental in settings, and the
+        // external task override separately in env_vars.
+        let mut report = serde_json::json!({
+            "version": "2026.9.18 macos-arm64 (2026-09-30)",
+            "dirs": {"cache": home.path().join("Library/Caches/mise"),
+                "state": home.path().join(".local/state/mise"),
+                "data": home.path().join(".local/share/mise"),
+                "config": home.path().join(".config/mise")},
+            "settings": {"experimental": true},
+            "env_vars": {"MISE_TASK_CACHE_DIR": external}
+        });
+        let roots = parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).unwrap();
+        assert_eq!(roots.len(), 4);
+        assert!(roots.contains(&external.join("v2")));
+        report["env_vars"]["MISE_TASK_CACHE_DIR"] =
+            serde_json::json!(home.path().join("Documents"));
+        assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).is_err());
+        report["env_vars"].as_object_mut().unwrap().clear();
+        assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &environment).is_err());
+        report["env_vars"]["MISE_TASK_CACHE_DIR"] = serde_json::json!(external);
+        let no_override = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(home.path());
+        assert!(parse_mise_roots(&serde_json::to_vec(&report).unwrap(), &no_override).is_err());
+    }
+
+    #[test]
+    fn recorded_mise_doctor_and_conda_initialization_error_keep_their_exact_contracts() {
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
+            .with_home("/profile")
+            .with_cache_path_override("MISE_TASK_CACHE_DIR", "/profile/.cache/task-output");
+        let roots = parse_mise_roots(
+            include_bytes!(
+                "../../../tests/fixtures/owner-tools/mise-2026.9.18-external-doctor.json"
+            ),
+            &environment,
+        )
+        .unwrap();
+        assert_eq!(roots.len(), 4);
+        assert!(roots.contains(&PathBuf::from("/profile/.cache/task-output/v2")));
+        assert!(parse_candidates(include_bytes!(
+            "../../../tests/fixtures/owner-tools/conda-26.9.0-pep-error.json"
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn mise_review_binds_same_size_descendant_replacement_without_parent_change() {
+        let temp = tempfile::tempdir().unwrap();
+        let executable = temp.path().join(".local/bin/mise");
+        let cache = temp.path().join(".cache/mise");
+        let payload = cache.join("nested/payload");
+        std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        std::fs::write(&executable, b"not executed").unwrap();
+        std::fs::create_dir_all(payload.parent().unwrap()).unwrap();
+        std::fs::write(&payload, vec![3; 4096]).unwrap();
+        let report = serde_json::to_vec(&serde_json::json!({
+            "dirs": {"cache": cache, "state": temp.path().join(".local/state/mise"),
+                "data": temp.path().join(".local/share/mise"),
+                "config": temp.path().join(".config/mise")}, "settings": {}
+        }))
+        .unwrap();
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(temp.path());
+        let runner = NativeToolCommandRunner {
+            kind: ToolCacheKind::Mise,
+        };
+        let before = runner
+            .scope_snapshot(&environment, executable.clone(), &report)
+            .unwrap();
+        let parent_identity = ToctouGuard::capture(&cache).unwrap();
+        let modified = std::fs::metadata(&payload).unwrap().modified().unwrap();
+        std::fs::rename(&payload, temp.path().join("reviewed-payload")).unwrap();
+        std::fs::write(&payload, vec![3; 4096]).unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&payload)
+            .unwrap()
+            .set_modified(modified)
+            .unwrap();
+        let after = runner
+            .scope_snapshot(&environment, executable, &report)
+            .unwrap();
+        assert_eq!(before.estimated_bytes, after.estimated_bytes);
+        assert_eq!(ToctouGuard::capture(&cache).unwrap(), parent_identity);
+        assert_ne!(before.key(), after.key());
     }
     #[test]
     fn reviewed_inventory_and_executable_are_rechecked_before_the_fixed_command() {

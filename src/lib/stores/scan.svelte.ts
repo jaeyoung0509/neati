@@ -384,7 +384,11 @@ export class ScanStore {
 
   syncSelectionFromScan(scan: ScanResult) {
     const newMap: Record<string, boolean> = {};
-    const scanAllowsSelection = scan.quality === 'fresh' || scan.quality === 'partial';
+    // Coverage quality describes the measured rows; only exhausted discovery
+    // grants authority to use them. A stopped or paused snapshot stays visible
+    // without restoring the selections cleared when its scan started.
+    const scanAllowsSelection = this.discovery.status === 'exhausted'
+      && (scan.quality === 'fresh' || scan.quality === 'partial');
     for (const cat of scan.categories) {
       for (const item of cat.items) {
         // The backend includes verified regenerable caches in the default set.
@@ -496,7 +500,8 @@ export class ScanStore {
     const next: Record<string, boolean> = {};
     for (const category of this.lastScan.categories) {
       for (const item of category.items) {
-        next[item.id] = this.isQuickCleanEligible(category.category, item, settings);
+        next[item.id] = this.discovery.status === 'exhausted'
+          && this.isQuickCleanEligible(category.category, item, settings);
       }
     }
     this.selectedMap = next;

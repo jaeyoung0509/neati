@@ -15,27 +15,24 @@
   }
   let { onQuit, onReview, actionsDisabled = false }: Props = $props();
   let scan = $derived(scanStore.lastScan);
-  let presentation = $derived(cleanupView(scan, scanStore.freshness, !!scanStore.error));
+  let presentation = $derived(cleanupView(scan, scanStore.freshness, scanStore.discovery, !!scanStore.error));
   let summary = $derived(summarizeCategory(presentation.items));
   let availability = $derived(cleanupAvailability(presentation.items));
   let observed = $derived(observedByteRange(scan?.total_bytes ?? 0, scan?.ambiguous_overlap_bytes));
-  let isCurrent = $derived(scanStore.freshness === 'fresh' || scanStore.freshness === 'partial');
-  let estimateLabel = $derived(scanStore.freshness === 'unavailable' ? 'Cleanup estimate unavailable'
-    : scanStore.freshness === 'partial' ? 'Ready in checked locations'
-    : isCurrent ? 'Ready to clean now' : 'Last ready-to-clean estimate');
+  let isCurrent = $derived(presentation.current);
 </script>
 
 <section class="storage-summary" aria-label="Storage scan summary">
   <div class="summary-ripples"><RippleScene /></div>
   <div class="summary-primary">
     <div class="flex flex-wrap items-center gap-2">
-      <p class="text-meta font-medium text-muted-foreground">{scan ? estimateLabel : 'Available to clean'}</p>
+      <p class="text-meta font-medium text-muted-foreground">{scan ? presentation.estimateLabel : 'Available to clean'}</p>
       {#if scanStore.freshness === 'partial'}<Badge variant="outline">Partial scan</Badge>{/if}
     </div>
     <p class="mt-1 text-metric-lg font-mono font-semibold tracking-tight tabular-nums text-foreground">
       <AnimatedValue value={scan && presentation.hasMeasuredResults ? formatBytes(availability.ready) : '—'} />
     </p>
-    {#if !scan || !presentation.hasMeasuredResults || !isCurrent}
+    {#if !scan || !presentation.hasMeasuredResults || (!isCurrent && scanStore.discovery.status === 'exhausted')}
       <p class="mt-1 text-meta text-muted-foreground">
         {#if !scan}Scan caches to see what can be cleaned.
         {:else if !presentation.hasMeasuredResults}Unread locations remain unknown.

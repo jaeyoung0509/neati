@@ -22,7 +22,7 @@ describe('Switch component SSR / visual contracts', () => {
 
     expect(rendered.body).toContain('aria-label="Enable AI Assistant Caches"');
     expect(rendered.body).toContain('peer-checked:bg-success');
-    expect(rendered.body).toContain('peer-focus-visible:ring-success/40');
+    expect(rendered.body).toContain('peer-focus-visible:ring-ring');
     expect(rendered.body).toContain('translate-x-4');
   });
 
@@ -62,9 +62,9 @@ describe('Checkbox component SSR / visual contracts', () => {
     expect(rendered.body).toContain('bg-success');
     expect(rendered.body).toContain('border-success');
     expect(rendered.body).toContain('peer-focus-visible:ring-ring');
-    // Verify lucide Check SVG is rendered
+    // The check has an explicit paired foreground in both themes.
     expect(rendered.body).toContain('<svg');
-    expect(rendered.body).toContain('stroke-white');
+    expect(rendered.body).toContain('stroke-success-foreground');
   });
 
   it('renders unchecked and disabled checkbox accurately', () => {

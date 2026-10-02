@@ -3,6 +3,8 @@ import { render } from 'svelte/server';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import StorageView from '../routes/dashboard/StorageView.svelte';
+import OverviewView from '../routes/dashboard/OverviewView.svelte';
+import QuickPanel from '../routes/quick/QuickPanel.svelte';
 import CategoryCard from '../lib/components/CategoryCard.svelte';
 import StorageSummary from '../lib/components/StorageSummary.svelte';
 import CategoryDetailView from '../routes/dashboard/CategoryDetailView.svelte';
@@ -10,8 +12,11 @@ import ItemRow from '../lib/components/ItemRow.svelte';
 import CleanResultModal from '../lib/components/CleanResultModal.svelte';
 import { scanStore } from '../lib/stores/scan.svelte';
 import { platformCapabilitiesStore } from '../lib/stores/platformCapabilities.svelte';
+import { goldenCapabilitiesByPlatform } from '../lib/models/platformCapabilities';
+import { settingsStore } from '../lib/stores/settings.svelte';
 import { mockApi } from '../lib/api/mock';
 import type { CategoryResult, CleanResult, ScanItem } from '../lib/models/types';
+import { retainedScanFixture } from './fixtures/retainedScan';
 
 // Keep Svelte's server-rendering environment; use jsdom only as an HTML parser.
 const { JSDOM } = createRequire(import.meta.url)('jsdom') as {
@@ -151,6 +156,57 @@ describe('Storage scan summary', () => {
     expect(body).toContain('Partial scan');
     expect(body).toContain('1 KB');
     expect(body).toContain('Select all available cleanup items');
+  });
+
+  it.each(['stopped', 'paused'] as const)('keeps %s measured bytes without ready labels or selected controls', status => {
+    const publication = retainedScanFixture(status === 'stopped'
+      ? { status, reason: 'Scan was cancelled.' }
+      : { status, continuation_id: 'fixture-continuation' });
+    scanStore.lastScan = publication.result;
+    scanStore.discovery = publication.discovery;
+    scanStore.syncSelectionFromScan(publication.result);
+    scanStore.updateFreshness();
+    const document = markupDocument(render(StorageView, { props: { onSelectCategory: vi.fn() } }).body);
+    const text = document.body.textContent?.replace(/\s+/g, ' ');
+    expect(text).toContain('Checked estimate');
+    expect(text).toContain('376 KB');
+    expect(text).toContain(status === 'stopped' ? 'Scan stopped. Scan again before cleaning.' : 'Scan incomplete. Finish the scan before cleaning.');
+    expect(text).not.toContain('Ready in checked locations');
+    expect(text).not.toContain('Ready now');
+    expect(text).toContain('0 selected');
+    expect(scanStore.selectedCount).toBe(0);
+    const clean = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.includes('Clean selected'));
+    expect(clean?.disabled).toBe(true);
+    const category = document.querySelector('[aria-label="Select all System items"]');
+    expect(category?.hasAttribute('disabled')).toBe(true);
+    const details = document.querySelector('[data-storage-scan-details]');
+    expect(details?.hasAttribute('open')).toBe(false);
+    if (status === 'stopped') expect(details?.textContent).toContain('Scan was cancelled.');
+    const detail = render(CategoryDetailView, { props: { categoryResult: publication.result.categories[0], onBack: vi.fn() } }).body;
+    expect(detail).toContain('376 KB checked estimate');
+    expect(detail).not.toContain('can be cleaned');
+
+    const previousSettings = settingsStore.settings;
+    const previousLoaded = settingsStore.hasLoaded;
+    try {
+      platformCapabilitiesStore.capabilities = goldenCapabilitiesByPlatform.macos;
+      settingsStore.hasLoaded = true;
+      settingsStore.settings = { ...previousSettings, quick_panel_sections: ['cleanup'] };
+      const overview = render(OverviewView).body;
+      expect(overview).toContain(status === 'stopped' ? 'Scan stopped' : 'Scan incomplete');
+      expect(markupDocument(overview).querySelector('button[aria-label="Open Storage"]')).not.toBeNull();
+      expect(overview).not.toContain('Open Storage in Storage');
+      const quickDocument = markupDocument(render(QuickPanel).body);
+      const quickSummary = quickDocument.querySelector('#quick-cleanup-summary')!;
+      expect(quickSummary.textContent).toContain(status === 'stopped' ? 'Scan stopped' : 'Scan incomplete');
+      expect(quickSummary.textContent).not.toContain('available');
+      expect(Array.from(quickSummary.querySelectorAll('button')).some(button => button.textContent?.trim() === 'Clean')).toBe(false);
+      const action = quickSummary.querySelector('button');
+      expect(action?.textContent).toContain(status === 'stopped' ? 'Scan Again' : 'Open Storage');
+    } finally {
+      settingsStore.settings = previousSettings;
+      settingsStore.hasLoaded = previousLoaded;
+    }
   });
 
   it('puts a failed empty scan retry instruction beside its reason', () => {

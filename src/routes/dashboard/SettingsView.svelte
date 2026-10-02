@@ -950,7 +950,13 @@
       {/if}
 
       {#if diagnosticsData}
-        <div class="mt-3 rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta font-mono text-muted-foreground space-y-1 overflow-x-auto max-h-48 overflow-y-auto scroll-stable">
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard users must be able to scroll the diagnostics region) -->
+        <div
+          role="region"
+          aria-label="Application diagnostics"
+          tabindex="0"
+          class="mt-3 rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta font-mono text-muted-foreground space-y-1 overflow-x-auto max-h-48 overflow-y-auto scroll-stable focus-ring"
+        >
           <div>
             <span class="text-foreground font-semibold">neati:</span>
             {diagnosticsData.app_version} ({diagnosticsData.arch}{diagnosticsData.emulated ? ', emulated' : ''})

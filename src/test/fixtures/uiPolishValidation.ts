@@ -2,6 +2,7 @@
 import '../../app.css';
 import { mount, tick } from 'svelte';
 import Dashboard from '../../routes/dashboard/Dashboard.svelte';
+import ModalValidation from './ModalValidation.svelte';
 import { mockApi } from '../../lib/api/mock';
 import { settingsStore } from '../../lib/stores/settings.svelte';
 import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
@@ -12,10 +13,30 @@ import { awakeStore } from '../../lib/stores/awake.svelte';
 import { scanStore } from '../../lib/stores/scan.svelte';
 import { usageStore } from '../../lib/stores/usage.svelte';
 import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
-import type { PublishedScan, ScanEvent, ScanItem, ScanResult } from '../../lib/models/types';
+import { developmentPortsStore } from '../../lib/stores/developmentPorts.svelte';
+import type { PublishedScan, ScanEvent, ScanResult } from '../../lib/models/types';
+import { retainedScanFixture } from './retainedScan';
 
 const published = await mockApi.startScan(() => {});
 const inventory = published.result;
+const dialogItems = inventory.categories.flatMap(category => category.items)
+  .filter(item => item.disposition?.eligibility === 'auto_cleanable' || item.is_selected).slice(0, 3);
+const dialogPlan = await mockApi.createPlan(inventory.scan_id, dialogItems);
+const dialogResult = await mockApi.executeClean(dialogPlan, true, () => {});
+// Synthetic result DTO, never a native free-space reading or removal claim.
+dialogResult.actual_disk_free_delta = null;
+for (const item of dialogResult.items) item.path = '/fixture/' + '긴 경로와 프로젝트 이름 / '.repeat(20);
+const dialogQuit = await mockApi.previewCleanupQuit(inventory.scan_id, dialogItems.map(item => item.id));
+async function dismissDialog() {
+  modalFixture.dismiss();
+  await tick();
+}
+async function showDialog(kind: string) {
+  await dismissDialog();
+  if (!['review', 'quit', 'result', 'details', 'quick-review'].includes(kind)) throw new Error('Unknown dialog fixture');
+  modalFixture.show(kind);
+  await tick();
+}
 platformCapabilitiesStore.capabilities = await mockApi.getPlatformCapabilities();
 platformContextStore.context = await mockApi.getPlatformContext();
 platformCapabilitiesStore.load = platformContextStore.load = async () => {};
@@ -34,6 +55,7 @@ memoryStore.disk = await mockApi.getDiskMetrics();
 systemMetricsStore.cpu = await mockApi.getCpuMetrics();
 systemMetricsStore.battery = await mockApi.getBatteryMetrics();
 awakeStore.state = await mockApi.getAwakeState();
+developmentPortsStore.listeners = await mockApi.listDevelopmentListeners();
 const cachedUsage = await mockApi.getAiUsage();
 usageStore.snapshot = structuredClone(cachedUsage);
 agentActivityStore.snapshot = await mockApi.getProjectContext();
@@ -88,18 +110,14 @@ async function beginProgress() {
   document.querySelector('[aria-label="Stop scan"]')?.addEventListener('click', () => {
     progressEvidence.stopClickAt = performance.now();
   }, { capture: true, once: true });
-  const item: ScanItem = {
-    id: 'fixture', signature_id: 'fixture', name: 'Fixture', category: 'system',
-    risk: 'manual', path: '/fixture', size: { logical: 10, allocated: 10 },
-    file_count: 1, description: '', is_selected: false, last_modified: null, exists: true,
-    quality: 'fresh', incomplete_reason: null,
-    disposition: { eligibility: 'advisory', reason: null, cleanable_bytes: null },
-  };
+  const measuredItems = retainedScanFixture({ status: 'exhausted' }).result.categories[0].items;
   const started = performance.now();
   for (let index = 0; index < 1092; index++) {
     emit({ type: 'RootStarted', category: 'system', signature_id: 'fixture',
       name: 'Measured root', root: `/fixture/${index}` });
-    if (index < 466) emit({ type: 'ItemFound', item });
+    // Repeat a small, measured inventory to exercise event traffic. The burst
+    // count is synthetic throughput, not a claim of 466 native cleanup units.
+    if (index < 466) emit({ type: 'ItemFound', item: measuredItems[index % measuredItems.length] });
   }
   progressEvidence.events = 1558;
   progressEvidence.burstMs = performance.now() - started;
@@ -115,6 +133,9 @@ function progressMeasurement() {
     isCancelling: scanStore.isCancelling, canClean: scanStore.canClean,
     selectedCount: scanStore.selectedCount,
     selectedBytes: scanStore.safeSelectedBytes + scanStore.rebuildSelectedBytes + scanStore.manualSelectedBytes,
+    discovery: scanStore.discovery.status,
+    retainedItemCount: scanStore.lastScan?.categories.reduce((count, category) => count + category.items.length, 0) ?? 0,
+    checkedBytes: scanStore.lastScan?.cleanable_bytes ?? 0,
     cancelled: scanStore.lastScan?.cancelled ?? false,
     progressText: document.querySelector('[aria-label="Storage scan progress"]')?.textContent?.trim(),
   };
@@ -122,14 +143,9 @@ function progressMeasurement() {
 
 async function endProgress() {
   if (!progressRun || !finishProgress) throw new Error('No synthetic scan is running.');
-  const result = structuredClone(inventory);
-  result.scan_id = 'mounted-progress-fixture';
-  result.categories = [];
-  result.total_bytes = result.safe_bytes = result.rebuild_bytes = result.manual_bytes = 0;
-  result.eligibility = undefined;
-  result.quality = 'partial';
-  result.cancelled = progressEvidence.cancelCalls > 0;
-  finishProgress({ result, discovery: { status: 'exhausted' } });
+  finishProgress(retainedScanFixture(progressEvidence.cancelCalls > 0
+    ? { status: 'stopped', reason: 'Scan was cancelled.' } : { status: 'exhausted' },
+    Math.floor(Date.now() / 1000), 'mounted-progress-fixture'));
   await progressRun;
   progressRun = null;
   finishProgress = null;
@@ -147,7 +163,12 @@ async function scan(kind: string) {
   scanStore.currentRoot = null;
   scanStore.scanStartedAt = null;
   scanStore.scanId = null;
-  const result = structuredClone(inventory);
+  const publication: PublishedScan = kind === 'stopped' || kind === 'paused'
+    ? retainedScanFixture(kind === 'stopped'
+      ? { status: 'stopped', reason: 'Scan was cancelled.' }
+      : { status: 'paused', continuation_id: 'synthetic-validation-continuation' })
+    : { result: structuredClone(inventory), discovery: { status: 'exhausted' } };
+  const result = publication.result;
   result.started_at = Math.floor(Date.now() / 1000) - 2;
   result.finished_at = Math.floor(Date.now() / 1000);
   if (kind === 'empty' || kind === 'unavailable' || kind === 'privacy') {
@@ -155,10 +176,10 @@ async function scan(kind: string) {
     result.total_bytes = result.safe_bytes = result.rebuild_bytes = result.manual_bytes = 0;
     result.eligibility = undefined;
   }
-  if (kind === 'partial' || kind === 'stopped' || kind === 'unavailable' || kind === 'privacy') {
+  if (kind === 'partial' || kind === 'unavailable' || kind === 'privacy') {
     result.quality = kind === 'unavailable' || kind === 'privacy' ? 'unavailable' : 'partial';
     result.gaps = [{ kind: kind === 'privacy' ? 'full_disk_access' : 'permission_denied', count: 3 }];
-    result.cancelled = kind === 'stopped';
+    result.cancelled = false;
   }
   if (kind === 'retained') {
     for (const category of result.categories) for (const item of category.items) {
@@ -168,7 +189,7 @@ async function scan(kind: string) {
   }
   // Use the public workflow so failed and subsequently accepted inventories
   // follow the production invalidation rules, including selection authority.
-  mockApi.startScan = async () => ({ result, discovery: { status: 'exhausted' } });
+  mockApi.startScan = async () => publication;
   await scanStore.runScan();
   if (kind === 'initial') {
     scanStore.lastScan = null;
@@ -195,12 +216,27 @@ async function scan(kind: string) {
 }
 await scan('ready');
 mount(Dashboard, { target: document.getElementById('app')! });
+const modalFixture = mount(ModalValidation, { target: document.getElementById('app')!, props: {
+  plan: dialogPlan, items: dialogItems, result: dialogResult, quit: dialogQuit, scan: inventory,
+} });
 const driver = {
   ready: false,
   scan,
   beginProgress,
   progressMeasurement,
   endProgress,
+  showDialog,
+  dismissDialog,
+  async syntheticForceTransition() {
+    // Exercise the production two-step UI using the existing deterministic
+    // mock response. This fixture never invokes a native release or PID action.
+    developmentPortsStore.release = async (listener, mode) => {
+      const result = await mockApi.releaseDevelopmentListener(listener.id, mode);
+      developmentPortsStore.listeners = await mockApi.listDevelopmentListeners();
+      return result;
+    };
+    await tick();
+  },
   async providerLoading(loading = true) {
     const snapshot = structuredClone(cachedUsage);
     snapshot.fetched_at = Math.floor(Date.now() / 1000);
@@ -219,7 +255,12 @@ const driver = {
   },
   async longNames() {
     for (const category of scanStore.lastScan?.categories ?? []) category.display_name = `개발 도구와 애플리케이션 캐시 · ${category.display_name} with an unusually long translated name`;
-    for (const provider of usageStore.snapshot?.providers ?? []) provider.name += ' · 개발 조직의 긴 계정 이름과 워크스페이스';
+    for (const provider of usageStore.snapshot?.providers ?? []) {
+      if (!provider.name.includes('개발 조직')) provider.name += ' · 개발 조직의 긴 계정 이름과 워크스페이스';
+    }
+    for (const process of memoryStore.memory?.top_processes ?? []) {
+      if (!process.name.includes('개발 애플리케이션')) process.name += ' · 개발 애플리케이션의 긴 영어와 한국어 이름';
+    }
     await tick();
   },
 };

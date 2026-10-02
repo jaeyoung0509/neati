@@ -682,6 +682,7 @@ describe('scan progress and cancellation', () => {
       quality: 'partial',
       incomplete_reasons: ['Scan was cancelled before completion'],
     };
+    vi.mocked(tauriScanDiscovery).mockReturnValue({ status: 'stopped', reason: 'Scan was cancelled.' });
     running.emit({ type: 'Finished', result: stopped });
     running.completion.resolve(stopped);
     await scan;
@@ -693,9 +694,11 @@ describe('scan progress and cancellation', () => {
     await store.cancelScan();
     expect(tauriCancelScan).toHaveBeenCalledTimes(1);
 
-    // A stopped scan is incomplete, not failed: its result is reviewable and
-    // reads as a stop. Quick Clean still requires a complete scan.
-    expect(store.canClean).toBe(true);
+    // A stopped scan retains its measured inventory but has no cleanup
+    // authority, even when every retained row is individually AutoCleanable.
+    expect(store.canClean).toBe(false);
+    expect(store.selectedCount).toBe(0);
+    expect(store.lastScan?.total_bytes).toBe(10);
     expect(store.cancelledScanNotice).toContain('Scan stopped before it finished');
   });
 

@@ -3,6 +3,7 @@
   import { awakeStore } from '../../lib/stores/awake.svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { formatTimeUntil } from '../../lib/utils/format';
+  import { modalDialog } from '../../lib/utils/modalDialog';
   import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { tauriPickKeepAwakeApplication } from '../../lib/utils/tauri';
   import {
@@ -572,11 +573,14 @@
   </details>
 
   {#if showRuleEditor}
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm" role="presentation">
-      <div class="w-full max-w-xl max-h-[calc(100vh-2rem)] overflow-y-auto scroll-stable rounded-xl border border-border bg-card p-5 text-foreground shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="rule-editor-title" tabindex="-1">
+    <dialog
+      use:modalDialog={{ onCancel: () => { if (!isSavingRule) closeRuleEditor(); }, initialFocus: '#rule-editor-title' }}
+      aria-labelledby="rule-editor-title"
+      class="m-auto w-[calc(100%-2rem)] max-w-xl max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable rounded-xl border border-border bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
+    >
         <div class="flex items-start justify-between gap-3 border-b border-border/60 pb-3">
           <div>
-            <h2 id="rule-editor-title" class="text-sm font-semibold">{editorMode === 'basic' ? 'Build an app rule' : 'Edit legacy process rule'}</h2>
+            <h2 id="rule-editor-title" tabindex="-1" class="text-sm font-semibold">{editorMode === 'basic' ? 'Build an app rule' : 'Edit legacy process rule'}</h2>
             <p class="mt-1 text-meta text-muted-foreground">{editorMode === 'basic' ? 'Choose what must be present before neati holds a power assertion.' : 'Use raw process fragments only for custom or older rules.'}</p>
           </div>
           <button type="button" onclick={closeRuleEditor} disabled={isSavingRule} class="h-8 w-8 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title="Close rule editor" aria-label="Close rule editor">
@@ -691,7 +695,6 @@
           <Button variant="ghost" size="sm" onclick={closeRuleEditor} disabled={isSavingRule}>Cancel</Button>
           <Button variant="primary" size="sm" onclick={() => void saveRule()} disabled={!isEditorValid() || isSavingRule}>{isSavingRule ? 'Saving…' : editingRuleId ? 'Save changes' : 'Save rule'}</Button>
         </div>
-      </div>
-    </div>
+    </dialog>
   {/if}
 </div>

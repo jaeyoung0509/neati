@@ -2,6 +2,8 @@
   import type { CategoryResult, PlanPreview } from '../../lib/models/types';
   import { scanStore } from '../../lib/stores/scan.svelte';
   import { formatBytes } from '../../lib/utils/format';
+  import { cleanupEstimateLabels } from '../../lib/utils/cleanupView';
+  import { scanCompletionNotice } from '../../lib/utils/cleanupSummary';
   import {
     cleanableBytes,
     emptyCategoryMessage,
@@ -64,7 +66,7 @@
     );
   });
   let selectFilteredTitle = $derived.by(() => {
-    if (!scanStore.canClean) return 'Run a fresh scan before changing the selection.';
+    if (!scanStore.canClean) return scanCompletionNotice(scanStore.discovery) ?? 'Run a fresh scan before changing the selection.';
     return noCleanableReason ?? undefined;
   });
 
@@ -74,6 +76,7 @@
   });
 
   let summary = $derived(summarizeCategory(categoryResult.items, scanStore.selectedMap));
+  let estimateLabels = $derived(cleanupEstimateLabels(scanStore.freshness, scanStore.discovery));
   let presentedCount = $derived(summary.visible_count);
 
   let categorySelectedBytes = $derived(summary.selected_bytes);
@@ -135,7 +138,7 @@
           </h2>
         </div>
         <p class="text-xs text-muted-foreground">
-          {presentedCount} {presentedCount === 1 ? 'item' : 'items'} · {summary.cleanable_bytes > 0 ? `${formatBytes(summary.cleanable_bytes)} can be cleaned` : summary.cleanable_count > 0 ? 'Reclaim size not estimated' : emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category)}
+          {presentedCount} {presentedCount === 1 ? 'item' : 'items'} · {summary.cleanable_bytes > 0 ? `${formatBytes(summary.cleanable_bytes)} ${estimateLabels.current ? 'can be cleaned' : estimateLabels.categoryLabel.toLowerCase()}` : summary.cleanable_count > 0 ? 'Reclaim size not estimated' : emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category)}
         </p>
       </div>
     </div>

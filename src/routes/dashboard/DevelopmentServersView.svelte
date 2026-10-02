@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { onMount } from 'svelte';
   import type { DevelopmentListener } from '../../lib/models/types';
   import {
     developmentPortsStore,
@@ -8,8 +8,8 @@
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { formatProcessAge } from '../../lib/utils/format';
   import { withMinimumDuration } from '../../lib/utils/async';
+  import { modalDialog } from '../../lib/utils/modalDialog';
   import Button from '../../lib/components/Button.svelte';
-  import Card from '../../lib/components/Card.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import EmptyState from '../../lib/components/EmptyState.svelte';
@@ -70,13 +70,11 @@
     if (!pendingReleaseListener) return;
     const listener = pendingReleaseListener;
     pendingReleaseListener = null;
-    await restoreReleaseFocus();
 
     try {
       const result = await developmentPortsStore.release(listener, 'graceful');
       if (result.outcome === 'still_listening' && result.listener) {
         pendingForceListener = result.listener;
-        await focusDialog('force-release-cancel');
       }
     } catch {
       // The store exposes the error in the page-level status message.
@@ -87,7 +85,6 @@
     if (!pendingForceListener) return;
     const listener = pendingForceListener;
     pendingForceListener = null;
-    await restoreReleaseFocus();
 
     try {
       await developmentPortsStore.release(listener, 'force');
@@ -105,33 +102,17 @@
     releaseReturnFocusId = releaseButtonId(listener);
     pendingReleaseListener = isWindows ? null : listener;
     pendingForceListener = isWindows ? listener : null;
-    void focusDialog(isWindows ? 'force-release-cancel' : 'release-cancel');
   }
 
-  async function focusDialog(id: string) {
-    await tick();
-    document.getElementById(id)?.focus();
-  }
-
-  async function restoreReleaseFocus() {
-    await tick();
-    if (releaseReturnFocusId) document.getElementById(releaseReturnFocusId)?.focus();
+  function releaseFocusTarget() {
+    return releaseReturnFocusId ? document.getElementById(releaseReturnFocusId) : null;
   }
 
   function closeDialogs() {
     pendingReleaseListener = null;
     pendingForceListener = null;
-    void restoreReleaseFocus();
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape' && (pendingReleaseListener || pendingForceListener)) {
-      closeDialogs();
-    }
   }
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <div class="space-y-6">
   <!-- Page Header -->
@@ -247,7 +228,7 @@
                   <LogOut size={12} /> Release
                 </Button>
               {:else}
-                <span class="inline-flex cursor-help items-center gap-1 rounded bg-secondary/40 px-2 py-1 text-meta font-medium text-muted-foreground/70" title={listener.blocked_reason || 'Protected process cannot be released'}>
+                <span class="inline-flex cursor-help items-center gap-1 rounded bg-secondary/40 px-2 py-1 text-meta font-medium text-muted-foreground" title={listener.blocked_reason || 'Protected process cannot be released'}>
                   <ShieldCheck size={11} class="opacity-70" /> Protected
                 </span>
               {/if}
@@ -270,8 +251,11 @@
   {/if}
 
   {#if pendingReleaseListener}
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="release-title">
-      <Card class="w-full max-w-md space-y-4 border-border bg-card p-5 shadow-2xl">
+    <dialog
+      use:modalDialog={{ onCancel: closeDialogs, initialFocus: '#release-cancel', returnFocusTarget: releaseFocusTarget }}
+      aria-labelledby="release-title"
+      class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable space-y-4 rounded-xl border border-border bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
+    >
         <div class="flex items-start gap-3">
           <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning"><Radio size={17} /></div>
           <div>
@@ -286,13 +270,15 @@
           <Button id="release-cancel" variant="ghost" size="sm" onclick={closeDialogs}>Cancel</Button>
           <Button variant="outline" size="sm" disabled={developmentPortsStore.releasingId !== null} onclick={handleReleaseNormally}>Release Normally</Button>
         </div>
-      </Card>
-    </div>
+    </dialog>
   {/if}
 
   {#if pendingForceListener}
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="force-release-title">
-      <Card class="w-full max-w-md space-y-4 border-destructive/40 bg-card p-5 shadow-2xl">
+    <dialog
+      use:modalDialog={{ onCancel: closeDialogs, initialFocus: '#force-release-cancel', returnFocusTarget: releaseFocusTarget }}
+      aria-labelledby="force-release-title"
+      class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable space-y-4 rounded-xl border border-destructive/40 bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
+    >
         <div class="flex items-start gap-3">
           <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert size={17} /></div>
           <div>
@@ -308,7 +294,6 @@
           <Button id="force-release-cancel" variant="ghost" size="sm" onclick={closeDialogs}>Cancel</Button>
           <Button variant="destructive" size="sm" disabled={developmentPortsStore.releasingId !== null} onclick={handleForceRelease}>Force Release</Button>
         </div>
-      </Card>
-    </div>
+    </dialog>
   {/if}
 </div>

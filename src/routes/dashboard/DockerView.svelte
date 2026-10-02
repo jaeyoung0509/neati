@@ -4,6 +4,7 @@
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { formatBytes } from '../../lib/utils/format';
   import { withMinimumDuration } from '../../lib/utils/async';
+  import { modalDialog } from '../../lib/utils/modalDialog';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import Badge from '../../lib/components/Badge.svelte';
@@ -304,22 +305,24 @@
   {/if}
 
   {#if confirmVolumePrune}
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="volume-prune-title">
-      <Card class="w-full max-w-sm space-y-4 border-border bg-card p-5 shadow-2xl">
+    <dialog
+      use:modalDialog={{ onCancel: () => (confirmVolumePrune = false), initialFocus: '#volume-prune-cancel' }}
+      aria-labelledby="volume-prune-title" aria-describedby="volume-prune-description"
+      class="m-auto w-[calc(100%-2rem)] max-w-sm max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable space-y-4 rounded-xl border border-border bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
+    >
         <div class="flex items-start gap-3">
           <div class="mt-0.5 text-destructive"><AlertCircle size={20} /></div>
           <div>
             <h3 id="volume-prune-title" class="text-sm font-semibold">Prune unused Docker volumes?</h3>
-            <p class="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p id="volume-prune-description" class="mt-1 text-xs leading-relaxed text-muted-foreground">
               Docker reports {formatBytes(overview?.volumes.reclaimable_bytes ?? 0)} as reclaimable. Volumes may contain persistent application data and cannot be restored by neati.
             </p>
           </div>
         </div>
         <div class="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onclick={() => (confirmVolumePrune = false)}>Cancel</Button>
+          <Button id="volume-prune-cancel" variant="ghost" size="sm" onclick={() => (confirmVolumePrune = false)}>Cancel</Button>
           <Button variant="destructive" size="sm" onclick={pruneVolumes}>Prune Volumes</Button>
         </div>
-      </Card>
-    </div>
+    </dialog>
   {/if}
 </div>

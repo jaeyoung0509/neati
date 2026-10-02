@@ -1,3 +1,5 @@
+import type { ScanDiscovery } from '../models/types';
+
 export type CleanupSummaryState =
   | 'unavailable'
   | 'unknown'
@@ -5,6 +7,8 @@ export type CleanupSummaryState =
   | 'refreshing'
   | 'cleaning'
   | 'failed'
+  | 'paused'
+  | 'stopped'
   | 'stale'
   | 'partial'
   | 'ready'
@@ -16,6 +20,7 @@ interface CleanupSummaryFacts {
   scanning: boolean;
   cleaning: boolean;
   freshness: 'empty' | 'fresh' | 'partial' | 'unavailable' | 'stale' | 'refreshing' | 'failed';
+  discovery: ScanDiscovery;
   cleanableBytes: number;
 }
 
@@ -27,6 +32,16 @@ export function cleanupSummaryState(facts: CleanupSummaryFacts): CleanupSummaryS
   if (facts.freshness === 'failed') return 'failed';
   if (!facts.hasScan) return 'unknown';
   if (facts.freshness === 'stale' || facts.freshness === 'unavailable') return 'stale';
+  if (facts.discovery.status !== 'exhausted') return facts.discovery.status;
   if (facts.freshness === 'partial') return 'partial';
   return facts.cleanableBytes > 0 ? 'ready' : 'clean';
+}
+
+/** Coverage can be partial after completion; these states lack scan authority. */
+export function scanCompletionNotice(discovery: ScanDiscovery): string | null {
+  switch (discovery.status) {
+    case 'paused': return 'Scan incomplete. Finish the scan before cleaning.';
+    case 'stopped': return 'Scan stopped. Scan again before cleaning.';
+    case 'exhausted': return null;
+  }
 }

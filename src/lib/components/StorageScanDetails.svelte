@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { ScanResult } from '../models/types';
+  import type { ScanDiscovery, ScanResult } from '../models/types';
   import { retainedByteGroups, summarizeCategory } from '../utils/cleanup';
   import { scanInspectionDetails } from '../utils/scanInspectionDetails';
   import { formatBytes } from '../utils/format';
 
-  let { scan }: { scan: ScanResult } = $props();
+  let { scan, discovery }: { scan: ScanResult; discovery: ScanDiscovery } = $props();
   let items = $derived(scan.categories.flatMap(category => category.items));
   let retained = $derived(retainedByteGroups(items));
   let summary = $derived(summarizeCategory(items));
@@ -14,7 +14,8 @@
 <details class="text-meta text-muted-foreground" data-storage-scan-details>
   <summary class="w-fit cursor-pointer rounded-sm py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Scan details</summary>
   <div class="mt-2 space-y-3 rounded-xl border border-border bg-card p-3">
-    <p>Only verified items can be cleaned. Unread locations remain unknown and are excluded from totals. Apps may download or rebuild cleaned caches later.</p>
+    {#if discovery.status === 'stopped'}<p>{discovery.reason}</p>{/if}
+    <p>Only verified items from a completed, current scan can be cleaned. Unread locations remain unknown and are excluded from totals. Apps may download or rebuild cleaned caches later.</p>
     {#if (scan.ambiguous_overlap_bytes ?? 0) > 0}
       <p>Some observations overlap. The displayed range accounts for uncertain shared bytes; row and reason totals are upper bounds, not unique disk usage.</p>
     {/if}

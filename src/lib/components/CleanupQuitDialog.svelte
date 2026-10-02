@@ -3,6 +3,7 @@
   import type { CleanupQuitPreview } from '../models/types';
   import Button from './Button.svelte';
   import { restoreFocus } from '../utils/focus';
+  import { trapDialogFocus } from '../utils/modalDialog';
   let { preview, busy, progress, onConfirm, onCancel }: {
     preview: CleanupQuitPreview; busy: boolean; progress: string;
     onConfirm: () => void; onCancel: () => void;
@@ -17,7 +18,7 @@
   });
 </script>
 
-<dialog bind:this={dialog} tabindex="-1" aria-modal="true" aria-labelledby={id + '-title'}
+<dialog use:trapDialogFocus bind:this={dialog} tabindex="-1" aria-modal="true" aria-labelledby={id + '-title'}
   aria-describedby={id + '-description'}
   oncancel={(event) => { event.preventDefault(); onCancel(); }}
   class="m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30">

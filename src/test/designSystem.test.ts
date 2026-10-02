@@ -164,6 +164,15 @@ describe('design-system source contracts', () => {
           .toBeGreaterThanOrEqual(3);
       }
       expect(contrastFor('ai', 'card')).toBeGreaterThanOrEqual(4.5);
+      for (const surfaceName of ['background', 'card']) {
+        expect(contrastFor('success', surfaceName), `${selector} success status text`).toBeGreaterThanOrEqual(4.5);
+        const success = hslToRgb(...tokens.get('success')!);
+        const surface = hslToRgb(...tokens.get(surfaceName)!);
+        const badgeSurface = surface.map((channel, i) => .9 * channel + .1 * success[i]) as [number, number, number];
+        expect(contrastRatio(success, badgeSurface), `${selector} success badge text`).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(contrastFor('success-foreground', 'success'), `${selector} checked control mark`).toBeGreaterThanOrEqual(4.5);
+      expect(contrastFor('muted-foreground', 'secondary'), `${selector} unchecked switch marker`).toBeGreaterThanOrEqual(3);
       expect(contrastFor('border-strong', 'card')).toBeGreaterThanOrEqual(3);
     }
   });

@@ -5,6 +5,7 @@
   import { formatBytes } from '../utils/format';
   import Button from './Button.svelte';
   import { isFocusable, restoreFocus } from '../utils/focus';
+  import { trapDialogFocus } from '../utils/modalDialog';
   import { platformContextStore } from '../stores/platformContext.svelte';
 
   let { plan, items = [], disabled = false, onCancel, onConfirm, returnFocusTarget }: {
@@ -55,6 +56,7 @@
 </script>
 
 <dialog
+  use:trapDialogFocus
   bind:this={dialog}
   id={id + '-dialog'}
   aria-modal="true"

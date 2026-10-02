@@ -6,11 +6,19 @@ export function isFocusable(element: unknown): element is HTMLElement {
   if (typeof HTMLElement === 'undefined') return false;
   if (!(element instanceof HTMLElement)) return false;
   if (!element.isConnected) return false;
+  if (element.matches(':disabled')) return false;
   if ('disabled' in element && Boolean((element as HTMLButtonElement | HTMLInputElement).disabled)) {
     return false;
   }
   if (element.getAttribute('aria-disabled') === 'true') return false;
+  if (element instanceof HTMLInputElement && element.type === 'hidden') return false;
   if (element.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+  for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+    if (ancestor instanceof HTMLDetailsElement && !ancestor.open) {
+      const summary = ancestor.querySelector(':scope > summary');
+      if (!summary?.contains(element)) return false;
+    }
+  }
   if (typeof getComputedStyle === 'function') {
     for (let current: HTMLElement | null = element; current; current = current.parentElement) {
       const style = getComputedStyle(current);
@@ -47,12 +55,10 @@ export function findStableFocusTarget(
   // 3. Any enabled button or focusable control inside the container or active tabpanel
   const container = fallbackContainer ?? document.querySelector('[role="tabpanel"]');
   if (container instanceof HTMLElement) {
-    const focusable = container.querySelector(
+    const focusable = [...container.querySelectorAll<HTMLElement>(
       'button:not([disabled]), [role="tab"]:not([disabled]), [tabindex="0"]:not([role="tabpanel"])'
-    );
-    if (isFocusable(focusable)) {
-      return focusable as HTMLElement;
-    }
+    )].find(isFocusable);
+    if (focusable) return focusable;
   }
 
   return null;

@@ -7,6 +7,7 @@
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { formatBytes, formatTimeAgo } from '../../lib/utils/format';
   import { restoreFocus } from '../../lib/utils/focus';
+  import { trapDialogFocus } from '../../lib/utils/modalDialog';
   import { isTauri } from '../../lib/utils/tauri';
   import type { TemporaryStorageInventory, TemporaryUsageState, TemporaryContentKind } from '../../lib/models/types';
   import { ArrowLeft, RefreshCw, X } from '@lucide/svelte';
@@ -74,7 +75,7 @@
 </div>
 
 {#if review.preview}
-  <dialog bind:this={dialog} tabindex="-1" aria-labelledby={id + '-title'} aria-describedby={id + '-description'} oncancel={event => { event.preventDefault(); close(); }} class="m-auto w-[calc(100%-2rem)] max-w-xl max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30">
+  <dialog use:trapDialogFocus bind:this={dialog} tabindex="-1" aria-labelledby={id + '-title'} aria-describedby={id + '-description'} oncancel={event => { event.preventDefault(); close(); }} class="m-auto w-[calc(100%-2rem)] max-w-xl max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30">
     <h2 id={id + '-title'} class="text-title font-semibold">{review.result ? 'Temporary review result' : 'Move these exact scopes to Trash?'}</h2>
     <p id={id + '-description'} class="mt-2 text-body">{scopeCount(review.preview.selected.length)} · {formatBytes(review.preview.known_allocated_bytes)} known bytes · {review.preview.unknown_estimates} partial or unknown estimates. Trash movement does not establish immediate free-space recovery.</p>
     <ul class="mt-3 space-y-2 text-meta">{#each review.preview.selected as option}<li><strong>{option.mode === 'whole_folder' ? 'Whole folder' : 'Generated subtree'}</strong><span class="block font-mono break-all">{option.path}</span></li>{/each}</ul>

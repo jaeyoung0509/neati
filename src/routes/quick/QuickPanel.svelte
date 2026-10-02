@@ -15,7 +15,7 @@
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { usageStore } from '../../lib/stores/usage.svelte';
   import { formatBytes, formatTimeAgo, formatTimeUntil } from '../../lib/utils/format';
-  import { cleanupSummaryState } from '../../lib/utils/cleanupSummary';
+  import { cleanupSummaryState, scanCompletionNotice } from '../../lib/utils/cleanupSummary';
   import { quickCleanupUnavailableReason } from '../../lib/utils/quickCleanupDetails';
   import { batteryChargeStateLabel, memoryPressureLabel } from '../../lib/utils/systemReadings';
   import {
@@ -114,6 +114,7 @@
     scanning: scanStore.isScanning,
     cleaning: scanStore.isCleaning,
     freshness: scanStore.freshness,
+    discovery: scanStore.discovery,
     cleanableBytes: quickCleanableBytes,
   }));
 
@@ -145,6 +146,9 @@
         return 'Scan again to update cleanup.';
       case 'failed':
         return 'Scan could not finish. Open Storage for details.';
+      case 'paused':
+      case 'stopped':
+        return scanCompletionNotice(scanStore.discovery) ?? '';
       case 'partial':
         return 'Some folders could not be checked. Verified caches can still be cleaned.';
       case 'ready':
@@ -522,11 +526,11 @@
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
               <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
             {:else}
-              <p class="mt-0.5 text-caption text-muted-foreground">{cleanupState === 'clean' ? 'No caches to clean' : cleanupState === 'failed' ? 'Scan failed' : cleanupState === 'unavailable' ? 'Unavailable' : cleanupState === 'partial' ? 'Partial scan · No eligible caches' : 'Scan needed'}</p>
+              <p class="mt-0.5 text-caption text-muted-foreground">{cleanupState === 'clean' ? 'No caches to clean' : cleanupState === 'failed' ? 'Scan failed' : cleanupState === 'stopped' ? 'Scan stopped' : cleanupState === 'paused' ? 'Scan incomplete' : cleanupState === 'unavailable' ? 'Unavailable' : cleanupState === 'partial' ? 'Partial scan · No eligible caches' : 'Scan needed'}</p>
             {/if}
           </div>
         </div>
-        {#if cleanupAvailable && (cleanupState === 'stale' || cleanupState === 'unknown' || cleanupState === 'failed')}
+        {#if cleanupAvailable && (cleanupState === 'stale' || cleanupState === 'unknown' || cleanupState === 'failed' || cleanupState === 'stopped')}
           <Button variant="secondary" size="sm" onclick={() => void scanStore.runScan()} title={cleanupDetail} class="shrink-0">
             {cleanupState === 'unknown' ? 'Scan Now' : 'Scan Again'}
           </Button>

@@ -613,16 +613,17 @@ must not suggest that the account has exhausted its quota.
   Tracked content, nested repository/worktree metadata, deployment keypair names
   and unfinished ownership checks retain their observed bytes and a visible
   reason, with selection disabled. Byte measurement and ownership completeness
-  are separate facts. Default SvelteKit `.svelte-kit` and Next.js `.next` outputs
-  backed by a direct framework dependency are shown as `Observed only · cleanup
-  unavailable`; their build/dev use and deployment/offline removal contracts
-  remain unverified. Do not suggest that configured custom output paths were
-  evaluated or that those observations contribute to ordinary cleanup totals.
-  Separately selectable default `.svelte-kit/types` and `.next/cache/webpack`
-  units require positive generated-format, ownership and completed macOS use
-  checks. Only supported route declarations and uncompressed Webpack v1 packs
-  qualify; unknown/proxy/compiler formats retain bytes with a blocked reason.
-  Parent output and deployment/offline assets remain observed.
+  are separate facts. Exact recorded SvelteKit 2.37.1 sync-only `.svelte-kit`
+  and Next.js 15.5.14 cache-only `.next` variants may be reviewed as whole units
+  only after complete generated-format, ownership and fresh macOS project-use
+  checks. Their default `.svelte-kit/types` and `.next/cache/webpack` children
+  may qualify independently; select one overlapping parent or child scope at
+  a time, with nothing selected initially. Other parent layouts, deployment,
+  offline and unknown entries retain observed bytes and a disabled action.
+  Do not suggest that custom configuration was evaluated or add these bytes
+  to ordinary cleanup totals. Keep exact scope and rebuild consequences in
+  the evidence disclosure. Follow
+  [the framework removal contract](docs/FRAMEWORK_ARTIFACT_CONTRACT.md).
 - `Temporary folders`, reached from Developer Artifacts: a size-sorted bounded
   inventory with nothing selected, exact whole-folder/generated-subtree scopes,
   timestamps and three use states. `No use detected` never means abandoned.

@@ -289,6 +289,63 @@ fn probe_with(
     run: &GitRunner<'_>,
     before_recheck: &dyn Fn(),
 ) -> Evidence {
+    probe_with_scope(
+        environment,
+        project_root,
+        artifact,
+        None,
+        cancel,
+        max_entries,
+        run,
+        before_recheck,
+    )
+}
+
+/// Recheck staged contents while retaining the original Git index namespace.
+/// Staging a tracked path must never make it appear untracked.
+pub fn probe_staged_artifact_ownership(
+    environment: &PlatformEnvironment,
+    project_root: &Path,
+    original: &Path,
+    staged: &Path,
+    cancel: &AtomicBool,
+) -> Evidence {
+    if !original.starts_with(project_root)
+        || original == project_root
+        || staged.file_name() != original.file_name()
+        || staged.parent().and_then(Path::parent) != Some(project_root)
+        || !staged
+            .parent()
+            .and_then(Path::file_name)
+            .is_some_and(|n| n.to_string_lossy().starts_with(".neati-reviewed-"))
+    {
+        return Evidence::Incomplete(Uncertainty::OutsideScope);
+    }
+    probe_with_scope(
+        environment,
+        project_root,
+        staged,
+        Some(original),
+        cancel,
+        MAX_ENTRIES,
+        &|command, timeout, cancel| {
+            run_with_timeout_cancellable(command, timeout, &|| cancel.load(Ordering::Relaxed))
+        },
+        &|| {},
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn probe_with_scope(
+    environment: &PlatformEnvironment,
+    project_root: &Path,
+    artifact: &Path,
+    original_index_scope: Option<&Path>,
+    cancel: &AtomicBool,
+    max_entries: usize,
+    run: &GitRunner<'_>,
+    before_recheck: &dyn Fn(),
+) -> Evidence {
     let mut budget = Budget {
         cancel,
         started: Instant::now(),
@@ -328,11 +385,24 @@ fn probe_with(
         }
         // The caller's trusted root may have a platform alias above it
         // (/var and /tmp on macOS). No link below that root is accepted.
+        let original_relative = original_index_scope
+            .map(|path| path.strip_prefix(project_root).map(Path::to_path_buf))
+            .transpose()
+            .map_err(|_| Uncertainty::OutsideScope)?;
+        if original_relative
+            .as_ref()
+            .is_some_and(|p| p.components().any(|c| !matches!(c, Component::Normal(_))))
+        {
+            return Err(Uncertainty::OutsideScope);
+        }
         let project_root =
             fs::canonicalize(project_root).map_err(|_| Uncertainty::UnreadableMetadata)?;
         let artifact = fs::canonicalize(artifact).map_err(|_| Uncertainty::UnreadableMetadata)?;
         let project_root = project_root.as_path();
         let artifact = artifact.as_path();
+        let index_artifact = original_relative
+            .map(|relative| project_root.join(relative))
+            .unwrap_or_else(|| artifact.to_path_buf());
         if artifact == project_root || !artifact.starts_with(project_root) {
             return Err(Uncertainty::OutsideScope);
         }
@@ -357,7 +427,7 @@ fn probe_with(
         // inspected. Dropping an earlier directory would invalidate our stamps.
         let mut snapshots = Vec::new();
         for route in &routes {
-            let relative = artifact
+            let relative = index_artifact
                 .strip_prefix(&route.root)
                 .map_err(|_| Uncertainty::OutsideScope)?;
             let relative = path_bytes(relative).ok_or(Uncertainty::MalformedMetadata)?;
@@ -1224,6 +1294,40 @@ mod tests {
 
     fn probe(root: &Path, artifact: &Path) -> Evidence {
         probe_artifact_ownership(&environment(root), root, artifact, &AtomicBool::new(false))
+    }
+
+    #[test]
+    fn staged_artifacts_keep_the_original_git_index_namespace() {
+        for tracked in [false, true] {
+            let (_fixture, root, original) = repository();
+            if tracked {
+                git(&root, &["add", "--", "target"]);
+            }
+            let stage = root.join(".neati-reviewed-fixture");
+            fs::create_dir(&stage).unwrap();
+            let staged = stage.join("target");
+            fs::rename(&original, &staged).unwrap();
+            let evidence = probe_staged_artifact_ownership(
+                &environment(&root),
+                &root,
+                &original,
+                &staged,
+                &AtomicBool::new(false),
+            );
+            assert_eq!(
+                evidence,
+                if tracked {
+                    Evidence::TrackedContent
+                } else {
+                    Evidence::VerifiedGenerated
+                }
+            );
+            assert_eq!(
+                fs::read(staged.join("assets/generated.bin")).unwrap(),
+                b"generated"
+            );
+            assert!(!original.exists());
+        }
     }
 
     fn fixture_budget(cancel: &AtomicBool) -> Budget<'_> {

@@ -1,6 +1,10 @@
+#[cfg(test)]
+mod framework_tests;
 mod rules;
-pub(crate) use rules::artifact_is_observation_only;
+pub(crate) use rules::artifact_is_framework_parent;
 pub(crate) use rules::artifact_relative_is_allowed;
+pub(crate) use rules::recheck_framework_metadata;
+pub(crate) use rules::recheck_staged_framework_contract;
 pub(crate) use rules::{framework_generated_kind, verify_framework_generated_contract};
 
 use crate::large_files::identity_from_path;
@@ -105,13 +109,18 @@ struct ArtifactMatch {
 }
 
 /// Reuse the central generated-artifact catalog for the temporary workflow.
-/// Framework parent observations and unrecognized wrappers grant no authority.
+/// Whole framework outputs and unknown wrappers grant no authority here.
 pub(crate) fn temporary_generated_evidence(
     project: &Path,
     path: &Path,
 ) -> Option<(DeveloperArtifactKind, Vec<PathBuf>)> {
     let name = path.file_name()?.to_str()?;
     let found = rules::recognize(project, name)?;
+    // Framework whole-output authority belongs to its dedicated project review;
+    // never extend the temporary-folder consent workflow through a kind change.
+    if artifact_is_framework_parent(found.kind) {
+        return None;
+    }
     (path == project.join(&found.artifact_relative)
         && artifact_relative_is_allowed(&found.artifact_relative, found.kind))
     .then_some((found.kind, found.marker_paths))
@@ -126,6 +135,8 @@ struct TreeStats {
     complete: bool,
     safety_blocked: bool,
     cancelled: bool,
+    framework_verified: bool,
+    framework_advisory: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -329,27 +340,41 @@ impl DeveloperArtifactScanner {
             }
         }
 
-        // Reuse the explicitly bounded shared scan pool instead of expanding a
-        // separate pool per request (see `execution_budget`). Cooperative
-        // cancellation stays checked per candidate and per tree entry because
-        // aborting an already-started blocking task cannot stop its closure.
+        // Reuse the bounded shared scan pool for independent projects. Candidates
+        // with overlapping project-use scopes run sequentially: another
+        // measurement's descriptors or Git subprocess must not manufacture
+        // active use in a sibling's exact project probe.
+        // Cancellation remains checked per candidate and per tree entry.
         let (sender, receiver) = mpsc::channel();
         let worker_cancel = cancel.clone();
-        let worker_candidates = candidates;
+        let worker_groups = project_measurement_groups(candidates);
         let worker_environment = environment.clone();
         let worker = std::thread::spawn(move || {
             if let Some(pool) = crate::execution_budget::shared_scan_pool() {
                 pool.install(|| {
-                    worker_candidates
+                    worker_groups
                         .into_par_iter()
-                        .for_each_with(sender, |tx, candidate| {
-                            measure_candidate(&worker_environment, candidate, tx, &worker_cancel);
+                        .for_each_with(sender, |tx, group| {
+                            for candidate in group {
+                                if worker_cancel.load(Ordering::Relaxed) {
+                                    break;
+                                }
+                                measure_candidate(
+                                    &worker_environment,
+                                    candidate,
+                                    tx,
+                                    &worker_cancel,
+                                );
+                            }
                         });
                 });
             } else {
                 // Single-worker fallback: measure sequentially without
                 // touching the global Rayon pool.
-                for candidate in worker_candidates {
+                for candidate in worker_groups.into_iter().flatten() {
+                    if worker_cancel.load(Ordering::Relaxed) {
+                        break;
+                    }
                     measure_candidate(&worker_environment, candidate, &sender, &worker_cancel);
                 }
             }
@@ -805,6 +830,29 @@ fn discover_workspace<F>(
             *skipped_entries = skipped_entries.saturating_add(1);
             continue;
         }
+        // Config-derived paths are observations only. Keep unknown wrappers
+        // traversable; an advisory custom parent must not hide nested packages.
+        if is_regular_file(&directory.join("package.json")) {
+            for found in rules::framework_custom_matches(&directory) {
+                let path = directory.join(&found.artifact_relative);
+                if !path.starts_with(&workspace.path)
+                    || path == directory
+                    || !fs::symlink_metadata(&path).ok().is_some_and(|m| m.is_dir())
+                    || validate_observed_components(&workspace.path, &path).is_err()
+                    || !seen_paths.insert(path.clone())
+                {
+                    continue;
+                }
+                if candidates.len() >= MAX_CANDIDATES {
+                    *truncated = true;
+                    break;
+                }
+                let candidate =
+                    candidate_from_match(workspace, path, &directory, "custom output", found);
+                *discovered_count = discovered_count.saturating_add(1);
+                candidates.push(candidate);
+            }
+        }
         let entries = match fs::read_dir(&directory) {
             Ok(entries) => entries,
             Err(error) => {
@@ -862,7 +910,11 @@ fn discover_workspace<F>(
                 *skipped_entries = skipped_entries.saturating_add(1);
                 continue;
             }
-            if seen_paths.contains(&path) {
+            if seen_paths.contains(&path)
+                && !candidates
+                    .iter()
+                    .any(|c| c.path == path && artifact_is_framework_parent(c.kind))
+            {
                 // A special candidate such as ~/go/pkg/mod may have been
                 // registered before its parent directory is visited.
                 continue;
@@ -870,7 +922,10 @@ fn discover_workspace<F>(
 
             if let Some(candidate) = recognize_artifact(workspace, &directory, &name) {
                 if seen_paths.iter().any(|seen| {
-                    candidate.path.starts_with(seen) || seen.starts_with(&candidate.path)
+                    (candidate.path.starts_with(seen) || seen.starts_with(&candidate.path))
+                        && !candidates
+                            .iter()
+                            .any(|c| &c.path == seen && artifact_is_framework_parent(c.kind))
                 }) {
                     continue;
                 }
@@ -887,7 +942,7 @@ fn discover_workspace<F>(
                     ecosystem: candidate.ecosystem,
                 });
                 *discovered_count = discovered_count.saturating_add(1);
-                let generated_children = if artifact_is_observation_only(candidate.kind) {
+                let generated_children = if artifact_is_framework_parent(candidate.kind) {
                     rules::framework_generated_matches(&candidate.project_root)
                         .into_iter()
                         .filter_map(|found| {
@@ -917,6 +972,7 @@ fn discover_workspace<F>(
                 } else {
                     vec![]
                 };
+                let framework_parent = artifact_is_framework_parent(candidate.kind);
                 candidates.push(candidate);
                 for child in generated_children {
                     if candidates.len() >= MAX_CANDIDATES {
@@ -929,8 +985,12 @@ fn discover_workspace<F>(
                     *discovered_count = discovered_count.saturating_add(1);
                     candidates.push(child);
                 }
-                // Recognized artifact trees are measured in Phase B and are
-                // never descended during discovery.
+                // Framework recognition does not attest the complete output.
+                // Keep unknown/nested packages traversable while registered
+                // generated children and vendor stores retain their boundary.
+                if framework_parent {
+                    pending.push_back((path, depth + 1));
+                }
                 continue;
             }
 
@@ -959,6 +1019,21 @@ fn recognize_artifact(
         child_name,
         artifact_match,
     ))
+}
+
+fn validate_observed_components(root: &Path, path: &Path) -> Result<(), ()> {
+    let relative = path.strip_prefix(root).map_err(|_| ())?;
+    let mut cursor = root.to_path_buf();
+    for component in relative.components() {
+        let std::path::Component::Normal(name) = component else {
+            return Err(());
+        };
+        cursor.push(name);
+        if SymlinkGuard::is_symlink(&cursor) {
+            return Err(());
+        }
+    }
+    Ok(())
 }
 
 fn global_go_module_candidate(
@@ -1373,6 +1448,24 @@ fn should_skip_protected_discovery_path(
     )
 }
 
+fn project_measurement_groups(mut candidates: Vec<Candidate>) -> Vec<Vec<Candidate>> {
+    // Place ancestors first so each group's first root covers every member's
+    // project-use scope. Discovery already bounds the number of candidates.
+    candidates.sort_by_key(|candidate| candidate.project_root.components().count());
+    let mut groups: Vec<Vec<Candidate>> = Vec::new();
+    for candidate in candidates {
+        if let Some(group) = groups
+            .iter_mut()
+            .find(|group| candidate.project_root.starts_with(&group[0].project_root))
+        {
+            group.push(candidate);
+        } else {
+            groups.push(vec![candidate]);
+        }
+    }
+    groups
+}
+
 fn measure_candidate(
     environment: &PlatformEnvironment,
     candidate: Candidate,
@@ -1402,6 +1495,13 @@ fn measure_candidate(
     let mut candidate = candidate;
     let mut stats = stats;
     if framework_generated_kind(candidate.kind).is_some() {
+        if let Some(format) = framework_generated_kind(candidate.kind) {
+            if let Ok(metadata) =
+                neati_platform::framework_metadata::observe(&candidate.project_root, format)
+            {
+                candidate.evidence.extend(metadata.evidence);
+            }
+        }
         let contract = verify_framework_generated_contract(
             environment,
             &candidate.project_root,
@@ -1409,17 +1509,24 @@ fn measure_candidate(
             candidate.kind,
             cancel,
         );
-        let usage = neati_platform::temporary_storage::observe_temporary_use(
+        if let Err(reason) = contract {
+            if artifact_is_framework_parent(candidate.kind) {
+                stats.framework_advisory = Some(reason.clone());
+            } else {
+                stats.safety_blocked = true;
+            }
+            candidate.evidence.push(reason);
+        } else if neati_platform::temporary_storage::observe_temporary_use(
             environment,
             &candidate.project_root,
-        );
-        if let Err(reason) = contract {
+        )
+        .state
+            != neati_core::domain::storage::TemporaryUsageState::NoUseDetected
+        {
             stats.safety_blocked = true;
-            candidate.evidence.push(reason);
-        } else if usage.state != neati_core::domain::storage::TemporaryUsageState::NoUseDetected {
-            stats.safety_blocked = true;
-            candidate.evidence.push(if usage.state == neati_core::domain::storage::TemporaryUsageState::InUse { "Framework project use was detected; stop its owner and scan again." } else { "Framework project use could not be established; generated-only cleanup is unavailable." }.into());
+            candidate.evidence.push("Framework project use is active or unknown; cleanup is unavailable until a complete idle observation.".into());
         } else {
+            stats.framework_verified = true;
             candidate.evidence.push("A completed macOS use probe detected no current use. This does not establish future abandonment.".into());
         }
     }
@@ -1431,7 +1538,30 @@ fn measure_candidate(
 }
 
 fn measure_tree(path: &Path, _root_device: u64, cancel: &AtomicBool, depth: usize) -> TreeStats {
+    measure_tree_bounded(
+        path,
+        _root_device,
+        cancel,
+        depth,
+        &mut (0usize, std::time::Instant::now()),
+    )
+}
+
+fn measure_tree_bounded(
+    path: &Path,
+    _root_device: u64,
+    cancel: &AtomicBool,
+    depth: usize,
+    budget: &mut (usize, std::time::Instant),
+) -> TreeStats {
     let mut stats = TreeStats::new();
+    budget.0 += 1;
+    if budget.0 > MAX_DISCOVERY_ENTRIES as usize
+        || budget.1.elapsed() > std::time::Duration::from_secs(5)
+    {
+        stats.complete = false;
+        return stats;
+    }
     if cancel.load(Ordering::Relaxed) {
         stats.complete = false;
         stats.cancelled = true;
@@ -1494,7 +1624,7 @@ fn measure_tree(path: &Path, _root_device: u64, cancel: &AtomicBool, depth: usiz
             continue;
         };
         let child = entry.path();
-        let child_stats = measure_tree(&child, _root_device, cancel, depth + 1);
+        let child_stats = measure_tree_bounded(&child, _root_device, cancel, depth + 1, budget);
         stats.logical_bytes = stats
             .logical_bytes
             .saturating_add(child_stats.logical_bytes);
@@ -1512,6 +1642,12 @@ fn measure_tree(path: &Path, _root_device: u64, cancel: &AtomicBool, depth: usiz
         }
         if child_stats.safety_blocked {
             stats.safety_blocked = true;
+        }
+        if budget.0 > MAX_DISCOVERY_ENTRIES as usize
+            || budget.1.elapsed() > std::time::Duration::from_secs(5)
+        {
+            stats.complete = false;
+            break;
         }
     }
     stats
@@ -1545,7 +1681,7 @@ fn record_from_measurement(
         || !ownership.allows_cleanup()
     {
         DeveloperArtifactStatus::SafetyBlocked
-    } else if artifact_is_observation_only(candidate.kind) {
+    } else if artifact_is_framework_parent(candidate.kind) && !stats.framework_verified {
         DeveloperArtifactStatus::ObservationOnly
     } else if stats.complete {
         DeveloperArtifactStatus::Complete
@@ -1572,9 +1708,7 @@ fn record_from_measurement(
             "The scan was cancelled before this artifact could be fully verified. Scan again before cleanup."
                 .to_string(),
         ),
-        DeveloperArtifactStatus::ObservationOnly => Some(
-            "Framework output is observed only; cleanup is unavailable until build/dev use and deployment/offline ownership can be verified. Custom configuration is not evaluated.".into(),
-        ),
+        DeveloperArtifactStatus::ObservationOnly => Some(stats.framework_advisory.unwrap_or_else(|| "Framework output is observed only; its complete generated-only ownership could not be verified.".into())),
     };
     let artifact = DeveloperArtifact {
         id: candidate.id,
@@ -2724,7 +2858,7 @@ mod tests {
         assert!(truncated);
         assert!(candidates
             .iter()
-            .all(|candidate| artifact_is_observation_only(candidate.kind)));
+            .all(|candidate| artifact_is_framework_parent(candidate.kind)));
 
         candidates.clear();
         events.clear();

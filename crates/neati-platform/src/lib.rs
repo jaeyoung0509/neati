@@ -39,6 +39,7 @@ pub mod capabilities;
 pub mod description;
 pub mod environment;
 pub mod file_ops;
+pub mod framework_metadata;
 pub mod path_algebra;
 pub mod paths;
 pub mod process;

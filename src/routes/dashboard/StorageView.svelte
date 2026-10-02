@@ -27,6 +27,7 @@
   import { cleanupView } from '../../lib/utils/cleanupView';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import SelectionToolbar from '../../lib/components/SelectionToolbar.svelte';
   import DeveloperArtifactsView from './DeveloperArtifactsView.svelte';
   import LargeFilesView from './LargeFilesView.svelte';
@@ -273,10 +274,9 @@
         id="storage-scan-button"
         motion="paint"
       >
-        <span class="inline-flex items-center justify-center shrink-0 w-3.5 h-3.5">
-          <RotateCw size={13} />
-        </span>
-        <span>{scanStore.isScanning ? 'Scanning…' : 'Scan Storage'}</span>
+        <LoadingActionContent busy={scanStore.isScanning} busyLabel="Scanning…" word="scanning">
+          <RotateCw size={13} aria-hidden="true" /><span>Scan Storage</span>
+        </LoadingActionContent>
       </Button>
     {/snippet}
   </PageHeader>

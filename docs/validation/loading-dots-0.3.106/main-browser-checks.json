@@ -1,0 +1,177 @@
+{
+  "scope": "Mounted production Svelte components in Chromium; synthetic data; no native IPC",
+  "cases": [
+    {
+      "loaders": [
+        {
+          "circles": 3,
+          "moving": "true",
+          "variant": "dots",
+          "width": 20
+        },
+        {
+          "circles": 0,
+          "moving": "true",
+          "variant": "handwriting",
+          "width": 117
+        }
+      ],
+      "overflow": false,
+      "samples": [
+        [
+          {
+            "alpha": "0.501158",
+            "transform": "none",
+            "y": "7.98958px"
+          },
+          {
+            "alpha": "1",
+            "transform": "none",
+            "y": "8px"
+          },
+          {
+            "alpha": "1",
+            "transform": "none",
+            "y": "8px"
+          }
+        ],
+        [
+          {
+            "alpha": "0.560962",
+            "transform": "none",
+            "y": "7.45134px"
+          },
+          {
+            "alpha": "1",
+            "transform": "none",
+            "y": "8px"
+          },
+          {
+            "alpha": "1",
+            "transform": "none",
+            "y": "8px"
+          }
+        ],
+        [
+          {
+            "alpha": "0.738104",
+            "transform": "none",
+            "y": "5.85707px"
+          },
+          {
+            "alpha": "0.512246",
+            "transform": "none",
+            "y": "7.88979px"
+          },
+          {
+            "alpha": "1",
+            "transform": "none",
+            "y": "8px"
+          }
+        ],
+        [
+          {
+            "alpha": "0.923889",
+            "transform": "none",
+            "y": "4.185px"
+          },
+          {
+            "alpha": "0.630739",
+            "transform": "none",
+            "y": "6.82335px"
+          },
+          {
+            "alpha": "1",
+            "transform": "none",
+            "y": "8px"
+          }
+        ],
+        [
+          {
+            "alpha": "0.9962",
+            "transform": "none",
+            "y": "3.5342px"
+          },
+          {
+            "alpha": "0.8033",
+            "transform": "none",
+            "y": "5.2703px"
+          },
+          {
+            "alpha": "0.535732",
+            "transform": "none",
+            "y": "7.67841px"
+          }
+        ],
+        [
+          {
+            "alpha": "0.96691",
+            "transform": "none",
+            "y": "3.79781px"
+          },
+          {
+            "alpha": "0.961474",
+            "transform": "none",
+            "y": "3.84673px"
+          },
+          {
+            "alpha": "0.690873",
+            "transform": "none",
+            "y": "6.28214px"
+          }
+        ]
+      ],
+      "surface": "Cleanup",
+      "viewport": "960×660"
+    },
+    {
+      "dots": 1,
+      "handwriting": 1,
+      "overflow": false,
+      "surface": "Cleanup",
+      "viewport": "800×560"
+    },
+    {
+      "dots": 1,
+      "handwriting": 1,
+      "overflow": false,
+      "surface": "Cleanup dark",
+      "viewport": "1440×900"
+    },
+    {
+      "animations": 0,
+      "circles": 3,
+      "static": true,
+      "surface": "Cleanup reduced motion",
+      "wordOffset": "0px"
+    },
+    {
+      "static": true,
+      "stopDisabled": true,
+      "surface": "Cleanup stopping"
+    },
+    {
+      "circlesPerLoader": [
+        3,
+        3
+      ],
+      "dots": 2,
+      "handwriting": 0,
+      "surface": "Overview"
+    },
+    {
+      "circlesPerLoader": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "dots": 5,
+      "handwriting": 0,
+      "loadingText": true,
+      "overflow": false,
+      "surface": "AI Activity"
+    }
+  ]
+}

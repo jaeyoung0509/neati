@@ -518,12 +518,12 @@
           <span class="metric-icon-surface flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-primary" aria-hidden="true"><HardDrive size={16} strokeWidth={1.75} /></span>
           <div class="min-w-0" aria-busy={cleanupBusy} title={cleanupDetail}>
             <p class="text-meta font-semibold text-foreground">Cleanup</p>
-            <div class="quick-cleanup-state min-h-12">
+            <div class="quick-cleanup-state min-h-5">
             {#if cleanupBusy}
-              <p class="quick-cleanup-status mt-0.5 text-caption text-muted-foreground" role="status">
+              <p class="quick-cleanup-status mt-0.5 flex items-center gap-1.5 text-caption text-muted-foreground" role="status">
+                <LoadingIndicator active={panelActive && !scanStore.isCancelling} size="xs" class="text-primary" />
                 <span>{cleanupState === 'cleaning' ? 'Cleaning caches' : scanStore.isRefreshingAfterClean ? 'Checking the result' : 'Checking storage'}</span>
               </p>
-              <LoadingIndicator active={panelActive && !scanStore.isCancelling} word={cleanupState === 'cleaning' ? 'cleaning' : 'scanning'} motion="flow" size="sm" class="text-primary" />
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
               <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
             {:else}
@@ -668,10 +668,10 @@
                     <span class="shrink-0 text-caption font-medium text-primary">{row.sessions.length} active</span>
                   {/if}
                 </div>
-                <div class="relative min-h-12 text-caption leading-snug text-muted-foreground">
-                <p class="min-h-5">
+                <p class="flex min-h-5 items-center text-caption leading-snug text-muted-foreground">
                   {#if row.provider}
                     <span class="inline-flex items-center gap-1.5">
+                      {#if loading}<LoadingIndicator active={panelActive} size="xs" class="text-primary" />{/if}
                       <span>{formatQuickProviderUsage(row.provider, loading, stale)}</span>
                       {#if (stale || (row.provider.collection_status && row.provider.collection_status !== 'fresh')) && !loading}
                         <button
@@ -688,10 +688,6 @@
                     {row.sessions.length} observed session{row.sessions.length === 1 ? '' : 's'}
                   {/if}
                 </p>
-                <span class="inline-flex h-7 items-center text-primary" aria-hidden="true">
-                  {#if loading}<LoadingIndicator active={panelActive} word="loading" motion="flow" size="sm" />{/if}
-                </span>
-                </div>
                 <div class="quick-ai-gauge-slot mt-1.5 mb-1 min-h-1">
                   {#if usageWindow}
                     <div

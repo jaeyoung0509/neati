@@ -422,7 +422,7 @@ fn retained_container_state_is_observed_without_generic_cleanup_authority() {
         let items = scan(&registry, id, &environment, &idle());
         let ordinary_item = items
             .iter()
-            .find(|item| item.path == ordinary.parent().unwrap().to_string_lossy())
+            .find(|item| Path::new(&item.path) == ordinary.parent().unwrap())
             .unwrap();
         assert!(
             ordinary_item.is_selected,
@@ -432,7 +432,7 @@ fn retained_container_state_is_observed_without_generic_cleanup_authority() {
             let path = root.join(name);
             let item = items
                 .iter()
-                .find(|item| item.path == path.to_string_lossy())
+                .find(|item| Path::new(&item.path) == path)
                 .unwrap();
             assert!(
                 item.observed_bytes() > 0,
@@ -488,7 +488,7 @@ fn retained_nested_container_state_is_excluded_from_estimates_and_execution() {
     );
     let item = items
         .iter()
-        .find(|item| item.path == unit.to_string_lossy())
+        .find(|item| Path::new(&item.path) == unit)
         .unwrap();
     let payload_bytes = super::get_allocated_size(&payload).unwrap();
     assert_eq!(item.cleanable_bytes(), payload_bytes);
@@ -807,25 +807,14 @@ fn final_owner_boundary_arc_mirror_retains_bytes_without_generic_authority() {
     let ordinary_item = generic
         .iter()
         .find(|item| {
-            item.path.starts_with(
-                fixture
-                    .path()
-                    .join("Library/Caches/com.example.renderer")
-                    .to_string_lossy()
-                    .as_ref(),
-            )
+            Path::new(&item.path)
+                .starts_with(fixture.path().join("Library/Caches/com.example.renderer"))
         })
         .unwrap();
     assert!(ordinary_item.allows_cleanup());
     assert!(generic
         .iter()
-        .filter(|item| item.path.starts_with(
-            fixture
-                .path()
-                .join("Library/Caches/Arc")
-                .to_string_lossy()
-                .as_ref()
-        ))
+        .filter(|item| Path::new(&item.path).starts_with(fixture.path().join("Library/Caches/Arc")))
         .all(|item| !item.allows_cleanup() && !item.is_selected));
     let observed = scan(
         &registry,

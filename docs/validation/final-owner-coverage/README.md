@@ -1,4 +1,4 @@
-# Owner coverage follow-up — October 1, 2026
+# Owner coverage follow-up — October 2, 2026 checkpoint
 
 The patch binds Arc's verified root/runtime, expands exact renderer-cache owner
 units, adds Corepack's reviewed complete v1 command and records one additional
@@ -8,11 +8,12 @@ refused. Sections below separate implemented operations from evidence-backed
 protected decisions.
 
 This is the incomplete validation checkpoint for [#362](https://github.com/jaeyoung0509/neati/issues/362)
-and [#382](https://github.com/jaeyoung0509/neati/issues/382). Recorded public-
-distribution/fixture runs used develop `00ca207` (0.3.100) on macOS 27.0.1
-(26A434), arm64. Final synchronized version and integration checks remain in
-this PR. Native grant/deny/revoke/relaunch/replacement evidence is not supplied
-by shell access probes or fixture process ports.
+and [#382](https://github.com/jaeyoung0509/neati/issues/382). Initial public-
+distribution/fixture runs used develop `00ca207` (0.3.100); the October 2 resumed
+checks used PR #405 base `3edceec` (0.3.102). The host was macOS 27.0.1 (26A434),
+arm64. Final integrated checks remain in this PR. Native grant/deny/revoke/
+relaunch/replacement evidence is not supplied by shell access probes or fixture
+process ports.
 
 ## Android SDK: resumable work and installed packages remain protected
 
@@ -166,14 +167,20 @@ preservation (21 passed, one failed); the negative fixture was retained and
 extended to case variants and runtime artifacts. On October 2 KST,
 `cargo test -p neati-desktop --lib final_owner_boundary` passed all three focused
 regressions: renderer state and forged selection, Corepack version-marker binding,
-and Arc generic-scope/planner bypass protection. The complete browser suite and
-final integrated source have not been rerun, so this is focused boundary evidence.
+and Arc generic-scope/planner bypass protection. The resumed browser suite passed
+22 tests and coverage suite passed 15 tests. Windows fixture paths now use the
+current host's path flavor with the simulated macOS catalog; tests compare paths
+structurally. No Windows test was skipped. This is local fixture evidence;
+final integrated source and CI remain separate.
 
 CloudKit/Safari/index and system roots are evaluated individually in the parent
 [system access matrix](../../SYSTEM_CLEANUP_ACCESS.md);
 that assessment distinguishes current-user metadata access from native TCC and
-mutation authorization. Further SwiftPM/Conda/mise compatibility and the native
-permission transition matrix remain in the existing four-batch integration.
+mutation authorization. The [browser decision matrix](browser-layouts.md)
+records Dia, Firefox and Antigravity's evidence-backed limits. The attempted
+task-owned Chrome native busy/idle run failed before native observations; it
+remains unverified. The native permission transition matrix stays in the
+existing four-batch integration.
 
 ## Additional tool compatibility research checkpoint
 
@@ -181,16 +188,34 @@ Actual task-owned mise 2026.9.18 official macOS arm64 `doctor --json` and
 `cache clear` runs passed for both the default and an explicit external fixture
 cache root. Each removed four disposable sentinels and preserved installed tools,
 authored configuration, trust state and project outputs. These are additional
-owner-command observations; the production adapter was not invoked from the
-nonstandard fixture installation root.
+owner-command observations from a nonstandard fixture installation root.
+
+The later October 2 run copied the digest-verified official binary into a fresh
+task home's supported `.local/bin/mise` launcher and exercised the production
+adapter. Default and explicit external-task modes each removed 16,384 allocated
+fixture bytes through the fixed owner command. Installed tools, authored
+configuration, trust state and project outputs remained. Four adversarial modes
+removed zero bytes: descendant replacement after review, replacement during the
+final handle callback, busy handles and unknown handles. Process/handle ports
+were fixtures; this does not prove native use or GUI permission behavior.
+
+The actual doctor response reports `MISE_TASK_CACHE_DIR` through `env_vars`.
+The adapter now requires that reported value to match the explicit environment
+override before adding its `v2` unit; missing, inconsistent or unexpected
+overrides fail closed. Preview binds the bounded recursive inventory, checks
+each scope's fresh handles and repeats the preview after final use callbacks.
+Scope authority is unchanged: the complete disposable cache/state/task roots,
+excluding installed tools, configuration and trust/project state.
 
 The Swift.org 6.4.0 RELEASE signed package's extracted subset still reports the
 existing exact banner `Swift Package Manager - Swift 6.4.0-dev`. Its fixed
 `purge-cache` command removed repositories, registry/downloads and
 manifests/manifest.db, preserving seven protected sentinels. This supplies a new
 actual distribution observation for the existing banner and scope, rather than a
-new accepted banner. The production adapter was not exercised from that fixture
-installation root.
+new accepted banner. The extracted installation root is outside the production
+adapter's approved Apple SwiftPM launcher roots; this distribution remains
+unavailable there. No root or banner acceptance is broadened by the
+owner-command result.
 
 The official Conda 26.9.0 PEP distribution, installed into a task-owned Miniforge
 runtime, reported its version successfully, but the exact nonmutating clean
@@ -199,10 +224,14 @@ distribution remains advisory and fails closed. The result neither expands
 cleanup compatibility nor proves that every Conda 26.9.0 distribution is
 unsupported; the separately validated existing distributions remain unchanged.
 
-Pinned public source, artifact digests, package-signature evidence and execution
-receipts are preserved in the recovery archive. Final compatibility fixture and
-adapter integration remains a PR TODO. No global tool or system toolchain was
-installed, and no real user cleanup occurred in these experiments.
+[Promoted compatibility records](tool-compatibility.json) retain pinned source,
+artifact digests, exact positive/negative distributions and the production Mise
+result. Sanitized actual Mise/Conda response projections are committed test
+fixtures. The owner-tool suite passed 17 tests, including complete external-task
+scope, same-size descendant replacement and actual initialization-error
+rejection. Inventory replacement and final-preview assertions also ran against
+the actual Mise binary. No global tool or system toolchain was installed, and
+no real user cleanup occurred in these experiments.
 
 ## Current namespace remeasurement
 
@@ -227,18 +256,17 @@ amounts are not summed or presented as reclaimable disk space.
   a unit's metadata measurement/inspection is not immediately interruptible.
   Its fingerprint has a ten-second budget; do not claim bounded sub-millisecond
   cancellation for real large browser units from fixture Stop timings.
-- [ ] Finish the broader browser-layout decision matrix (including Dia 1.50.1,
-  Firefox and Antigravity) and the remaining per-class protected/unsupported
-  decisions. No unverified profile or installed distribution becomes actionable.
+- [x] Record the broader browser-layout decision matrix (Dia 1.50.1, Firefox and
+  Antigravity), with exact protected/unsupported limits. No unverified profile
+  or installed distribution becomes actionable.
 - [ ] Run a task-owned actual Chromium profile and native exact-use busy/idle
-  check when native validation resumes. Existing process/handle callback tests
-  are fixture evidence; no real browser or user profile was cleaned.
-- [ ] Promote the archived mise/SwiftPM/Conda provenance and exact positive or
-  negative distribution records into the existing compatibility fixtures/docs.
-  Validate the production adapter with its supported launcher/root contract
-  before changing supported distributions; task-owned command execution alone
-  does not establish adapter compatibility. Conda's initialization gate stays
-  advisory, with no bypass or blanket version claim.
+  check when native validation resumes. The October 2 attempt failed before CDP
+  or native lsof; it was not retried. Callback tests remain fixture evidence.
+- [x] Promote mise/SwiftPM/Conda provenance and exact positive/negative records
+  into compatibility fixtures/docs. Validate production Mise 2026.9.18 with its
+  supported launcher/root contract. Swift's extracted root and Conda's
+  initialization gate remain unavailable/advisory, with no bypass, unsupported
+  root acceptance or blanket version claim.
 - [ ] Complete the unsigned app grant/deny/revoke/relaunch/replacement matrix
   with the native acceptance batch and record final app version/OS/date.
 - [ ] Run required Rust/frontend/architecture/version checks, final app build,

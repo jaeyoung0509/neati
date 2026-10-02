@@ -1,0 +1,7 @@
+{
+  "caused_by": "None",
+  "error": "CondaError: Conda has not been initialized.\n\nTo enable full conda functionality, please run 'conda init'.\nFor additional information, see 'conda init --help'.\n",
+  "exception_name": "CondaError",
+  "exception_type": "<class 'conda.CondaError'>",
+  "message": "Conda has not been initialized.\n\nTo enable full conda functionality, please run 'conda init'.\nFor additional information, see 'conda init --help'.\n"
+}

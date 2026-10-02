@@ -1,0 +1,26 @@
+{
+  "version": "2026.9.18 macos-arm64 (2026-09-30)",
+  "dirs": {
+    "cache": "/profile/Library/Caches/mise",
+    "config": "/profile/.config/mise",
+    "data": "/profile/.local/share/mise",
+    "shims": "/profile/.local/share/mise/shims",
+    "system_shims": "/usr/local/share/mise/shims",
+    "state": "/profile/.local/state/mise"
+  },
+  "settings": {
+    "experimental": true
+  },
+  "env_vars": {
+    "MISE_DISABLE_UPDATE_WARNING": "1",
+    "MISE_AUTO_UPDATE": "0",
+    "MISE_CACHE_PRUNE_AGE": "0s",
+    "MISE_CACHE_DIR": "/profile/Library/Caches/mise",
+    "MISE_STATE_DIR": "/profile/.local/state/mise",
+    "MISE_DATA_DIR": "/profile/.local/share/mise",
+    "MISE_CONFIG_DIR": "/profile/.config/mise",
+    "MISE_CONFIG_FILE": "/profile/.config/mise/config.toml",
+    "MISE_GLOBAL_CONFIG_FILE": "/profile/.config/mise/config.toml",
+    "MISE_TASK_CACHE_DIR": "/profile/.cache/task-output"
+  }
+}

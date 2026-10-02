@@ -244,7 +244,41 @@ stores do not acquire generic cleanup permission. CloudKit/Safari/index and
 system decisions are recorded in [the system matrix](SYSTEM_CLEANUP_ACCESS.md).
 
 The named residual namespaces were remeasured without cleanup; partial bytecode
-coverage remains explicitly partial. Native TCC transitions, additional tool
-compatibility, actual browser use evidence, final synchronized-version checks,
-bundle verification and CI remain TODO at this checkpoint. This section does
-not close #362/#382 or claim a complete platform/runtime matrix.
+coverage remains explicitly partial. This section does not close #362/#382 or
+claim a complete platform/runtime matrix.
+
+### October 2 resumed evidence (0.3.102)
+
+The additional [compatibility record](validation/final-owner-coverage/tool-compatibility.json)
+and sanitized response fixtures establish the following exact decisions:
+
+- Official mise 2026.9.18 was exercised through the production adapter in fresh
+  task-owned standard launcher roots. Default and external-task scopes each
+  removed 16,384 allocated fixture bytes. Recursive replacement after review or
+  during the final handle callback, busy handles and unknown handles all refused
+  mutation. An explicit `MISE_TASK_CACHE_DIR` must match the doctor response's
+  `env_vars` before its complete `v2` scope is accepted. Installed tools,
+  configuration, trust state and projects remain outside the command scope.
+- The signed Swift.org 6.4.0 extracted distribution reports the already recorded
+  `Swift 6.4.0-dev` banner, and its actual owner command preserved protected
+  sentinels. Its extracted installation root remains outside the production
+  Apple SwiftPM launcher contract; no installation-root acceptance was added.
+- Official Conda 26.9.0's PEP distribution reported its version but rejected the
+  exact read-only clean preview at its `main_pip` initialization gate. It remains
+  advisory/fail-closed. No `conda init`, alternate entry-point bypass or blanket
+  inference about every 26.9.0 distribution is made.
+
+The [browser layout matrix](validation/final-owner-coverage/browser-layouts.md)
+records Dia 1.50.1's actual public metadata, pinned Firefox cache-root source and
+Antigravity 2.15.1's public metadata plus authored/resumable-state documentation.
+No new unverified whole-profile or offline-store operation is enabled for them.
+Existing ordinary registered payload policies retain their own scope and guards.
+
+Local resumed suites passed: browser 22, coverage 15, user-tool observations 18
+and owner tools 17. The Windows failures were repaired with portable fixture path
+flavor and structural path comparisons, without skipping their assertions.
+These are local checks, not a successful Windows CI result. The independent
+actual Chrome busy/idle attempt failed before CDP/native lsof and was not retried;
+only positively identified task-owned startup updater artifacts were removed.
+Native TCC transitions, actual browser use evidence, final integrated checks,
+bundle verification and CI remain pending in the existing four-batch workflow.

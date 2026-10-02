@@ -1442,9 +1442,12 @@ mod tests {
     fn isolated_mac_fixture() -> (tempfile::TempDir, PlatformEnvironment, RunningProcessPolicy) {
         let temp = tempfile::tempdir().unwrap();
         let paths = neati_platform::paths::SimulatedPaths::new()
+            .with_flavor(neati_platform::PathFlavor::current())
             .with_home(temp.path())
             .with_program_files(temp.path().join("system-applications"));
-        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
+        // The catalog is macOS, but these filesystem fixtures run on each host.
+        // Its temporary paths must retain the host's drive/separator semantics.
+        let environment = PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
             .with_platform(PlatformKind::Macos)
             .with_roots(Arc::new(paths));
         (temp, environment, RunningProcessPolicy::none())

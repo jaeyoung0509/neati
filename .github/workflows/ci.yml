@@ -354,8 +354,13 @@ jobs:
       - name: Install just
         uses: taiki-e/install-action@just
 
+      - name: NSIS packaging retry regression tests
+        shell: pwsh
+        run: ./scripts/test_build_ci_nsis.ps1
+
       - name: Build debug NSIS installer (per-user default)
-        run: pnpm tauri build --debug --bundles nsis --config .github/tauri.package-ci.json
+        shell: pwsh
+        run: ./scripts/build_ci_nsis.ps1 -Config .github/tauri.package-ci.json
 
       - name: Smoke-test the per-user installer
         shell: pwsh
@@ -376,7 +381,8 @@ jobs:
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/debug/bundle/nsis, src-tauri/target/debug/bundle/nsis
 
       - name: Build debug NSIS installer (machine-wide)
-        run: pnpm tauri build --debug --bundles nsis --config .github/tauri.nsis-permachine.json
+        shell: pwsh
+        run: ./scripts/build_ci_nsis.ps1 -Config .github/tauri.nsis-permachine.json
 
       - name: Stage the machine-wide installer
         shell: pwsh

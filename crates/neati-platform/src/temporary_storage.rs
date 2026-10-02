@@ -347,8 +347,9 @@ pub fn move_reviewed_unit(
     }
 }
 
-/// A bounded no-follow inspection of a known framework subtree. It never
-/// authorizes the output parent or evaluates JavaScript configuration.
+/// Inspect an exact typed generated child or a recorded generated-only whole
+/// default. The result is format evidence; the planner still owns metadata,
+/// scope, ownership and use authorization. Project configuration is never run.
 pub fn verify_framework_generated_tree(
     environment: &PlatformEnvironment,
     path: &Path,

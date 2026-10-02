@@ -172,7 +172,7 @@ fn custom_dynamic_outputs_stay_observed_and_nested_projects_stay_discoverable() 
         workspace_root: custom.workspace_path.clone(),
         workspace_identity: custom.workspace_identity.clone(),
         project_root: custom.project_root.clone(),
-        project_identity: custom.project_identity.clone(),
+        project_identity: Box::new(custom.project_identity.clone()),
         artifact_relative: custom.artifact_relative.clone(),
         marker_identities: custom.marker_identities.clone(),
         kind: custom.artifact.kind,
@@ -527,6 +527,58 @@ fn generated_metadata_banners_cannot_hide_appended_authored_sentinels() {
         .is_err());
         assert_eq!(fs::read(path).unwrap(), bytes);
     }
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn overlapping_project_probes_finish_before_the_next_measurement_starts() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().canonicalize().unwrap();
+    let project = root.join("project");
+    let nested = project.join("packages/child");
+    copy_fixture("next-15.5.14", &project);
+    copy_fixture("next-15.5.14", &nested);
+    fixture_git(&project, &["init", "-q"]);
+    fixture_git(
+        &project,
+        &["add", "--", "package.json", "packages/child/package.json"],
+    );
+    let env = environment(&root).with_tool("git", "/usr/bin/git");
+    let mut events = Vec::new();
+    let inventory = DeveloperArtifactScanner::scan_workspaces(
+        &env,
+        &[workspace(&root)],
+        FolderAccess::NotGated,
+        Arc::new(AtomicBool::new(false)),
+        |event| events.push(event),
+    )
+    .unwrap();
+    assert_eq!(inventory.records.len(), 4);
+    assert!(inventory
+        .records
+        .values()
+        .all(|record| record.artifact.status == DeveloperArtifactStatus::Complete));
+
+    let mut active = None;
+    let mut finished = 0;
+    for event in events {
+        match event {
+            DeveloperArtifactScanEvent::ArtifactMeasurementStarted { artifact_id, .. } => {
+                assert!(
+                    active.is_none(),
+                    "Overlapping project probes ran concurrently"
+                );
+                active = Some(artifact_id);
+            }
+            DeveloperArtifactScanEvent::ArtifactFound { artifact } => {
+                assert_eq!(active.take().as_deref(), Some(artifact.id.as_str()));
+                finished += 1;
+            }
+            _ => {}
+        }
+    }
+    assert!(active.is_none());
+    assert_eq!(finished, 4);
 }
 
 #[cfg(target_os = "macos")]

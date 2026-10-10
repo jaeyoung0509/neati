@@ -39,3 +39,9 @@ Production Svelte components were mounted using `scripts/build_ui_polish_validat
 ## Limits
 
 Windows native execution and installer behavior were not run on this macOS host. No real user directories or native UI deletion actions were exercised. Cross-compilation and browser screenshots do not establish Windows runtime correctness. PR CI status is reported separately in GitHub; local checks do not claim pending CI success. Permanent removal may be partial on error and is not secure erasure or a guaranteed physical free-space delta.
+
+## CI audit follow-up — October 10, 2026
+
+The first CI run failed `pnpm audit --audit-level=high` because the existing lockfile contained `source-map-js` 1.2.1 ([GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q)). The transitive dependency was updated to patched 1.2.2 without adding an override or suppressing the advisory. No second version bump is made on this same PR.
+
+`pnpm install --frozen-lockfile` and `just supply-chain` passed; the latter includes Cargo deny, Cargo audit and pnpm audit. Existing Rust maintenance/yanked warnings remain allowed under the repository policy; npm audit reported no known vulnerabilities. Frontend typecheck, all 531 tests, production build and debug bundle verification were rerun with the updated dependencies. No application was installed or launched. GitHub CI results remain distinct from these local results.

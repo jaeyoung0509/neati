@@ -267,16 +267,16 @@
           "markdownDescription": "Enables the execute_empty_trash command without any pre-configured scope."
         },
         {
+          "description": "Enables the execute_removal_plan command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-execute-removal-plan",
+          "markdownDescription": "Enables the execute_removal_plan command without any pre-configured scope."
+        },
+        {
           "description": "Enables the execute_temporary_storage_review command without any pre-configured scope.",
           "type": "string",
           "const": "allow-execute-temporary-storage-review",
           "markdownDescription": "Enables the execute_temporary_storage_review command without any pre-configured scope."
-        },
-        {
-          "description": "Enables the execute_trash_plan command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-execute-trash-plan",
-          "markdownDescription": "Enables the execute_trash_plan command without any pre-configured scope."
         },
         {
           "description": "Enables the get_agent_integrations command without any pre-configured scope.",
@@ -501,10 +501,10 @@
           "markdownDescription": "Enables the prepare_developer_artifact_cleanup command without any pre-configured scope."
         },
         {
-          "description": "Enables the prepare_large_file_trash command without any pre-configured scope.",
+          "description": "Enables the prepare_large_file_removal command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-prepare-large-file-trash",
-          "markdownDescription": "Enables the prepare_large_file_trash command without any pre-configured scope."
+          "const": "allow-prepare-large-file-removal",
+          "markdownDescription": "Enables the prepare_large_file_removal command without any pre-configured scope."
         },
         {
           "description": "Enables the prepare_temporary_storage_review command without any pre-configured scope.",
@@ -765,16 +765,16 @@
           "markdownDescription": "Denies the execute_empty_trash command without any pre-configured scope."
         },
         {
+          "description": "Denies the execute_removal_plan command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-execute-removal-plan",
+          "markdownDescription": "Denies the execute_removal_plan command without any pre-configured scope."
+        },
+        {
           "description": "Denies the execute_temporary_storage_review command without any pre-configured scope.",
           "type": "string",
           "const": "deny-execute-temporary-storage-review",
           "markdownDescription": "Denies the execute_temporary_storage_review command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the execute_trash_plan command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-execute-trash-plan",
-          "markdownDescription": "Denies the execute_trash_plan command without any pre-configured scope."
         },
         {
           "description": "Denies the get_agent_integrations command without any pre-configured scope.",
@@ -999,10 +999,10 @@
           "markdownDescription": "Denies the prepare_developer_artifact_cleanup command without any pre-configured scope."
         },
         {
-          "description": "Denies the prepare_large_file_trash command without any pre-configured scope.",
+          "description": "Denies the prepare_large_file_removal command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-prepare-large-file-trash",
-          "markdownDescription": "Denies the prepare_large_file_trash command without any pre-configured scope."
+          "const": "deny-prepare-large-file-removal",
+          "markdownDescription": "Denies the prepare_large_file_removal command without any pre-configured scope."
         },
         {
           "description": "Denies the prepare_temporary_storage_review command without any pre-configured scope.",

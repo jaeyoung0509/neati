@@ -174,7 +174,7 @@ fn young_unknown_use_foreign_identity_and_links_are_not_ready() {
         ReviewedCacheKind::NodeCompileCache,
         Arc::new(UseState(None)),
         provider.measuring.clone(),
-        provider.trash.clone(),
+        provider.removal.clone(),
     );
     assert_eq!(
         aged_port(&env, &unknown)

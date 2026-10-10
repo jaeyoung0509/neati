@@ -199,8 +199,8 @@ pub struct CleanupService {
     docker_status_cache: Arc<DockerStatusCache>,
     lifecycle_providers: Arc<LifecycleProviderRegistry>,
     owner_providers: Arc<OwnerProviderRegistry>,
-    /// Native Trash / Recycle Bin adapter used only after the cleanup safety
-    /// guard minted a validated non-Safe filesystem target.
+    /// Compatibility port for explicit legacy unit-test plans. The current
+    /// catalog rejects Trash disposition; Safe/Rebuild defaults are permanent.
     trash_backend: Arc<dyn neati_platform::TrashBackend>,
     /// The cancellation handles of the scans this service is running, keyed by
     /// the id each scan reports so `cancel_scan` can reach one in flight.

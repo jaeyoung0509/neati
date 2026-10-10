@@ -235,7 +235,7 @@ offset rings, rather than assuming every control sits on the page background.
 - Copy names the user's task and measured outcome, not implementation jargon:
   `Found in scanned locations`, `Cleanup complete`, and `Completed items`.
   A completed action is not a promise of disk-space recovery. Unknown estimates,
-  partial scans, protected items, and Trash movement keep their distinct meaning.
+  partial scans, protected items, removed bytes and disk free-space changes keep their distinct meaning.
 
 ### Spacing, geometry, and density
 
@@ -328,7 +328,7 @@ shorten the path to inspection, selection, and cleanup, not the number of destin
 ```text
 Overview          existing system summary
 Storage           cleanup-first entry; secondary workflows use a compact native selector
-Large Files       direct shortcut to file selection and recoverable deletion
+Large Files       direct shortcut to file selection and reviewed permanent deletion
 Applications      direct shortcut to application inspection and supported uninstall
 Performance       CPU / Memory / Battery detail
 Memory            focused memory page, no nested section selector
@@ -615,16 +615,15 @@ must not suggest that the account has exhausted its quota.
 - Tool-managed pruning without a reclaim estimate reads `Not estimated`, with
   the tool's role explained. Mixed selections explicitly count actions without
   estimates; measured bytes never imply that those actions reclaim zero.
-- Cleanup results distinguish removed bytes from bytes moved to Trash. Trash
-  movement releases no disk space until emptied; only a measured free-space
-  delta describes a disk reading. Policy-preserved entries are reported as
+- Current cleanup results report permanently removed bytes; historical Trash
+  movement remains separately labelled. Only a measured free-space delta
+  describes a disk reading. Policy-preserved entries are reported as
   kept. Long diagnostic paths wrap within one scrolling result dialog.
 - Rebuild cost does not determine recoverability. Preview groups use the
-  backend's explicit mutation channel, including owner-managed Trash moves;
-  a Rebuild cache may be permanently removed when its catalog policy permits.
+  backend's permanent mutation channel for every current action.
+  Rebuild caches are permanently removed and may need downloading or rebuilding.
   Observed advisory stores never increase the cleanup estimate.
-- Required cleanup review leads with backend-defined permanent-delete and
-  recoverable-movement totals, unknown-estimate counts, owner summaries and
+- Required cleanup review leads with backend-defined permanent-delete totals and the irreversible consequence, unknown-estimate counts, owner summaries and
   consequences. Exact names and paths live in closed, keyboard-accessible
   disclosures. Keep different modes and consequences separate, retain every
   authorized target in details, and keep Cancel/confirm visible while scrolling.
@@ -665,9 +664,9 @@ must not suggest that the account has exhausted its quota.
   Keep unknown sizes, partial coverage and shared physical storage visible;
   these bytes stay separate from ready cache totals. One dialog confirms the
   exact paths and required unknown-use/source-loss acknowledgements. New active
-  use or changed identity blocks the unit. Explain that descriptor staging moves
-  to Trash without establishing free space; restoration to the original listed
-  path is manual, and Git worktree registrations may need repair.
+  use or changed identity blocks the unit. Explain that descriptor staging precedes permanent deletion. Successful
+  deletion cannot be restored from Trash; a failed or partial operation reports
+  the location of remaining entries. Removed bytes do not establish free space.
 - `Large Files`, `Applications`, `Disks`: searchable size-sorted files,
   installed-app rows with related data, and volume capacity. No invented
   disk-map engine.
@@ -804,6 +803,19 @@ preview states that permission checks require the desktop application.
 - Every new screen is checked at 800 × 560, 960 × 660, and a larger desktop
   size, in light and dark themes, with reduced motion enabled.
 
+## Permanent deletion — owner-approved #416
+
+All current removal actions, including files, apps, generated directories and
+explicit temporary scopes, permanently delete their authorized units. Existing
+review surfaces keep Cancel, expiry and exact scope details, and name that the
+action cannot be undone from Trash. Whole temporary folders retain source-loss
+and unknown-use acknowledgements. Ordinary safe/rebuild cleanup keeps its
+explicit Clean action without an additional mandatory review dialog.
+
+Deletion results distinguish removed file data from measured disk free-space
+change. A partial failure must never imply that deleted entries were restored;
+only remaining staged entries can return to their original location.
+
 ## Reviewed home Trash action
 
 Storage offers a secondary Review Trash action on macOS. It presents the exact
@@ -824,8 +836,8 @@ graceful quit flow. A previous scan stays visibly marked as previous.
 Observed storage uses a range when containment or shared physical storage cannot
 be resolved. Explain that row amounts are upper bounds in that case. Unknown
 locations remain visible without contributing an invented zero or cleanup authority.
-Results show permanent removal and Trash movement separately even for a single
-provider outcome. Disk free-space change is a separate signed reading, including
+Results show permanently removed bytes; historical Trash movement stays
+separate when displaying older results. Disk free-space change is a separate signed reading, including
 zero and negative changes; other activity can affect it.
 
 ## Inspection diagnostics

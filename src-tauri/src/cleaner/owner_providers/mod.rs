@@ -164,8 +164,8 @@ impl OwnerProviderRegistry {
         process: Arc<dyn neati_core::domain::cleanup::RunningProcessProbe>,
         measuring: Arc<dyn neati_core::domain::cleanup::OwnerUnitMeasurer>,
     ) -> Self {
-        let trash: Arc<dyn neati_platform::TrashBackend> =
-            Arc::new(neati_platform::NativeTrashBackend);
+        let trash: Arc<dyn neati_platform::RemovalBackend> =
+            Arc::new(neati_platform::NativeRemovalBackend);
         #[cfg(target_os = "macos")]
         let homebrew = Arc::new(homebrew::HomebrewDownloadsProvider::new(
             process.clone(),

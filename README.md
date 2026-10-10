@@ -30,7 +30,7 @@ remain outside the cleanup boundary.
 - Developer Artifacts scans selected workspaces for generated build output and
   dependencies. Partial measurements remain explicit and cleanup requires review.
 - A bounded Large Files inspector for approved user-content folders and an
-  installed-application inspector with reviewed, recoverable moves to Trash.
+  installed-application inspector with reviewed permanent deletion.
 - Disk and local-model views with size, location, and modification details.
 - A Performance page with local CPU, memory and battery details. CPU is the
   system-wide share of all logical cores busy over the sampling window, and
@@ -197,7 +197,7 @@ be executed.
   and inactivity is checked again immediately before deletion.
 - Local model weights and rebuildable caches require explicit selection.
 - Large Files and App Uninstaller retain backend-owned inventories and use
-  short-lived, one-shot Trash plans. The WebView submits opaque IDs rather than
+  short-lived, one-shot permanent-removal plans. The WebView submits opaque IDs rather than
   filesystem paths or deletion strategies.
 
 ## Process and development-port safety

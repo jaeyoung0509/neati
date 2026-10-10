@@ -1,5 +1,5 @@
 //! Reviewed owner stores. The core owns authorization; native evidence and
-//! the final checked Trash move are supplied by a narrow port.
+//! the final checked permanent removal are supplied by a narrow port.
 use super::{
     CleanFailureReason, DeletionDisposition, OwnerProviderAuthorization, OwnerProviderExecution,
     OwnerProviderRefusal, OwnerProviderSelection, OwnerProviderUnit, OwnerStoreObservation,
@@ -59,20 +59,20 @@ impl ReviewedCacheKind {
     }
     pub fn consequence(self) -> &'static str {
         match self {
-        Self::NodeCompileCache => "Verified Node module compilation caches move to Trash. Node recompiles modules on a later run; source files, projects and installed runtimes stay intact.",
-        Self::CodexStaging => "Abandoned runtime installation staging moves to Trash. An interrupted runtime download may restart; the activated runtime stays intact.",
+        Self::NodeCompileCache => "Verified Node module compilation caches are permanently removed. Node recompiles modules on a later run; source files, projects and installed runtimes stay intact.",
+        Self::CodexStaging => "Abandoned runtime installation staging is permanently removed. An interrupted runtime download may restart; the activated runtime stays intact.",
         Self::GradleMarkers => "Gradle may show release highlights again. Build caches, dependencies and installed Gradle versions stay intact.",
-        Self::GoogleUpdaterLogs => "User-level Google Updater logs move to Trash. Previous update diagnostics will be unavailable; updater preferences, installed versions and update metadata remain intact.",
-        Self::GoogleUpdaterDownloads => "Verified Google Updater download archives and their cache index move together to Trash. Google Updater may download installers again; installed applications, updater versions and preferences stay intact. Empty Trash to release any recoverable space.",
-        Self::NodeHeaders => "Downloaded Node development headers move to Trash and may be downloaded again during native addon builds. Installed Node runtimes stay intact.",
-        Self::ElectronArchives => "Downloaded Electron ZIP archives move to Trash and may be downloaded again. Installed Electron apps and browser bundles stay intact.",
-        Self::ShellCompletions => "Shell completion dump files move to Trash. Zsh rebuilds completion metadata on a later startup; shell settings stay intact.",
-        Self::UpdaterStaging => "Unreferenced update archives move to Trash and may be downloaded again. The installer referenced by update-info.json stays intact.",
-        Self::EditorOffline => "Selected editor offline assets move to Trash. Extensions and webviews may need a network connection to rebuild them. Settings, credentials, local storage, IndexedDB and Service Worker registrations stay intact.",
-        Self::IdeIndexes => "Selected IDE indexes move to Trash and rebuild when the IDE opens. Local History, plugins, settings and project files stay intact. This is not the IDE's full Invalidate Caches operation.",
-        Self::MessagesPreviews => "Selected Messages preview and sticker images move to Trash and may be generated again. Conversations, original attachments and databases stay intact.",
-        Self::MailDownloads => "Selected downloaded attachment copies move to Trash. Save any edits you want to keep first. Mail messages and its attachment store stay intact.",
-        Self::AbandonedDownloads => "Selected incomplete downloads move to Trash and cannot resume from this location. Review every file before continuing; completed downloads stay intact.",
+        Self::GoogleUpdaterLogs => "User-level Google Updater logs are permanently removed. Previous update diagnostics will be unavailable; updater preferences, installed versions and update metadata remain intact.",
+        Self::GoogleUpdaterDownloads => "Verified Google Updater download archives and their cache index are permanently removed together. Google Updater may download installers again; installed applications, updater versions and preferences stay intact.",
+        Self::NodeHeaders => "Downloaded Node development headers are permanently removed and may be downloaded again during native addon builds. Installed Node runtimes stay intact.",
+        Self::ElectronArchives => "Downloaded Electron ZIP archives are permanently removed and may be downloaded again. Installed Electron apps and browser bundles stay intact.",
+        Self::ShellCompletions => "Shell completion dump files are permanently removed. Zsh rebuilds completion metadata on a later startup; shell settings stay intact.",
+        Self::UpdaterStaging => "Unreferenced update archives are permanently removed and may be downloaded again. The installer referenced by update-info.json stays intact.",
+        Self::EditorOffline => "Selected editor offline assets are permanently removed. Extensions and webviews may need a network connection to rebuild them. Settings, credentials, local storage, IndexedDB and Service Worker registrations stay intact.",
+        Self::IdeIndexes => "Selected IDE indexes are permanently removed and rebuild when the IDE opens. Local History, plugins, settings and project files stay intact. This is not the IDE's full Invalidate Caches operation.",
+        Self::MessagesPreviews => "Selected Messages preview and sticker images are permanently removed and may be generated again. Conversations, original attachments and databases stay intact.",
+        Self::MailDownloads => "Selected downloaded attachment copies are permanently removed. Save any edits you want to keep first. Mail messages and its attachment store stay intact.",
+        Self::AbandonedDownloads => "Selected incomplete downloads are permanently removed and cannot resume from this location. Review every file before continuing; completed downloads stay intact.",
     }
     }
 }
@@ -81,7 +81,7 @@ pub trait ReviewedCachePort: Send + Sync {
     fn inventory(&self, kind: ReviewedCacheKind) -> OwnerStoreObservation;
     fn identity(&self, path: &Path) -> Option<CleanupIdentity>;
     /// Re-derive the registered scope, check owner/handles, tree, and identity,
-    /// and move only that exact reviewed unit. Must not fall back to deletion.
+    /// and permanently remove only that exact reviewed unit. Must not bypass owner validation.
     fn move_verified(
         &self,
         kind: ReviewedCacheKind,
@@ -108,7 +108,7 @@ pub fn prepare(
         provider_id: kind.id().into(),
         signature_id: String::new(),
         risk: RiskTier::Rebuild,
-        deletion_disposition: DeletionDisposition::Trash,
+        deletion_disposition: DeletionDisposition::PermanentDelete,
         process_guard: RunningProcessPolicy::none(),
         requires_confirmation: kind.requires_confirmation(),
         units: Vec::new(),
@@ -178,7 +178,7 @@ pub fn execute(
                 )
             };
             if plan.provider_id != kind.id()
-                || plan.deletion_disposition != DeletionDisposition::Trash
+                || plan.deletion_disposition != DeletionDisposition::PermanentDelete
                 || plan.requires_confirmation != kind.requires_confirmation()
             {
                 return refuse(
@@ -212,7 +212,7 @@ pub fn execute(
                     unit.unit_key.clone(),
                     0,
                     None,
-                    "The unit still exists after the Trash move; a replacement was left intact",
+                    "The unit still exists after the permanent removal; a replacement was left intact",
                 )
             }
         })

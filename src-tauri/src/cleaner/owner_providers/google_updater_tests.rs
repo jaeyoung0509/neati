@@ -59,7 +59,7 @@ fn complete_coupled_download_cache_moves_to_fixture_trash_and_preserves_installe
     assert!(!plan.requires_confirmation);
     assert_eq!(
         plan.deletion_disposition,
-        neati_core::domain::cleanup::DeletionDisposition::Trash
+        neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
     );
     let result = provider.execute(&env, &plan);
     assert_eq!(result.units.len(), 1);
@@ -182,7 +182,7 @@ fn final_handle_probe_cannot_replace_an_archive_after_hash_validation() {
         ReviewedCacheKind::GoogleUpdaterDownloads,
         probe.clone(),
         idle.measuring.clone(),
-        idle.trash.clone(),
+        idle.removal.clone(),
     );
     let scan = provider.scan(&env, &RunningProcessPolicy::none());
     let plan = provider

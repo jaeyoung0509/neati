@@ -47,7 +47,7 @@ describe('dedicated temporary review', () => {
     const accepted = await mock.prepare(inventory.scan_id, ['worktree-target']);
     expect(accepted).toMatchObject({ has_unknown_usage: false, has_whole_folders: false });
     const result = await mock.execute(accepted.id, { ...consent, accept_source_loss: false, accept_unknown_usage: false });
-    expect(result.moved_count).toBe(1); expect(result.items[0].message).toContain('No files were changed');
+    expect(result.removed_count).toBe(1); expect(result.items[0].message).toContain('No files were changed');
   });
 
   it('expires and cancels drafts and preserves cancelled scan qualification', async () => {

@@ -46,7 +46,7 @@
     <div class="min-w-0 flex-1 basis-48"><h1 class="text-title font-semibold">Temporary folders</h1><p class="mt-1 text-body text-muted-foreground">Review build directories, worktrees and scratch data. Nothing is preselected.</p></div>
     <Button disabled={!!review.busy} onclick={() => review.scan()} class="gap-1.5"><LoadingActionContent busy={review.busy === 'scan'} busyLabel="Inspecting…" word="scanning"><RefreshCw size={14} aria-hidden="true" />Scan temporary folders</LoadingActionContent></Button>
   </div>
-  {#if !isTauri()}<p role="status" class="text-meta text-muted-foreground">Browser fixture · native inspection and Trash moves require the desktop app.</p>{/if}
+  {#if !isTauri()}<p role="status" class="text-meta text-muted-foreground">Browser fixture · native inspection and permanent removal require the desktop app.</p>{/if}
   <Card class="p-4 space-y-2">
     <p class="text-body"><strong>No use detected</strong> is a probe result. It does not prove abandonment or that source, Git or session data can be recovered.</p>
     <details class="text-meta text-muted-foreground"><summary class="cursor-pointer focus-ring">Scope and limits</summary><p class="mt-2">Only direct units under the platform’s user and shared temporary roots are inventoried. Age informs your decision. Access, current-user ownership, stable identity and no-follow boundaries remain required. Usage uncertainty can be accepted only in this review.</p>{#if review.inventory}<ul class="mt-2 space-y-1">{#each review.inventory.roots as root}<li class="break-all font-mono">{root}</li>{/each}</ul>{/if}</details>
@@ -69,7 +69,7 @@
           </section>
         {/each}
       </div>
-      {#if review.result}<p role="status" class="text-body">{isTauri() ? `Moved ${review.result.moved_count} units to ${platformContextStore.trashLabel}` : `Previewed ${review.result.moved_count} moves; no files changed`} · {review.result.skipped_count + review.result.failed_count} kept. Scan again to refresh.</p>{/if}
+      {#if review.result}<p role="status" class="text-body">{isTauri() ? `Permanently removed ${review.result.removed_count} units` : `Previewed ${review.result.removed_count} removals; no files changed`} · {review.result.skipped_count + review.result.failed_count} kept. Scan again to refresh.</p>{/if}
       {#if selected.length}<div class="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"><p class="text-body">{scopeCount(selected.length)} selected · {formatBytes(selectedBytes)} known bytes{unknownSelected ? ` · ${unknownSelected} partial or unknown estimates` : ''}</p><Button disabled={!!review.busy} onclick={prepare}>{review.busy === 'prepare' ? 'Preparing review…' : 'Review selected'}</Button></div>{/if}
     {/if}
   {:else}<Card class="p-6 text-body text-muted-foreground">Scan the stated temporary roots to review the largest units first.</Card>{/if}
@@ -77,8 +77,8 @@
 
 {#if review.preview}
   <dialog use:trapDialogFocus bind:this={dialog} tabindex="-1" aria-labelledby={id + '-title'} aria-describedby={id + '-description'} oncancel={event => { event.preventDefault(); close(); }} class="m-auto w-[calc(100%-2rem)] max-w-xl max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30">
-    <h2 id={id + '-title'} class="text-title font-semibold">{review.result ? 'Temporary review result' : 'Move these exact scopes to Trash?'}</h2>
-    <p id={id + '-description'} class="mt-2 text-body">{scopeCount(review.preview.selected.length)} · {formatBytes(review.preview.known_allocated_bytes)} known bytes · {review.preview.unknown_estimates} partial or unknown estimates. Trash movement does not establish immediate free-space recovery.</p>
+    <h2 id={id + '-title'} class="text-title font-semibold">{review.result ? 'Temporary review result' : 'Permanently delete these exact scopes?'}</h2>
+    <p id={id + '-description'} class="mt-2 text-body">{scopeCount(review.preview.selected.length)} · {formatBytes(review.preview.known_allocated_bytes)} known bytes · {review.preview.unknown_estimates} partial or unknown estimates. This cannot be undone from Trash. Removed bytes are not a measured free-space change.</p>
     <ul class="mt-3 space-y-2 text-meta">{#each review.preview.selected as option}<li><strong>{option.mode === 'whole_folder' ? 'Whole folder' : 'Generated subtree'}</strong><span class="block font-mono break-all">{option.path}</span></li>{/each}</ul>
     <ul class="mt-3 space-y-2 text-body text-muted-foreground">{#each review.preview.warnings as warning}<li>{warning}</li>{/each}</ul>
     {#if !review.result}
@@ -87,6 +87,6 @@
       <p class="mt-3 text-caption text-muted-foreground">One-shot review expires at {new Date(review.preview.expires_at * 1000).toLocaleTimeString()}. New active use or changed contents blocks that unit.</p>
     {:else}<ul class="mt-3 space-y-2 text-body">{#each review.result.items as item}<li class="break-all">{item.message}</li>{/each}</ul>{/if}
     {#if review.error}<p role="alert" class="mt-3 text-body text-destructive">{review.error}</p>{/if}
-    <div class="sticky bottom-0 mt-5 flex justify-end gap-2 bg-card py-2"><Button variant="outline" onclick={close}>{review.busy === 'execute' ? 'Stop' : review.result ? 'Done' : 'Cancel'}</Button>{#if !review.result}<Button variant="destructive" disabled={!!review.busy || (review.preview.has_unknown_usage && !acceptUnknown) || (review.preview.has_whole_folders && !acceptSource) || !!review.error} onclick={() => review.execute(acceptUnknown, acceptSource)}>{review.busy === 'execute' ? 'Moving reviewed scopes…' : isTauri() ? 'Move reviewed scopes to Trash' : 'Preview reviewed moves'}</Button>{/if}</div>
+    <div class="sticky bottom-0 mt-5 flex justify-end gap-2 bg-card py-2"><Button variant="outline" onclick={close}>{review.busy === 'execute' ? 'Stop' : review.result ? 'Done' : 'Cancel'}</Button>{#if !review.result}<Button variant="destructive" disabled={!!review.busy || (review.preview.has_unknown_usage && !acceptUnknown) || (review.preview.has_whole_folders && !acceptSource) || !!review.error} onclick={() => review.execute(acceptUnknown, acceptSource)}>{review.busy === 'execute' ? 'Deleting reviewed scopes…' : isTauri() ? 'Permanently delete reviewed scopes' : 'Preview reviewed deletions'}</Button>{/if}</div>
   </dialog>
 {/if}

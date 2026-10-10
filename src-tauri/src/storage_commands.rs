@@ -17,7 +17,7 @@ use crate::events::storage::{TauriDeveloperArtifactProgress, TauriLargeFileScanP
 use crate::models::{
     AppLeftoverInventory, AppUninstallInspection, DeveloperArtifactScanEvent,
     DeveloperArtifactScanResult, DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent,
-    LargeFileScanRequest, LargeFileScanResult, TrashPlanPreview, TrashResult,
+    LargeFileScanRequest, LargeFileScanResult, RemovalPlanPreview, RemovalResult,
 };
 use crate::services::progress::{DeveloperArtifactScanSink, LargeFileScanSink};
 
@@ -63,7 +63,7 @@ pub async fn execute_temporary_storage_review(
     plan_id: uuid::Uuid,
     consent: crate::models::TemporaryReviewConsent,
     state: State<'_, DesktopState>,
-) -> Result<TrashResult, String> {
+) -> Result<RemovalResult, String> {
     state
         .storage
         .execute_temporary_storage_review(plan_id, consent)
@@ -116,14 +116,14 @@ pub async fn reveal_large_file(
 
 #[tauri::command]
 #[specta::specta]
-pub fn prepare_large_file_trash(
+pub fn prepare_large_file_removal(
     scan_id: String,
     selected_item_ids: Vec<String>,
     state: State<'_, DesktopState>,
-) -> Result<TrashPlanPreview, String> {
+) -> Result<RemovalPlanPreview, String> {
     state
         .storage
-        .prepare_large_file_trash(&scan_id, &selected_item_ids)
+        .prepare_large_file_removal(&scan_id, &selected_item_ids)
 }
 
 #[tauri::command]
@@ -172,10 +172,10 @@ pub async fn prepare_developer_artifact_cleanup(
     scan_id: String,
     selected_item_ids: Vec<String>,
     state: State<'_, DesktopState>,
-) -> Result<TrashPlanPreview, String> {
+) -> Result<RemovalPlanPreview, String> {
     state
         .storage
-        .prepare_developer_artifact_trash(&scan_id, &selected_item_ids)
+        .prepare_developer_artifact_removal(&scan_id, &selected_item_ids)
         .await
 }
 
@@ -210,7 +210,7 @@ pub fn prepare_app_uninstall(
     inspection_id: String,
     selected_related_ids: Vec<String>,
     state: State<'_, DesktopState>,
-) -> Result<TrashPlanPreview, String> {
+) -> Result<RemovalPlanPreview, String> {
     state
         .storage
         .prepare_app_uninstall(&inspection_id, &selected_related_ids)
@@ -218,9 +218,9 @@ pub fn prepare_app_uninstall(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn execute_trash_plan(
+pub async fn execute_removal_plan(
     plan_id: uuid::Uuid,
     state: State<'_, DesktopState>,
-) -> Result<TrashResult, String> {
-    state.storage.execute_trash_plan(plan_id).await
+) -> Result<RemovalResult, String> {
+    state.storage.execute_removal_plan(plan_id).await
 }

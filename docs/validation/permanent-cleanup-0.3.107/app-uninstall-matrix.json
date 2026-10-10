@@ -1,0 +1,116 @@
+[
+  {
+    "page": "app-uninstall",
+    "width": 800,
+    "height": 560,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete app",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "app-uninstall",
+    "width": 800,
+    "height": 560,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete app",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "app-uninstall",
+    "width": 960,
+    "height": 660,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete app",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "app-uninstall",
+    "width": 960,
+    "height": 660,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete app",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "app-uninstall",
+    "width": 1280,
+    "height": 800,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete app",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "app-uninstall",
+    "width": 1280,
+    "height": 800,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete app",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  }
+]

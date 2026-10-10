@@ -619,7 +619,7 @@ mod tests {
         let app_id = apps.records.keys().next().unwrap();
         let inspection = super::super::ApplicationScanner::inspect(&env, &apps, app_id).unwrap();
         for id in [&review.items[0].id, &"leftover-forged".to_string()] {
-            assert!(crate::trash_manager::TrashPlanner::from_app_inspection(
+            assert!(crate::removal_manager::RemovalPlanner::from_app_inspection(
                 &env,
                 &inspection,
                 std::slice::from_ref(id)

@@ -10,7 +10,7 @@ use super::progress::TemporaryStorageSink;
 use super::{CancellationRegistry, OneShotPlan, PlanLifecycle, PlanStore};
 use crate::execution_budget::ExecutionBudgets;
 use crate::models::{
-    DeveloperArtifactKind, PlatformKind, ReviewedFileIdentity, TrashItemResult, TrashResult,
+    DeveloperArtifactKind, PlatformKind, RemovalItemResult, RemovalResult, ReviewedFileIdentity,
 };
 use crate::operation_gate::StorageOperationGate;
 use neati_core::application::dto::temporary_storage::*;
@@ -108,13 +108,13 @@ trait TemporaryUsePort: Send + Sync {
         environment: &PlatformEnvironment,
         path: &std::path::Path,
     ) -> TemporaryUsageObservation;
-    fn move_unit(
+    fn remove_unit(
         &self,
         environment: &PlatformEnvironment,
         reviewed: &TemporaryUnitSnapshot,
         accept_unknown: bool,
         final_owner_scope: Option<&std::path::Path>,
-        trash: &dyn neati_platform::TrashBackend,
+        removal: &dyn neati_platform::RemovalBackend,
     ) -> Result<(), String>;
 }
 struct NativeTemporaryUse;
@@ -126,20 +126,20 @@ impl TemporaryUsePort for NativeTemporaryUse {
     ) -> TemporaryUsageObservation {
         native::observe_temporary_use(environment, path)
     }
-    fn move_unit(
+    fn remove_unit(
         &self,
         environment: &PlatformEnvironment,
         reviewed: &TemporaryUnitSnapshot,
         accept_unknown: bool,
         final_owner_scope: Option<&std::path::Path>,
-        trash: &dyn neati_platform::TrashBackend,
+        removal: &dyn neati_platform::RemovalBackend,
     ) -> Result<(), String> {
-        native::move_reviewed_unit(
+        native::remove_reviewed_unit(
             environment,
             reviewed,
             accept_unknown,
             final_owner_scope,
-            trash,
+            removal,
         )
     }
 }
@@ -148,7 +148,7 @@ pub(crate) struct TemporaryStorageService {
     environment: Arc<PlatformEnvironment>,
     gate: StorageOperationGate,
     budgets: Arc<ExecutionBudgets>,
-    trash: Arc<dyn neati_platform::TrashBackend>,
+    removal: Arc<dyn neati_platform::RemovalBackend>,
     use_port: Arc<dyn TemporaryUsePort>,
     inventory: Arc<Mutex<Option<Inventory>>>,
     plans: Arc<PlanStore<TemporaryReviewDraft>>,
@@ -163,13 +163,13 @@ impl TemporaryStorageService {
         environment: Arc<PlatformEnvironment>,
         gate: StorageOperationGate,
         budgets: Arc<ExecutionBudgets>,
-        trash: Arc<dyn neati_platform::TrashBackend>,
+        removal: Arc<dyn neati_platform::RemovalBackend>,
     ) -> Self {
         Self {
             environment,
             gate,
             budgets,
-            trash,
+            removal,
             use_port: Arc::new(NativeTemporaryUse),
             inventory: Arc::new(Mutex::new(None)),
             plans: Arc::new(PlanStore::new(PlanLifecycle::trash())),
@@ -292,7 +292,7 @@ impl TemporaryStorageService {
             has_whole_folders: units.iter().any(|unit| unit.option.mode == TemporaryRemovalMode::WholeFolder),
             expires_at: now.saturating_add(self.plans.ttl_seconds()),
             warnings: vec!["No use detected does not establish abandonment or recoverability.".into(),
-                "Trash does not free disk space immediately. Restore staged items manually to the listed original paths; Git worktree registrations may need repair.".into(),
+                "Selected scopes are permanently deleted and cannot be restored from Trash. Whole folders may contain source, Git and session data. Removed bytes are not a measured free-space change.".into(),
                 "Allocation estimates stay separate from cache totals; distinct storage and free-space recovery are unverified.".into()],
         };
         self.plans
@@ -312,13 +312,13 @@ impl TemporaryStorageService {
         &self,
         id: uuid::Uuid,
         consent: TemporaryReviewConsent,
-    ) -> Result<TrashResult, String> {
+    ) -> Result<RemovalResult, String> {
         let admission = self.admit_execution(id)?;
         let permit = self.budgets.acquire_storage_read().await?;
         let plans = self.plans.clone();
         let environment = self.environment.clone();
         let gate = self.gate.clone();
-        let trash = self.trash.clone();
+        let removal = self.removal.clone();
         let use_port = self.use_port.clone();
         let cancel = admission.cancel.clone();
         let outcome = crate::blocking::run_blocking(
@@ -339,7 +339,7 @@ impl TemporaryStorageService {
                         accepted,
                         &cancel,
                         use_port.as_ref(),
-                        trash.as_ref(),
+                        removal.as_ref(),
                     ))
                 })
             },
@@ -479,14 +479,14 @@ fn execute_accepted(
     plan: AcceptedTemporaryPlan,
     cancel: &AtomicBool,
     use_port: &dyn TemporaryUsePort,
-    trash: &dyn neati_platform::TrashBackend,
-) -> TrashResult {
+    removal: &dyn neati_platform::RemovalBackend,
+) -> RemovalResult {
     let started = Instant::now();
-    let mut result = TrashResult {
-        moved_count: 0,
+    let mut result = RemovalResult {
+        removed_count: 0,
         failed_count: 0,
         skipped_count: 0,
-        moved_allocated_size: 0,
+        removed_allocated_size: 0,
         items: vec![],
         size_is_lower_bound: false,
     };
@@ -509,28 +509,28 @@ fn execute_accepted(
         })();
         let attempted = ready.is_ok();
         let outcome = ready.and_then(|_| {
-            use_port.move_unit(
+            use_port.remove_unit(
                 environment,
                 &unit.snapshot,
                 plan.accept_unknown_usage && unit.generated.is_none(),
                 unit.generated
                     .as_ref()
                     .map(|generated| generated.project.as_path()),
-                trash,
+                removal,
             )
         });
         match outcome {
             Ok(()) => {
-                result.moved_count += 1;
-                result.moved_allocated_size = result
-                    .moved_allocated_size
+                result.removed_count += 1;
+                result.removed_allocated_size = result
+                    .removed_allocated_size
                     .saturating_add(unit.option.allocated_bytes.unwrap_or(0));
                 result.size_is_lower_bound |= unit.option.partial;
-                result.items.push(TrashItemResult {
+                result.items.push(RemovalItemResult {
                     item_id: unit.option.id,
                     success: true,
                     message: format!(
-                        "Moved {} to Trash; disk-space recovery was not established.",
+                        "Permanently removed {}; actual free-space change was not measured.",
                         unit.option.path
                     ),
                 });
@@ -541,7 +541,7 @@ fn execute_accepted(
                 } else {
                     result.skipped_count += 1;
                 }
-                result.items.push(TrashItemResult {
+                result.items.push(RemovalItemResult {
                     item_id: unit.option.id,
                     success: false,
                     message,
@@ -755,13 +755,13 @@ mod tests {
             observation.state = *self.state.lock().unwrap();
             observation
         }
-        fn move_unit(
+        fn remove_unit(
             &self,
             environment: &PlatformEnvironment,
             reviewed: &TemporaryUnitSnapshot,
             accept_unknown: bool,
             _: Option<&Path>,
-            _: &dyn neati_platform::TrashBackend,
+            _: &dyn neati_platform::RemovalBackend,
         ) -> Result<(), String> {
             native::recheck_temporary_unit(environment, reviewed, &AtomicBool::new(false))?;
             let destination = self.trash.join(reviewed.path.file_name().unwrap());
@@ -810,7 +810,7 @@ mod tests {
             Arc::new(environment),
             StorageOperationGate::default(),
             Arc::new(ExecutionBudgets::new()),
-            Arc::new(neati_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockRemovalBackend::new()),
         );
         service.use_port = use_port.clone();
         (directory, unit, service, use_port)
@@ -849,7 +849,7 @@ mod tests {
         assert!(preview.has_unknown_usage && preview.has_whole_folders);
         assert_eq!(preview.selected[0].path, unit.to_string_lossy());
         let outcome = service.execute(preview.id, consent()).await.unwrap();
-        assert_eq!(outcome.moved_count, 1);
+        assert_eq!(outcome.removed_count, 1);
         assert!(!unit.exists());
         assert!(port.trash.join("unclassified-worktree/payload").exists());
         assert_eq!(port.moves.lock().unwrap()[0], (unit, true));
@@ -893,7 +893,7 @@ mod tests {
         *port.state.lock().unwrap() = TemporaryUsageState::InUse;
         let outcome = service.execute(preview.id, consent()).await.unwrap();
         assert_eq!(outcome.skipped_count, 1);
-        assert_eq!(outcome.moved_count, 0);
+        assert_eq!(outcome.removed_count, 0);
         assert!(outcome.items[0].message.contains("Active use"));
         assert!(unit.exists());
         assert!(port.moves.lock().unwrap().is_empty());
@@ -935,7 +935,7 @@ mod tests {
         service.cancel_execution(id).unwrap();
         release.send(()).unwrap();
         let outcome = first.await.unwrap().unwrap();
-        assert_eq!(outcome.moved_count, 1);
+        assert_eq!(outcome.removed_count, 1);
         assert_eq!(outcome.skipped_count, 1);
         assert_eq!(port.moves.lock().unwrap().len(), 1);
         assert!(service.active_executions.lock().unwrap().is_empty());
@@ -1064,7 +1064,7 @@ mod tests {
             accepted,
             &AtomicBool::new(true),
             port.as_ref(),
-            service.trash.as_ref(),
+            service.removal.as_ref(),
         );
         assert_eq!(outcome.skipped_count, 1);
         assert!(unit_path.exists());
@@ -1078,7 +1078,7 @@ mod tests {
             Arc::new(environment),
             StorageOperationGate::default(),
             Arc::new(ExecutionBudgets::new()),
-            Arc::new(neati_platform::MockTrashBackend::new()),
+            Arc::new(neati_platform::MockRemovalBackend::new()),
         );
         let result = service
             .scan(Arc::new(|_: TemporaryStorageEvent| {}))

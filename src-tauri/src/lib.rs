@@ -33,6 +33,7 @@ pub mod power;
 pub mod privacy;
 pub mod process_owner;
 pub mod process_protection;
+pub mod removal_manager;
 pub mod runtime_health;
 pub mod runtime_metrics;
 pub mod safety;
@@ -42,7 +43,6 @@ pub mod settings_store;
 pub mod signatures;
 pub mod storage_commands;
 pub mod tooling;
-pub mod trash_manager;
 #[cfg(target_os = "macos")]
 mod window_material;
 
@@ -688,7 +688,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::release_development_listener,
             storage_commands::start_large_file_scan,
             storage_commands::cancel_large_file_scan,
-            storage_commands::prepare_large_file_trash,
+            storage_commands::prepare_large_file_removal,
             storage_commands::reveal_large_file,
             storage_commands::pick_developer_workspace,
             storage_commands::register_developer_home_workspace,
@@ -699,7 +699,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             storage_commands::get_app_leftovers,
             storage_commands::inspect_app_uninstall,
             storage_commands::prepare_app_uninstall,
-            storage_commands::execute_trash_plan,
+            storage_commands::execute_removal_plan,
             storage_commands::start_temporary_storage_scan,
             storage_commands::cancel_temporary_storage_scan,
             storage_commands::prepare_temporary_storage_review,

@@ -206,6 +206,11 @@ impl Signature {
             )))
         };
 
+        if self.deletion_disposition
+            == Some(neati_core::domain::cleanup::DeletionDisposition::Trash)
+        {
+            return invalid("All current cleanup operations permanently remove their authorized units; Trash disposition is unsupported".into());
+        }
         if self.deletion_disposition.is_some()
             && !matches!(
                 self.strategy,

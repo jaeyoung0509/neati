@@ -12,8 +12,8 @@ pub use cleanup::{
 pub use scan::{PublishedScan, ResumeScanRequest, ScanDiscovery, ScanEvent};
 pub use storage::{
     AppRelatedItem, AppUninstallInspection, InstalledApp, InstalledAppInventory, LargeFileItem,
-    LargeFileScanEvent, LargeFileScanRequest, LargeFileScanResult, TrashItemResult,
-    TrashPlanPreview, TrashResult,
+    LargeFileScanEvent, LargeFileScanRequest, LargeFileScanResult, RemovalItemResult,
+    RemovalPlanPreview, RemovalResult,
 };
 
 pub mod empty_trash;

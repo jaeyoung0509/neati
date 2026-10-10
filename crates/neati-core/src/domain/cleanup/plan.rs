@@ -206,7 +206,7 @@ impl DeleteTarget {
     /// their entries to Trash. Tool- and owner-managed actions retain their
     /// reviewed adapter semantics even when their risk tier is Rebuild.
     /// An explicit filesystem disposition takes precedence; absent policies
-    /// preserve the catalog's legacy Safe/permanent, Rebuild/Trash default.
+    /// use permanent removal independently of rebuilding cost.
     pub fn execution_mode(&self) -> CleanupMode {
         let filesystem_strategy = matches!(
             self.strategy,
@@ -219,11 +219,7 @@ impl DeleteTarget {
                 return disposition.mode();
             }
         }
-        if filesystem_strategy && self.risk != RiskTier::Safe {
-            CleanupMode::Trash
-        } else {
-            CleanupMode::PermanentDelete
-        }
+        CleanupMode::PermanentDelete
     }
 }
 

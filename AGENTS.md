@@ -121,7 +121,7 @@ safety conventions below when changing neati.
   maps the typed result.
 - Application services own the invariants their workflows depend on: the
   operation gate, the execution budgets, plan/inventory lifetimes, and the
-  Trash executor. A command adapts transport (a `Channel`, an opaque ID) and
+  permanent-removal executor. A command adapts transport (a `Channel`, an opaque ID) and
   never acquires the gate, stores a plan, or edits backend state itself.
 - Run blocking filesystem, process, and HTTP work through
   `tauri::async_runtime::spawn_blocking`. Use Tauri channels for operations that
@@ -261,6 +261,24 @@ safety conventions below when changing neati.
   validation matrix must record each run's application version, OS build, and
   date, or be removed; an unexecuted matrix is a plan, not evidence.
 
+## Permanent-removal policy — owner-approved #416 (October 9, 2026)
+
+- All current deletion workflows permanently remove the exact authorized units:
+  ordinary cleanup, owner caches, Large Files, App Uninstaller, Developer
+  Artifacts, and explicit Temporary Folders review. Rebuild cost never selects
+  Trash. Preview, observation-only entries and protected state remain unchanged.
+- Permanent removal is irreversible; reviewed workflows name that consequence
+  before execution. Preserve their explicit selection/confirmation boundaries.
+- Use the existing validated generic deleter or the identity-bound
+  `neati_platform::RemovalBackend`, never an interpolated shell `rm -rf`.
+  Tool/runtime operations retain their typed owner adapters and fixed arguments.
+- Retain no-follow traversal, scope/identity/provenance checks, fresh owner/use
+  checks after native inspection, bounded execution and one-shot plans.
+  Partial removal cannot be rolled back; report the failure and preserve the
+  remaining entries. Removed bytes are not a measured free-space delta.
+- Trash vocabulary remains for the explicit home-Trash emptying action and
+  historical results. New catalog entries cannot request Trash disposition.
+
 ## Cleanup safety invariants
 
 - Follow `docs/CACHE_POLICY.md`: Apple user-cache payloads use the ordinary
@@ -273,8 +291,7 @@ safety conventions below when changing neati.
 - Container cache payloads and ordinary application logs also use zero-day
   retention, with bounded macOS open-file checks at scan, planning and execution.
   Unknown open-file state cannot authorize deletion. Chromium offline units are
-  depth-two cache directories; origin metadata stays advisory and units move to
-  Trash after exact macOS unit-use checks; Windows retains the stopped-browser
+  depth-two cache directories; origin metadata stays advisory and units are permanently removed after exact macOS unit-use checks; Windows retains the stopped-browser
   requirement until it has an open-file adapter. Owner command previews must cover their
   complete mutation scope, bind executable/candidate identity, and recheck it.
 
@@ -370,7 +387,7 @@ safety conventions below when changing neati.
   Standard user RubyGems repositories are derived from the reviewed absolute
   launcher and matched Ruby ABI; never inherit arbitrary gem/Bundler paths.
 - Codex staging may carry internal relative links when the entire verified
-  staging directory moves to Trash without dereferencing them. Absolute or
+  staging directory is permanently removed without dereferencing them. Absolute or
   escaping links are refused; activated runtimes stay observation-only.
 - Home Trash emptying uses its separate private one-shot snapshot and bounded
   descriptor-based native adapter. Never add Trash bytes to cache candidates,
@@ -384,7 +401,7 @@ safety conventions below when changing neati.
 ## Scan accounting and coverage
 
 - Developer Artifact ownership is independently re-derived during discovery,
-  planning and immediately before the whole-unit Trash move. Git-tracked
+  planning and immediately before the whole-unit permanent removal. Git-tracked
   descendants, nested `.git` entries and deployment `*-keypair.json` names
   revoke authority; key contents are never inspected. An unfinished ownership
   probe cannot be treated as an incomplete byte measurement. Read-only index
@@ -423,7 +440,7 @@ safety conventions below when changing neati.
 
 - Google Updater downloads authorize only the current-user `crx_cache` unit:
   its complete bounded index and matching non-executable CRX3/SHA-256 payloads,
-  with ownership, no-link and fresh owner/handle checks, move together to Trash.
+  with ownership, no-link and fresh owner/handle checks, are permanently removed together.
   Unknown formats retain observed bytes without authority. OpenCode's actual
   XDG cache and the two registered code-signature clone namespaces remain
   observation-only; executable/offline dependencies are not generic cache.

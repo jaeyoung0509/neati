@@ -5,8 +5,8 @@ use crate::large_files::{
     allowed_large_file_root, identity_from_path, is_allowed_large_file_path, LargeFileInventory,
 };
 use crate::models::{
-    DeveloperArtifactKind, DeveloperArtifactStatus, ReviewedFileIdentity, TrashItemResult,
-    TrashPlanPreview, TrashResult,
+    DeveloperArtifactKind, DeveloperArtifactStatus, RemovalItemResult, RemovalPlanPreview,
+    RemovalResult, ReviewedFileIdentity,
 };
 use crate::safety::{Blacklist, SymlinkGuard};
 use neati_platform::description::PlatformEnvironment;
@@ -19,18 +19,18 @@ use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
-pub struct TrashTarget {
+pub struct RemovalTarget {
     pub item_id: String,
     pub path: PathBuf,
     pub identity: ReviewedFileIdentity,
     pub logical_size: u64,
     pub allocated_size: u64,
     pub size_is_lower_bound: bool,
-    pub scope: TrashScope,
+    pub scope: RemovalScope,
 }
 
 #[derive(Debug, Clone)]
-pub enum TrashScope {
+pub enum RemovalScope {
     LargeFile {
         approved_parent: PathBuf,
     },
@@ -50,14 +50,14 @@ pub enum TrashScope {
 }
 
 #[derive(Debug, Clone)]
-pub struct TrashPlan {
+pub struct RemovalPlan {
     pub id: Uuid,
     pub created_at: u64,
     pub inventory_id: String,
-    pub targets: Vec<TrashTarget>,
+    pub targets: Vec<RemovalTarget>,
 }
 
-impl crate::services::OneShotPlan for TrashPlan {
+impl crate::services::OneShotPlan for RemovalPlan {
     fn plan_id(&self) -> Uuid {
         self.id
     }
@@ -67,14 +67,14 @@ impl crate::services::OneShotPlan for TrashPlan {
     }
 }
 
-impl TrashPlan {
+impl RemovalPlan {
     /// The preview shown for review, with the window the store enforces.
     ///
     /// The TTL is a parameter for the same reason it is on `DeletePlan`: the
     /// bounded store owns the lifecycle, so the number the interface displays
     /// cannot drift from the number that refuses a stale plan.
-    pub fn preview(&self, ttl_secs: u64) -> TrashPlanPreview {
-        TrashPlanPreview {
+    pub fn preview(&self, ttl_secs: u64) -> RemovalPlanPreview {
+        RemovalPlanPreview {
             id: self.id,
             item_count: self.targets.len(),
             logical_size: self.targets.iter().map(|target| target.logical_size).sum(),
@@ -89,15 +89,15 @@ impl TrashPlan {
     }
 }
 
-pub struct TrashPlanner;
+pub struct RemovalPlanner;
 
-impl TrashPlanner {
+impl RemovalPlanner {
     pub fn from_large_files(
         inventory: &LargeFileInventory,
         selected_ids: &[String],
-    ) -> Result<TrashPlan, String> {
+    ) -> Result<RemovalPlan, String> {
         if selected_ids.is_empty() {
-            return Err("Select at least one file to move to Trash.".to_string());
+            return Err("Select at least one file to permanently delete.".to_string());
         }
         let mut targets = Vec::with_capacity(selected_ids.len());
         let mut seen = HashSet::with_capacity(selected_ids.len());
@@ -114,19 +114,19 @@ impl TrashPlanner {
                 .parent()
                 .ok_or_else(|| "Invalid file parent".to_string())?
                 .to_path_buf();
-            targets.push(TrashTarget {
+            targets.push(RemovalTarget {
                 item_id: id.clone(),
                 path: record.path.clone(),
                 identity: record.identity.clone(),
                 logical_size: record.item.logical_size,
                 allocated_size: record.item.allocated_size,
                 size_is_lower_bound: false,
-                scope: TrashScope::LargeFile {
+                scope: RemovalScope::LargeFile {
                     approved_parent: parent,
                 },
             });
         }
-        Ok(TrashPlan {
+        Ok(RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: inventory.scan_id.clone(),
@@ -138,20 +138,20 @@ impl TrashPlanner {
         environment: &PlatformEnvironment,
         inspection: &AppInspectionRecord,
         selected_related_ids: &[String],
-    ) -> Result<TrashPlan, String> {
+    ) -> Result<RemovalPlan, String> {
         if environment.flavor().is_windows() {
             return Err("Application uninstallation is not supported on Windows.".to_string());
         }
         let mut targets = Vec::new();
         let app_size = &inspection.inspection.app;
-        targets.push(TrashTarget {
+        targets.push(RemovalTarget {
             item_id: inspection.inspection.app.id.clone(),
             path: inspection.app_path.clone(),
             identity: inspection.app_identity.clone(),
             logical_size: app_size.logical_size,
             allocated_size: app_size.allocated_size,
             size_is_lower_bound: app_size.size_quality != crate::models::ObservationQuality::Fresh,
-            scope: TrashScope::AppBundle,
+            scope: RemovalScope::AppBundle,
         });
 
         let mut seen = HashSet::with_capacity(selected_related_ids.len());
@@ -162,7 +162,7 @@ impl TrashPlanner {
             let record = inspection.related.get(id).ok_or_else(|| {
                 "The app inspection changed. Review the uninstall again.".to_string()
             })?;
-            targets.push(TrashTarget {
+            targets.push(RemovalTarget {
                 item_id: id.clone(),
                 path: record.path.clone(),
                 identity: record.identity.clone(),
@@ -170,11 +170,11 @@ impl TrashPlanner {
                 allocated_size: record.item.allocated_size,
                 size_is_lower_bound: record.item.quality
                     != crate::models::ObservationQuality::Fresh,
-                scope: TrashScope::AppRelated,
+                scope: RemovalScope::AppRelated,
             });
         }
 
-        Ok(TrashPlan {
+        Ok(RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: inspection.inspection.inspection_id.clone(),
@@ -186,9 +186,11 @@ impl TrashPlanner {
         environment: &PlatformEnvironment,
         inventory: &DeveloperArtifactInventory,
         selected_ids: &[String],
-    ) -> Result<TrashPlan, String> {
+    ) -> Result<RemovalPlan, String> {
         if selected_ids.is_empty() {
-            return Err("Select at least one developer artifact to move to Trash.".to_string());
+            return Err(
+                "Select at least one developer artifact to permanently delete.".to_string(),
+            );
         }
         if inventory.cancelled {
             return Err(
@@ -233,7 +235,7 @@ impl TrashPlanner {
                     .unwrap_or("Artifact ownership is unverified.")
                     .into());
             }
-            let target = TrashTarget {
+            let target = RemovalTarget {
                 item_id: id.clone(),
                 path: record.path.clone(),
                 identity: record.identity.clone(),
@@ -241,7 +243,7 @@ impl TrashPlanner {
                 allocated_size: record.artifact.allocated_bytes,
                 size_is_lower_bound: record.artifact.status
                     == DeveloperArtifactStatus::MeasurementIncomplete,
-                scope: TrashScope::DeveloperArtifact {
+                scope: RemovalScope::DeveloperArtifact {
                     workspace_root: record.workspace_path.clone(),
                     workspace_identity: record.workspace_identity.clone(),
                     project_root: record.project_root.clone(),
@@ -276,7 +278,7 @@ impl TrashPlanner {
             // Preparation re-derives ownership and scope rather than trusting
             // a discovery verdict or a complete byte measurement.
             validate_target(environment, &target)?;
-            if targets.iter().any(|prior: &TrashTarget| {
+            if targets.iter().any(|prior: &RemovalTarget| {
                 prior.path.starts_with(&target.path) || target.path.starts_with(&prior.path)
             }) {
                 return Err("A whole artifact and its child overlap. Select one removal scope per directory.".into());
@@ -284,9 +286,11 @@ impl TrashPlanner {
             targets.push(target);
         }
         if targets.is_empty() {
-            return Err("Select at least one developer artifact to move to Trash.".to_string());
+            return Err(
+                "Select at least one developer artifact to permanently delete.".to_string(),
+            );
         }
-        Ok(TrashPlan {
+        Ok(RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: inventory.scan_id.clone(),
@@ -298,53 +302,53 @@ impl TrashPlanner {
 /// A reviewed target that passed execution-time validation.
 ///
 /// The type has no constructor outside this module: [`validate_target`]
-/// produces it immediately before a move, and it is what [`TrashExecutor`]
+/// produces it immediately before removal, and it is what [`RemovalExecutor`]
 /// passes to the port. Its purpose is to keep the ordering of
-/// validate-then-move structural inside the reviewed-storage context, not to
+/// validate-then-remove structural inside the reviewed-storage context, not to
 /// seal the port itself: the port is a raw OS primitive, and the authority is
-/// this layer's validation plus the fact that `TrashExecutor` holds the only
+/// this layer's validation plus the fact that `RemovalExecutor` holds the only
 /// production handle to the backend.
 #[derive(Debug)]
-struct ApprovedTrashTarget<'a> {
-    target: &'a TrashTarget,
+struct ApprovedRemovalTarget<'a> {
+    target: &'a RemovalTarget,
 }
 
-impl<'a> ApprovedTrashTarget<'a> {
-    fn new(target: &'a TrashTarget) -> Self {
+impl<'a> ApprovedRemovalTarget<'a> {
+    fn new(target: &'a RemovalTarget) -> Self {
         Self { target }
     }
 
-    /// The reviewed path to move.
+    /// The reviewed path to remove.
     fn path(&self) -> &Path {
         &self.target.path
     }
 }
 
-/// Moves reviewed targets to the OS Trash, one at a time.
+/// Permanently removes reviewed targets, one at a time.
 ///
 /// The executor owns the backend, so the raw port is not reachable from a
 /// command, a service, or any other module that could hand it a path: the only
 /// production call site is [`Self::execute`], which validates each target
-/// immediately before the move.
-pub struct TrashExecutor {
-    backend: Arc<dyn neati_platform::TrashBackend>,
+/// immediately before removal.
+pub struct RemovalExecutor {
+    backend: Arc<dyn neati_platform::RemovalBackend>,
 }
 
-impl TrashExecutor {
-    /// Builds the executor with the backend this process moves through.
+impl RemovalExecutor {
+    /// Builds the executor with the backend this process removes through.
     ///
     /// The composition root decides which adapter is in use — the native one in
     /// production, a recording one in a test — and every reviewed-storage
     /// workflow goes through that decision.
-    pub fn new(backend: Arc<dyn neati_platform::TrashBackend>) -> Self {
+    pub fn new(backend: Arc<dyn neati_platform::RemovalBackend>) -> Self {
         Self { backend }
     }
 
-    /// Moves every target of `plan`, validating each immediately before its move.
-    pub fn execute(&self, environment: &PlatformEnvironment, plan: TrashPlan) -> TrashResult {
+    /// Removes every target of `plan`, validating each immediately before removal.
+    pub fn execute(&self, environment: &PlatformEnvironment, plan: RemovalPlan) -> RemovalResult {
         let backend = self.backend.as_ref();
         Self::execute_with(environment, plan, |approved| {
-            if let TrashScope::DeveloperArtifact {
+            if let RemovalScope::DeveloperArtifact {
                 project_root,
                 kind,
                 framework_fingerprint: Some(expected),
@@ -352,7 +356,7 @@ impl TrashExecutor {
                 ..
             } = &approved.target.scope
             {
-                return neati_platform::temporary_storage::move_reviewed_framework_unit(
+                return neati_platform::temporary_storage::remove_reviewed_framework_unit(
                     environment,
                     snapshot,
                     backend,
@@ -385,81 +389,84 @@ impl TrashExecutor {
                     },
                 );
             }
-            backend.move_to_trash(approved.path())
+            backend.remove_checked(approved.path(), approved.target.identity.entity(), &|_| {
+                validate_target_with_probe(environment, approved.target, &probe_ownership)
+                    .map(|_| ())
+            })
         })
     }
 
     fn execute_with<F>(
         environment: &PlatformEnvironment,
-        plan: TrashPlan,
-        move_to_trash: F,
-    ) -> TrashResult
+        plan: RemovalPlan,
+        remove_permanently: F,
+    ) -> RemovalResult
     where
-        F: FnMut(&ApprovedTrashTarget<'_>) -> Result<(), String>,
+        F: FnMut(&ApprovedRemovalTarget<'_>) -> Result<(), String>,
     {
-        Self::execute_with_probe(environment, plan, move_to_trash, &probe_ownership)
+        Self::execute_with_probe(environment, plan, remove_permanently, &probe_ownership)
     }
 
     fn execute_with_probe<F>(
         environment: &PlatformEnvironment,
-        plan: TrashPlan,
-        mut move_to_trash: F,
+        plan: RemovalPlan,
+        mut remove_permanently: F,
         ownership_probe: &OwnershipProbe<'_>,
-    ) -> TrashResult
+    ) -> RemovalResult
     where
-        F: FnMut(&ApprovedTrashTarget<'_>) -> Result<(), String>,
+        F: FnMut(&ApprovedRemovalTarget<'_>) -> Result<(), String>,
     {
-        let mut result = TrashResult {
-            moved_count: 0,
+        let mut result = RemovalResult {
+            removed_count: 0,
             failed_count: 0,
             skipped_count: 0,
-            moved_allocated_size: 0,
+            removed_allocated_size: 0,
             items: Vec::new(),
             size_is_lower_bound: false,
         };
 
         let app_uninstall = matches!(
             plan.targets.first().map(|target| &target.scope),
-            Some(TrashScope::AppBundle)
+            Some(RemovalScope::AppBundle)
         );
-        let mut app_bundle_moved = !app_uninstall;
+        let mut app_bundle_removed = !app_uninstall;
 
         for (index, target) in plan.targets.into_iter().enumerate() {
-            if app_uninstall && index > 0 && !app_bundle_moved {
+            if app_uninstall && index > 0 && !app_bundle_removed {
                 result.skipped_count += 1;
-                result.items.push(TrashItemResult {
+                result.items.push(RemovalItemResult {
                     item_id: target.item_id,
                     success: false,
-                    message: "Skipped because the reviewed app bundle was not moved to Trash."
+                    message: "Skipped because the reviewed app bundle was not permanently removed."
                         .to_string(),
                 });
                 continue;
             }
             match validate_target_with_probe(environment, &target, ownership_probe) {
-                Ok(approved) => match move_to_trash(&approved) {
+                Ok(approved) => match remove_permanently(&approved) {
                     Ok(()) => {
-                        if matches!(target.scope, TrashScope::AppBundle) {
-                            app_bundle_moved = true;
+                        if matches!(target.scope, RemovalScope::AppBundle) {
+                            app_bundle_removed = true;
                         }
                         if target.size_is_lower_bound {
                             result.size_is_lower_bound = true;
                         }
-                        result.moved_count += 1;
-                        result.moved_allocated_size = result
-                            .moved_allocated_size
+                        result.removed_count += 1;
+                        result.removed_allocated_size = result
+                            .removed_allocated_size
                             .saturating_add(target.allocated_size);
-                        result.items.push(TrashItemResult {
+                        result.items.push(RemovalItemResult {
                             item_id: target.item_id,
                             success: true,
-                            message: "Moved to Trash".to_string(),
+                            message: "Permanently removed".to_string(),
                         });
                     }
                     Err(message) => {
                         result.failed_count += 1;
-                        result.items.push(TrashItemResult {
+                        result.items.push(RemovalItemResult {
                             item_id: target.item_id,
                             success: false,
-                            // A refused move reads as a generic OS error; when
+                            // A refused removal reads as a generic OS error; when
                             // the policy explains it, the text says so.
                             message: neati_platform::environment::describe_access_refusal(
                                 environment,
@@ -471,7 +478,7 @@ impl TrashExecutor {
                 },
                 Err(error) => {
                     result.skipped_count += 1;
-                    result.items.push(TrashItemResult {
+                    result.items.push(RemovalItemResult {
                         item_id: target.item_id,
                         success: false,
                         message: error,
@@ -483,7 +490,7 @@ impl TrashExecutor {
     }
 }
 
-/// Revalidates one reviewed target immediately before it moves.
+/// Revalidates one reviewed target immediately before removal.
 ///
 type OwnershipProbe<'a> =
     dyn Fn(&PlatformEnvironment, &Path, &Path) -> crate::models::ArtifactOwnershipEvidence + 'a;
@@ -503,21 +510,21 @@ fn probe_ownership(
 
 /// Scope, symlink components, identity, developer-artifact evidence, and the
 /// app-related checks all run here, and the return value is the authority the
-/// Trash port accepts, so a target that failed a check cannot reach the port.
+/// removal executor accepts, so a target that failed a check cannot reach the port.
 fn validate_target<'a>(
     environment: &PlatformEnvironment,
-    target: &'a TrashTarget,
-) -> Result<ApprovedTrashTarget<'a>, String> {
+    target: &'a RemovalTarget,
+) -> Result<ApprovedRemovalTarget<'a>, String> {
     validate_target_with_probe(environment, target, &probe_ownership)
 }
 
 fn validate_target_with_probe<'a>(
     environment: &PlatformEnvironment,
-    target: &'a TrashTarget,
+    target: &'a RemovalTarget,
     ownership_probe: &OwnershipProbe<'_>,
-) -> Result<ApprovedTrashTarget<'a>, String> {
+) -> Result<ApprovedRemovalTarget<'a>, String> {
     match &target.scope {
-        TrashScope::LargeFile { .. } => {
+        RemovalScope::LargeFile { .. } => {
             if !is_allowed_large_file_path(environment, &target.path) {
                 return Err(
                     "Skipped because the file moved outside the approved Large Files scope."
@@ -529,7 +536,7 @@ fn validate_target_with_probe<'a>(
             })?;
             validate_no_symlink_components(&target.path, &root, environment)?;
         }
-        TrashScope::AppBundle => {
+        RemovalScope::AppBundle => {
             let Some(root) = application_root_for_path(environment, &target.path) else {
                 return Err("Skipped because the app moved outside Applications.".to_string());
             };
@@ -538,7 +545,7 @@ fn validate_target_with_probe<'a>(
                 return Err("Skipped because the reviewed application is running.".to_string());
             }
         }
-        TrashScope::AppRelated => {
+        RemovalScope::AppRelated => {
             if Blacklist::is_blacklisted_with(&target.path, environment) {
                 return Err("Skipped because the path is protected by neati.".to_string());
             }
@@ -547,7 +554,7 @@ fn validate_target_with_probe<'a>(
             })?;
             validate_no_symlink_components(&target.path, &root, environment)?;
         }
-        TrashScope::DeveloperArtifact {
+        RemovalScope::DeveloperArtifact {
             workspace_root,
             workspace_identity,
             project_root,
@@ -594,7 +601,7 @@ fn validate_target_with_probe<'a>(
     }
 
     match &target.scope {
-        TrashScope::LargeFile { approved_parent } => {
+        RemovalScope::LargeFile { approved_parent } => {
             if target.path.parent() != Some(approved_parent.as_path()) {
                 return Err(
                     "Skipped because the file moved outside the reviewed scope.".to_string()
@@ -604,14 +611,14 @@ fn validate_target_with_probe<'a>(
                 return Err("Large Files only moves reviewed files, not directories.".to_string());
             }
         }
-        TrashScope::AppBundle => {
+        RemovalScope::AppBundle => {
             if target.path.extension().and_then(|value| value.to_str()) != Some("app") {
                 return Err(
                     "Skipped because the reviewed app bundle is no longer an app.".to_string(),
                 );
             }
         }
-        TrashScope::AppRelated => {
+        RemovalScope::AppRelated => {
             if !is_allowed_app_data_path(environment, &target.path) {
                 return Err(
                     "Skipped because related data moved outside the approved Library scope."
@@ -619,7 +626,7 @@ fn validate_target_with_probe<'a>(
                 );
             }
         }
-        TrashScope::DeveloperArtifact { .. } => {
+        RemovalScope::DeveloperArtifact { .. } => {
             if !target.path.is_dir() {
                 return Err(
                     "Skipped because the developer artifact is no longer a directory.".to_string(),
@@ -627,13 +634,13 @@ fn validate_target_with_probe<'a>(
             }
         }
     }
-    Ok(ApprovedTrashTarget::new(target))
+    Ok(ApprovedRemovalTarget::new(target))
 }
 
 #[allow(clippy::too_many_arguments)]
 fn validate_developer_artifact_target(
     environment: &PlatformEnvironment,
-    target: &TrashTarget,
+    target: &RemovalTarget,
     workspace_root: &Path,
     workspace_identity: &ReviewedFileIdentity,
     project_root: &Path,
@@ -698,7 +705,7 @@ fn validate_developer_artifact_target(
 #[allow(clippy::too_many_arguments)]
 fn validate_developer_artifact_scope(
     environment: &PlatformEnvironment,
-    target: &TrashTarget,
+    target: &RemovalTarget,
     workspace_root: &Path,
     workspace_identity: &ReviewedFileIdentity,
     project_root: &Path,
@@ -960,7 +967,7 @@ mod tests {
                 &["add", "--", "Cargo.toml"],
             );
             let ids = [record.artifact.id.clone()];
-            let plan = TrashPlanner::from_developer_artifacts(&environment, &inventory, &ids)
+            let plan = RemovalPlanner::from_developer_artifacts(&environment, &inventory, &ids)
                 .unwrap_or_else(|error| {
                     panic!(
                         "{mutation}: initial generated plan refused: {error}; fresh ownership: {:?}",
@@ -995,15 +1002,15 @@ mod tests {
                 "descendant changes leave the root identity unchanged"
             );
             assert!(
-                TrashPlanner::from_developer_artifacts(&environment, &inventory, &ids).is_err(),
+                RemovalPlanner::from_developer_artifacts(&environment, &inventory, &ids).is_err(),
                 "{mutation} must revoke planning authority"
             );
-            let backend = Arc::new(neati_platform::MockTrashBackend::new());
-            let result = TrashExecutor::new(backend.clone()).execute(&environment, plan);
-            assert_eq!(result.moved_count, 0, "{mutation}");
+            let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+            let result = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+            assert_eq!(result.removed_count, 0, "{mutation}");
             assert_eq!(result.skipped_count, 1, "{mutation}");
             assert!(
-                backend.moved().is_empty(),
+                backend.removed().is_empty(),
                 "{mutation} must not reach the Trash port"
             );
             assert_eq!(
@@ -1018,35 +1025,40 @@ mod tests {
     fn ordinary_verified_generated_fixture_still_reaches_the_recording_trash_port() {
         let (_temp, environment, inventory) = ownership_fixture();
         let record = inventory.records.values().next().unwrap();
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             std::slice::from_ref(&record.artifact.id),
         )
         .unwrap();
-        let backend = Arc::new(neati_platform::MockTrashBackend::new());
-        let result = TrashExecutor::new(backend.clone()).execute(&environment, plan);
-        assert_eq!(result.moved_count, 1);
-        assert_eq!(backend.moved(), vec![record.path.clone()]);
+        let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+        let result = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+        assert_eq!(result.removed_count, 1);
+        assert_eq!(backend.removed(), vec![record.path.clone()]);
     }
 
     #[test]
     fn replaced_project_during_probe_cannot_gain_the_old_plan_authority() {
-        use neati_platform::TrashBackend;
+        use neati_platform::RemovalBackend;
         let (temp, environment, inventory) = ownership_fixture();
         let record = inventory.records.values().next().unwrap();
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             std::slice::from_ref(&record.artifact.id),
         )
         .unwrap();
-        let backend = neati_platform::MockTrashBackend::new();
+        let backend = neati_platform::MockRemovalBackend::new();
         let old_project = temp.path().join("original-project");
-        let result = TrashExecutor::execute_with_probe(
+        let result = RemovalExecutor::execute_with_probe(
             &environment,
             plan,
-            |approved| backend.move_to_trash(approved.path()),
+            |approved| {
+                backend.remove_checked(approved.path(), approved.target.identity.entity(), &|_| {
+                    validate_target_with_probe(&environment, approved.target, &probe_ownership)
+                        .map(|_| ())
+                })
+            },
             &|_, project, _| {
                 std::fs::rename(project, &old_project).unwrap();
                 std::fs::create_dir_all(project.join("target/assets")).unwrap();
@@ -1063,8 +1075,8 @@ mod tests {
                 crate::models::ArtifactOwnershipEvidence::VerifiedGenerated
             },
         );
-        assert_eq!(result.moved_count, 0);
-        assert!(backend.moved().is_empty());
+        assert_eq!(result.removed_count, 0);
+        assert!(backend.removed().is_empty());
         assert!(result.items[0]
             .message
             .contains("project marker scope changed"));
@@ -1078,7 +1090,7 @@ mod tests {
     fn framework_observations_cannot_be_forged_into_plans_or_final_move_authority() {
         let (_temp, environment, mut inventory) = ownership_fixture();
         let record = inventory.records.values().next().unwrap();
-        let mut plan = TrashPlanner::from_developer_artifacts(
+        let mut plan = RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             std::slice::from_ref(&record.artifact.id),
@@ -1101,13 +1113,13 @@ mod tests {
         record.artifact_relative = PathBuf::from(".next");
         let selected_id = record.artifact.id.clone();
         assert!(
-            TrashPlanner::from_developer_artifacts(&environment, &inventory, &[selected_id])
+            RemovalPlanner::from_developer_artifacts(&environment, &inventory, &[selected_id])
                 .is_err()
         );
         let target = &mut plan.targets[0];
         target.path = framework.clone();
         target.identity = identity_from_path(&framework).unwrap();
-        if let TrashScope::DeveloperArtifact {
+        if let RemovalScope::DeveloperArtifact {
             kind,
             artifact_relative,
             ..
@@ -1116,10 +1128,10 @@ mod tests {
             *kind = DeveloperArtifactKind::NextOutput;
             *artifact_relative = PathBuf::from(".next");
         }
-        let backend = Arc::new(neati_platform::MockTrashBackend::new());
-        let result = TrashExecutor::new(backend.clone()).execute(&environment, plan);
-        assert_eq!(result.moved_count, 0);
-        assert!(backend.moved().is_empty());
+        let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+        let result = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+        assert_eq!(result.removed_count, 0);
+        assert!(backend.removed().is_empty());
         assert_eq!(
             std::fs::read(framework.join("generated.bin")).unwrap(),
             b"generated"
@@ -1158,39 +1170,39 @@ mod tests {
         record.artifact.kind = DeveloperArtifactKind::NextWebpackCache;
         record.artifact.status = DeveloperArtifactStatus::Complete;
         let id = record.artifact.id.clone();
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             std::slice::from_ref(&id),
         )
         .unwrap();
         let mut forged = plan.clone();
-        if let TrashScope::DeveloperArtifact {
+        if let RemovalScope::DeveloperArtifact {
             framework_fingerprint,
             ..
         } = &mut forged.targets[0].scope
         {
             *framework_fingerprint = None;
         }
-        let backend = Arc::new(neati_platform::MockTrashBackend::new());
-        let refused = TrashExecutor::new(backend.clone()).execute(&environment, forged);
-        assert_eq!(refused.moved_count, 0);
-        assert!(backend.moved().is_empty());
+        let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+        let refused = RemovalExecutor::new(backend.clone()).execute(&environment, forged);
+        assert_eq!(refused.removed_count, 0);
+        assert!(backend.removed().is_empty());
         pack[15] = 9;
         std::fs::write(writer.join("index.pack"), &pack).unwrap();
-        let changed = TrashExecutor::new(backend.clone()).execute(&environment, plan);
-        assert_eq!(changed.moved_count, 0);
+        let changed = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+        assert_eq!(changed.removed_count, 0);
         assert!(changed.items[0].message.contains("changed"));
-        assert!(backend.moved().is_empty());
+        assert!(backend.removed().is_empty());
         assert!(cache.exists());
         let fresh =
-            TrashPlanner::from_developer_artifacts(&environment, &inventory, &[id]).unwrap();
-        let result = TrashExecutor::execute_with(&environment, fresh, |approved| {
+            RemovalPlanner::from_developer_artifacts(&environment, &inventory, &[id]).unwrap();
+        let result = RemovalExecutor::execute_with(&environment, fresh, |approved| {
             assert_eq!(approved.path(), cache);
             std::fs::rename(approved.path(), temp.path().join("fixture-reviewed-cache"))
                 .map_err(|error| error.to_string())
         });
-        assert_eq!(result.moved_count, 1);
+        assert_eq!(result.removed_count, 1);
         assert!(!cache.exists());
         assert_eq!(
             std::fs::read(parent.join("deployment-offline.html")).unwrap(),
@@ -1340,7 +1352,7 @@ mod tests {
             created_at: unix_timestamp(),
         };
 
-        let error = TrashPlanner::from_app_inspection(&environment, &inspection, &[])
+        let error = RemovalPlanner::from_app_inspection(&environment, &inspection, &[])
             .expect_err("Windows has no app uninstall path");
         assert!(error.contains("not supported on Windows"));
     }
@@ -1380,7 +1392,7 @@ mod tests {
             created_at: unix_timestamp(),
         };
 
-        let plan = TrashPlanner::from_app_inspection(&environment, &inspection, &[]).unwrap();
+        let plan = RemovalPlanner::from_app_inspection(&environment, &inspection, &[]).unwrap();
         assert!(plan.preview(300).size_is_lower_bound);
     }
 
@@ -1394,7 +1406,7 @@ mod tests {
             skipped_entries: 0,
             truncated: false,
         };
-        let error = TrashPlanner::from_large_files(&inventory, &["forged".to_string()])
+        let error = RemovalPlanner::from_large_files(&inventory, &["forged".to_string()])
             .expect_err("unknown frontend ids must be rejected");
         assert!(error.contains("inventory changed"));
     }
@@ -1429,7 +1441,7 @@ mod tests {
         };
 
         let plan =
-            TrashPlanner::from_large_files(&inventory, &["item".to_string(), "item".to_string()])
+            RemovalPlanner::from_large_files(&inventory, &["item".to_string(), "item".to_string()])
                 .unwrap();
         assert_eq!(plan.targets.len(), 1);
     }
@@ -1491,14 +1503,14 @@ mod tests {
             truncated: false,
             uninspected: Vec::new(),
         };
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             &["artifact".to_string(), "artifact".to_string()],
         )
         .unwrap();
         assert_eq!(plan.targets.len(), 1);
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             &["forged".to_string()]
@@ -1512,7 +1524,7 @@ mod tests {
             partial.artifact.incomplete_reason =
                 Some("Some entries could not be measured.".to_string());
         }
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &environment,
             &partial_inventory,
             &["artifact".to_string()]
@@ -1525,7 +1537,7 @@ mod tests {
             .unwrap()
             .artifact
             .status = crate::models::DeveloperArtifactStatus::SafetyBlocked;
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &environment,
             &partial_inventory,
             &["artifact".to_string()]
@@ -1533,7 +1545,7 @@ mod tests {
         .is_err());
 
         partial_inventory.cancelled = true;
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &environment,
             &partial_inventory,
             &["artifact".to_string()]
@@ -1598,7 +1610,7 @@ mod tests {
             truncated: false,
             uninspected: Vec::new(),
         };
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             &["artifact".to_string()],
@@ -1607,7 +1619,7 @@ mod tests {
         std::fs::remove_file(marker).unwrap();
         let mut move_attempts = 0;
 
-        let result = TrashExecutor::execute_with(&environment, plan, |_| {
+        let result = RemovalExecutor::execute_with(&environment, plan, |_| {
             move_attempts += 1;
             Ok(())
         });
@@ -1677,19 +1689,19 @@ mod tests {
             truncated: false,
             uninspected: Vec::new(),
         };
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &environment,
             &inventory,
             &["artifact".to_string()],
         )
         .unwrap();
 
-        let result = TrashExecutor::execute_with(&environment, plan, |approved| {
+        let result = RemovalExecutor::execute_with(&environment, plan, |approved| {
             assert_eq!(approved.path(), target);
             std::fs::rename(approved.path(), &trashed).map_err(|error| error.to_string())
         });
 
-        assert_eq!(result.moved_count, 1);
+        assert_eq!(result.removed_count, 1);
         assert!(!target.exists());
         assert!(trashed.join("output.bin").is_file());
         assert!(marker.is_file());
@@ -1705,14 +1717,14 @@ mod tests {
         std::fs::create_dir_all(&documents).unwrap();
         let file = documents.join("large-video.mov");
         std::fs::write(&file, b"video").unwrap();
-        let target = TrashTarget {
+        let target = RemovalTarget {
             item_id: "item".to_string(),
             path: file.clone(),
             identity: identity_from_path(&file).unwrap(),
             logical_size: 5,
             allocated_size: 5,
             size_is_lower_bound: false,
-            scope: TrashScope::LargeFile {
+            scope: RemovalScope::LargeFile {
                 approved_parent: documents.clone(),
             },
         };
@@ -1759,28 +1771,28 @@ mod tests {
     fn app_related_items_are_skipped_when_the_app_bundle_cannot_move() {
         let missing = PathBuf::from("/Applications/Missing Example.app");
         let identity = ReviewedFileIdentity::new(FileIdentity::new(1, 1), 0, None);
-        let plan = TrashPlan {
+        let plan = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: "inspection".to_string(),
             targets: vec![
-                TrashTarget {
+                RemovalTarget {
                     item_id: "app".to_string(),
                     path: missing,
                     identity: identity.clone(),
                     logical_size: 0,
                     allocated_size: 0,
                     size_is_lower_bound: false,
-                    scope: TrashScope::AppBundle,
+                    scope: RemovalScope::AppBundle,
                 },
-                TrashTarget {
+                RemovalTarget {
                     item_id: "related".to_string(),
                     path: PathBuf::from("/unused"),
                     identity,
                     logical_size: 0,
                     allocated_size: 0,
                     size_is_lower_bound: false,
-                    scope: TrashScope::AppRelated,
+                    scope: RemovalScope::AppRelated,
                 },
             ],
         };
@@ -1792,14 +1804,16 @@ mod tests {
             },
         );
         let mut move_attempts = 0;
-        let result = TrashExecutor::execute_with(&environment, plan, |_| {
+        let result = RemovalExecutor::execute_with(&environment, plan, |_| {
             move_attempts += 1;
             Ok(())
         });
 
         assert_eq!(move_attempts, 0);
         assert_eq!(result.skipped_count, 2);
-        assert!(result.items[1].message.contains("app bundle was not moved"));
+        assert!(result.items[1]
+            .message
+            .contains("app bundle was not permanently removed"));
     }
 
     #[test]
@@ -1819,22 +1833,22 @@ mod tests {
         let captured = identity_from_path(&reviewed).unwrap();
         std::fs::write(&reviewed, vec![2u8; 64]).unwrap();
 
-        let item = TrashTarget {
+        let item = RemovalTarget {
             item_id: "file".to_string(),
             path: reviewed.clone(),
             identity: captured,
             logical_size: 32,
             allocated_size: 32,
             size_is_lower_bound: false,
-            scope: TrashScope::LargeFile {
+            scope: RemovalScope::LargeFile {
                 approved_parent: documents.clone(),
             },
         };
 
         let mut move_attempts = 0;
-        let result = TrashExecutor::execute_with(
+        let result = RemovalExecutor::execute_with(
             &environment,
-            TrashPlan {
+            RemovalPlan {
                 id: Uuid::new_v4(),
                 created_at: unix_timestamp(),
                 inventory_id: "inventory".to_string(),
@@ -1851,7 +1865,7 @@ mod tests {
             "a target whose identity changed must not reach the Trash adapter"
         );
         assert_eq!(result.skipped_count, 1);
-        assert_eq!(result.moved_count, 0);
+        assert_eq!(result.removed_count, 0);
         assert!(
             result.items[0].message.contains("changed after review"),
             "unexpected message: {}",
@@ -1873,14 +1887,14 @@ mod tests {
         let project_identity = identity_from_path(&project).unwrap();
         let marker_identity = identity_from_path(&marker).unwrap();
 
-        let target_item = TrashTarget {
+        let target_item = RemovalTarget {
             item_id: "artifact".to_string(),
             path: target,
             identity: ReviewedFileIdentity::new(FileIdentity::new(0, 0), 7, None),
             logical_size: 7,
             allocated_size: 7,
             size_is_lower_bound: false,
-            scope: TrashScope::DeveloperArtifact {
+            scope: RemovalScope::DeveloperArtifact {
                 workspace_root: workspace,
                 workspace_identity,
                 project_root: project,
@@ -1908,19 +1922,19 @@ mod tests {
     }
 
     #[test]
-    fn the_shared_plan_store_expires_reviewed_trash_plans_at_the_boundary() {
+    fn the_shared_plan_store_expires_reviewed_removal_plans_at_the_boundary() {
         use crate::services::{PlanLifecycle, PlanStore};
 
-        let store: PlanStore<TrashPlan> = PlanStore::new(PlanLifecycle::trash());
+        let store: PlanStore<RemovalPlan> = PlanStore::new(PlanLifecycle::trash());
         let ttl = store.ttl_seconds();
         let now = unix_timestamp();
-        let fresh = TrashPlan {
+        let fresh = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: now - (ttl - 1),
             inventory_id: "test".to_string(),
             targets: vec![],
         };
-        let stale = TrashPlan {
+        let stale = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: now - ttl,
             inventory_id: "test".to_string(),
@@ -1931,7 +1945,7 @@ mod tests {
         let stale_id = stale.id;
         // The window the interface advertises is the window that is enforced,
         // so a review cannot expire earlier or later than the user was told.
-        let preview = TrashPlan {
+        let preview = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: now,
             inventory_id: "test".to_string(),
@@ -1954,14 +1968,14 @@ mod tests {
     }
 
     #[test]
-    fn the_shared_plan_store_caps_reviewed_trash_plans_and_evicts_the_oldest() {
+    fn the_shared_plan_store_caps_reviewed_removal_plans_and_evicts_the_oldest() {
         use crate::services::{PlanLifecycle, PlanStore};
 
-        let store: PlanStore<TrashPlan> = PlanStore::new(PlanLifecycle::trash());
+        let store: PlanStore<RemovalPlan> = PlanStore::new(PlanLifecycle::trash());
         let now = unix_timestamp();
         let mut ids = Vec::new();
         for i in 0..65 {
-            let plan = TrashPlan {
+            let plan = RemovalPlan {
                 id: Uuid::new_v4(),
                 created_at: now + i,
                 inventory_id: format!("inv-{i}"),
@@ -1996,30 +2010,30 @@ mod tests {
             .with_home(&home)
             .with_known_folder(KnownFolder::Documents, documents.clone());
 
-        let plan = TrashPlan {
+        let plan = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: "test".to_string(),
             targets: vec![
-                TrashTarget {
+                RemovalTarget {
                     item_id: "target1".to_string(),
                     path: file1.clone(),
                     identity: identity_from_path(&file1).unwrap(),
                     logical_size: 4,
                     allocated_size: 4,
                     size_is_lower_bound: false,
-                    scope: TrashScope::LargeFile {
+                    scope: RemovalScope::LargeFile {
                         approved_parent: documents.clone(),
                     },
                 },
-                TrashTarget {
+                RemovalTarget {
                     item_id: "target2".to_string(),
                     path: file2.clone(),
                     identity: identity_from_path(&file2).unwrap(),
                     logical_size: 4,
                     allocated_size: 4,
                     size_is_lower_bound: true,
-                    scope: TrashScope::LargeFile {
+                    scope: RemovalScope::LargeFile {
                         approved_parent: documents.clone(),
                     },
                 },
@@ -2030,30 +2044,30 @@ mod tests {
         assert!(preview.size_is_lower_bound);
 
         // If only target1 moves:
-        let single_target_plan = TrashPlan {
+        let single_target_plan = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: "test".to_string(),
             targets: vec![plan.targets[0].clone()],
         };
-        let res1 = TrashExecutor::execute_with(&environment, single_target_plan, |_| Ok(()));
+        let res1 = RemovalExecutor::execute_with(&environment, single_target_plan, |_| Ok(()));
         assert!(!res1.size_is_lower_bound);
-        assert_eq!(res1.moved_count, 1);
+        assert_eq!(res1.removed_count, 1);
 
         // If target2 moves:
-        let lower_target_plan = TrashPlan {
+        let lower_target_plan = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: "test".to_string(),
             targets: vec![plan.targets[1].clone()],
         };
-        let res2 = TrashExecutor::execute_with(&environment, lower_target_plan, |_| Ok(()));
+        let res2 = RemovalExecutor::execute_with(&environment, lower_target_plan, |_| Ok(()));
         assert!(res2.size_is_lower_bound);
-        assert_eq!(res2.moved_count, 1);
+        assert_eq!(res2.removed_count, 1);
     }
 
     #[test]
-    fn trash_executor_can_use_mock_trash_backend() {
+    fn removal_executor_can_use_mock_removal_backend() {
         let temp = tempfile::tempdir().unwrap();
         let home = temp.path().join("profile");
         let documents = home.join("Documents");
@@ -2065,28 +2079,68 @@ mod tests {
             .with_home(&home)
             .with_known_folder(KnownFolder::Documents, documents.clone());
 
-        let plan = TrashPlan {
+        let plan = RemovalPlan {
             id: Uuid::new_v4(),
             created_at: unix_timestamp(),
             inventory_id: "test".to_string(),
-            targets: vec![TrashTarget {
+            targets: vec![RemovalTarget {
                 item_id: "target1".to_string(),
                 path: file.clone(),
                 identity: identity_from_path(&file).unwrap(),
                 logical_size: 10,
                 allocated_size: 10,
                 size_is_lower_bound: false,
-                scope: TrashScope::LargeFile {
+                scope: RemovalScope::LargeFile {
                     approved_parent: documents,
                 },
             }],
         };
 
-        let mock_backend = Arc::new(neati_platform::MockTrashBackend::new());
-        let executor = TrashExecutor::new(mock_backend.clone());
+        let mock_backend = Arc::new(neati_platform::MockRemovalBackend::new());
+        let executor = RemovalExecutor::new(mock_backend.clone());
         let result = executor.execute(&environment, plan);
-        assert_eq!(result.moved_count, 1);
+        assert_eq!(result.removed_count, 1);
         assert_eq!(result.failed_count, 0);
-        assert_eq!(mock_backend.moved(), vec![file]);
+        assert_eq!(mock_backend.removed(), vec![file]);
+    }
+    #[test]
+    fn native_reviewed_file_removal_deletes_only_the_selected_file() {
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().canonicalize().unwrap().join("profile");
+        let documents = home.join("Documents");
+        std::fs::create_dir_all(&documents).unwrap();
+        let file = documents.join("video.mov");
+        let sibling = documents.join("source.txt");
+        std::fs::write(&file, b"video data").unwrap();
+        std::fs::write(&sibling, b"source remains").unwrap();
+        let environment = PlatformEnvironment::simulated(PathFlavor::current())
+            .with_home(&home)
+            .with_known_folder(KnownFolder::Documents, documents.clone());
+        let plan = RemovalPlan {
+            id: Uuid::new_v4(),
+            created_at: unix_timestamp(),
+            inventory_id: "fixture".into(),
+            targets: vec![RemovalTarget {
+                item_id: "selected".into(),
+                path: file.clone(),
+                identity: identity_from_path(&file).unwrap(),
+                logical_size: 10,
+                allocated_size: 10,
+                size_is_lower_bound: false,
+                scope: RemovalScope::LargeFile {
+                    approved_parent: documents,
+                },
+            }],
+        };
+        let result = RemovalExecutor::new(Arc::new(neati_platform::NativeRemovalBackend))
+            .execute(&environment, plan);
+        assert_eq!(result.removed_count, 1);
+        assert_eq!(result.failed_count, 0);
+        assert!(!file.exists());
+        assert_eq!(std::fs::read(sibling).unwrap(), b"source remains");
+        assert_eq!(
+            std::fs::read_dir(home.join("Documents")).unwrap().count(),
+            1
+        );
     }
 }

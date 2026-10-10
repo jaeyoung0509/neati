@@ -32,11 +32,11 @@ enum Recognition {
 const RULES: &[Rule] = &[
     Rule {
         discovery_name: None, relative: ".svelte-kit/types", kind: DeveloperArtifactKind::SvelteKitTypes,
-        recognition: Recognition::FrameworkGenerated { dependency: "@sveltejs/kit", hint: "Only verified generated route types move to Trash. SvelteKit sync/dev/build regenerates them; output, deployment and offline assets stay." },
+        recognition: Recognition::FrameworkGenerated { dependency: "@sveltejs/kit", hint: "Only verified generated route types are permanently removed. SvelteKit sync/dev/build regenerates them; output, deployment and offline assets stay." },
     },
     Rule {
         discovery_name: None, relative: ".next/cache/webpack", kind: DeveloperArtifactKind::NextWebpackCache,
-        recognition: Recognition::FrameworkGenerated { dependency: "next", hint: "Only verified uncompressed Webpack v1 build-cache packs move to Trash. The next build recreates them; deployment output, image/offline caches and other compiler formats stay." },
+        recognition: Recognition::FrameworkGenerated { dependency: "next", hint: "Only verified uncompressed Webpack v1 build-cache packs are permanently removed. The next build recreates them; deployment output, image/offline caches and other compiler formats stay." },
     },
     Rule {
         discovery_name: Some(".svelte-kit"),

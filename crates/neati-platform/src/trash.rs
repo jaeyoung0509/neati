@@ -8,8 +8,8 @@ use std::path::Path;
 /// boundary: a trait any crate can implement cannot be a capability, and a
 /// type-level seal across a crate edge is not expressible without moving the
 /// reviewer into this crate. Authorization therefore stays where the review
-/// evidence lives — the reviewed-storage `TrashExecutor` and cleanup safety
-/// executor validate their backend-owned targets before calling this port —
+/// evidence lives — the legacy cleanup safety
+/// executor validates backend-owned targets before calling this compatibility port —
 /// and this trait documents that obligation instead of pretending to enforce
 /// it.
 pub trait TrashBackend: Send + Sync {

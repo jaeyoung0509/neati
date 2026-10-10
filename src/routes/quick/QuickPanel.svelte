@@ -150,9 +150,9 @@
       case 'stopped':
         return scanCompletionNotice(scanStore.discovery) ?? '';
       case 'partial':
-        return 'Some folders could not be checked. Verified caches can still be cleaned.';
+        return 'Some folders could not be checked. Verified caches can still be permanently deleted.';
       case 'ready':
-        return 'Clean application and development caches. Some may be downloaded or rebuilt again.';
+        return 'Permanently delete verified caches. Some may be downloaded or rebuilt again.';
       case 'clean':
         return 'Nothing verifiably cleanable was measured.';
     }

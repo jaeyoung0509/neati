@@ -2812,19 +2812,11 @@ fn stale_file_and_directory_units_execute_with_matching_estimates() {
             result.total_reclaimed_bytes + result.total_moved_to_trash_bytes,
             estimate
         );
-        if risk == RiskTier::Safe {
-            assert!(!standalone.exists());
-            assert!(!payload.exists());
-            assert_eq!(fs::read_dir(&trash_root).unwrap().count(), 0);
-            assert_eq!(result.total_moved_to_trash_bytes, 0);
-        } else {
-            assert_eq!(fs::read_dir(&trash_root).unwrap().count(), 2);
-            assert!(trash_root.join("EDXPDFConfig.txt").is_file());
-            assert!(trash_root.join("old.bin").is_file());
-            assert!(!standalone.exists());
-            assert!(!payload.exists());
-            assert_eq!(result.total_reclaimed_bytes, 0);
-        }
+        assert!(!standalone.exists());
+        assert!(!payload.exists());
+        assert_eq!(fs::read_dir(&trash_root).unwrap().count(), 0);
+        assert_eq!(result.total_moved_to_trash_bytes, 0);
+        assert_eq!(result.total_reclaimed_bytes, estimate);
         assert!(root.is_dir());
         eprintln!(
             "fixture {risk:?}: estimated={estimate}, removed={}, moved={}",

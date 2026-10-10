@@ -1161,7 +1161,7 @@ mod tests {
     use super::*;
     use crate::ai_providers::InMemoryCredentialStore;
     use crate::operation_gate::StorageOperationGate;
-    use neati_platform::MockTrashBackend;
+    use neati_platform::MockRemovalBackend;
 
     struct TestSystemActions;
 
@@ -1225,8 +1225,8 @@ mod tests {
             StorageOperationGate::default(),
             budgets.clone(),
             environment.clone(),
-            Arc::new(crate::trash_manager::TrashExecutor::new(Arc::new(
-                MockTrashBackend::default(),
+            Arc::new(crate::removal_manager::RemovalExecutor::new(Arc::new(
+                MockRemovalBackend::default(),
             ))),
             Arc::new(TestSystemActions),
             platform_capabilities.clone(),

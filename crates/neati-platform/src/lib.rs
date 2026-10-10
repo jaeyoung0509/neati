@@ -131,3 +131,6 @@ mod tests {
 pub mod open_files;
 
 pub mod empty_trash;
+
+pub mod removal;
+pub use removal::{MockRemovalBackend, NativeRemovalBackend, RemovalBackend};

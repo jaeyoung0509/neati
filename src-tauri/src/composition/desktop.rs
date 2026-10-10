@@ -77,24 +77,26 @@ pub fn desktop_state_with_catalog(
         ));
 
     // The reviewed-storage workflows own their gate, budgets, inventories,
-    // plan store, and the Trash executor, so a handler never orchestrates
+    // plan store, and the removal executor, so a handler never orchestrates
     // them. The executor is not kept separately: the raw port stays inside the
     // service.
     let trash_backend: Arc<dyn neati_platform::TrashBackend> =
         Arc::new(neati_platform::NativeTrashBackend);
-    let trash_executor = Arc::new(crate::trash_manager::TrashExecutor::new(
-        trash_backend.clone(),
+    let removal_backend: Arc<dyn neati_platform::RemovalBackend> =
+        Arc::new(neati_platform::NativeRemovalBackend);
+    let removal_executor = Arc::new(crate::removal_manager::RemovalExecutor::new(
+        removal_backend.clone(),
     ));
     let storage_service = Arc::new(
         StorageService::new(
             operation_gate.clone(),
             budgets.clone(),
             environment.clone(),
-            trash_executor,
+            removal_executor,
             Arc::new(neati_platform::NativeSystemActions::new()),
             platform_capabilities.clone(),
         )
-        .with_temporary_review(trash_backend.clone()),
+        .with_temporary_review(removal_backend.clone()),
     );
 
     // The reviewed lifecycle providers are built once here and shared by the

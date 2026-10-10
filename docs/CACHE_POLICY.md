@@ -1,3 +1,19 @@
+# Permanent-removal policy update — #416
+
+As approved by the owner on October 9, 2026, all current authorized deletion
+workflows use permanent removal, including owner caches and reviewed personal
+storage. The safety/eligibility/consent contracts below still apply. Rebuild
+means the owner may regenerate data; it does not imply Trash recoverability.
+Historical validation reports retain the behavior/version actually tested.
+
+Use identity-bound native removal without invoking a shell. Native inspection
+is bounded (30 seconds, depth 128; Unix 100,000 entries, Windows 4,096 pinned
+handles), followed by fresh owner/use checks before mutation. Unsupported entry
+kinds, mount transitions, identity changes and budgets fail closed. Directory
+permissions are restored on failure. Partial permanent removal cannot be rolled
+back; only remaining staged entries can be restored. Removed data amounts are
+separate from actual disk free-space change.
+
 # Cache cleanup policy
 
 ## User-tool cache observations — #381
@@ -35,8 +51,7 @@ recorded in [the #381 scope report](evidence/user-tool-discovery-381.md).
 ## Google Updater downloads and retained Mole scopes — 0.3.89
 
 The exact current-user `~/Library/Application Support/Google/GoogleUpdater/crx_cache`
-is one coupled owner unit. Its `metadata.json` and indexed downloads move together
-to Trash. Installed versions, updater preferences and parent installation state
+is one coupled owner unit. Its `metadata.json` and indexed downloads are permanently removed together. Installed versions, updater preferences and parent installation state
 remain outside that unit. Fully measured idle units use zero-day retention and
 ordinary Rebuild cleanup; no administrator command is used.
 
@@ -50,7 +65,7 @@ do not validate CRX signatures or authorize arbitrary archives. Unknown layouts,
 missing index entries and budget failures remain blocked with measured bytes.
 Fresh GoogleUpdater owner and exact handle checks apply during scan, planning
 and execution. Final validation checks every entry identity after the last use
-probe before the whole-unit Trash move. Fixture tests never touch user caches.
+probe before the whole-unit permanent removal. Fixture tests never touch user caches.
 
 OpenCode's `${XDG_CACHE_HOME}/opencode` is now observed alongside the legacy
 cache/log roots. The inspected upstream package cache supplies executable plugins
@@ -88,15 +103,15 @@ Validation uses held directory descriptors, no-follow file opens and metadata
 stability checks. The newest modification/change timestamp across the complete
 unit must be at least three days old. Fresh Node-owner and exact open-file
 checks run at scan, planning and execution; the positive format and inactivity
-contract is checked again after the final use probe and before the Trash move.
+contract is checked again after the final use probe and before permanent removal.
 
 This is a narrow owner exception for regenerable compiled-cache payloads, not
 permission to remove arbitrary compiled models, executables or project bytecode.
 Unverified versions, architectures, flags/tags, layouts, source trees, recovery
 artifacts, databases, locks and links remain advisory/blocked with observed
-bytes where measurement succeeds. A private one-shot plan authorizes one
-verified group; other groups, runtimes and source files remain. Trash movement
-does not establish recovered free space. Windows has no adapter for this owner.
+bytes where measurement succeeds. A private one-shot plan authorizes permanent removal of one
+verified group; other groups, runtimes and source files remain. Removed file data
+is not a measured free-space change. Windows has no adapter for this owner.
 
 Evidence: [Node v26.7.0 module API](https://github.com/nodejs/node/blob/v26.7.0/doc/api/module.md#module-compile-cache),
 [writer](https://github.com/nodejs/node/blob/v26.7.0/src/compile_cache.cc),
@@ -111,7 +126,7 @@ This separate macOS workflow inventories at most 512 direct units of the
 platform-stated user/shared roots, including unknown names and worktrees.
 Bounded no-follow measurement reports partial/unknown sizes and hard-link
 overlap; it grants no automatic eligibility. All scopes start unselected.
-Whole-folder moves may include source, Git and session data and require their
+Whole-folder removals may include source, Git and session data and require their
 explicit acknowledgement. Generated-subtree scopes preserve the project root
 and retain the ordinary generated-ownership and complete-use requirements.
 
@@ -119,10 +134,11 @@ A private five-minute one-shot draft binds exact identities and structural
 fingerprints. Only this workflow permits explicit acceptance of unknown use;
 positive fresh use, foreign ownership, links, changed content, access refusal
 and inspection budgets still block. Mutation stages the exact unit through
-held descriptors on the same volume, rechecks content/use and moves to Trash.
-Failed moves restore the original name when free; an occupied original path
-reports the remaining staged location. Restore successful Trash moves manually
-to the original reviewed path; Git worktree registrations may need repair.
+held descriptors on the same volume, rechecks content/use and permanently removes
+the unit. Failed operations restore remaining entries to the original name when
+free; an occupied original path reports the remaining staged location. Already
+removed entries cannot be restored from Trash. Git worktree registrations may
+need repair.
 No recovered free space, committed work or offline recoverability is promised.
 
 ### Narrow framework generated units — #391
@@ -140,7 +156,7 @@ and execution. Overlapping project scopes are measured sequentially so neati's
 own sibling inspection cannot manufacture an active-use result; independent
 project groups retain bounded parallel measurement. Manifest/config identity,
 the original Git namespace, ownership and complete generated content are
-rechecked after final use before the exact unit moves to Trash. Parent/child
+rechecked after final use before the exact unit is permanently removed. Parent/child
 scopes cannot share a plan. Unknown-use consent from Temporary Folders cannot
 authorize these units. See the
 [recorded framework removal contract](FRAMEWORK_ARTIFACT_CONTRACT.md).
@@ -271,10 +287,10 @@ No log/temp retention thresholds changed in #359.
 ## Mole comparison batch: browser units, developer stores and retained bytes
 
 - Chromium offline caches use disjoint depth-two directory units. Origin
-  indexes are separate advisory observations. Each selected unit goes to Trash;
+  indexes are separate advisory observations. Each selected unit is permanently removed;
   the plan and result state that mutation channel correctly. On macOS, each
   offline unit is checked for open handles during scan, planning, and immediately
-  before the Trash move. Chrome may remain running when the selected unit is idle.
+  before permanent removal. Chrome may remain running when the selected unit is idle.
   In-use units remain reviewable and unknown use remains blocked. Component
   update stores retain their browser-wide owner guard. Windows also retains
   the offline browser guard until an exact-use adapter is implemented.
@@ -325,8 +341,9 @@ Owner command references reviewed September 29, 2026:
 The headline and category metrics show **ready now** bytes. Review-required and
 running-owner candidates appear separately; neither is presented as immediately
 executable or as freed disk space. The selection footer continues to show the
-actual selection. Moving a unit to Trash is reported separately from permanent
-delete and does not claim that free disk space increased.
+actual selection. Current actions permanently remove their exact units. Removed
+file data is reported separately from measured disk free-space change; historical
+Trash movements remain labelled when showing older results.
 
 mise doctor may omit default settings. Its command adapter accepts an empty
 settings object, retains strict root validation, and disables update checks,
@@ -354,7 +371,7 @@ cleanup or the blacklist. Private plans remain in the backend.
 ### CocoaPods owner cleanup
 
 CocoaPods download-cache removal is an explicit reviewed permanent owner action,
-not ordinary cache-to-Trash deletion. The complete default
+through its owning command rather than a generic filesystem deletion. The complete default
 `~/Library/Caches/CocoaPods/Pods` root is previewed, including `Release`,
 `External`, `Specs` and `VERSION`. CocoaPods adds `Pods` to its configured
 cache directory; sibling entries in `CocoaPods` are not command targets.

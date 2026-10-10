@@ -14,8 +14,8 @@ import type {
   LargeFileScanEvent,
   LargeFileScanRequest,
   LargeFileScanResult,
-  TrashPlanPreview,
-  TrashResult,
+  RemovalPlanPreview,
+  RemovalResult,
 } from '../models/types';
 import { isSelectedAppTrashLowerBound } from '../utils/storageManagement';
 import { mockAppLeftoversForPlatform } from './mocks/appLeftovers';
@@ -38,10 +38,10 @@ export interface StorageManagementApi {
     onEvent: (event: LargeFileScanEvent) => void
   ): Promise<LargeFileScanResult>;
   cancelLargeFileScan(scanId: string): Promise<void>;
-  prepareLargeFileTrash(
+  prepareLargeFileRemoval(
     scanId: string,
     selectedItemIds: string[]
-  ): Promise<TrashPlanPreview>;
+  ): Promise<RemovalPlanPreview>;
   /** Reveals a scanned file; the backend resolves the path from its inventory. */
   revealLargeFile(itemId: string): Promise<void>;
   pickDeveloperWorkspace(): Promise<DeveloperWorkspace | null>;
@@ -54,15 +54,15 @@ export interface StorageManagementApi {
   prepareDeveloperArtifactCleanup(
     scanId: string,
     selectedItemIds: string[]
-  ): Promise<TrashPlanPreview>;
+  ): Promise<RemovalPlanPreview>;
   getInstalledApps(): Promise<InstalledAppInventory>;
   getAppLeftovers(): Promise<AppLeftoverInventory>;
   inspectAppUninstall(appId: string): Promise<AppUninstallInspection>;
   prepareAppUninstall(
     inspectionId: string,
     selectedRelatedIds: string[]
-  ): Promise<TrashPlanPreview>;
-  executeTrashPlan(planId: string): Promise<TrashResult>;
+  ): Promise<RemovalPlanPreview>;
+  executeRemovalPlan(planId: string): Promise<RemovalResult>;
 }
 
 const nativeStorageApi: StorageManagementApi = {
@@ -76,8 +76,8 @@ const nativeStorageApi: StorageManagementApi = {
     await unwrap(commands.cancelLargeFileScan(scanId));
   },
 
-  async prepareLargeFileTrash(scanId, selectedItemIds) {
-    return await unwrap(commands.prepareLargeFileTrash(scanId, selectedItemIds));
+  async prepareLargeFileRemoval(scanId, selectedItemIds) {
+    return await unwrap(commands.prepareLargeFileRemoval(scanId, selectedItemIds));
   },
 
   async revealLargeFile(itemId) {
@@ -122,8 +122,8 @@ const nativeStorageApi: StorageManagementApi = {
     return await unwrap(commands.prepareAppUninstall(inspectionId, selectedRelatedIds));
   },
 
-  async executeTrashPlan(planId) {
-    return await unwrap(commands.executeTrashPlan(planId));
+  async executeRemovalPlan(planId) {
+    return await unwrap(commands.executeRemovalPlan(planId));
   },
 };
 
@@ -334,7 +334,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     project_name: kind === 'next_webpack_cache' ? 'web-next' : 'web-svelte-kit', ecosystem: 'node', kind,
     path: kind === 'next_webpack_cache' ? '/Users/mock/work/web-next/.next/cache/webpack' : '/Users/mock/work/web-svelte-kit/.svelte-kit/types',
     logical_bytes: 16 * MIB, allocated_bytes: 15 * MIB, file_count: 80, newest_mtime: Math.floor(Date.now() / 1000),
-    rebuild_hint: 'Only this verified generated subtree moves to Trash; parent deployment and offline output stay. The framework regenerates it.',
+    rebuild_hint: 'Only this verified generated subtree is permanently removed; parent deployment and offline output stay. The framework regenerates it.',
     evidence: ['Browser fixture: positive supported file contract and completed negative project-use observation; native execution rechecks both.'],
     ownership: { state: 'verified_generated' }, status: 'complete', incomplete_reason: null, selected_by_default: false,
   })),
@@ -397,8 +397,8 @@ const mockApps: InstalledApp[] = [
   },
 ];
 
-interface MockTrashPlan {
-  preview: TrashPlanPreview;
+interface MockRemovalPlan {
+  preview: RemovalPlanPreview;
   itemIds: string[];
 }
 
@@ -409,7 +409,7 @@ let mockDeveloperScanCancelled = false;
 const mockScans = new Map<string, LargeFileScanResult>();
 const mockDeveloperScans = new Map<string, DeveloperArtifactScanResult>();
 const mockInspections = new Map<string, AppUninstallInspection>();
-const mockPlans = new Map<string, MockTrashPlan>();
+const mockPlans = new Map<string, MockRemovalPlan>();
 
 function inspectionFor(app: InstalledApp): AppUninstallInspection {
   const inspectionId = `mock-inspection-${app.id}-${Date.now()}`;
@@ -525,13 +525,13 @@ const mockStorageApi: StorageManagementApi = {
     mockScanCancelled = true;
   },
 
-  async prepareLargeFileTrash(scanId, selectedItemIds) {
+  async prepareLargeFileRemoval(scanId, selectedItemIds) {
     const scan = mockScans.get(scanId);
     if (!scan) throw new Error('Large-file inventory expired. Scan again.');
     const selected = scan.items.filter((item) => selectedItemIds.includes(item.id));
-    if (selected.length === 0) throw new Error('Select at least one file to move to Trash.');
+    if (selected.length === 0) throw new Error('Select at least one file to permanently delete.');
     const planId = `mock-trash-plan-${Date.now()}`;
-    const preview: TrashPlanPreview = {
+    const preview: RemovalPlanPreview = {
       id: planId,
       item_count: selected.length,
       logical_size: selected.reduce((sum, item) => sum + item.logical_size, 0),
@@ -664,7 +664,7 @@ const mockStorageApi: StorageManagementApi = {
     const requestedIds = new Set(selectedItemIds);
     const selected = scan.items.filter((item) => requestedIds.has(item.id));
     if (selected.length === 0) {
-      throw new Error('Select at least one developer artifact to move to Trash.');
+      throw new Error('Select at least one developer artifact to permanently delete.');
     }
     if (selected.length !== requestedIds.size) {
       throw new Error('The developer-artifact inventory changed. Scan the workspace again.');
@@ -685,7 +685,7 @@ const mockStorageApi: StorageManagementApi = {
       throw new Error('A whole artifact and its child overlap. Select one removal scope per directory.');
     }
     const planId = `mock-developer-trash-plan-${Date.now()}`;
-    const preview: TrashPlanPreview = {
+    const preview: RemovalPlanPreview = {
       id: planId,
       item_count: selected.length,
       logical_size: selected.reduce((sum, item) => sum + item.logical_bytes, 0),
@@ -724,7 +724,7 @@ const mockStorageApi: StorageManagementApi = {
       selectedRelatedIds.includes(item.id)
     );
     const planId = `mock-app-trash-plan-${Date.now()}`;
-    const preview: TrashPlanPreview = {
+    const preview: RemovalPlanPreview = {
       id: planId,
       item_count: selectedRelated.length + 1,
       logical_size:
@@ -743,19 +743,19 @@ const mockStorageApi: StorageManagementApi = {
     return preview;
   },
 
-  async executeTrashPlan(planId) {
+  async executeRemovalPlan(planId) {
     const plan = mockPlans.get(planId);
-    if (!plan) throw new Error('Trash plan not found or already used');
+    if (!plan) throw new Error('Removal plan not found or already used');
     mockPlans.delete(planId);
     return {
-      moved_count: plan.itemIds.length,
+      removed_count: plan.itemIds.length,
       failed_count: 0,
       skipped_count: 0,
-      moved_allocated_size: plan.preview.allocated_size,
+      removed_allocated_size: plan.preview.allocated_size,
       items: plan.itemIds.map((itemId) => ({
         item_id: itemId,
         success: true,
-        message: 'Moved to Trash',
+        message: 'Permanently removed',
       })),
       size_is_lower_bound: plan.preview.size_is_lower_bound ?? false,
     };

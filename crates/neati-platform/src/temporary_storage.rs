@@ -801,7 +801,7 @@ mod unix {
         if let Some(reason) = tree.reason {
             return Err(reason);
         }
-        let fingerprint = format!("{:x}", tree.hash.finalize());
+        let fingerprint = crate::digest_hex(tree.hash.finalize());
         let mut pending = vec![(root, PathBuf::new())];
         let mut checked = 0usize;
         let mut positive_types = 0usize;
@@ -939,7 +939,8 @@ mod unix {
         let root = open_root(path)?;
         let mut final_tree = Tree::new();
         final_tree.walk(&root, Path::new(""), 0, device, uid, cancel);
-        if final_tree.reason.is_some() || format!("{:x}", final_tree.hash.finalize()) != fingerprint
+        if final_tree.reason.is_some()
+            || crate::digest_hex(final_tree.hash.finalize()) != fingerprint
         {
             return Err("Generated contents changed during verification.".into());
         }
@@ -967,7 +968,7 @@ mod unix {
         if let Some(reason) = before.reason {
             return Err(reason);
         }
-        let fingerprint = format!("{:x}", before.hash.finalize());
+        let fingerprint = crate::digest_hex(before.hash.finalize());
         let (children, truncated) = names(&root, 32)?;
         if truncated {
             return Err("Whole framework metadata exceeds its layout budget.".into());
@@ -1013,7 +1014,7 @@ mod unix {
                             return Err("Generated route metadata exceeds its bound.".into());
                         }
                         let mut bytes = Vec::new(); file.take(1024 * 1024 + 1).read_to_end(&mut bytes).map_err(|_| "Generated route metadata unreadable")?;
-                        if format!("{:x}", Sha1::digest(&bytes)) != expected {
+                        if crate::digest_hex(Sha1::digest(&bytes)) != expected {
                             return Err("This complete generated route variant is unverified; the whole output stays observed.".into());
                         }
                     }
@@ -1070,7 +1071,9 @@ mod unix {
                     // A banner can hide appended authored content. Only the
                     // complete recorded declaration variant is authority.
                     // Other env/route variants retain their observed bytes.
-                    if bytes.len() > 64 * 1024 || format!("{:x}", Sha1::digest(&bytes)) != expected {
+                    if bytes.len() > 64 * 1024
+                        || crate::digest_hex(Sha1::digest(&bytes)) != expected
+                    {
                         return Err("This generated declaration variant is unverified; the whole output stays observed.".into());
                     }
                 }
@@ -1083,7 +1086,7 @@ mod unix {
         let rebound = open_root(path)?;
         let mut after = Tree::new();
         after.walk(&rebound, Path::new(""), 0, device, uid, cancel);
-        if after.reason.is_some() || format!("{:x}", after.hash.finalize()) != fingerprint {
+        if after.reason.is_some() || crate::digest_hex(after.hash.finalize()) != fingerprint {
             return Err("The whole framework output changed during verification.".into());
         }
         Ok(fingerprint)
@@ -1175,7 +1178,7 @@ mod unix {
                 result.newest_activity = (tree.newest != 0).then_some(tree.newest);
                 result.partial = tree.reason.is_some();
                 result.blocked_reason = tree.reason;
-                result.fingerprint = format!("{:x}", tree.hash.finalize());
+                result.fingerprint = crate::digest_hex(tree.hash.finalize());
                 if tree.build {
                     result.contents.push(TemporaryContentKind::BuildOutput);
                 }
@@ -1466,7 +1469,7 @@ mod unix {
                 &AtomicBool::new(false),
             );
             if tree.reason.is_some()
-                || format!("{:x}", tree.hash.finalize()) != reviewed.fingerprint
+                || crate::digest_hex(tree.hash.finalize()) != reviewed.fingerprint
             {
                 return Err(
                     "The temporary unit changed at the mutation boundary. Scan again.".into(),
@@ -1513,7 +1516,7 @@ mod unix {
                 &AtomicBool::new(false),
             );
             if final_tree.reason.is_some()
-                || format!("{:x}", final_tree.hash.finalize()) != reviewed.fingerprint
+                || crate::digest_hex(final_tree.hash.finalize()) != reviewed.fingerprint
             {
                 return Err(
                     "The staged contents changed during the final use check. Scan again.".into(),

@@ -357,7 +357,7 @@ pub fn observe(project: &Path, kind: FrameworkGeneratedKind) -> Result<Framework
     custom_outputs.truncate(16);
     Ok(FrameworkMetadata {
         marker_paths,
-        fingerprint: format!("{:x}", hash.finalize()),
+        fingerprint: crate::digest_hex(hash.finalize()),
         whole_default,
         custom_outputs,
         evidence,

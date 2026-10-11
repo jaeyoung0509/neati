@@ -1,0 +1,116 @@
+[
+  {
+    "page": "developer-artifacts",
+    "width": 800,
+    "height": 560,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete generated folders  Deleting\u2026",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "developer-artifacts",
+    "width": 800,
+    "height": 560,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete generated folders  Deleting\u2026",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "developer-artifacts",
+    "width": 960,
+    "height": 660,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete generated folders  Deleting\u2026",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "developer-artifacts",
+    "width": 960,
+    "height": 660,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete generated folders  Deleting\u2026",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "developer-artifacts",
+    "width": 1280,
+    "height": 800,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete generated folders  Deleting\u2026",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "developer-artifacts",
+    "width": 1280,
+    "height": 800,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Cancel",
+        "disabled": false,
+        "visible": true
+      },
+      {
+        "text": "Permanently delete generated folders  Deleting\u2026",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  }
+]

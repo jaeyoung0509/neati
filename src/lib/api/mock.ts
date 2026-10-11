@@ -1331,7 +1331,7 @@ export const mockApi = {
         item_id: i.id,
         name: i.name,
         path: i.path,
-        mode: i.risk === 'rebuild' ? 'trash' : 'permanent_delete',
+        mode: 'permanent_delete',
         requires_confirmation: i.requires_confirmation ?? false,
         expected_bytes: bytesFor(i),
         risk: i.risk,
@@ -1354,11 +1354,7 @@ export const mockApi = {
           .reduce((acc, i) => acc + bytesFor(i), 0),
       },
       expires_at: Math.floor(Date.now() / 1000) + 300,
-      mode: items.every((item) => item.risk === 'rebuild')
-        ? 'trash'
-        : items.some((item) => item.risk === 'rebuild')
-          ? 'mixed'
-          : 'permanent_delete',
+      mode: 'permanent_delete',
     };
   },
 

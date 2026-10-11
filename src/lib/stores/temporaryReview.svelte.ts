@@ -1,11 +1,11 @@
-import type { TemporaryReviewPreview, TemporaryStorageInventory, TrashResult } from '../models/types';
+import type { TemporaryReviewPreview, TemporaryStorageInventory, RemovalResult } from '../models/types';
 import { tauriStartTemporaryStorageScan, tauriCancelTemporaryStorageScan, tauriPrepareTemporaryStorageReview, tauriExecuteTemporaryStorageReview, tauriCancelTemporaryStorageReview } from '../utils/tauri';
 
 export class TemporaryReviewStore {
   inventory = $state<TemporaryStorageInventory | null>(null);
   selectedIds = $state<string[]>([]);
   preview = $state<TemporaryReviewPreview | null>(null);
-  result = $state<TrashResult | null>(null);
+  result = $state<RemovalResult | null>(null);
   busy = $state<'scan' | 'prepare' | 'execute' | null>(null);
   error = $state('');
   activeScanId: string | null = null;

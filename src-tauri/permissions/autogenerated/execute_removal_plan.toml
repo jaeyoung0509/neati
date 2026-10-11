@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-execute-removal-plan"
+description = "Enables the execute_removal_plan command without any pre-configured scope."
+commands.allow = ["execute_removal_plan"]
+
+[[permission]]
+identifier = "deny-execute-removal-plan"
+description = "Denies the execute_removal_plan command without any pre-configured scope."
+commands.deny = ["execute_removal_plan"]

@@ -1,4 +1,4 @@
-import type { TemporaryReviewConsent, TemporaryReviewPreview, TemporaryStorageEvent, TemporaryStorageInventory, TrashResult } from '../../models/types';
+import type { TemporaryReviewConsent, TemporaryReviewPreview, TemporaryStorageEvent, TemporaryStorageInventory, RemovalResult } from '../../models/types';
 
 const observation = (state: 'in_use' | 'no_use_detected' | 'unable_to_determine', evidence: string[]) => ({
   state, observed_at: 1790812800, probe: 'Browser fixture · native use checks are unavailable', evidence,
@@ -84,17 +84,17 @@ export function createTemporaryStorageMock(fixture: TemporaryStorageInventory = 
         unknown_estimates: selected.filter(option => option.allocated_bytes === null || option.partial).length,
         has_unknown_usage: unknown, has_whole_folders: selected.some(option => option.mode === 'whole_folder'),
         expires_at: Math.floor(Date.now() / 1000) + 300,
-        warnings: ['No use detected does not establish abandonment or recovery.', 'Moves to Trash do not free disk space immediately. Restore manually to the original reviewed paths; Git worktree registrations may need repair.'],
+        warnings: ['No use detected does not establish abandonment or recovery.', 'Selected scopes are permanently deleted and cannot be restored from Trash. Whole folders may contain source, Git and session data. Removed bytes are not a measured free-space change.'],
       };
       drafts.set(preview.id, preview); return structuredClone(preview);
     },
-    async execute(id: string, consent: TemporaryReviewConsent): Promise<TrashResult> {
+    async execute(id: string, consent: TemporaryReviewConsent): Promise<RemovalResult> {
       const preview = drafts.get(id); drafts.delete(id);
       if (!preview || preview.expires_at <= Date.now() / 1000) throw new Error('The review expired or was already used.');
       if (!consent.confirmed || (preview.has_unknown_usage && !consent.accept_unknown_usage) || (preview.has_whole_folders && !consent.accept_source_loss)) throw new Error('Confirm the exact scopes and their listed risks first.');
-      return { moved_count: preview.selected.length, failed_count: 0, skipped_count: 0,
-        moved_allocated_size: preview.known_allocated_bytes, size_is_lower_bound: !!preview.unknown_estimates,
-        items: preview.selected.map(option => ({ item_id: option.id, success: true, message: `Preview only: ${option.path} would move to Trash. No files were changed.` })) };
+      return { removed_count: preview.selected.length, failed_count: 0, skipped_count: 0,
+        removed_allocated_size: preview.known_allocated_bytes, size_is_lower_bound: !!preview.unknown_estimates,
+        items: preview.selected.map(option => ({ item_id: option.id, success: true, message: `Preview only: ${option.path} would be permanently removed. No files were changed.` })) };
     },
     async cancelExecution(id: string): Promise<void> { drafts.delete(id); },
   };

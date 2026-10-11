@@ -57,8 +57,8 @@ import type {
   ScanItem,
   ScanResult,
   SelectedApplication,
-  TrashPlanPreview,
-  TrashResult,
+  RemovalPlanPreview,
+  RemovalResult,
   NeatiSettings,
   AgentIntegrationInfo,
   AgentIntegrationResult,
@@ -81,7 +81,7 @@ export async function tauriPrepareTemporaryStorageReview(scanId: string, selecte
   if (!isTauri()) return temporaryStorageMock.prepare(scanId, selectedOptionIds);
   return invoke('prepare_temporary_storage_review', { scanId, selectedOptionIds });
 }
-export async function tauriExecuteTemporaryStorageReview(planId: string, consent: TemporaryReviewConsent): Promise<TrashResult> {
+export async function tauriExecuteTemporaryStorageReview(planId: string, consent: TemporaryReviewConsent): Promise<RemovalResult> {
   if (!isTauri()) return temporaryStorageMock.execute(planId, consent);
   return invoke('execute_temporary_storage_review', { planId, consent });
 }
@@ -409,11 +409,11 @@ export function tauriCancelLargeFileScan(scanId: string): Promise<void> {
   return storageApi.cancelLargeFileScan(scanId);
 }
 
-export function tauriPrepareLargeFileTrash(
+export function tauriPrepareLargeFileRemoval(
   scanId: string,
   selectedItemIds: string[]
-): Promise<TrashPlanPreview> {
-  return storageApi.prepareLargeFileTrash(scanId, selectedItemIds);
+): Promise<RemovalPlanPreview> {
+  return storageApi.prepareLargeFileRemoval(scanId, selectedItemIds);
 }
 
 export function tauriRevealLargeFile(itemId: string): Promise<void> {
@@ -442,7 +442,7 @@ export function tauriCancelDeveloperArtifactScan(scanId: string): Promise<void> 
 export function tauriPrepareDeveloperArtifactCleanup(
   scanId: string,
   selectedItemIds: string[]
-): Promise<TrashPlanPreview> {
+): Promise<RemovalPlanPreview> {
   return storageApi.prepareDeveloperArtifactCleanup(scanId, selectedItemIds);
 }
 
@@ -461,12 +461,12 @@ export function tauriInspectAppUninstall(appId: string): Promise<AppUninstallIns
 export function tauriPrepareAppUninstall(
   inspectionId: string,
   selectedRelatedIds: string[]
-): Promise<TrashPlanPreview> {
+): Promise<RemovalPlanPreview> {
   return storageApi.prepareAppUninstall(inspectionId, selectedRelatedIds);
 }
 
-export function tauriExecuteTrashPlan(planId: string): Promise<TrashResult> {
-  return storageApi.executeTrashPlan(planId);
+export function tauriExecuteRemovalPlan(planId: string): Promise<RemovalResult> {
+  return storageApi.executeRemovalPlan(planId);
 }
 
 export function tauriPreviewCleanupQuit(scanId: string, itemIds: string[]): Promise<CleanupQuitPreview> {

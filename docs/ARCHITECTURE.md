@@ -1,3 +1,9 @@
+Current deletion policy (#416, October 9, 2026): all production removal flows
+permanently delete their exact authorized units. Legacy Trash/mixed enums and
+result fields remain readable for historical cleanup data; new catalog entries
+requesting Trash are rejected. General cleanup uses its existing protected-state
+walker, while owner/reviewed workflows use the identity-bound `removal.rs` port.
+
 # Architecture
 
 neati (previously neati) is a cross-platform desktop application built with Tauri 2, Rust, Svelte 5,
@@ -28,7 +34,7 @@ macOS menu bar / Windows system tray
      cleanup        storage          ai           system
    CleanupService StorageService  AiService    SystemService
         |              |              |              |
-   scan + safety   one-shot Trash  provider      metrics/power
+   scan + safety   one-shot removal  provider      metrics/power
    + plan TTL      plans for       usage +       memory, disk,
                    large files,    agent         Keep Awake,
                    artifacts,      activity +    dev ports,
@@ -134,11 +140,11 @@ in `neati-desktop`.
 
 `neati-platform` answers the same question for the other kind of coupling.
 Reading a Windows registry value, resolving a known folder, terminating a
-process tree, revealing a path in Finder, replacing a file atomically, or moving
-a reviewed file to the Trash is native work that a CLI would still need, so it
+process tree, revealing a path in Finder, replacing a file atomically, or permanently
+removing a reviewed file is native work that a CLI would still need, so it
 lives there behind ports — `PlatformCapabilitiesProvider`,
 `PlatformPathsProvider`, `SystemActionProvider`, the process-control functions,
-and `TrashBackend`. The crate depends on `neati-core` and never on
+and the identity-bound `RemovalBackend`. The crate depends on `neati-core` and never on
 `neati-desktop`, so a native call cannot start depending on a window. Its
 dependency direction is enforced by `scripts/check_core_boundaries.cjs` together
 with the rest of the boundary rules below.
@@ -171,7 +177,7 @@ interchangeable. `FileIdentity` is the device and inode a path resolved to.
 `CleanupIdentity` is what generic cleanup captured at plan time — entity, file
 type, size, and a sub-second modification stamp — while
 `ReviewedFileIdentity` is what a reviewed storage workflow captured about a
-user-selected target. Because they are different types, a reviewed Trash target
+user-selected target. Because they are different types, a reviewed removal target
 cannot satisfy a cleanup TOCTOU check.
 
 The boundary is enforced rather than documented.
@@ -222,7 +228,7 @@ because no other crate has to name them.
   `subprocess.rs` own process termination and bounded child execution,
   `system_actions.rs` opens and reveals paths, `file_ops.rs` replaces files
   atomically, `capabilities.rs` composes the capability snapshot, and `trash.rs`
-  is the only place the `trash` crate is named.
+  retains the legacy Trash adapter for compatibility tests; current reviewed flows use `removal.rs`.
 - `src-tauri/src/scanner`: signature-driven discovery and size measurement. The
   traversal owns symlink policy, depth bounds, error classification,
   measurement completeness, and cancellation; progress and cancellation arrive
@@ -235,7 +241,7 @@ because no other crate has to name them.
   cleanup lifecycle (gate, budgets, plan store, scan store, scan invalidation)
   for Main Clean and Quick Clean alike, `StorageService` owns the
   reviewed-storage lifecycle (gate, budgets, ephemeral inventories,
-  cancellation registries, reviewed workspaces, plan store, Trash executor) for
+  cancellation registries, reviewed workspaces, plan store, permanent-removal executor) for
   Large Files, Developer Artifact Review, and App Uninstaller, `AiService` owns
   provider credentials, the usage and agent-activity caches with their
   single-flight and generation contracts, the Control Center state, and the
@@ -243,7 +249,7 @@ because no other crate has to name them.
   status and pruning, local-model inventory and deletion, Keep Awake,
   development-port leases, diagnostics, and the settings authority's
   persistence path, `ScanService` runs a framework-free scan, and `PlanStore`
-  bounds both cleanup and reviewed Trash plans under one lifecycle.
+  bounds both cleanup and reviewed removal plans under one lifecycle.
 - `src-tauri/src/cleaner`: execution of verified plans. Each target is
   classified into `CleanupOperation` first, so only a filesystem operation can
   reach the validated deletion primitive. Completed runs append a bounded,
@@ -262,9 +268,9 @@ because no other crate has to name them.
 - `src-tauri/src/developer_artifacts`: explicit workspace registration,
   ecosystem-marker discovery, bounded candidate-tree measurement, progress and
   cancellation events, and private artifact inventory records.
-- `src-tauri/src/trash_manager`: separate one-shot Trash planning and execution
-  for user-reviewed files and apps. It owns `ApprovedTrashTarget`, the only
-  value the Trash port accepts, and each scope's evidence requirements.
+- `src-tauri/src/removal_manager`: separate one-shot removal planning and execution
+  for user-reviewed files and apps. It owns `ApprovedRemovalTarget`, the only
+  private target carrying each scope's evidence requirements before the removal port is called.
 - `src-tauri/src/docker` and `src-tauri/src/models_inventory`: domain adapters
   for resources that must not be treated as arbitrary files.
 - `src-tauri/src/metrics` and `src-tauri/src/power`: platform system integration.
@@ -344,7 +350,7 @@ and reported cancellation-handle guards retire failed or panicking workers;
 the ScanStore still refuses obsolete publication and incomplete cleanup authority.
 
 A plan states what it authorizes. `mode` is `permanent_delete` for generic
-cleanup (a move to the Trash is a different plan kind with different evidence),
+cleanup and reviewed filesystem removal,
 and the application service refuses to execute a plan whose mode does not
 mutate. Every target carries the scan-time expectations the guard re-asserts —
 the unit that authorized the path, the entry kind, the owner, and the
@@ -567,17 +573,17 @@ backend-owned ephemeral inventory
             |
     opaque selected item IDs
             v
-       TrashPlanner
+       RemovalPlanner
  scope + identity captured in Rust
             |
-  TrashPlanPreview + opaque UUID
+  RemovalPlanPreview + opaque UUID
             |
       explicit confirmation
             v
-       TrashExecutor
+       RemovalExecutor
  scope + type + identity revalidation
             |
-   Native Trash / Recycle Bin
+   Native permanent removal
 ```
 
 Large Files only accepts the named user-content roots `Downloads`, `Desktop`,
@@ -589,13 +595,13 @@ whole user-content directories, so Large Files uses its own narrower scope
 predicate: a candidate must still be inside one of the approved roots and paths
 containing `.git` remain protected. Symlinked roots are rejected, and every
 component from the trusted root to the reviewed target is rechecked before
-Trash. This exception does not widen generic cleanup authority.
+permanent removal. This exception does not widen generic cleanup authority.
 
 The Large Files request also has a backend-validated filter. `all` keeps the
 ordinary 100 MB minimum, while `installers` limits matches to `.dmg`, `.pkg`,
 `.mpkg`, `.xip`, and `.iso` files and permits a 10 MB minimum. Installer results
 are still user files: they are never auto-selected, never added to Quick Clean,
-and are moved only through the same opaque one-shot Trash plan. The lower
+and are permanently removed only through the same opaque one-shot removal plan. The lower
 threshold applies only after the root and extension allowlists have matched, so
 it cannot turn the general Large Files scan into an unrestricted small-file
 crawl.
@@ -612,16 +618,19 @@ Only the current app-uninstall inspection is retained. Execution rechecks that
 the app is not running, moves the app bundle first, and skips all related data
 if that first move does not succeed.
 
-Both workflows use the native Trash adapter instead of permanent deletion.
-Moving to Trash does not mean disk space has already been reclaimed; the UI
-reports the amount moved and describes it as potentially reclaimable after the
-Trash is emptied.
+All reviewed workflows use identity-bound native permanent removal. The UI
+names the irreversible consequence and reports removed file data separately
+from actual measured disk free-space change.
 
-The Trash adapter is a port. `neati_platform::TrashBackend` is the only place
-the `trash` crate is named, the composition root hands the adapter to
-`StorageService` so the production path and a test use the same code, and the port accepts a `ReviewedTrashEntry` —
-a type only the reviewed-storage layer mints, immediately after scope, identity,
-symlink, and evidence checks pass — rather than a bare path. Reviewed Trash
+The permanent-removal adapter is a port. `neati_platform::RemovalBackend` takes
+an authorized path and its expected `FileIdentity`. The reviewed executor owns
+scope, symlink, evidence and provenance checks; the raw port cannot grant
+permission by itself. `NativeRemovalBackend` binds the expected root identity,
+inspects the complete bounded tree without following links, then asks the owning
+workflow to recheck use/provenance before the first unlink. Unix removal uses
+verified directory descriptors and `unlinkat`; Windows pins non-reparse handles
+without delete-sharing and deletes through those handles. No shell or Trash
+fallback exists in these workflows. Reviewed removal
 plans live in the same bounded, expiring, one-shot store as cleanup plans, so
 TTL, capacity, and replay refusal are one implementation instead of two. Nothing
 in this workflow feeds Quick Clean: its candidates come only from a completed
@@ -660,9 +669,9 @@ metadata and never gates or auto-selects a candidate.
 
 Cleanup accepts only opaque artifact IDs from a fresh inventory. The planner
 captures workspace/project/marker identities and the exact relative artifact
-type. Trash execution revalidates those identities, marker evidence, scope,
+type. Removal execution revalidates those identities, marker evidence, scope,
 symlink components, directory type, and completeness immediately before each
-move. Only the exact reviewed generated directory moves to Trash; source files,
+removal. Only the exact reviewed generated directory is permanently removed; source files,
 manifests, lockfiles, project roots, and workspace roots remain in place.
 Developer artifacts never contribute to Quick Clean totals.
 
@@ -670,7 +679,7 @@ Developer artifacts never contribute to Quick Clean totals.
 
 Filesystem scan and cleanup share a Rust operation mutex. This prevents the two
 WebViews from starting overlapping mutations or duplicate scans against shared
-state. Large-file traversal, app inventory/inspection, and Trash execution use
+state. Large-file traversal, app inventory/inspection, and removal execution use
 the same storage-operation serialization. Blocking filesystem, process, CLI,
 and synchronous HTTP work runs outside the async command thread.
 
@@ -678,12 +687,12 @@ Ownership of that serialization is deliberate. `CleanupService` owns the
 operation gate, the execution budgets, the plan store, and the scan store for
 the cleanup lifecycle, and `StorageService` owns the same gate and budgets
 alongside the reviewed-storage inventories, cancellation registries, workspace
-registry, plan store, and Trash executor. Their methods acquire the gate
+registry, plan store, and permanent-removal executor. Their methods acquire the gate
 themselves, so no command handler decides when a mutation may start:
 `CleanupService::{start_scan, create_delete_plan, execute_clean,
 quick_clean_safe}` and `StorageService::{scan_large_files,
 scan_developer_artifacts, installed_apps, inspect_app_uninstall,
-execute_trash_plan}` take it inside the service.
+execute_removal_plan}` take it inside the service.
 
 `StorageOperationGate` and `ExecutionBudgets` are `Clone` over one `Arc`, so
 every workflow shares the same lock and the same permits rather than holding a
@@ -692,7 +701,7 @@ second, independent one. The gate is not re-acquired by lower-level helpers:
 their caller has taken a write permit, and the reviewed-storage scanners run
 inside a read permit their service acquired.
 
-One-shot plans — delete plans and reviewed Trash plans — live in the same
+One-shot plans — delete plans and reviewed removal plans — live in the same
 bounded store. It owns TTL expiration, bounded capacity with oldest-first
 eviction, stale-plan rejection, and removal on consumption, so a workflow
 cannot drift by editing a map beside its commands. A plan is removed when it is
@@ -811,7 +820,7 @@ Tauri capabilities are split by window:
   or strategies. Both paths permit verified items from a partial scan.
 - `capabilities/main.json` additionally grants model deletion, Docker pruning,
   process termination, settings writes, power controls, Large Files inspection,
-  app inspection, dedicated Trash-plan execution, and development-listener
+  app inspection, dedicated removal-plan execution, and development-listener
   inspection/release. Development-port permissions are intentionally absent
   from the quick panel, and the reviewed set is asserted by the contract test
   below.

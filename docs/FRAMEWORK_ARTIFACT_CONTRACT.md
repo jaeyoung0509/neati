@@ -1,3 +1,7 @@
+Current mutation policy (#416, October 9, 2026): verified units are permanently
+removed after the complete checks below. Historical fixture/validation records
+retain their original Trash-based behavior and version.
+
 # Framework artifact removal contract
 
 Developer Artifacts recognizes the default SvelteKit `.svelte-kit` and Next.js
@@ -50,7 +54,7 @@ not followed. The ordinary discovery walker still descends unknown/default/custo
 wrappers to find independently evidenced nested projects. No custom path gains
 removal authority.
 
-## Fresh authorization and recoverable movement
+## Fresh authorization and permanent removal
 
 Preparation binds a private one-shot plan to the current inventory and exact
 registered relative unit. It rechecks the selected workspace/project identity,
@@ -71,15 +75,15 @@ Windows/Linux observations do not imply an implemented use/removal adapter.
 
 Execution holds no-follow descriptors, stages the exact accepted directory and
 checks the original Git namespace, complete generated tree, project use and
-metadata again immediately before the Trash port. Only the probe's exact owned
+metadata again immediately before the permanent-removal port. Only the probe's exact owned
 PID/inspection descriptors may be excluded from a complete lsof field stream.
 Other handles, warnings, malformed output or output limits cannot establish idle.
 Changed evidence restores the accepted staged unit when its original name is
-available; substitutions never reach Trash. Timestamp restoration does not
+available; substitutions never reach permanent removal. Timestamp restoration does not
 restore authority because inode, change time and held-tree fingerprints remain
 bound.
 
-Moving to Trash is recoverable movement, not measured free-space recovery.
+Removal is permanent and cannot be undone from Trash. Removed bytes are not measured free-space recovery.
 Preview and result bytes refer to the selected exact unit. After a successful
 move, the UI removes overlapping parent/child observations and requests a fresh
 scan before reviewing their remaining scope. Expiry updates belong only to the

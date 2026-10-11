@@ -191,6 +191,27 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
+    fn current_catalog_refuses_trash_and_accepts_permanent_disposition() {
+        let manifest = r#"
+[[signatures]]
+id = "test.permanent-policy"
+name = "Fixture cache"
+category = "system"
+family = "system"
+risk = "rebuild"
+strategy = "delete_contents"
+paths = ["~/.cache/fixture"]
+deletion_disposition = "permanent_delete"
+"#;
+        assert_eq!(SignatureLoader::load_str(manifest).unwrap().len(), 1);
+        let refused =
+            SignatureLoader::load_str(&manifest.replace("permanent_delete", "trash")).unwrap_err();
+        assert!(refused
+            .to_string()
+            .contains("Trash disposition is unsupported"));
+    }
+
+    #[test]
     fn catalog_requires_an_explicit_strategy_and_reachable_exclusions() {
         let valid = r#"
 [[signatures]]

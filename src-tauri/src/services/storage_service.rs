@@ -2,7 +2,7 @@
 //!
 //! Large Files, Developer Artifact Review, and App Uninstaller share one
 //! lifecycle shape: the backend produces a bounded inventory, the user reviews
-//! opaque IDs from it, the backend captures a private one-shot Trash plan, and
+//! opaque IDs from it, the backend captures a private one-shot removal plan, and
 //! execution revalidates every target before it moves. That lifecycle lives
 //! here, not in the command handlers.
 //!
@@ -41,10 +41,10 @@ use crate::models::{
     AppLeftoverInventory, AppUninstallInspection, CapabilityAccess, DeveloperArtifactScanEvent,
     DeveloperArtifactScanResult, DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent,
     LargeFileScanRequest, LargeFileScanResult, PlatformCapabilitiesProvider, PlatformFeature,
-    TrashPlanPreview, TrashResult,
+    RemovalPlanPreview, RemovalResult,
 };
 use crate::operation_gate::StorageOperationGate;
-use crate::trash_manager::{TrashExecutor, TrashPlan, TrashPlanner};
+use crate::removal_manager::{RemovalExecutor, RemovalPlan, RemovalPlanner};
 
 const INVENTORY_TTL_SECS: u64 = 15 * 60;
 
@@ -60,8 +60,8 @@ struct StorageWorkflowState {
     developer_artifact_cancel: CancellationRegistry,
     app_inventory: Mutex<Option<AppInventory>>,
     app_inspection: Mutex<Option<AppInspectionRecord>>,
-    /// Reviewed Trash plans, bounded and expiring exactly like cleanup plans.
-    trash_plans: PlanStore<TrashPlan>,
+    /// Reviewed removal plans, bounded and expiring exactly like cleanup plans.
+    removal_plans: PlanStore<RemovalPlan>,
     workspaces: Mutex<HashMap<String, DeveloperWorkspaceRecord>>,
 }
 
@@ -74,7 +74,7 @@ impl Default for StorageWorkflowState {
             developer_artifact_cancel: CancellationRegistry::for_scans(),
             app_inventory: Mutex::new(None),
             app_inspection: Mutex::new(None),
-            trash_plans: PlanStore::new(PlanLifecycle::trash()),
+            removal_plans: PlanStore::new(PlanLifecycle::trash()),
             workspaces: Mutex::new(HashMap::new()),
         }
     }
@@ -108,8 +108,8 @@ impl StorageWorkflowState {
     ///
     /// The store owns TTL, capacity, and eviction, so this workflow cannot
     /// drift from the cleanup plan lifecycle by editing a map directly.
-    fn store_plan(&self, plan: TrashPlan) -> Result<(), String> {
-        self.trash_plans
+    fn store_plan(&self, plan: RemovalPlan) -> Result<(), String> {
+        self.removal_plans
             .insert(plan, unix_timestamp())
             .map_err(|error| error.to_string())
     }
@@ -121,7 +121,7 @@ pub struct StorageService {
     operation_gate: StorageOperationGate,
     budgets: Arc<ExecutionBudgets>,
     environment: Arc<PlatformEnvironment>,
-    trash_executor: Arc<TrashExecutor>,
+    removal_executor: Arc<RemovalExecutor>,
     system_actions: Arc<dyn neati_platform::SystemActionProvider>,
     platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     temporary_review: Option<Arc<super::temporary_storage::TemporaryStorageService>>,
@@ -132,7 +132,7 @@ impl StorageService {
         operation_gate: StorageOperationGate,
         budgets: Arc<ExecutionBudgets>,
         environment: Arc<PlatformEnvironment>,
-        trash_executor: Arc<TrashExecutor>,
+        removal_executor: Arc<RemovalExecutor>,
         system_actions: Arc<dyn neati_platform::SystemActionProvider>,
         platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     ) -> Self {
@@ -141,20 +141,23 @@ impl StorageService {
             operation_gate,
             budgets,
             environment,
-            trash_executor,
+            removal_executor,
             system_actions,
             platform_capabilities,
             temporary_review: None,
         }
     }
 
-    pub fn with_temporary_review(mut self, trash: Arc<dyn neati_platform::TrashBackend>) -> Self {
+    pub fn with_temporary_review(
+        mut self,
+        removal: Arc<dyn neati_platform::RemovalBackend>,
+    ) -> Self {
         self.temporary_review = Some(Arc::new(
             super::temporary_storage::TemporaryStorageService::new(
                 self.environment.clone(),
                 self.operation_gate.clone(),
                 self.budgets.clone(),
-                trash,
+                removal,
             ),
         ));
         self
@@ -190,7 +193,7 @@ impl StorageService {
         &self,
         id: uuid::Uuid,
         consent: crate::models::TemporaryReviewConsent,
-    ) -> Result<TrashResult, String> {
+    ) -> Result<RemovalResult, String> {
         self.temporary_service()?.execute(id, consent).await
     }
     pub fn cancel_temporary_storage_review(&self, id: uuid::Uuid) -> Result<(), String> {
@@ -345,12 +348,12 @@ impl StorageService {
         .await
     }
 
-    /// Builds a one-shot Trash plan from reviewed large-file IDs.
-    pub fn prepare_large_file_trash(
+    /// Builds a one-shot removal plan from reviewed large-file IDs.
+    pub fn prepare_large_file_removal(
         &self,
         scan_id: &str,
         selected_item_ids: &[String],
-    ) -> Result<TrashPlanPreview, String> {
+    ) -> Result<RemovalPlanPreview, String> {
         self.platform_capabilities
             .capabilities()
             .require(PlatformFeature::LargeFiles, CapabilityAccess::Mutate)
@@ -372,7 +375,7 @@ impl StorageService {
             })
             .ok_or_else(|| "Large-file inventory expired. Scan again.".to_string())?;
 
-        self.store_reviewed_plan(TrashPlanner::from_large_files(
+        self.store_reviewed_plan(RemovalPlanner::from_large_files(
             &inventory,
             selected_item_ids,
         )?)
@@ -505,12 +508,12 @@ impl StorageService {
         Ok(())
     }
 
-    /// Builds a one-shot Trash plan from reviewed artifact IDs.
-    pub async fn prepare_developer_artifact_trash(
+    /// Builds a one-shot removal plan from reviewed artifact IDs.
+    pub async fn prepare_developer_artifact_removal(
         &self,
         scan_id: &str,
         selected_item_ids: &[String],
-    ) -> Result<TrashPlanPreview, String> {
+    ) -> Result<RemovalPlanPreview, String> {
         self.platform_capabilities
             .capabilities()
             .require(
@@ -537,7 +540,7 @@ impl StorageService {
             move || {
                 let _permit = permit;
                 operation_gate.run_read(|| {
-                    TrashPlanner::from_developer_artifacts(
+                    RemovalPlanner::from_developer_artifacts(
                         &environment,
                         &inventory,
                         &selected_item_ids,
@@ -663,12 +666,12 @@ impl StorageService {
         Ok(result)
     }
 
-    /// Builds a one-shot Trash plan from a reviewed app inspection.
+    /// Builds a one-shot removal plan from a reviewed app inspection.
     pub fn prepare_app_uninstall(
         &self,
         inspection_id: &str,
         selected_related_ids: &[String],
-    ) -> Result<TrashPlanPreview, String> {
+    ) -> Result<RemovalPlanPreview, String> {
         self.platform_capabilities
             .capabilities()
             .require(PlatformFeature::AppUninstall, CapabilityAccess::Mutate)
@@ -690,7 +693,7 @@ impl StorageService {
             })
             .ok_or_else(|| "App uninstall review expired. Review the app again.".to_string())?;
 
-        self.store_reviewed_plan(TrashPlanner::from_app_inspection(
+        self.store_reviewed_plan(RemovalPlanner::from_app_inspection(
             &self.environment,
             &inspection,
             selected_related_ids,
@@ -700,16 +703,16 @@ impl StorageService {
     /// Executes a reviewed Trash plan exactly once.
     ///
     /// The plan is consumed inside the storage write gate, so two windows
-    /// cannot move the same reviewed items and the plan cannot be replayed.
-    pub async fn execute_trash_plan(&self, plan_id: uuid::Uuid) -> Result<TrashResult, String> {
+    /// cannot remove the same reviewed items and the plan cannot be replayed.
+    pub async fn execute_removal_plan(&self, plan_id: uuid::Uuid) -> Result<RemovalResult, String> {
         let operation_gate = self.operation_gate.clone();
         let environment = self.environment.clone();
-        let executor = self.trash_executor.clone();
+        let executor = self.removal_executor.clone();
         let state = self.state.clone();
 
         crate::blocking::run_blocking(
             move || {
-                execute_trash_plan_in_gate(
+                execute_removal_plan_in_gate(
                     &state,
                     &operation_gate,
                     &environment,
@@ -728,24 +731,24 @@ impl StorageService {
     /// The expiry the user sees comes from the same lifecycle that enforces it,
     /// so the displayed window cannot drift from the one that refuses a stale
     /// plan.
-    fn store_reviewed_plan(&self, plan: TrashPlan) -> Result<TrashPlanPreview, String> {
-        let preview = plan.preview(self.state.trash_plans.ttl_seconds());
+    fn store_reviewed_plan(&self, plan: RemovalPlan) -> Result<RemovalPlanPreview, String> {
+        let preview = plan.preview(self.state.removal_plans.ttl_seconds());
         self.state.store_plan(plan)?;
         Ok(preview)
     }
 }
 
-fn execute_trash_plan_in_gate(
+fn execute_removal_plan_in_gate(
     state: &StorageWorkflowState,
     operation_gate: &StorageOperationGate,
     environment: &PlatformEnvironment,
-    executor: &TrashExecutor,
+    executor: &RemovalExecutor,
     plan_id: uuid::Uuid,
     now: impl FnOnce() -> u64,
-) -> Result<TrashResult, String> {
+) -> Result<RemovalResult, String> {
     operation_gate.run_write(|| {
         let plan = state
-            .trash_plans
+            .removal_plans
             .take_valid(plan_id, now())
             .map_err(|error| error.to_string())?;
         Ok(executor.execute(environment, plan))
@@ -822,9 +825,9 @@ mod tests {
         let state = Arc::new(StorageWorkflowState::default());
         let plan_id = uuid::Uuid::new_v4();
         state
-            .trash_plans
+            .removal_plans
             .insert(
-                TrashPlan {
+                RemovalPlan {
                     id: plan_id,
                     created_at: 1_000,
                     inventory_id: "inventory".to_string(),
@@ -852,14 +855,14 @@ mod tests {
         let worker_state = state.clone();
         let worker_gate = operation_gate.clone();
         let worker_now = now.clone();
-        let backend = Arc::new(neati_platform::MockTrashBackend::new());
+        let backend = Arc::new(neati_platform::MockRemovalBackend::new());
         let worker_backend = backend.clone();
         let (write_attempted_tx, write_attempted_rx) = mpsc::channel();
         let worker = thread::spawn(move || {
             let environment = PlatformEnvironment::simulated(PathFlavor::current());
-            let executor = TrashExecutor::new(worker_backend);
+            let executor = RemovalExecutor::new(worker_backend);
             write_attempted_tx.send(()).unwrap();
-            execute_trash_plan_in_gate(
+            execute_removal_plan_in_gate(
                 &worker_state,
                 &worker_gate,
                 &environment,
@@ -882,7 +885,10 @@ mod tests {
             .unwrap()
             .expect_err("a plan stale at mutation time must be refused");
         assert!(error.contains("expired"), "unexpected error: {error}");
-        assert!(backend.moved().is_empty(), "the Trash port was not reached");
+        assert!(
+            backend.removed().is_empty(),
+            "the Trash port was not reached"
+        );
         reader.join().unwrap();
     }
 }

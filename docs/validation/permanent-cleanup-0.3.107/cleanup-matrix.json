@@ -1,0 +1,86 @@
+[
+  {
+    "page": "cleanup",
+    "width": 800,
+    "height": 560,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Clean selected",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "cleanup",
+    "width": 800,
+    "height": 560,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Clean selected",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "cleanup",
+    "width": 960,
+    "height": 660,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Clean selected",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "cleanup",
+    "width": 960,
+    "height": 660,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Clean selected",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "cleanup",
+    "width": 1280,
+    "height": 800,
+    "theme": "light",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Clean selected",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "page": "cleanup",
+    "width": 1280,
+    "height": 800,
+    "theme": "dark",
+    "overflow": false,
+    "buttons": [
+      {
+        "text": "Clean selected",
+        "disabled": false,
+        "visible": true
+      }
+    ]
+  }
+]

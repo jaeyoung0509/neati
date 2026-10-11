@@ -875,7 +875,7 @@ mod tests {
             refusals: Vec::new(),
             owner_authorizations: Vec::new(),
             targets: vec![DeleteTarget {
-                deletion_disposition: None,
+                deletion_disposition: Some(neati_core::domain::cleanup::DeletionDisposition::Trash),
                 item_id: "trash-directory-target".to_string(),
                 signature_id: "test.trash-directory".to_string(),
                 name: "Trash directory".to_string(),
@@ -1001,7 +1001,7 @@ mod tests {
     }
 
     #[test]
-    fn rebuild_filesystem_target_uses_trash_instead_of_permanent_delete() {
+    fn rebuild_filesystem_target_defaults_to_permanent_removal() {
         let fixture = tempfile::tempdir().unwrap();
         let cache_root = fixture.path().join("rebuild-cache");
         std::fs::create_dir(&cache_root).unwrap();
@@ -1037,7 +1037,7 @@ mod tests {
             expected_reclaim_bytes: 4096,
             risk: crate::models::RiskSummary::default(),
             created_at: 0,
-            mode: CleanupMode::Trash,
+            mode: CleanupMode::PermanentDelete,
         };
         let backend = neati_platform::MockTrashBackend::new();
 
@@ -1051,17 +1051,18 @@ mod tests {
         );
 
         assert_eq!(result.items[0].status, CleanStatus::Success);
-        assert_eq!(result.items[0].bytes_reclaimed, 0);
-        assert!(result.items[0].moved_to_trash_bytes > 0);
-        assert_eq!(result.total_reclaimed_bytes, 0);
+        assert!(result.items[0].bytes_reclaimed > 0);
+        assert_eq!(result.items[0].moved_to_trash_bytes, 0);
         assert_eq!(
-            result.total_moved_to_trash_bytes,
-            result.items[0].moved_to_trash_bytes
+            result.total_reclaimed_bytes,
+            result.items[0].bytes_reclaimed
         );
-        assert_eq!(backend.moved(), vec![payload.clone()]);
+        assert_eq!(result.total_moved_to_trash_bytes, 0);
+        assert!(backend.moved().is_empty());
+        assert!(!payload.exists());
         assert!(
-            payload.exists(),
-            "the recording backend proves the permanent deleter was not used"
+            cache_root.exists(),
+            "contents cleanup keeps the authorized root"
         );
     }
 

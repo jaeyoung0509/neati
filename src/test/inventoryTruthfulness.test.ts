@@ -15,8 +15,8 @@ import type {
   LocalModelInventory,
   PlatformCapabilities,
   PlatformContext,
-  TrashPlanPreview,
-  TrashResult,
+  RemovalPlanPreview,
+  RemovalResult,
 } from '../lib/models/types';
 import { isSelectedAppTrashLowerBound } from '../lib/utils/storageManagement';
 
@@ -431,7 +431,7 @@ describe('Inventory Truthfulness (#196)', () => {
         warnings: [],
       };
 
-      const plan: TrashPlanPreview = {
+      const plan: RemovalPlanPreview = {
         id: 'plan-123',
         item_count: 1,
         logical_size: 100_000_000,
@@ -453,12 +453,12 @@ describe('Inventory Truthfulness (#196)', () => {
       expect(rendered.body).toContain('App bundle plus reviewed data: 1 items · ≥ 114.4 MB');
     });
 
-    it('renders lower bound prefix ≥ in trashResult summary card when size_is_lower_bound is true', () => {
-      const trashResult: TrashResult = {
-        moved_count: 2,
+    it('renders lower bound prefix ≥ in removalResult summary card when size_is_lower_bound is true', () => {
+      const trashResult: RemovalResult = {
+        removed_count: 2,
         failed_count: 0,
         skipped_count: 0,
-        moved_allocated_size: 120_000_000,
+        removed_allocated_size: 120_000_000,
         items: [
           { item_id: 'app-1', success: true, message: 'Moved to Trash' },
         ],
@@ -469,11 +469,11 @@ describe('Inventory Truthfulness (#196)', () => {
         props: {
           onBack: vi.fn(),
           initialApps: [freshApp],
-          initialTrashResult: trashResult,
+          initialRemovalResult: trashResult,
         },
       });
 
-      expect(rendered.body).toContain('Moved 2 reviewed items to Trash');
+      expect(rendered.body).toContain('Permanently removed 2 reviewed items');
       expect(rendered.body).toContain('≥ 114.4 MB');
     });
 

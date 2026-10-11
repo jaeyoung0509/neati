@@ -1,6 +1,6 @@
 //! Bounded no-follow observations of exact temporary units. These snapshots
 //! are evidence, not permission: only the dedicated reviewed service may use
-//! `move_reviewed_unit` after binding explicit consent to its private plan.
+//! `remove_reviewed_unit` after binding explicit consent to its private plan.
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 #[cfg(unix)]
@@ -315,18 +315,18 @@ pub fn recheck_temporary_unit(
 
 /// The caller owns consent. Native mutation first binds the reviewed identity
 /// through held descriptors and atomically stages the exact unit. A substituted
-/// name is restored rather than moved to Trash; a failed Trash move is restored
+/// name is restored rather than permanently removed; a failed permanent removal is restored
 /// when the original name remains free. Source paths are never shell arguments.
-pub fn move_reviewed_unit(
+pub fn remove_reviewed_unit(
     environment: &PlatformEnvironment,
     reviewed: &TemporaryUnitSnapshot,
     accept_unknown_usage: bool,
     final_owner_scope: Option<&Path>,
-    backend: &dyn crate::trash::TrashBackend,
+    backend: &dyn crate::removal::RemovalBackend,
 ) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        unix::move_to_trash(
+        unix::remove_permanently(
             environment,
             reviewed,
             accept_unknown_usage,
@@ -399,10 +399,10 @@ pub fn snapshot_framework_unit(
     }
 }
 
-pub fn move_reviewed_framework_unit(
+pub fn remove_reviewed_framework_unit(
     environment: &PlatformEnvironment,
     reviewed: &TemporaryUnitSnapshot,
-    backend: &dyn crate::trash::TrashBackend,
+    backend: &dyn crate::removal::RemovalBackend,
     final_provenance: &dyn Fn(&Path) -> Result<(), String>,
     final_metadata: &dyn Fn() -> Result<(), String>,
 ) -> Result<(), String> {
@@ -411,7 +411,7 @@ pub fn move_reviewed_framework_unit(
     }
     #[cfg(target_os = "macos")]
     {
-        unix::move_to_trash_with_final_check(
+        unix::remove_permanently_with_final_check(
             environment,
             reviewed,
             false,
@@ -1336,14 +1336,14 @@ mod unix {
     }
 
     #[cfg(target_os = "macos")]
-    pub(super) fn move_to_trash(
+    pub(super) fn remove_permanently(
         environment: &PlatformEnvironment,
         reviewed: &TemporaryUnitSnapshot,
         accept_unknown_usage: bool,
         final_owner_scope: Option<&Path>,
-        backend: &dyn crate::trash::TrashBackend,
+        backend: &dyn crate::removal::RemovalBackend,
     ) -> Result<(), String> {
-        move_to_trash_with_probe(
+        remove_permanently_with_probe(
             environment,
             reviewed,
             accept_unknown_usage,
@@ -1354,15 +1354,15 @@ mod unix {
     }
 
     #[cfg(target_os = "macos")]
-    pub(super) fn move_to_trash_with_probe(
+    pub(super) fn remove_permanently_with_probe(
         environment: &PlatformEnvironment,
         reviewed: &TemporaryUnitSnapshot,
         accept_unknown_usage: bool,
         final_owner_scope: Option<&Path>,
-        backend: &dyn crate::trash::TrashBackend,
+        backend: &dyn crate::removal::RemovalBackend,
         final_probe: &dyn Fn(&PlatformEnvironment, &Path, &[i32]) -> TemporaryUsageObservation,
     ) -> Result<(), String> {
-        move_to_trash_with_final_check(
+        remove_permanently_with_final_check(
             environment,
             reviewed,
             accept_unknown_usage,
@@ -1375,12 +1375,12 @@ mod unix {
 
     #[cfg(target_os = "macos")]
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn move_to_trash_with_final_check(
+    pub(super) fn remove_permanently_with_final_check(
         environment: &PlatformEnvironment,
         reviewed: &TemporaryUnitSnapshot,
         accept_unknown_usage: bool,
         final_owner_scope: Option<&Path>,
-        backend: &dyn crate::trash::TrashBackend,
+        backend: &dyn crate::removal::RemovalBackend,
         final_probe: &dyn Fn(&PlatformEnvironment, &Path, &[i32]) -> TemporaryUsageObservation,
         final_provenance: Option<FinalFrameworkChecks<'_>>,
     ) -> Result<(), String> {
@@ -1555,7 +1555,27 @@ mod unix {
             {
                 return Err("The staged leaf pathname changed at the final boundary.".into());
             }
-            backend.move_to_trash(&staged_path)
+            backend.remove_checked(&staged_path, reviewed.identity, &|backend_fds| {
+                let mut inspection_fds = vec![root.as_raw_fd(), parent.as_raw_fd(), stage.as_raw_fd(), final_held.as_raw_fd(), rebound_leaf.as_raw_fd(), rebound_stage.as_raw_fd(), rebound_root.as_raw_fd()];
+                inspection_fds.extend_from_slice(backend_fds);
+                if let Some(scope) = final_owner_scope {
+                    let usage = final_probe(environment, scope, &inspection_fds);
+                    if usage.state != TemporaryUsageState::NoUseDetected {
+                        return Err("Generated project use became active or unknown during removal inspection".into());
+                    }
+                }
+                let usage = final_probe(environment, &staged_path, &inspection_fds);
+                if usage.state == TemporaryUsageState::InUse
+                    || (usage.state == TemporaryUsageState::UnableToDetermine && (!accept_unknown_usage || final_owner_scope.is_some())) {
+                    return Err("Temporary unit use changed during removal inspection".into());
+                }
+                if let Some((check_staged, check_metadata)) = final_provenance {
+                    check_staged(&staged_path)?;
+                    check_metadata()?;
+                }
+                bind_original_locator(reviewed, &root, &parent, uid)?;
+                Ok(())
+            })
         })();
         if let Err(reason) = outcome {
             let restored = restore_reviewed_object(&stage, &parent, &name, reviewed.identity);
@@ -1569,7 +1589,7 @@ mod unix {
             );
             return Err(if restored {
                 format!(
-                    "{reason} The reviewed unit was kept at {}.{}",
+                    "{reason} The remaining reviewed unit was restored at {}. Any entries already permanently removed cannot be restored.{}",
                     recovery_parent
                         .join(reviewed.path.file_name().unwrap())
                         .display(),
@@ -1905,7 +1925,7 @@ mod tests {
                 crate::framework_metadata::observe(&project, FrameworkGeneratedKind::NextOutput)
                     .unwrap()
                     .fingerprint;
-            let backend = crate::MockTrashBackend::new();
+            let backend = crate::MockRemovalBackend::new();
             let project_probed = AtomicBool::new(false);
             let check_metadata = || {
                 let current = crate::framework_metadata::observe(
@@ -1917,7 +1937,7 @@ mod tests {
                 }
                 Ok(())
             };
-            let result = unix::move_to_trash_with_final_check(
+            let result = unix::remove_permanently_with_final_check(
                 &env,
                 &reviewed,
                 false,
@@ -1955,7 +1975,7 @@ mod tests {
             );
             assert!(result.is_err(), "{scenario}");
             assert!(project_probed.load(Ordering::Relaxed));
-            assert!(backend.moved().is_empty(), "{scenario}");
+            assert!(backend.removed().is_empty(), "{scenario}");
             assert_eq!(
                 std::fs::read(cache.join("index.pack")).unwrap(),
                 pack,
@@ -2059,8 +2079,8 @@ mod tests {
             }
             Ok(())
         };
-        let backend = crate::MockTrashBackend::new();
-        let result = unix::move_to_trash_with_final_check(
+        let backend = crate::MockRemovalBackend::new();
+        let result = unix::remove_permanently_with_final_check(
             &env,
             &reviewed,
             false,
@@ -2080,7 +2100,7 @@ mod tests {
         assert!(final_project_probe.load(Ordering::Relaxed));
         assert!(result.unwrap_err().contains("tracked"));
         assert_eq!(provenance_checks.load(Ordering::Relaxed), 2);
-        assert!(backend.moved().is_empty());
+        assert!(backend.removed().is_empty());
         assert_eq!(std::fs::read(payload).unwrap(), pack);
         assert!(std::fs::read_dir(&project).unwrap().all(|entry| !entry
             .unwrap()
@@ -2135,8 +2155,12 @@ mod tests {
             destination: PathBuf,
             fail: bool,
         }
-        impl crate::TrashBackend for FixtureTrash {
-            fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+        impl crate::RemovalBackend for FixtureTrash {
+            fn remove(
+                &self,
+                path: &Path,
+                _: neati_core::domain::identity::FileIdentity,
+            ) -> Result<(), String> {
                 assert!(path
                     .parent()
                     .unwrap()
@@ -2163,7 +2187,7 @@ mod tests {
         let env = fixture_environment(&root);
         let opened = std::fs::File::open(unit.join("source.rs")).unwrap();
         let reviewed = snapshot_temporary_unit(&env, &root, &unit, &AtomicBool::new(false));
-        assert!(move_reviewed_unit(
+        assert!(remove_reviewed_unit(
             &env,
             &reviewed,
             true,
@@ -2177,7 +2201,7 @@ mod tests {
         assert!(unit.join("source.rs").exists());
         drop(opened);
         let reviewed = snapshot_temporary_unit(&env, &root, &unit, &AtomicBool::new(false));
-        assert!(move_reviewed_unit(
+        assert!(remove_reviewed_unit(
             &env,
             &reviewed,
             true,
@@ -2191,7 +2215,7 @@ mod tests {
         assert!(unit.join("source.rs").exists());
         assert_eq!(std::fs::read_dir(&root).unwrap().count(), 1);
         let reviewed = snapshot_temporary_unit(&env, &root, &unit, &AtomicBool::new(false));
-        move_reviewed_unit(
+        remove_reviewed_unit(
             &env,
             &reviewed,
             true,
@@ -2226,7 +2250,7 @@ mod tests {
             let reviewed =
                 snapshot_temporary_unit(&environment, &root, &unit, &AtomicBool::new(false));
             assert!(reviewed.blocked_reason.is_none());
-            let backend = crate::MockTrashBackend::new();
+            let backend = crate::MockRemovalBackend::new();
             let changed = AtomicBool::new(false);
             let substitute_stage = std::cell::RefCell::new(None::<PathBuf>);
             let probe = |_: &PlatformEnvironment, staged: &Path, _: &[i32]| {
@@ -2269,7 +2293,7 @@ mod tests {
                 observation.state = TemporaryUsageState::NoUseDetected;
                 observation
             };
-            let outcome = unix::move_to_trash_with_probe(
+            let outcome = unix::remove_permanently_with_probe(
                 &environment,
                 &reviewed,
                 true,
@@ -2278,7 +2302,7 @@ mod tests {
                 &probe,
             );
             assert!(outcome.is_err(), "{replacement}");
-            assert!(backend.moved().is_empty(), "{replacement}");
+            assert!(backend.removed().is_empty(), "{replacement}");
             let accepted = match replacement {
                 "root" => base.join("held-root/unit"),
                 "ancestor" => root.join("held-project/target"),
@@ -2326,23 +2350,27 @@ mod tests {
             .spawn()
             .unwrap();
         let usage = observe_temporary_use(&environment, &project);
-        let backend = crate::MockTrashBackend::new();
-        let outcome = move_reviewed_unit(&environment, &reviewed, true, Some(&project), &backend);
+        let backend = crate::MockRemovalBackend::new();
+        let outcome = remove_reviewed_unit(&environment, &reviewed, true, Some(&project), &backend);
         let _ = owner.kill();
         owner.wait().unwrap();
         assert_eq!(usage.state, TemporaryUsageState::InUse);
         assert!(outcome.unwrap_err().contains("Generated project use"));
-        assert!(backend.moved().is_empty());
+        assert!(backend.removed().is_empty());
         assert!(target.join("payload").exists());
         struct FixtureTrash(PathBuf);
-        impl crate::TrashBackend for FixtureTrash {
-            fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+        impl crate::RemovalBackend for FixtureTrash {
+            fn remove(
+                &self,
+                path: &Path,
+                _: neati_core::domain::identity::FileIdentity,
+            ) -> Result<(), String> {
                 std::fs::rename(path, &self.0).map_err(|error| error.to_string())
             }
         }
         let idle_review =
             snapshot_temporary_unit(&environment, &root, &target, &AtomicBool::new(false));
-        move_reviewed_unit(
+        remove_reviewed_unit(
             &environment,
             &idle_review,
             false,

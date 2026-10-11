@@ -6,8 +6,8 @@
     LargeFileFilter,
     LargeFileScanEvent,
     LargeFileScanResult,
-    TrashPlanPreview,
-    TrashResult,
+    RemovalPlanPreview,
+    RemovalResult,
   } from '../../lib/models/types';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
@@ -24,8 +24,8 @@
   import {
     refusalForPreview,
     tauriCancelLargeFileScan,
-    tauriExecuteTrashPlan,
-    tauriPrepareLargeFileTrash,
+    tauriExecuteRemovalPlan,
+    tauriPrepareLargeFileRemoval,
     tauriRevealLargeFile,
     tauriStartLargeFileScan,
   } from '../../lib/utils/tauri';
@@ -66,8 +66,8 @@
   let itemBytesById = new Map<string, number>();
   let selectedIds = $state<string[]>([]);
   let scanResult = $state<LargeFileScanResult | null>(null);
-  let plan = $state<TrashPlanPreview | null>(null);
-  let trashResult = $state<TrashResult | null>(null);
+  let plan = $state<RemovalPlanPreview | null>(null);
+  let removalResult = $state<RemovalResult | null>(null);
   let isScanning = $state(false);
   let isPreparing = $state(false);
   let isExecuting = $state(false);
@@ -111,7 +111,7 @@
   });
   function resetReview() {
     plan = null;
-    trashResult = null;
+    removalResult = null;
   }
   function toggleRoot(root: string) {
     selectedRoots = selectedRoots.includes(root)
@@ -206,7 +206,7 @@
     isScanning = true;
     error = null;
     plan = null;
-    trashResult = null;
+    removalResult = null;
     scanResult = null;
     selectedIds = [];
     selectedBytes = 0;
@@ -247,13 +247,13 @@
     }
   }
 
-  async function reviewTrash() {
+  async function reviewRemoval() {
     if (!scanResult || selectedIds.length === 0) return;
     isPreparing = true;
     error = null;
-    trashResult = null;
+    removalResult = null;
     try {
-      plan = await tauriPrepareLargeFileTrash(scanResult.scan_id, selectedIds);
+      plan = await tauriPrepareLargeFileRemoval(scanResult.scan_id, selectedIds);
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
     } finally {
@@ -261,7 +261,7 @@
     }
   }
 
-  async function executeTrash() {
+  async function executeRemoval() {
     if (!plan) return;
     const refusal = refusalForPreview('Deleting files');
     if (refusal) {
@@ -271,8 +271,8 @@
     isExecuting = true;
     error = null;
     try {
-      const result = await tauriExecuteTrashPlan(plan.id);
-      trashResult = result;
+      const result = await tauriExecuteRemovalPlan(plan.id);
+      removalResult = result;
       const movedIds = new Set(
         result.items.filter((item) => item.success).map((item) => item.item_id)
       );
@@ -302,13 +302,13 @@
         <h1 class="text-xl font-semibold tracking-tight">Large Files</h1>
         <div class="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
           <ShieldCheck size={14} class="text-success" />
-          <span>Identity rechecked before {platformContextStore.trashLabel}</span>
+          <span>Identity rechecked before permanent deletion</span>
         </div>
       </div>
       <p class="mt-1 text-xs text-muted-foreground">
         {scanFilter === 'installers'
-          ? `Review disk images and installer packages in approved personal folders. Nothing is selected automatically and items move through ${platformContextStore.trashLabel}.`
-          : `Inspect large personal files. Nothing is selected automatically and deletion always goes through ${platformContextStore.trashLabel}.`}
+          ? `Review disk images and installer packages in approved personal folders. Nothing is selected automatically and selected items are permanently deleted and cannot be restored from Trash.`
+          : `Inspect large personal files. Nothing is selected automatically and selected files are permanently deleted and cannot be restored from Trash.`}
       </p>
     </div>
   </div>
@@ -407,16 +407,16 @@
     </div>
   {/if}
 
-  {#if trashResult}
-    <Card class={`p-4 ${trashResult.failed_count + trashResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
+  {#if removalResult}
+    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
       <div class="flex items-center justify-between gap-3 text-xs">
-        <span class={`font-medium ${trashResult.failed_count + trashResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
-          Moved {trashResult.moved_count} item{trashResult.moved_count === 1 ? '' : 's'} to {platformContextStore.trashLabel}
-          {#if trashResult.failed_count + trashResult.skipped_count > 0}
-            · {trashResult.failed_count + trashResult.skipped_count} not moved
+        <span class={`font-medium ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
+          Permanently removed {removalResult.removed_count} item{removalResult.removed_count === 1 ? '' : 's'}
+          {#if removalResult.failed_count + removalResult.skipped_count > 0}
+            · {removalResult.failed_count + removalResult.skipped_count} not fully removed
           {/if}
         </span>
-        <span class="font-mono text-muted-foreground">{trashResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(trashResult.moved_allocated_size)}</span>
+        <span class="font-mono text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
       </div>
     </Card>
   {/if}
@@ -433,20 +433,20 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div class="text-sm font-semibold flex items-center gap-2">
-            {platformContextStore.trashLabel} review ready
+            Permanent deletion review ready
             <span class={`text-caption px-1.5 py-0.5 rounded font-mono border ${isExpired ? 'bg-destructive/15 text-destructive border-destructive/30' : isExpiringSoon ? 'bg-warning/15 text-warning border-warning/30' : 'bg-secondary text-muted-foreground border-border'}`}>
               {formatCountdown(remainingSecs)}
             </span>
           </div>
           <p class="text-xs text-muted-foreground mt-1">
-            {plan.item_count} selected item{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated
+            These files cannot be restored from Trash. {plan.item_count} selected item{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated
           </p>
         </div>
         <div class="flex items-center gap-2">
           <Button variant="ghost" size="sm" onclick={() => (plan = null)}>Cancel</Button>
-          <Button variant="destructive" size="md" onclick={executeTrash} disabled={isExecuting || isExpired} class="gap-1.5" title={isExpired ? 'Plan expired — prepare again' : ''}>
+          <Button variant="destructive" size="md" onclick={executeRemoval} disabled={isExecuting || isExpired} class="gap-1.5" title={isExpired ? 'Plan expired — prepare again' : ''}>
             <Trash2 size={14} />
-            {isExecuting ? 'Moving…' : isExpired ? 'Expired' : `Move to ${platformContextStore.trashLabel}`}
+            {isExecuting ? 'Deleting…' : isExpired ? 'Expired' : 'Permanently delete files'}
           </Button>
         </div>
       </div>
@@ -460,7 +460,7 @@
         </div>
       {:else}
         <p class="text-meta text-muted-foreground">
-          One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). neati revalidates file identity and scope before each move.
+          One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). neati revalidates file identity and scope before each permanent deletion.
         </p>
       {/if}
     </Card>
@@ -492,7 +492,7 @@
         <Button
           variant="primary"
           size="md"
-          onclick={reviewTrash}
+          onclick={reviewRemoval}
           disabled={isScanning || selectedIds.length === 0 || isPreparing || isExecuting}
           class="gap-1.5 ml-1"
         >

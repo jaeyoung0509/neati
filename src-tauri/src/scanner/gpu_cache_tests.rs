@@ -122,8 +122,8 @@ fn browser_gpu_scopes_measure_profiles_and_recheck_safety_before_fixture_trash()
             destination: fixture._directory.path().join("fixture-trash"),
         };
         let result = fixture.execute(plan, &idle(), &trash);
-        assert_eq!(result.total_moved_to_trash_bytes, expected);
-        assert_eq!(result.total_reclaimed_bytes, 0);
+        assert_eq!(result.total_moved_to_trash_bytes, 0);
+        assert_eq!(result.total_reclaimed_bytes, expected);
         assert!(caches.iter().all(|path| !path.exists()));
         for path in [&protected, &offline, &lookalike, &deeper_cache] {
             assert!(path.exists());
@@ -586,21 +586,13 @@ fn gpu_cleanup_only_removes_authorized_cache_subtrees_in_a_temporary_profile() {
     let items = fixture.scan("Cursor", &idle());
     let plan = fixture.plan(&items, &idle()).unwrap();
     assert_eq!(plan.targets.len(), 3);
-    assert_eq!(plan.mode, CleanupMode::Trash);
+    assert_eq!(plan.mode, CleanupMode::PermanentDelete);
     let trash = MockTrashBackend::new();
-    let trash_result = fixture.execute(plan.clone(), &idle(), &trash);
-    assert_eq!(trash.moved().len(), 3);
-    assert!(trash.moved().iter().all(|path| caches.contains(path)));
-    assert!(trash_result
-        .items
-        .iter()
-        .all(|item| item.status == CleanStatus::Success));
-    // Actual mutation is confined to this fixture; never use the native Trash.
-    let trash = FixtureTrash {
-        source: fixture.profiles.clone(),
-        destination: fixture._directory.path().join("fixture-trash"),
-    };
     let result = fixture.execute(plan, &idle(), &trash);
+    assert!(
+        trash.moved().is_empty(),
+        "permanent cleanup never calls Trash"
+    );
     assert_eq!(result.items.len(), 3);
     assert!(
         result
@@ -609,12 +601,9 @@ fn gpu_cleanup_only_removes_authorized_cache_subtrees_in_a_temporary_profile() {
             .all(|item| item.status == CleanStatus::Success),
         "{result:?}"
     );
+    assert!(result.total_reclaimed_bytes > 0);
+    assert_eq!(result.total_moved_to_trash_bytes, 0);
     assert!(caches.iter().all(|cache| !cache.exists()));
-    assert!(CACHE_NAMES.iter().all(|name| trash
-        .destination
-        .join(name)
-        .join("shader.bin")
-        .exists()));
     for sibling in siblings {
         assert!(profile.join(sibling).exists());
     }

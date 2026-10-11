@@ -6,8 +6,8 @@
     AppUninstallInspection,
     InstalledApp,
     ObservationQuality,
-    TrashPlanPreview,
-    TrashResult,
+    RemovalPlanPreview,
+    RemovalResult,
   } from '../../lib/models/types';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
@@ -23,7 +23,7 @@
   } from '../../lib/utils/storageManagement';
   import {
     refusalForPreview,
-    tauriExecuteTrashPlan,
+    tauriExecuteRemovalPlan,
     tauriGetInstalledApps,
     tauriInspectAppUninstall,
     tauriPrepareAppUninstall,
@@ -52,8 +52,8 @@
     initialSkippedEntryCount?: number;
     initialIncompleteReasons?: string[];
     initialInspection?: AppUninstallInspection | null;
-    initialPlan?: TrashPlanPreview | null;
-    initialTrashResult?: TrashResult | null;
+    initialPlan?: RemovalPlanPreview | null;
+    initialRemovalResult?: RemovalResult | null;
   }
 
   let {
@@ -64,7 +64,7 @@
     initialIncompleteReasons = [],
     initialInspection = null,
     initialPlan = null,
-    initialTrashResult = null,
+    initialRemovalResult = null,
   }: Props = $props();
 
   // svelte-ignore state_referenced_locally
@@ -87,9 +87,9 @@
     initialInspection ? defaultRelatedIds(initialInspection) : []
   );
   // svelte-ignore state_referenced_locally
-  let plan = $state<TrashPlanPreview | null>(initialPlan);
+  let plan = $state<RemovalPlanPreview | null>(initialPlan);
   // svelte-ignore state_referenced_locally
-  let trashResult = $state<TrashResult | null>(initialTrashResult);
+  let removalResult = $state<RemovalResult | null>(initialRemovalResult);
   let error = $state<string | null>(null);
   let revealError = $state<string | null>(null);
 
@@ -186,7 +186,7 @@
     error = null;
     inspection = null;
     plan = null;
-    trashResult = null;
+    removalResult = null;
     try {
       const inventory = await tauriGetInstalledApps();
       apps = inventory.apps;
@@ -206,7 +206,7 @@
     error = null;
     revealError = null;
     plan = null;
-    trashResult = null;
+    removalResult = null;
     try {
       const result = await tauriInspectAppUninstall(app.id);
       inspection = result;
@@ -223,14 +223,14 @@
       ? selectedRelatedIds.filter((candidate) => candidate !== id)
       : [...selectedRelatedIds, id];
     plan = null;
-    trashResult = null;
+    removalResult = null;
   }
 
   async function reviewUninstall() {
     if (!inspection || !isUninstallAvailable) return;
     isPreparing = true;
     error = null;
-    trashResult = null;
+    removalResult = null;
     try {
       plan = await tauriPrepareAppUninstall(
         inspection.inspection_id,
@@ -268,8 +268,8 @@
     error = null;
     const appId = inspection.app.id;
     try {
-      const result = await tauriExecuteTrashPlan(plan.id);
-      trashResult = result;
+      const result = await tauriExecuteRemovalPlan(plan.id);
+      removalResult = result;
       if (result.items.some((item) => item.item_id === appId && item.success)) {
         apps = apps.filter((app) => app.id !== appId);
         inspection = null;
@@ -308,7 +308,7 @@
         <h1 class="text-xl font-semibold tracking-tight">Applications</h1>
         <div class="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
           <ShieldCheck size={14} class="text-success" />
-          <span>{isUninstallAvailable ? `Moves to ${platformContextStore.trashLabel}, never permanently deletes` : 'Application inventory'}</span>
+          <span>{isUninstallAvailable ? 'Permanently deletes the app and selected data' : 'Application inventory'}</span>
         </div>
       </div>
       <p class="mt-1 text-xs text-muted-foreground">
@@ -362,21 +362,21 @@
     </div>
   {/if}
 
-  {#if trashResult}
-    <Card class={`p-4 ${trashResult.failed_count + trashResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
+  {#if removalResult}
+    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
       <div class="flex items-center justify-between gap-3 text-xs">
-        <span class={`font-medium flex items-center gap-2 ${trashResult.failed_count + trashResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
-          {#if trashResult.failed_count + trashResult.skipped_count > 0}
+        <span class={`font-medium flex items-center gap-2 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
+          {#if removalResult.failed_count + removalResult.skipped_count > 0}
             <AlertCircle size={15} />
           {:else}
             <CheckCircle2 size={15} />
           {/if}
-          Moved {trashResult.moved_count} reviewed item{trashResult.moved_count === 1 ? '' : 's'} to {platformContextStore.trashLabel}
-          {#if trashResult.failed_count + trashResult.skipped_count > 0}
-            · {trashResult.failed_count + trashResult.skipped_count} not moved
+          Permanently removed {removalResult.removed_count} reviewed item{removalResult.removed_count === 1 ? '' : 's'}
+          {#if removalResult.failed_count + removalResult.skipped_count > 0}
+            · {removalResult.failed_count + removalResult.skipped_count} not fully removed
           {/if}
         </span>
-        <span class="font-mono text-muted-foreground">{trashResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(trashResult.moved_allocated_size)}</span>
+        <span class="font-mono text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
       </div>
     </Card>
   {/if}
@@ -560,14 +560,14 @@
                     </span>
                   </div>
                   <p class="text-xs text-muted-foreground mt-1">
-                    App bundle plus reviewed data: {plan.item_count} items · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)}
+                    This cannot be undone from Trash. App bundle plus reviewed data: {plan.item_count} items · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)}
                   </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                   <Button variant="ghost" size="sm" onclick={() => (plan = null)}>Cancel</Button>
                   <Button variant="destructive" size="md" onclick={executeUninstall} disabled={isExecuting || isExpired} class="gap-1.5" title={isExpired ? 'Plan expired — review again' : ''}>
                     <Trash2 size={14} />
-                    {isExecuting ? 'Moving…' : isExpired ? 'Expired' : `Move App to ${platformContextStore.trashLabel}`}
+                    {isExecuting ? 'Deleting…' : isExpired ? 'Expired' : 'Permanently delete app'}
                   </Button>
                 </div>
               </div>
@@ -581,7 +581,7 @@
                 </div>
               {:else}
                 <p class="text-meta text-muted-foreground">
-                  One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). neati rechecks the app and each selected {platformContextStore.appDataLabel} item immediately before moving them to {platformContextStore.trashLabel}.
+                  One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). neati rechecks the app and each selected {platformContextStore.appDataLabel} item immediately before permanently deleting them. This cannot be undone from Trash.
                 </p>
               {/if}
             </div>
@@ -590,7 +590,7 @@
               <div>
                 <div class="text-xs font-medium">Ready to review this uninstall?</div>
                 <p class="text-meta text-muted-foreground mt-1">
-                  {isSelectedLowerBound ? '≥ ' : ''}{formatBytes(selectedBytes)} selected for review. You can adjust related {platformContextStore.appDataLabel} below before creating the one-shot {platformContextStore.trashLabel} plan.
+                  {isSelectedLowerBound ? '≥ ' : ''}{formatBytes(selectedBytes)} selected for review. You can adjust related {platformContextStore.appDataLabel} below before creating the one-shot permanent-deletion plan.
                 </p>
               </div>
               <Button

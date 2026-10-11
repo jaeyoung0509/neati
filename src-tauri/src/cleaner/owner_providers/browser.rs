@@ -17,7 +17,7 @@ use neati_core::domain::cleanup::{
     OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitMeasurer, RunningProcessPolicy,
     RunningProcessProbe,
 };
-use neati_platform::{PlatformEnvironment, TrashBackend};
+use neati_platform::{PlatformEnvironment, RemovalBackend};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -45,11 +45,11 @@ impl BrowserCacheKind {
     fn consequence(self) -> &'static str {
         match self {
             Self::ComponentDownloads => {
-                "Downloaded component update archives move to Trash. Empty Trash to free disk space; the browser may download them again when an update needs them."
+                "Downloaded component update archives are permanently removed. Empty Trash to free disk space; the browser may download them again when an update needs them."
             }
-            Self::RendererCaches => "Named HTTP, code and GPU caches move to Trash and are downloaded or rebuilt again. Profile state, offline websites, extensions, credentials, settings and models remain intact.",
+            Self::RendererCaches => "Named HTTP, code and GPU caches are permanently removed and are downloaded or rebuilt again. Profile state, offline websites, extensions, credentials, settings and models remain intact.",
             Self::OfflineCacheStorage => {
-                "Offline website assets move to Trash. Sites and installed web apps may need a network connection to download them again; cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
+                "Offline website assets are permanently removed. Sites and installed web apps may need a network connection to download them again; cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
             }
         }
     }
@@ -240,7 +240,7 @@ pub struct ChromiumCacheProvider {
     kind: BrowserCacheKind,
     process: Arc<dyn RunningProcessProbe>,
     measuring: Arc<dyn OwnerUnitMeasurer>,
-    trash: Arc<dyn TrashBackend>,
+    removal: Arc<dyn RemovalBackend>,
 }
 
 impl ChromiumCacheProvider {
@@ -248,13 +248,13 @@ impl ChromiumCacheProvider {
         kind: BrowserCacheKind,
         process: Arc<dyn RunningProcessProbe>,
         measuring: Arc<dyn OwnerUnitMeasurer>,
-        trash: Arc<dyn TrashBackend>,
+        removal: Arc<dyn RemovalBackend>,
     ) -> Self {
         Self {
             kind,
             process,
             measuring,
-            trash,
+            removal,
         }
     }
 
@@ -886,9 +886,25 @@ impl ChromiumCacheProvider {
                 )
             }
         }
-        if let Err(error) = self.trash.move_to_trash(&unit.path) {
+        if let Err(error) = self.removal.remove_checked(&unit.path, unit.identity.entity(), &|_| {
+            SymlinkGuard::validate_anchored_path(&unit.root, environment).map_err(|e| e.to_string())?;
+            ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
+            let fingerprint = unit_fingerprint(&unit.path, &unit.root, layout.key, environment, self.kind)?;
+            if unit.unit_key.rsplit_once('@').is_none_or(|(_, expected)| expected != fingerprint) {
+                return Err("Browser store changed during removal inspection".into());
+            }
+            if (self.kind == BrowserCacheKind::ComponentDownloads || environment.platform() == PlatformKind::Windows)
+                && !matches!(self.owner_state(layout), BrowserOwnerState::Idle) {
+                return Err("Browser restarted during removal inspection".into());
+            }
+            if environment.platform() == PlatformKind::Macos
+                && !matches!(self.process.running(&RunningProcessPolicy::none().with_open_files(unit.path.clone())), Some(names) if names.is_empty()) {
+                return Err("Browser cache use became active or unknown".into());
+            }
+            Ok(())
+        }) {
             return refuse(format!(
-                "The browser cache could not be moved to Trash: {error}"
+                "The browser cache could not be permanently removed: {error}"
             ));
         }
         match fs::symlink_metadata(&unit.path) {
@@ -902,7 +918,7 @@ impl ChromiumCacheProvider {
                 unit.unit_key.clone(),
                 0,
                 None,
-                "The browser cache still exists after the Trash move; a replacement was left in place",
+                "The browser cache still exists after the permanent removal; a replacement was left in place",
             ),
         }
     }
@@ -930,7 +946,7 @@ impl OwnerScopedProvider for ChromiumCacheProvider {
     }
 
     fn deletion_disposition(&self) -> neati_core::domain::cleanup::DeletionDisposition {
-        neati_core::domain::cleanup::DeletionDisposition::Trash
+        neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
     }
 
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
@@ -1830,8 +1846,12 @@ mod tests {
     struct FixtureTrash {
         moved: Mutex<Vec<PathBuf>>,
     }
-    impl TrashBackend for FixtureTrash {
-        fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+    impl RemovalBackend for FixtureTrash {
+        fn remove(
+            &self,
+            path: &Path,
+            _: neati_core::domain::identity::FileIdentity,
+        ) -> Result<(), String> {
             self.moved.lock().unwrap().push(path.to_path_buf());
             fs::remove_dir_all(path).map_err(|error| error.to_string())
         }
@@ -1840,9 +1860,9 @@ mod tests {
     fn provider(
         kind: BrowserCacheKind,
         process: Arc<dyn RunningProcessProbe>,
-        trash: Arc<dyn TrashBackend>,
+        removal: Arc<dyn RemovalBackend>,
     ) -> ChromiumCacheProvider {
-        ChromiumCacheProvider::new(kind, process, Arc::new(SizeCalculatorMeasurement), trash)
+        ChromiumCacheProvider::new(kind, process, Arc::new(SizeCalculatorMeasurement), removal)
     }
 
     fn mac_fixture() -> (tempfile::TempDir, PlatformEnvironment, RunningProcessPolicy) {
@@ -2110,7 +2130,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             plan.deletion_disposition,
-            neati_core::domain::cleanup::DeletionDisposition::Trash
+            neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
         );
         assert_eq!(
             provider.execute(&environment, &plan).units[0].status,

@@ -13,7 +13,7 @@ fn main() {
         },
         scanner::SizeCalculatorMeasurement,
     };
-    use neati_platform::{MockTrashBackend, PathFlavor, PlatformEnvironment};
+    use neati_platform::{MockRemovalBackend, PathFlavor, PlatformEnvironment};
     use std::{path::PathBuf, sync::Arc};
     struct NativeUse;
     impl RunningProcessProbe for NativeUse {
@@ -33,7 +33,7 @@ fn main() {
         BrowserCacheKind::OfflineCacheStorage,
         Arc::new(NativeUse),
         Arc::new(SizeCalculatorMeasurement),
-        Arc::new(MockTrashBackend::default()),
+        Arc::new(MockRemovalBackend::default()),
     );
     let guard = RunningProcessPolicy::none();
     let scan = provider.scan(&environment, &guard);

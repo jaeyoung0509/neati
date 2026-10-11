@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-prepare-large-file-removal"
+description = "Enables the prepare_large_file_removal command without any pre-configured scope."
+commands.allow = ["prepare_large_file_removal"]
+
+[[permission]]
+identifier = "deny-prepare-large-file-removal"
+description = "Denies the prepare_large_file_removal command without any pre-configured scope."
+commands.deny = ["prepare_large_file_removal"]

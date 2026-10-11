@@ -4,7 +4,7 @@
 //! boundary: a trait any crate can implement cannot be a capability. The
 //! reviewed action — which platform offers it, what it states before running,
 //! and whether its postcondition holds — lives in the provider that calls this
-//! port, exactly as moving a path to the Trash lives in `TrashExecutor`.
+//! port, exactly as permanently removing a reviewed unit lives in `RemovalExecutor`.
 //!
 //! Two calls are all the platform exposes through a supported interface:
 //!

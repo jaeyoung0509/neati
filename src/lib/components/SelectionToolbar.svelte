@@ -52,6 +52,7 @@
   aria-label="Cleanup selection and actions"
   class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 {className}"
 >
+  <div class="min-w-0">
   <div class="flex flex-wrap items-center gap-2">
     {#if onSelectSafe}
       <Button
@@ -126,6 +127,9 @@
         {/if}
       </span>
     {/if}
+  </div>
+
+  {#if onAction}<p class="mt-1 text-meta text-muted-foreground">Selected data is permanently deleted. Caches may rebuild.</p>{/if}
   </div>
 
   <div class="flex items-center gap-2 shrink-0">

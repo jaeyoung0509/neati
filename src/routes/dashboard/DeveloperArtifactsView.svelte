@@ -9,8 +9,8 @@
     DeveloperArtifactUninspected,
     DeveloperArtifactUninspectedReason,
     DeveloperWorkspace,
-    TrashPlanPreview,
-    TrashResult,
+    RemovalPlanPreview,
+    RemovalResult,
   } from '../../lib/models/types';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
@@ -19,7 +19,7 @@
   import {
     refusalForPreview,
     tauriCancelDeveloperArtifactScan,
-    tauriExecuteTrashPlan,
+    tauriExecuteRemovalPlan,
     tauriPickDeveloperWorkspace,
     tauriPrepareDeveloperArtifactCleanup,
     tauriRegisterDeveloperHomeWorkspace,
@@ -70,8 +70,8 @@
   let items = $state<DeveloperArtifact[]>(seed?.items ?? []);
   let scanResult = $state<DeveloperArtifactScanResult | null>(seed);
   let uninspected = $state<DeveloperArtifactUninspected[]>(seed?.uninspected ?? []);
-  let plan = $state<TrashPlanPreview | null>(null);
-  let trashResult = $state<TrashResult | null>(null);
+  let plan = $state<RemovalPlanPreview | null>(null);
+  let removalResult = $state<RemovalResult | null>(null);
   let relatedScopesNeedRefresh = $state(false);
   let selectedIds = $state<string[]>([]);
   let sortBy = $state<SortKey>('size');
@@ -198,7 +198,7 @@
 
   function resetReview() {
     plan = null;
-    trashResult = null;
+    removalResult = null;
     relatedScopesNeedRefresh = false;
     expiryActionFocused = false;
     partialCleanupConfirmed = false;
@@ -413,14 +413,14 @@
       return;
     }
     if (hasMeasurementIncompleteSelected && !partialCleanupConfirmed) {
-      error = `Confirm the partial-measurement warning before moving these artifacts to ${platformContextStore.trashLabel}.`;
+      error = `Confirm the partial-measurement warning before permanently deleting these artifacts.`;
       return;
     }
     isExecuting = true;
     error = null;
     try {
-      const result = await tauriExecuteTrashPlan(plan.id);
-      trashResult = result;
+      const result = await tauriExecuteRemovalPlan(plan.id);
+      removalResult = result;
       const moved = new Set(result.items.filter((item) => item.success).map((item) => item.item_id));
       const remaining = remainingArtifactScopes(items, moved);
       relatedScopesNeedRefresh = items.length - remaining.length > moved.size;
@@ -454,7 +454,7 @@
       </div>
       <p class="mt-1 text-xs text-muted-foreground">
         Inspect rebuildable project environments across common ecosystems. Project source, manifests, lockfiles, and project roots are never cleanup targets.
-        Verified framework sync/cache-only defaults can move as whole units; deployment, offline, dynamic/custom and unknown output stays observed. Choose one whole folder or generated child per directory.
+        Verified framework sync/cache-only defaults can be permanently deleted as whole units; deployment, offline, dynamic/custom and unknown output stays observed. Choose one whole folder or generated child per directory.
       </p>
     </div>
   </div>
@@ -599,19 +599,19 @@
     </div>
   {/if}
 
-  {#if trashResult}
-    <Card class={`p-4 ${trashResult.failed_count + trashResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
+  {#if removalResult}
+    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
       <div class="flex items-center justify-between gap-3 text-xs">
-        <span class={`font-medium ${trashResult.failed_count + trashResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
-          Moved {trashResult.moved_count} artifact{trashResult.moved_count === 1 ? '' : 's'} to {platformContextStore.trashLabel}
+        <span class={`font-medium ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
+          Permanently removed {removalResult.removed_count} artifact{removalResult.removed_count === 1 ? '' : 's'}
         </span>
-        <span class="font-mono text-muted-foreground">{trashResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(trashResult.moved_allocated_size)} · empty {platformContextStore.trashLabel} to reclaim</span>
+        <span class="font-mono text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)} removed · free-space change not measured</span>
       </div>
       {#if relatedScopesNeedRefresh}<p class="mt-2 text-meta text-muted-foreground">Scan again to refresh related parent and child output scopes.</p>{/if}
-      {#if trashResult.items.some(item => !item.success)}
+      {#if removalResult.items.some(item => !item.success)}
         <details class="mt-2 text-meta text-muted-foreground">
           <summary class="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Kept artifacts and recovery details</summary>
-          <ul class="mt-1 space-y-1">{#each trashResult.items.filter(item => !item.success) as item (item.item_id)}<li class="break-words">{item.message}</li>{/each}</ul>
+          <ul class="mt-1 space-y-1">{#each removalResult.items.filter(item => !item.success) as item (item.item_id)}<li class="break-words">{item.message}</li>{/each}</ul>
         </details>
       {/if}
     </Card>
@@ -630,15 +630,15 @@
         <div class="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" onclick={() => { plan = null; partialCleanupConfirmed = false; }}>Cancel</Button>
           <Button variant="destructive" size="md" onclick={executeCleanup} disabled={isExecuting || isExpired || (hasMeasurementIncompleteSelected && !partialCleanupConfirmed)} class="gap-1.5">
-            <LoadingActionContent busy={isExecuting} busyLabel="Moving…" word="cleaning">
-              <Trash2 size={14} aria-hidden="true" />{isExpired ? 'Expired' : `Move generated folders to ${platformContextStore.trashLabel}`}
+            <LoadingActionContent busy={isExecuting} busyLabel="Deleting…" word="cleaning">
+              <Trash2 size={14} aria-hidden="true" />{isExpired ? 'Expired' : 'Permanently delete generated folders'}
             </LoadingActionContent>
           </Button>
         </div>
       </div>
       <div class="rounded-lg border border-border/70 bg-background/60 p-3">
-        <p class="text-meta text-muted-foreground">Only the exact generated directories below will move. Project source and project configuration stay; verified generated metadata moves with its output.</p>
-        {#if hasFrameworkSelection}<p class="mt-1 text-meta text-muted-foreground">To restore a staged output, move it from {platformContextStore.trashLabel} back to its displayed project path. Put Back may refer to the private staging folder.</p>{/if}
+        <p class="text-meta text-muted-foreground">Only the exact generated directories below will be permanently deleted. Project source and project configuration stay; verified generated metadata is deleted with its output.</p>
+        {#if hasFrameworkSelection}<p class="mt-1 text-meta text-muted-foreground">Deletion cannot be undone from Trash. Rebuild verified generated outputs with their owning tools.</p>{/if}
         <div class="mt-2 max-h-32 space-y-1.5 overflow-y-auto scroll-stable">
           {#each selectedItems as item (item.id)}
             <div class="flex items-center justify-between gap-3 text-caption">
@@ -654,14 +654,14 @@
           <Button id="developer-artifact-expiry-action" variant="ghost" size="sm" onclick={() => { plan = null; void scanArtifacts(); }}>Scan again</Button>
         </div>
       {:else}
-        <p class="text-meta text-muted-foreground">One-shot plan. neati rechecks workspace identity, markers, exact artifact type, symlinks, and filesystem identity before each move.</p>
+        <p class="text-meta text-muted-foreground">One-shot plan. neati rechecks workspace identity, markers, exact artifact type, symlinks, and filesystem identity before each permanent deletion.</p>
         {#if hasMeasurementIncompleteSelected}
           <div class="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
             <p class="font-medium">Some selected measurements are partial.</p>
             <p class="text-warning/90">The generated-folder scope and project evidence were verified, but one or more entries could not be measured. The displayed size and file count may be lower than the actual contents. Nested links are not followed.</p>
             <label class="flex items-start gap-2 text-warning">
               <input type="checkbox" bind:checked={partialCleanupConfirmed} class="mt-0.5 accent-warning" />
-              <span>I understand the measurements may be partial and want to move the verified generated folder(s) to {platformContextStore.trashLabel}.</span>
+              <span>I understand the measurements may be partial and want to permanently delete the verified generated folder(s).</span>
             </label>
           </div>
         {/if}

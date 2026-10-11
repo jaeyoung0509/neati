@@ -4,7 +4,7 @@
 //! preview, or a progress step. The taxonomy those observations are described
 //! with — what kind of large file this is, what a filter means, how strong a
 //! relationship is — lives in [`crate::domain::storage`]. The authority that
-//! turns a selection into a mutation never appears here: a `TrashPlanPreview`
+//! turns a selection into a mutation never appears here: a `RemovalPlanPreview`
 //! carries a plan ID and byte totals, not the plan.
 
 use crate::domain::storage::{
@@ -239,7 +239,7 @@ pub struct AppUninstallInspection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
-pub struct TrashPlanPreview {
+pub struct RemovalPlanPreview {
     pub id: uuid::Uuid,
     pub item_count: usize,
     #[serde(with = "crate::ipc_numeric::u64")]
@@ -256,21 +256,21 @@ pub struct TrashPlanPreview {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
-pub struct TrashItemResult {
+pub struct RemovalItemResult {
     pub item_id: String,
     pub success: bool,
     pub message: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
-pub struct TrashResult {
-    pub moved_count: usize,
+pub struct RemovalResult {
+    pub removed_count: usize,
     pub failed_count: usize,
     pub skipped_count: usize,
     #[serde(with = "crate::ipc_numeric::u64")]
     #[specta(type = u64)]
-    pub moved_allocated_size: u64,
-    pub items: Vec<TrashItemResult>,
+    pub removed_allocated_size: u64,
+    pub items: Vec<RemovalItemResult>,
     #[serde(default)]
     pub size_is_lower_bound: bool,
 }

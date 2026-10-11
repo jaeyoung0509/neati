@@ -1,5 +1,5 @@
 use super::*;
-use crate::trash_manager::{TrashExecutor, TrashPlanner};
+use crate::removal_manager::{RemovalExecutor, RemovalPlanner};
 
 fn copy_fixture(name: &str, destination: &Path) {
     fn copy(source: &Path, destination: &Path) {
@@ -135,7 +135,7 @@ fn custom_dynamic_outputs_stay_observed_and_nested_projects_stay_discoverable() 
         .records
         .values()
         .any(|r| r.artifact.kind == DeveloperArtifactKind::CargoTarget));
-    assert!(TrashPlanner::from_developer_artifacts(
+    assert!(RemovalPlanner::from_developer_artifacts(
         &env,
         &inventory,
         std::slice::from_ref(&custom.artifact.id)
@@ -148,7 +148,7 @@ fn custom_dynamic_outputs_stay_observed_and_nested_projects_stay_discoverable() 
         .unwrap()
         .artifact
         .status = DeveloperArtifactStatus::Complete;
-    assert!(TrashPlanner::from_developer_artifacts(
+    assert!(RemovalPlanner::from_developer_artifacts(
         &env,
         &forged,
         std::slice::from_ref(&custom.artifact.id)
@@ -159,7 +159,7 @@ fn custom_dynamic_outputs_stay_observed_and_nested_projects_stay_discoverable() 
         .values()
         .find(|r| r.artifact.kind == DeveloperArtifactKind::CargoTarget)
         .unwrap();
-    let mut forged_plan = TrashPlanner::from_developer_artifacts(
+    let mut forged_plan = RemovalPlanner::from_developer_artifacts(
         &env,
         &inventory,
         std::slice::from_ref(&authored.artifact.id),
@@ -168,7 +168,7 @@ fn custom_dynamic_outputs_stay_observed_and_nested_projects_stay_discoverable() 
     let target = &mut forged_plan.targets[0];
     target.path = custom.path.clone();
     target.identity = custom.identity.clone();
-    target.scope = crate::trash_manager::TrashScope::DeveloperArtifact {
+    target.scope = crate::removal_manager::RemovalScope::DeveloperArtifact {
         workspace_root: custom.workspace_path.clone(),
         workspace_identity: custom.workspace_identity.clone(),
         project_root: custom.project_root.clone(),
@@ -179,10 +179,10 @@ fn custom_dynamic_outputs_stay_observed_and_nested_projects_stay_discoverable() 
         framework_fingerprint: Some("forged".into()),
         framework_snapshot: None,
     };
-    let backend = Arc::new(neati_platform::MockTrashBackend::new());
-    let execution = TrashExecutor::new(backend.clone()).execute(&env, forged_plan);
-    assert_eq!(execution.moved_count, 0);
-    assert!(backend.moved().is_empty());
+    let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+    let execution = RemovalExecutor::new(backend.clone()).execute(&env, forged_plan);
+    assert_eq!(execution.removed_count, 0);
+    assert!(backend.removed().is_empty());
     assert_eq!(fs::read(custom.path.join("payload")).unwrap(), [1; 10]);
     fs::write(
         project.join("next.config.js"),
@@ -304,8 +304,12 @@ struct FixtureTrash {
     directory: PathBuf,
 }
 #[cfg(target_os = "macos")]
-impl neati_platform::TrashBackend for FixtureTrash {
-    fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+impl neati_platform::RemovalBackend for FixtureTrash {
+    fn remove(
+        &self,
+        path: &Path,
+        _: neati_core::domain::identity::FileIdentity,
+    ) -> Result<(), String> {
         assert!(path
             .parent()
             .unwrap()
@@ -364,14 +368,14 @@ fn actual_generated_default_whole_units_move_with_exact_accounting_and_overlap_r
         assert_eq!(child.artifact.status, DeveloperArtifactStatus::Complete);
         assert!(parent.artifact.logical_bytes >= child.artifact.logical_bytes);
         assert!(!parent.artifact.selected_by_default && !child.artifact.selected_by_default);
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &env,
             &inventory,
             &[parent.artifact.id.clone(), child.artifact.id.clone()]
         )
         .unwrap_err()
         .contains("overlap"));
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &env,
             &inventory,
             std::slice::from_ref(&parent.artifact.id),
@@ -383,12 +387,15 @@ fn actual_generated_default_whole_units_move_with_exact_accounting_and_overlap_r
         );
         let trash = root.join("fixture-trash");
         fs::create_dir(&trash).unwrap();
-        let result = TrashExecutor::new(Arc::new(FixtureTrash {
+        let result = RemovalExecutor::new(Arc::new(FixtureTrash {
             directory: trash.clone(),
         }))
         .execute(&env, plan);
-        assert_eq!(result.moved_count, 1, "{:?}", result.items);
-        assert_eq!(result.moved_allocated_size, parent.artifact.allocated_bytes);
+        assert_eq!(result.removed_count, 1, "{:?}", result.items);
+        assert_eq!(
+            result.removed_allocated_size,
+            parent.artifact.allocated_bytes
+        );
         assert!(trash.join(output).is_dir());
         assert!(!project.join(output).exists());
         assert_eq!(
@@ -431,7 +438,7 @@ fn deployment_offline_unknown_and_nested_repository_parents_stay_protected() {
             DeveloperArtifactStatus::Complete,
             "{entry}"
         );
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &env,
             &inventory,
             std::slice::from_ref(&parent.artifact.id)
@@ -444,7 +451,7 @@ fn deployment_offline_unknown_and_nested_repository_parents_stay_protected() {
             .unwrap()
             .artifact
             .status = DeveloperArtifactStatus::Complete;
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &env,
             &forged,
             std::slice::from_ref(&parent.artifact.id)
@@ -479,7 +486,7 @@ fn deployment_offline_unknown_and_nested_repository_parents_stay_protected() {
             DeveloperArtifactStatus::Complete,
             "{entry}"
         );
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &env,
             &inventory,
             std::slice::from_ref(&parent.artifact.id)
@@ -519,7 +526,7 @@ fn generated_metadata_banners_cannot_hide_appended_authored_sentinels() {
             DeveloperArtifactStatus::ObservationOnly,
             "{name}"
         );
-        assert!(TrashPlanner::from_developer_artifacts(
+        assert!(RemovalPlanner::from_developer_artifacts(
             &env,
             &inventory,
             std::slice::from_ref(&parent.artifact.id)
@@ -608,7 +615,7 @@ fn manifest_config_and_symlink_replacements_revoke_a_prepared_whole_plan() {
             "{mutation}: {:?}",
             parent.artifact.evidence
         );
-        let plan = TrashPlanner::from_developer_artifacts(
+        let plan = RemovalPlanner::from_developer_artifacts(
             &env,
             &inventory,
             std::slice::from_ref(&parent.artifact.id),
@@ -637,10 +644,10 @@ fn manifest_config_and_symlink_replacements_revoke_a_prepared_whole_plan() {
             .unwrap(),
             _ => unreachable!(),
         }
-        let backend = Arc::new(neati_platform::MockTrashBackend::new());
-        let result = TrashExecutor::new(backend.clone()).execute(&env, plan);
-        assert_eq!(result.moved_count, 0, "{mutation}");
-        assert!(backend.moved().is_empty());
+        let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+        let result = RemovalExecutor::new(backend.clone()).execute(&env, plan);
+        assert_eq!(result.removed_count, 0, "{mutation}");
+        assert!(backend.removed().is_empty());
         assert!(project.join(".next").exists());
     }
 }
@@ -666,7 +673,7 @@ fn active_project_working_directory_blocks_whole_and_generated_child_without_unk
         .values()
         .find(|r| r.artifact.kind == DeveloperArtifactKind::NextOutput)
         .unwrap();
-    let plan = TrashPlanner::from_developer_artifacts(
+    let plan = RemovalPlanner::from_developer_artifacts(
         &env,
         &inventory,
         std::slice::from_ref(&parent.artifact.id),
@@ -684,9 +691,9 @@ fn active_project_working_directory_blocks_whole_and_generated_child_without_unk
         .records
         .values()
         .all(|r| r.artifact.status == DeveloperArtifactStatus::SafetyBlocked));
-    let backend = Arc::new(neati_platform::MockTrashBackend::new());
-    let result = TrashExecutor::new(backend.clone()).execute(&env, plan);
-    assert_eq!(result.moved_count, 0);
-    assert!(backend.moved().is_empty());
+    let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+    let result = RemovalExecutor::new(backend.clone()).execute(&env, plan);
+    assert_eq!(result.removed_count, 0);
+    assert!(backend.removed().is_empty());
     assert!(project.join(".next").exists());
 }

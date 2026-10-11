@@ -19,7 +19,7 @@ use neati_core::domain::cleanup::{
     RunningProcessProbe,
 };
 use neati_core::domain::CleanupIdentity;
-use neati_platform::{PlatformEnvironment, TrashBackend};
+use neati_platform::{PlatformEnvironment, RemovalBackend};
 use std::fs;
 #[cfg(test)]
 use std::fs::File;
@@ -35,19 +35,19 @@ const MAX_ARTIFACT_DEPTH: usize = 64;
 pub struct DotSlashArtifactsProvider {
     process: Arc<dyn RunningProcessProbe>,
     measuring: Arc<dyn OwnerUnitMeasurer>,
-    trash: Arc<dyn TrashBackend>,
+    removal: Arc<dyn RemovalBackend>,
 }
 
 impl DotSlashArtifactsProvider {
     pub fn new(
         process: Arc<dyn RunningProcessProbe>,
         measuring: Arc<dyn OwnerUnitMeasurer>,
-        trash: Arc<dyn TrashBackend>,
+        removal: Arc<dyn RemovalBackend>,
     ) -> Self {
         Self {
             process,
             measuring,
-            trash,
+            removal,
         }
     }
 
@@ -290,7 +290,7 @@ impl DotSlashArtifactsProvider {
         }
         let root = observed.root.expect("ready DotSlash observation has root");
         let mut plan = OwnerProviderAuthorization {
-            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::Trash,
+            deletion_disposition: neati_core::domain::cleanup::DeletionDisposition::PermanentDelete,
             signature_id: String::new(),
             provider_id: self.id().into(),
             risk: crate::models::RiskTier::Rebuild,
@@ -415,11 +415,25 @@ impl DotSlashArtifactsProvider {
         if let Err(error) = ToctouGuard::verify(&unit.path, &unit.identity) {
             return refuse(format!("The artifact changed before the move: {error}"));
         }
-        let mut permissions = match ArtifactTrashPermissions::prepare(&unit.path, &unit.identity) {
+        let mut permissions = match ArtifactRemovalPermissions::prepare(&unit.path, &unit.identity)
+        {
             Ok(permissions) => permissions,
             Err(error) => return refuse(error),
         };
-        let move_result = self.trash.move_to_trash(&unit.path);
+        let move_result = self
+            .removal
+            .remove_checked(&unit.path, unit.identity.entity(), &|_| {
+                lock.verify(environment).map_err(|e| e.to_string())?;
+                inspect_artifact(&unit.path).map_err(|e| e.detail())?;
+                ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
+                match running_executables() {
+                    Some(paths) if !artifact_is_running(&unit.path, &paths) => Ok(()),
+                    _ => Err(
+                        "Artifact execution became active or unknown during removal inspection"
+                            .into(),
+                    ),
+                }
+            });
         let restore_result = permissions.restore();
         if let Err(error) = move_result {
             let restore_detail = restore_result
@@ -429,20 +443,20 @@ impl DotSlashArtifactsProvider {
                 })
                 .unwrap_or_default();
             return refuse(format!(
-                "The artifact could not be moved to Trash: {error}{restore_detail}"
+                "The artifact could not be permanently removed: {error}{restore_detail}"
             ));
         }
         if let Err(error) = restore_result {
             crate::diagnostics::log_error(
                 "dotslash-cleanup",
                 &format!(
-                    "The trashed DotSlash artifact permissions could not be restored: {error}"
+                    "The remaining DotSlash artifact permissions could not be restored: {error}"
                 ),
             );
         }
         match fs::symlink_metadata(&unit.path) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                OwnerUnitOutcome::trashed(
+                OwnerUnitOutcome::cleaned(
                     unit.item_id.clone(),
                     unit.unit_key.clone(),
                     measurement.allocated_bytes,
@@ -453,7 +467,7 @@ impl DotSlashArtifactsProvider {
                 unit.unit_key.clone(),
                 0,
                 None,
-                "The artifact still exists after the Trash move; a replacement was left in place",
+                "The artifact still exists after the permanent removal; a replacement was left in place",
             ),
         }
     }
@@ -467,13 +481,13 @@ impl OwnerScopedProvider for DotSlashArtifactsProvider {
         &[PlatformKind::Macos]
     }
     fn consequence(&self) -> &'static str {
-        "The selected artifact moves to Trash. Empty Trash to free disk space. DotSlash may download and unpack it again when needed."
+        "The selected artifact is permanently removed. DotSlash may download and unpack it again when needed."
     }
     fn requires_confirmation(&self) -> bool {
         false
     }
     fn deletion_disposition(&self) -> neati_core::domain::cleanup::DeletionDisposition {
-        neati_core::domain::cleanup::DeletionDisposition::Trash
+        neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
     }
     fn unit_label(&self, unit: &OwnerUnitObservation) -> String {
         let key = unit.unit_key.as_str();
@@ -577,7 +591,7 @@ fn inspect_artifact(path: &Path) -> Result<(), ArtifactCheck> {
             if entry.depth() == 0 {
                 return Err(ArtifactCheck::Refused("The artifact root is a link"));
             }
-            // Whole-artifact Trash preserves the link itself. Never follow it.
+            // Whole-artifact removal unlinks the link itself. Never follow it.
             // Forward-only relative archive links (framework Versions/Current)
             // stay confined even in a chain; parent traversal is not supported.
             let target = fs::read_link(entry.path())
@@ -636,12 +650,10 @@ fn artifact_is_running(path: &Path, executables: &[PathBuf]) -> bool {
     executables.iter().any(|exe| exe.starts_with(path))
 }
 
-/// DotSlash deliberately publishes immutable artifact trees. macOS Trash APIs
-/// require the moved directory itself to be owner-writable, so hold the exact
-/// directory open while temporarily adding that one permission bit. Restoring
-/// through the handle also restores the moved object after its pathname has
-/// changed to the Trash location.
-struct ArtifactTrashPermissions {
+/// DotSlash publishes immutable artifact trees. Prepare the reviewed root
+/// through a held descriptor and restore permissions on any surviving object
+/// if removal fails. The permanent backend handles nested directories itself.
+struct ArtifactRemovalPermissions {
     #[cfg(unix)]
     directory: fs::File,
     #[cfg(unix)]
@@ -650,17 +662,19 @@ struct ArtifactTrashPermissions {
     changed: bool,
 }
 
-impl ArtifactTrashPermissions {
+impl ArtifactRemovalPermissions {
     fn prepare(path: &Path, expected: &CleanupIdentity) -> Result<Self, String> {
         #[cfg(unix)]
         {
             use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
             let directory = fs::File::open(path).map_err(|error| {
-                format!("The artifact could not be opened before the Trash move: {error}")
+                format!("The artifact could not be opened before the permanent removal: {error}")
             })?;
             let metadata = directory.metadata().map_err(|error| {
-                format!("The artifact identity could not be read before the Trash move: {error}")
+                format!(
+                    "The artifact identity could not be read before the permanent removal: {error}"
+                )
             })?;
             let expected_entity = expected.entity();
             if !metadata.is_dir()
@@ -685,7 +699,7 @@ impl ArtifactTrashPermissions {
                     .set_permissions(fs::Permissions::from_mode(original_mode | 0o200))
                     .map_err(|error| {
                         format!(
-                            "The read-only artifact could not be prepared for the Trash move: {error}"
+                            "The read-only artifact could not be prepared for the permanent removal: {error}"
                         )
                     })?;
             }
@@ -700,8 +714,9 @@ impl ArtifactTrashPermissions {
 
         #[cfg(not(unix))]
         {
-            ToctouGuard::verify_entity(path, expected)
-                .map_err(|error| format!("The artifact changed before the Trash move: {error}"))?;
+            ToctouGuard::verify_entity(path, expected).map_err(|error| {
+                format!("The artifact changed before the permanent removal: {error}")
+            })?;
             Ok(Self {})
         }
     }
@@ -722,7 +737,7 @@ impl ArtifactTrashPermissions {
     }
 }
 
-impl Drop for ArtifactTrashPermissions {
+impl Drop for ArtifactRemovalPermissions {
     fn drop(&mut self) {
         let _ = self.restore();
     }
@@ -759,8 +774,12 @@ mod tests {
     }
 
     struct FixtureTrash(PathBuf);
-    impl TrashBackend for FixtureTrash {
-        fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+    impl RemovalBackend for FixtureTrash {
+        fn remove(
+            &self,
+            path: &Path,
+            _: neati_core::domain::identity::FileIdentity,
+        ) -> Result<(), String> {
             fs::rename(path, self.0.join(path.file_name().unwrap()))
                 .map_err(|error| error.to_string())
         }
@@ -835,9 +854,9 @@ mod tests {
         let result = provider.execute(&environment, &plan);
         assert_eq!(result.units[0].status, ProviderStatus::Cleaned);
         assert_eq!(plan.deletion_disposition, provider.deletion_disposition());
-        assert_eq!(result.units[0].reclaimed_bytes, 0);
-        assert_eq!(result.units[0].moved_to_trash_bytes, ready.allocated_bytes);
-        assert_eq!(result.reclaimed_bytes(), 0);
+        assert_eq!(result.units[0].reclaimed_bytes, ready.allocated_bytes);
+        assert_eq!(result.units[0].moved_to_trash_bytes, 0);
+        assert_eq!(result.reclaimed_bytes(), ready.allocated_bytes);
         assert!(!old.exists());
         assert!(trashed.join("c".repeat(38)).exists());
         assert!(recent.exists());
@@ -883,7 +902,7 @@ mod tests {
         let busy = DotSlashArtifactsProvider::new(
             Arc::new(Busy),
             Arc::new(SizeCalculatorMeasurement),
-            provider.trash.clone(),
+            provider.removal.clone(),
         );
         assert_eq!(
             busy.scan(&environment, &guard).status,
@@ -1011,7 +1030,7 @@ mod tests {
             )
             .unwrap();
         let busy =
-            DotSlashArtifactsProvider::new(Arc::new(Busy), provider.measuring, provider.trash);
+            DotSlashArtifactsProvider::new(Arc::new(Busy), provider.measuring, provider.removal);
         let result = busy.execute(&environment, &plan);
         assert_eq!(result.units[0].status, ProviderStatus::PrerequisiteNotMet);
         assert!(old.exists());
@@ -1168,7 +1187,7 @@ mod tests {
         let (_temp, environment, provider, guard, _) = fixture();
         artifact(&environment, "ab", &"c".repeat(38), true);
         let provider =
-            DotSlashArtifactsProvider::new(Arc::new(Idle), Arc::new(Partial), provider.trash);
+            DotSlashArtifactsProvider::new(Arc::new(Idle), Arc::new(Partial), provider.removal);
         let observed = provider.scan(&environment, &guard);
         assert_eq!(observed.units[0].state, OwnerUnitState::Blocked);
         assert_eq!(observed.units[0].allocated_bytes, 10);

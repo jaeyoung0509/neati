@@ -6,7 +6,7 @@ use neati_core::domain::cleanup::{
     reviewed_cache::{self, ReviewedCacheKind, ReviewedCachePort},
     OwnerProviderAuthorization, OwnerProviderExecution, OwnerUnitMeasurer, RunningProcessProbe,
 };
-use neati_platform::{PlatformEnvironment, TrashBackend};
+use neati_platform::{PlatformEnvironment, RemovalBackend};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -74,20 +74,20 @@ pub struct ReviewedCacheProvider {
     kind: ReviewedCacheKind,
     process: Arc<dyn RunningProcessProbe>,
     measuring: Arc<dyn OwnerUnitMeasurer>,
-    trash: Arc<dyn TrashBackend>,
+    removal: Arc<dyn RemovalBackend>,
 }
 impl ReviewedCacheProvider {
     pub fn new(
         kind: ReviewedCacheKind,
         process: Arc<dyn RunningProcessProbe>,
         measuring: Arc<dyn OwnerUnitMeasurer>,
-        trash: Arc<dyn TrashBackend>,
+        removal: Arc<dyn RemovalBackend>,
     ) -> Self {
         Self {
             kind,
             process,
             measuring,
-            trash,
+            removal,
         }
     }
     fn port<'a>(&'a self, environment: &'a PlatformEnvironment) -> NativePort<'a> {
@@ -112,7 +112,7 @@ impl OwnerScopedProvider for ReviewedCacheProvider {
         self.kind.requires_confirmation()
     }
     fn deletion_disposition(&self) -> neati_core::domain::cleanup::DeletionDisposition {
-        neati_core::domain::cleanup::DeletionDisposition::Trash
+        neati_core::domain::cleanup::DeletionDisposition::PermanentDelete
     }
     fn scan(&self, env: &PlatformEnvironment, _: &RunningProcessPolicy) -> OwnerStoreObservation {
         self.port(env).inventory(self.kind)
@@ -806,7 +806,9 @@ impl ReviewedCachePort for NativePort<'_> {
             guard = guard.with_gradle_owner();
         }
         if !matches!(self.provider.process.running(&guard), Some(names) if names.is_empty()) {
-            return Err("The owner restarted or a handle opened before the Trash move".into());
+            return Err(
+                "The owner restarted or a handle opened before the permanent removal".into(),
+            );
         }
         if kind == ReviewedCacheKind::UpdaterStaging {
             let parent = unit.path.parent().ok_or("Updater unit has no parent")?;
@@ -832,7 +834,9 @@ impl ReviewedCachePort for NativePort<'_> {
                         neati_core::domain::cleanup::temporary_cache::NODE_CACHE_MIN_DAYS * 86400,
                     )
                 }) {
-                    return Err("Node cache changed immediately before its Trash move".into());
+                    return Err(
+                        "Node cache changed immediately before its permanent removal".into(),
+                    );
                 }
             }
             #[cfg(target_os = "macos")]
@@ -847,7 +851,7 @@ impl ReviewedCachePort for NativePort<'_> {
             ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
             // Payload validation can read up to the bounded byte budget.
             // Observe owner/handles once more after that work, immediately
-            // before the identity check and recoverable move.
+            // before the identity check and permanent removal.
             if !matches!(self.provider.process.running(&guard), Some(names) if names.is_empty()) {
                 return Err(
                     "The cache owner restarted or opened a handle during final validation".into(),
@@ -859,7 +863,37 @@ impl ReviewedCachePort for NativePort<'_> {
             }
             ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
         }
-        self.provider.trash.move_to_trash(&unit.path)
+        self.provider
+            .removal
+            .remove_checked(&unit.path, unit.identity.entity(), &|_| {
+                let current = self.observe(candidate);
+                if current.state != OwnerUnitState::Ready
+                    || current.allocated_bytes != unit.expected_bytes
+                {
+                    return Err("Owner unit changed during removal inspection".into());
+                }
+                if kind == ReviewedCacheKind::UpdaterStaging {
+                    let referenced = updater_reference(
+                        unit.path.parent().ok_or("Missing updater parent")?,
+                        self.environment,
+                    )?;
+                    if referenced
+                        .as_deref()
+                        .is_some_and(|name| unit.path.file_name().is_some_and(|leaf| leaf == name))
+                    {
+                        return Err("Updater now references this archive".into());
+                    }
+                }
+                ToctouGuard::verify(&unit.path, &unit.identity).map_err(|e| e.to_string())?;
+                if !matches!(self.provider.process.running(&guard), Some(names) if names.is_empty())
+                {
+                    return Err(
+                        "Owner or handle use became active or unknown during removal inspection"
+                            .into(),
+                    );
+                }
+                Ok(())
+            })
     }
     fn is_absent(&self, path: &Path) -> bool {
         fs::symlink_metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
@@ -1034,8 +1068,12 @@ mod tests {
         }
     }
     struct FixtureTrash(PathBuf);
-    impl TrashBackend for FixtureTrash {
-        fn move_to_trash(&self, path: &Path) -> Result<(), String> {
+    impl RemovalBackend for FixtureTrash {
+        fn remove(
+            &self,
+            path: &Path,
+            _: neati_core::domain::identity::FileIdentity,
+        ) -> Result<(), String> {
             fs::create_dir_all(&self.0).map_err(|e| e.to_string())?;
             fs::rename(path, self.0.join("moved")).map_err(|e| e.to_string())
         }
@@ -1398,12 +1436,16 @@ mod tests {
         provider.execute(&env, &plan);
         assert!(path.exists());
         struct Denied;
-        impl TrashBackend for Denied {
-            fn move_to_trash(&self, _: &Path) -> Result<(), String> {
+        impl RemovalBackend for Denied {
+            fn remove(
+                &self,
+                _: &Path,
+                _: neati_core::domain::identity::FileIdentity,
+            ) -> Result<(), String> {
                 Err("Permission denied by fixture".into())
             }
         }
-        provider.trash = Arc::new(Denied);
+        provider.removal = Arc::new(Denied);
         let fresh = provider.scan(&env, &RunningProcessPolicy::none());
         let plan = provider
             .prepare(

@@ -59,7 +59,7 @@ pub use neati_core::application::dto::scan::{
 pub use neati_core::application::dto::storage::{
     AppLeftoverInventory, AppLeftoverItem, AppRelatedItem, AppUninstallInspection, InstalledApp,
     InstalledAppInventory, LargeFileItem, LargeFileScanEvent, LargeFileScanRequest,
-    LargeFileScanResult, TrashItemResult, TrashPlanPreview, TrashResult,
+    LargeFileScanResult, RemovalItemResult, RemovalPlanPreview, RemovalResult,
 };
 pub use neati_core::application::dto::temporary_storage::{
     TemporaryRemovalOption, TemporaryReviewPreview, TemporaryStorageEvent,

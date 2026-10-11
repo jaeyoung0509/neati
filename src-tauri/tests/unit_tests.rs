@@ -937,9 +937,9 @@ fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
     let app_error = serde_json::to_string(&unsafe_app).unwrap_err().to_string();
     assert!(app_error.contains("Number.MAX_SAFE_INTEGER"));
 
-    use neati_lib::models::{TrashPlanPreview, TrashResult};
+    use neati_lib::models::{RemovalPlanPreview, RemovalResult};
 
-    let safe_preview = TrashPlanPreview {
+    let safe_preview = RemovalPlanPreview {
         id: uuid::Uuid::nil(),
         item_count: 1,
         logical_size: 100,
@@ -950,7 +950,7 @@ fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
     let preview_json = serde_json::to_string(&safe_preview).expect("safe preview serializes");
     assert!(preview_json.contains("\"size_is_lower_bound\":true"));
 
-    let unsafe_preview = TrashPlanPreview {
+    let unsafe_preview = RemovalPlanPreview {
         id: uuid::Uuid::nil(),
         item_count: 1,
         logical_size: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
@@ -963,22 +963,22 @@ fn test_local_model_and_app_inventory_serialization_enforces_safe_integers() {
         .to_string();
     assert!(preview_error.contains("Number.MAX_SAFE_INTEGER"));
 
-    let safe_result = TrashResult {
-        moved_count: 1,
+    let safe_result = RemovalResult {
+        removed_count: 1,
         failed_count: 0,
         skipped_count: 0,
-        moved_allocated_size: 1024,
+        removed_allocated_size: 1024,
         items: vec![],
         size_is_lower_bound: true,
     };
     let result_json = serde_json::to_string(&safe_result).expect("safe result serializes");
     assert!(result_json.contains("\"size_is_lower_bound\":true"));
 
-    let unsafe_result = TrashResult {
-        moved_count: 1,
+    let unsafe_result = RemovalResult {
+        removed_count: 1,
         failed_count: 0,
         skipped_count: 0,
-        moved_allocated_size: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
+        removed_allocated_size: neati_lib::ipc_numeric::MAX_SAFE_INTEGER + 1,
         items: vec![],
         size_is_lower_bound: false,
     };

@@ -156,7 +156,7 @@ export const commands = {
 	releaseDevelopmentListener: (id: string, mode: ReleaseMode) => typedError<ReleaseDevelopmentListenerResult_Serialize, string>(__TAURI_INVOKE("release_development_listener", { id, mode })),
 	startLargeFileScan: (request: LargeFileScanRequest_Deserialize, onEvent: Channel<LargeFileScanEvent_Deserialize>) => typedError<LargeFileScanResult_Serialize, string>(__TAURI_INVOKE("start_large_file_scan", { request, onEvent })),
 	cancelLargeFileScan: (scanId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_large_file_scan", { scanId })),
-	prepareLargeFileTrash: (scanId: string, selectedItemIds: string[]) => typedError<TrashPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_large_file_trash", { scanId, selectedItemIds })),
+	prepareLargeFileRemoval: (scanId: string, selectedItemIds: string[]) => typedError<RemovalPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_large_file_removal", { scanId, selectedItemIds })),
 	/**
 	 *  Reveals a scanned large file in the platform file manager.
 	 *
@@ -174,16 +174,16 @@ export const commands = {
 	registerDeveloperHomeWorkspace: () => typedError<DeveloperWorkspace, string>(__TAURI_INVOKE("register_developer_home_workspace")),
 	startDeveloperArtifactScan: (workspaceIds: string[], onEvent: Channel<DeveloperArtifactScanEvent_Deserialize>) => typedError<DeveloperArtifactScanResult_Serialize, string>(__TAURI_INVOKE("start_developer_artifact_scan", { workspaceIds, onEvent })),
 	cancelDeveloperArtifactScan: (scanId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_developer_artifact_scan", { scanId })),
-	prepareDeveloperArtifactCleanup: (scanId: string, selectedItemIds: string[]) => typedError<TrashPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_developer_artifact_cleanup", { scanId, selectedItemIds })),
+	prepareDeveloperArtifactCleanup: (scanId: string, selectedItemIds: string[]) => typedError<RemovalPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_developer_artifact_cleanup", { scanId, selectedItemIds })),
 	getInstalledApps: () => typedError<InstalledAppInventory_Serialize, string>(__TAURI_INVOKE("get_installed_apps")),
 	getAppLeftovers: () => typedError<AppLeftoverInventory_Serialize, string>(__TAURI_INVOKE("get_app_leftovers")),
 	inspectAppUninstall: (appId: string) => typedError<AppUninstallInspection_Serialize, string>(__TAURI_INVOKE("inspect_app_uninstall", { appId })),
-	prepareAppUninstall: (inspectionId: string, selectedRelatedIds: string[]) => typedError<TrashPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_app_uninstall", { inspectionId, selectedRelatedIds })),
-	executeTrashPlan: (planId: string) => typedError<TrashResult_Serialize, string>(__TAURI_INVOKE("execute_trash_plan", { planId })),
+	prepareAppUninstall: (inspectionId: string, selectedRelatedIds: string[]) => typedError<RemovalPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_app_uninstall", { inspectionId, selectedRelatedIds })),
+	executeRemovalPlan: (planId: string) => typedError<RemovalResult_Serialize, string>(__TAURI_INVOKE("execute_removal_plan", { planId })),
 	startTemporaryStorageScan: (onEvent: Channel<TemporaryStorageEvent_Deserialize>) => typedError<TemporaryStorageInventory_Serialize, string>(__TAURI_INVOKE("start_temporary_storage_scan", { onEvent })),
 	cancelTemporaryStorageScan: (scanId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_temporary_storage_scan", { scanId })),
 	prepareTemporaryStorageReview: (scanId: string, selectedOptionIds: string[]) => typedError<TemporaryReviewPreview_Serialize, string>(__TAURI_INVOKE("prepare_temporary_storage_review", { scanId, selectedOptionIds })),
-	executeTemporaryStorageReview: (planId: string, consent: TemporaryReviewConsent) => typedError<TrashResult_Serialize, string>(__TAURI_INVOKE("execute_temporary_storage_review", { planId, consent })),
+	executeTemporaryStorageReview: (planId: string, consent: TemporaryReviewConsent) => typedError<RemovalResult_Serialize, string>(__TAURI_INVOKE("execute_temporary_storage_review", { planId, consent })),
 	cancelTemporaryStorageReview: (planId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_temporary_storage_review", { planId })),
 };
 
@@ -2993,6 +2993,52 @@ export type ReleaseMode = "graceful" | "force";
 
 export type ReleaseOutcome = "released" | "still_listening" | "ownership_changed";
 
+export type RemovalItemResult = {
+	item_id: string,
+	success: boolean,
+	message: string,
+};
+
+export type RemovalPlanPreview = RemovalPlanPreview_Serialize | RemovalPlanPreview_Deserialize;
+
+export type RemovalPlanPreview_Deserialize = {
+	id: string,
+	item_count: number,
+	logical_size: number,
+	allocated_size: number,
+	expires_at: number,
+	size_is_lower_bound?: boolean,
+};
+
+export type RemovalPlanPreview_Serialize = {
+	id: string,
+	item_count: number,
+	logical_size: number,
+	allocated_size: number,
+	expires_at: number,
+	size_is_lower_bound: boolean,
+};
+
+export type RemovalResult = RemovalResult_Serialize | RemovalResult_Deserialize;
+
+export type RemovalResult_Deserialize = {
+	removed_count: number,
+	failed_count: number,
+	skipped_count: number,
+	removed_allocated_size: number,
+	items: RemovalItemResult[],
+	size_is_lower_bound?: boolean,
+};
+
+export type RemovalResult_Serialize = {
+	removed_count: number,
+	failed_count: number,
+	skipped_count: number,
+	removed_allocated_size: number,
+	items: RemovalItemResult[],
+	size_is_lower_bound: boolean,
+};
+
 export type ResourceAttribution = ResourceAttribution_Serialize | ResourceAttribution_Deserialize;
 
 export type ResourceAttribution_Deserialize = {
@@ -3838,52 +3884,6 @@ export type TemporaryUsageObservation_Serialize = {
 };
 
 export type TemporaryUsageState = "in_use" | "no_use_detected" | "unable_to_determine";
-
-export type TrashItemResult = {
-	item_id: string,
-	success: boolean,
-	message: string,
-};
-
-export type TrashPlanPreview = TrashPlanPreview_Serialize | TrashPlanPreview_Deserialize;
-
-export type TrashPlanPreview_Deserialize = {
-	id: string,
-	item_count: number,
-	logical_size: number,
-	allocated_size: number,
-	expires_at: number,
-	size_is_lower_bound?: boolean,
-};
-
-export type TrashPlanPreview_Serialize = {
-	id: string,
-	item_count: number,
-	logical_size: number,
-	allocated_size: number,
-	expires_at: number,
-	size_is_lower_bound: boolean,
-};
-
-export type TrashResult = TrashResult_Serialize | TrashResult_Deserialize;
-
-export type TrashResult_Deserialize = {
-	moved_count: number,
-	failed_count: number,
-	skipped_count: number,
-	moved_allocated_size: number,
-	items: TrashItemResult[],
-	size_is_lower_bound?: boolean,
-};
-
-export type TrashResult_Serialize = {
-	moved_count: number,
-	failed_count: number,
-	skipped_count: number,
-	moved_allocated_size: number,
-	items: TrashItemResult[],
-	size_is_lower_bound: boolean,
-};
 
 export type UsageCollectionStatus = "fresh" | "signed_out" | "unavailable" | "timeout" | "protocol_error" | "not_installed" | "unsupported_account";
 

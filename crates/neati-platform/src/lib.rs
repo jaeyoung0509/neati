@@ -84,11 +84,22 @@ pub trait PlatformCapabilitiesProvider: Send + Sync {
     fn capabilities(&self) -> PlatformCapabilities;
 }
 
+pub(crate) fn digest_hex(bytes: impl AsRef<[u8]>) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let bytes = bytes.as_ref();
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+        encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    encoded
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
-    use super::{NativePlatformCapabilities, PathFlavor, PlatformCapabilitiesProvider};
+    use super::{digest_hex, NativePlatformCapabilities, PathFlavor, PlatformCapabilitiesProvider};
     use neati_core::domain::platform::{PlatformCapabilities, PlatformFeatureStatus, PlatformKind};
 
     struct MockCapabilitiesProvider(PlatformCapabilities);
@@ -124,6 +135,16 @@ mod tests {
         assert_eq!(
             capabilities.app_uninstall.status,
             PlatformFeatureStatus::Unavailable
+        );
+    }
+
+    #[test]
+    fn digest_hex_preserves_the_sha1_fingerprint_encoding() {
+        use sha1::{Digest, Sha1};
+
+        assert_eq!(
+            digest_hex(Sha1::digest(b"abc")),
+            "a9993e364706816aba3e25717850c26c9cd0d89d"
         );
     }
 }

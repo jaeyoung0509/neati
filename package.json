@@ -19,7 +19,7 @@
     "check:release-version": "node scripts/bump_version.cjs check"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/api": "^2.12.1",
     "clsx": "^2.1.1",
     "@lucide/svelte": "^1.48.0",
     "tailwind-merge": "^3.7.0"

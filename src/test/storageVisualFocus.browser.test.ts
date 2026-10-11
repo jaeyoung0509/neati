@@ -117,6 +117,7 @@ describe('Storage visual focus and modal interaction semantics', () => {
     const doneBtn = document.createElement('button');
     dialog.append(closeBtn, doneBtn);
     document.body.append(dialog);
+    dialog.setAttribute('open', '');
 
     function handleKeydown(event: KeyboardEvent) {
       if (event.key === 'Tab') {

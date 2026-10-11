@@ -1,7 +1,7 @@
 {
   "name": "neati",
   "private": true,
-  "version": "0.3.107",
+  "version": "0.3.108",
   "license": "MIT",
   "repository": "https://github.com/jaeyoung0509/neati",
   "type": "module",
@@ -19,9 +19,9 @@
     "check:release-version": "node scripts/bump_version.cjs check"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.12.1",
-    "clsx": "^2.1.1",
     "@lucide/svelte": "^1.53.0",
+    "@tauri-apps/api": "^2.2.0",
+    "clsx": "^2.1.1",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {

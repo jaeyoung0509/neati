@@ -75,6 +75,7 @@ fn platform_window_config(mut config: WindowConfig, flavor: PathFlavor) -> Windo
             state: Some(tauri::utils::WindowEffectState::Active),
             radius: None,
             color: None,
+            interactive: false,
         });
     }
     if config.label == "quick" {
@@ -91,6 +92,7 @@ fn platform_window_config(mut config: WindowConfig, flavor: PathFlavor) -> Windo
                 state: Some(tauri::utils::WindowEffectState::Active),
                 radius: Some(20.0),
                 color: None,
+                interactive: false,
             });
         }
     }

@@ -56,7 +56,6 @@
   <!-- Page Header -->
   <PageHeader
     title="Containers"
-    stage="beta"
     subtitle={status?.version || 'Inspect and safely prune Docker containers, build cache, and dangling images.'}
     icon={Container}
   >

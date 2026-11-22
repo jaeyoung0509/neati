@@ -83,8 +83,8 @@ describe('accessible action contracts', () => {
   it('offers keyboard-operable ordering controls in Settings', () => {
     const rendered = render(SettingsView);
 
-    expect(rendered.body).toContain('aria-label="Move Storage &amp; Disks up"');
-    expect(rendered.body).toContain('aria-label="Move Storage &amp; Disks down"');
+    // The sidebar is fixed since #450; only Quick Panel and provider order remain.
+    expect(rendered.body).not.toContain('Sidebar order');
     expect(rendered.body).toContain('aria-label="Move Storage up"');
     expect(rendered.body).toContain('aria-label="Move Codex down"');
   });

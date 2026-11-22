@@ -6,6 +6,9 @@
     label: string;
     icon?: any;
     badge?: string | number;
+    /** A closed tab stays visible and names why in `title`. */
+    disabled?: boolean;
+    title?: string;
   }
 
   interface Props {
@@ -48,6 +51,8 @@
       aria-selected={isSelected}
       aria-controls={panelId}
       tabindex={isSelected ? 0 : -1}
+      disabled={tab.disabled}
+      title={tab.title}
       onclick={() => onSelect(tab.id)}
       onkeydown={(event) => handleSegmentedTabKeydown(event, index, tabs, tablist, onSelect)}
       class="shrink-0 whitespace-nowrap inline-flex h-8 items-center gap-1.5 px-3 rounded-md text-meta font-medium transition-[background-color,color] duration-fast focus-visible:outline-none {appearance === 'underline' ? 'section-tab' : 'focus-visible:ring-2 focus-visible:ring-ring'} {isSelected

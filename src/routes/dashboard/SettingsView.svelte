@@ -5,7 +5,6 @@
   let { onCategory, onNavigate }: { onCategory?: (category: CategoryResult) => void; onNavigate?: (tab: DashboardTab) => void } = $props();
   import { onMount } from 'svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
-  import { dashboardGroup, groupedDashboardTabs } from '../../lib/utils/dashboardNavigation';
   import { frontendErrorStore } from '../../lib/stores/frontendErrors.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
@@ -55,17 +54,6 @@
     Bell,
     Users,
   } from '@lucide/svelte';
-
-  const tabOptions: { id: DashboardTab; label: string; description: string }[] = [
-    { id: 'overview', label: 'Overview', description: 'Machine summary and the next useful action.' },
-    { id: 'storage', label: 'Storage & Disks', description: 'Primary storage, volumes, and developer/AI caches.' },
-    { id: 'docker', label: 'Containers', description: 'Docker images, build cache, stopped containers, and volumes.' },
-    { id: 'models', label: 'Local Models', description: 'Ollama, HuggingFace, LM Studio, and Apple MLX models.' },
-    { id: 'performance', label: 'Performance', description: 'CPU, memory pressure, battery, and resource guard.' },
-    { id: 'development_servers', label: 'Development Servers', description: 'Inspect and safely release verified local TCP listeners.' },
-    { id: 'projects', label: 'AI Activity', description: 'Active AI agent sessions, dev listeners, and account token limits.' },
-    { id: 'awake', label: 'Keep Awake', description: 'Prevent system and display sleep rules.' },
-  ];
 
   const sectionOptions: { id: QuickPanelSection; label: string; description: string }[] = [
     { id: 'cleanup', label: 'Quick Clean', description: 'Safe reclaimable storage and clean action.' },
@@ -134,8 +122,6 @@
     platformCapabilitiesStore.feature('intensive_cleanup')?.reason
   );
 
-  let draggedTab = $state<DashboardTab | null>(null);
-  let dragOverTab = $state<DashboardTab | null>(null);
 
   let draggedSection = $state<QuickPanelSection | null>(null);
   let dragOverSection = $state<QuickPanelSection | null>(null);
@@ -243,13 +229,6 @@
     } finally {
       selfCheckRunning = false;
     }
-  }
-
-  function orderedDashboardTabs() {
-    const selected = groupedDashboardTabs(settings.dashboard_tabs ?? [])
-      .map((id) => tabOptions.find((option) => option.id === id))
-      .filter((option): option is (typeof tabOptions)[number] => Boolean(option));
-    return [...selected, ...tabOptions.filter((option) => !(settings.dashboard_tabs ?? []).includes(option.id))];
   }
 
   function orderedSections() {
@@ -363,77 +342,6 @@
     </h3>
     <Card class="p-4 bg-card">
       <UpdateSettings {releasesUrl} />
-    </Card>
-  </div>
-
-  <!-- Dashboard Navigation Customization -->
-  <div class="space-y-3">
-    <div>
-      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
-        Sidebar navigation
-      </h3>
-      <p class="text-meta text-muted-foreground mt-1">
-        Choose sidebar destinations. Drag or use arrows to reorder within each task group.
-      </p>
-    </div>
-    <Card class="p-4 bg-card space-y-3">
-      <div class="flex items-center gap-2 text-meta font-medium text-foreground pb-1">
-        <LayoutList size={14} /> Sidebar order
-      </div>
-      {#each orderedDashboardTabs() as tabOption (tabOption.id)}
-        {@const enabled = (settings.dashboard_tabs ?? []).includes(tabOption.id)}
-        {@const peers = (settings.dashboard_tabs ?? []).filter(tab => dashboardGroup(tab) === dashboardGroup(tabOption.id))}
-        {@const enabledIndex = peers.indexOf(tabOption.id)}
-        <div
-          role="listitem"
-          draggable={enabled}
-          ondragstart={() => {
-            if (enabled) draggedTab = tabOption.id;
-          }}
-          ondragover={(e) => {
-            if (enabled && draggedTab && dashboardGroup(draggedTab) === dashboardGroup(tabOption.id)) {
-              e.preventDefault();
-              dragOverTab = tabOption.id;
-            }
-          }}
-          ondragleave={() => {
-            if (dragOverTab === tabOption.id) dragOverTab = null;
-          }}
-          ondrop={(e) => {
-            e.preventDefault();
-            if (draggedTab && draggedTab !== tabOption.id) {
-              settingsStore.reorderDashboardTabs(draggedTab, tabOption.id);
-            }
-            draggedTab = null;
-            dragOverTab = null;
-          }}
-          ondragend={() => {
-            draggedTab = null;
-            dragOverTab = null;
-          }}
-          class="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-[background-color,border-color,opacity,transform] {enabled ? 'cursor-grab active:cursor-grabbing bg-card' : 'opacity-60 bg-muted/20'} {dragOverTab === tabOption.id ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border/60'} {draggedTab === tabOption.id ? 'opacity-40' : ''}"
-        >
-          <GripVertical size={14} class="text-muted-foreground/60 shrink-0 select-none {enabled ? 'hover:text-foreground' : 'opacity-20'}" />
-          <Checkbox
-            checked={enabled}
-            disabled={enabled && (settings.dashboard_tabs ?? []).length === 1}
-            onchange={() => settingsStore.toggleDashboardTab(tabOption.id)}
-            ariaLabel={`Show ${tabOption.label} in sidebar`}
-          />
-          <div class="min-w-0 flex-1 select-none">
-            <div class="text-meta font-medium text-foreground">{tabOption.label} <span class="text-muted-foreground">· {dashboardGroup(tabOption.id) ?? 'Overview'}</span></div>
-            <div class="text-caption text-muted-foreground">{tabOption.description}</div>
-          </div>
-          {#if enabled}
-            <ReorderControls
-              label={tabOption.label}
-              index={enabledIndex}
-              count={peers.length}
-              onMove={(direction) => settingsStore.moveDashboardTab(tabOption.id, direction)}
-            />
-          {/if}
-        </div>
-      {/each}
     </Card>
   </div>
 

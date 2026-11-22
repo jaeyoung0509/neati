@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import Badge from "./Badge.svelte";
-  import { BETA_NOTE, type DashboardStage } from "../utils/dashboardNavigation";
 
   interface Props {
     title: string;
@@ -14,8 +13,6 @@
           variant?: "default" | "secondary" | "outline" | "success" | "warning" | "ai" | "destructive";
         }
       | Snippet;
-    /** `beta` adds one Beta badge after the title; see `dashboardStage`. */
-    stage?: DashboardStage;
     class?: string;
     actions?: Snippet;
   }
@@ -25,7 +22,6 @@
     subtitle,
     icon: Icon,
     badge,
-    stage = "core",
     class: className = "",
     actions,
   }: Props = $props();
@@ -47,9 +43,6 @@
           {@render (badge as Snippet)()}
         {:else if badge && "label" in badge}
           <Badge variant={badge.variant ?? "outline"}>{badge.label}</Badge>
-        {/if}
-        {#if stage === "beta"}
-          <span title={BETA_NOTE}><Badge variant="secondary">Beta</Badge></span>
         {/if}
       </div>
       {#if subtitle}

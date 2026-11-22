@@ -2,7 +2,7 @@ import type { AiProviderId, DashboardTab, QuickPanelSection, NeatiSettings } fro
 import { tauriGetSettings, tauriSaveSettings, tauriSetWindowTheme } from '../utils/tauri';
 import { moveOrdered, reorderOrdered, toggleOrdered } from '../utils/quickPanel';
 import { serializeSettingsSnapshot } from '../utils/settings';
-import { DEFAULT_DASHBOARD_TABS, dashboardGroup, normalizeDashboardTab } from '../utils/dashboardNavigation';
+import { normalizeDashboardTab } from '../utils/dashboardNavigation';
 
 export class SettingsStore {
   settings = $state<NeatiSettings>({
@@ -19,7 +19,8 @@ export class SettingsStore {
     quick_panel_sections: ['cleanup', 'cpu', 'memory', 'battery', 'storage', 'agent_activity', 'awake'],
     quick_panel_ai_providers: ['codex', 'claude', 'opencode', 'openrouter', 'antigravity'],
     ai_accounts_quota_providers: ['codex', 'claude', 'opencode', 'openrouter', 'antigravity'],
-    dashboard_tabs: [...DEFAULT_DASHBOARD_TABS],
+    // Legacy (#450): the sidebar is fixed; the field only round-trips.
+    dashboard_tabs: [],
     dashboard_tabs_revision: 6,
     sidebar_collapsed: false,
     awake_rules: [
@@ -130,7 +131,7 @@ export class SettingsStore {
         quick_panel_sections: fetched.quick_panel_sections ?? [...this.settings.quick_panel_sections],
         quick_panel_ai_providers: fetched.quick_panel_ai_providers ?? ['codex', 'claude', 'opencode', 'openrouter', 'antigravity'],
         ai_accounts_quota_providers: fetched.ai_accounts_quota_providers ?? ['codex', 'claude', 'opencode', 'openrouter', 'antigravity'],
-        dashboard_tabs: (fetched.dashboard_tabs ?? DEFAULT_DASHBOARD_TABS).map(
+        dashboard_tabs: (fetched.dashboard_tabs ?? []).map(
           (tab) => normalizeDashboardTab(tab) as DashboardTab
         ),
         dashboard_tabs_revision: fetched.dashboard_tabs_revision ?? 6,
@@ -210,24 +211,6 @@ export class SettingsStore {
       }
       return false;
     }
-  }
-
-  async toggleDashboardTab(tab: DashboardTab) {
-    const current = this.settings.dashboard_tabs;
-    const next = toggleOrdered(current, tab, true);
-    await this.save({ dashboard_tabs: next });
-  }
-
-  async moveDashboardTab(tab: DashboardTab, direction: -1 | 1) {
-    const peers = this.settings.dashboard_tabs.filter(candidate => dashboardGroup(candidate) === dashboardGroup(tab));
-    const target = peers[peers.indexOf(tab) + direction];
-    if (target) await this.reorderDashboardTabs(tab, target);
-  }
-
-  async reorderDashboardTabs(dragged: DashboardTab, target: DashboardTab) {
-    if (dashboardGroup(dragged) !== dashboardGroup(target)) return;
-    const next = reorderOrdered(this.settings.dashboard_tabs, dragged, target);
-    await this.save({ dashboard_tabs: next });
   }
 
   async toggleQuickPanelSection(section: QuickPanelSection) {

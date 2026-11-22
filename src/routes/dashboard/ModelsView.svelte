@@ -81,6 +81,7 @@
   <!-- Page Header -->
   <PageHeader
     title="Local Models"
+    stage="beta"
     subtitle="Ollama, HuggingFace Hub, LM Studio, and Apple MLX downloaded model weights."
     icon={Boxes}
   >

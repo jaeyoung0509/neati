@@ -416,6 +416,13 @@ inventory is still valid.
   `status-chip-{…}` (30 % border, 10 % fill) for a compact notice or badge.
   Text colour stays with the caller. Hand-built `border-<tone>/N bg-<tone>/N`
   pairs are rejected by the design test.
+- **v1 core and Beta**: Overview, Storage (with Developer Artifacts, Large
+  Files and Applications), Performance and Keep Awake are the v1 core. AI
+  Activity, Containers, Local Models and Dev Servers are labelled **Beta**: a
+  `text-micro` outlined chip after the sidebar label (expanded sidebar only)
+  and one `secondary` Badge after the page title, both with the same tooltip.
+  Beta is a label owned by `dashboardStage`; it never changes visibility,
+  order, or what a destination may do.
 - **Navigation group**: destinations remain visible, with each group heading
   appearing once even when custom order separates its entries. Selected navigation uses
   a pale blue surface, cobalt text, and a visible leading marker.

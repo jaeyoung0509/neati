@@ -27,7 +27,7 @@
   import SettingsView from './SettingsView.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import { formatBytes } from '../../lib/utils/format';
-  import { DEFAULT_DASHBOARD_TABS, dashboardGroup, groupedDashboardTabs, dashboardNavigationOwner, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
+  import { DEFAULT_DASHBOARD_TABS, dashboardGroup, groupedDashboardTabs, dashboardNavigationOwner, dashboardStage, BETA_NOTE, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
   import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation, observeDashboardNavigation } from '../../lib/utils/tauri';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
@@ -351,6 +351,9 @@
               <def.icon size={17} strokeWidth={1.75} class="shrink-0" />
               {#if !sidebarCollapsed}
                 <span class="truncate">{def.label}</span>
+                {#if dashboardStage(tabId) === 'beta'}
+                  <span class="ml-auto shrink-0 rounded border border-border px-1 text-micro font-medium text-muted-foreground" title={BETA_NOTE}>Beta</span>
+                {/if}
               {/if}
               {#if tabId === 'storage' && scanStore.reclaimableBytes > 0}
                 <span

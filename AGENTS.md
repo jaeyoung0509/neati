@@ -395,6 +395,9 @@ safety conventions below when changing neati.
   precisely whether data is live, local, or manual instead of implying a quota
   is available.
 - Keep unrelated user changes intact and avoid destructive Git commands.
+- The v1 core and Beta split is defined once in `dashboardStage`
+  (`src/lib/utils/dashboardNavigation.ts`). Beta is presentation only: it must
+  not hide a destination, change saved order, or gate a capability.
 - Sidebar presentation groups destinations into Overview, Storage, System,
   and Tools. Preserve saved visibility and relative order within each group;
   indent direct workflow shortcuts beneath their owner without changing routes.

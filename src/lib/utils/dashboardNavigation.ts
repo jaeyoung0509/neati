@@ -15,6 +15,28 @@ export const DEFAULT_DASHBOARD_TABS: DashboardTab[] = [
   'awake',
 ];
 
+export type DashboardStage = 'core' | 'beta';
+
+/**
+ * v1 is storage cleanup, the readings that explain it, and Keep Awake. The
+ * destinations below work, but their data is advisory or depends on tools
+ * neati only observes, so they are labelled Beta rather than hidden.
+ */
+const BETA_ROUTES: ReadonlySet<string> = new Set([
+  'projects',
+  'usage',
+  'ai_control',
+  'docker',
+  'models',
+  'development_servers',
+]);
+
+export const BETA_NOTE = 'Beta: this view works, but its data depends on other tools and may be incomplete.';
+
+export function dashboardStage(tab: string): DashboardStage {
+  return BETA_ROUTES.has(normalizeDashboardTab(tab)) ? 'beta' : 'core';
+}
+
 export function dashboardGroup(tab: string): string | null {
   if (tab === 'overview') return null;
   if (tab === 'storage' || tab === 'disk') return 'Storage';

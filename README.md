@@ -17,6 +17,11 @@ remain outside the cleanup boundary.
 
 ## Features
 
+neati's v1 core is storage cleanup, the readings that explain it (Overview and
+Performance), and Keep Awake. AI Activity, Containers, Local Models and Dev
+Servers are labelled **Beta** in the app: they work, but their data depends on
+tools neati only observes and may be incomplete.
+
 - Storage cleanup for Claude Code, Cursor, Antigravity (and legacy Gemini CLI caches), Codex,
   OpenCode, Cargo, Go, Node.js, Python, Xcode, Docker, and related tools.
 - An Overview control tower with CPU, memory, and disk readings, a compact

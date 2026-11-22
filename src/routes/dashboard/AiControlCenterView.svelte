@@ -99,6 +99,7 @@
 <div class="space-y-6">
   <PageHeader
     title="AI Control Center"
+    stage="beta"
     subtitle="Verified sessions, account usage, and advisory controls."
     icon={Activity}
   >

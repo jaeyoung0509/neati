@@ -114,6 +114,7 @@
 <div class="max-w-5xl space-y-6">
   <PageHeader
     title="AI Activity"
+    stage="beta"
     subtitle="Account limits, observed agent sessions, and local workspace activity."
     icon={FolderGit2}
   >

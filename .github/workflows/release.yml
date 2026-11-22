@@ -195,14 +195,44 @@ jobs:
               echo "NEATI_CODESIGN=self-signed identity (not Apple Developer ID)"
             } >> "$GITHUB_ENV"
           else
-            echo "NEATI_CODESIGN=ad-hoc" >> "$GITHUB_ENV"
+            # Without an identity Tauri signs nothing, and the bundle keeps
+            # only the linker's signature on its executable. A downloaded copy
+            # then fails Gatekeeper as damaged (#484). Tauri's documented
+            # pseudo-identity `-` signs the whole bundle ad hoc instead.
+            {
+              echo "NEATI_CODESIGN=ad-hoc"
+              echo "NEATI_SIGNING_CONFIG=.github/tauri.adhoc-sign-ci.json"
+            } >> "$GITHUB_ENV"
           fi
 
       - name: Build macOS DMG and update archive (ARM64)
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config .github/tauri.package-ci.json --config .github/tauri.updater-ci.json
+        run: |
+          set -euo pipefail
+          if [ -n "${NEATI_SIGNING_CONFIG:-}" ]; then
+            pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config .github/tauri.package-ci.json --config .github/tauri.updater-ci.json --config "${NEATI_SIGNING_CONFIG}"
+          else
+            pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config .github/tauri.package-ci.json --config .github/tauri.updater-ci.json
+          fi
+
+      # The DMG is what people download. Its app must carry a complete bundle
+      # signature, or Gatekeeper reports a downloaded copy as damaged (#484).
+      - name: Verify the app signature inside the DMG
+        run: |
+          set -euo pipefail
+          DMG_PATHS=$(find target src-tauri/target -path '*/release/bundle/dmg/*.dmg' -type f 2>/dev/null || true)
+          DMG_COUNT=$(printf '%s\n' "$DMG_PATHS" | sed '/^$/d' | wc -l | tr -d ' ')
+          if [ "$DMG_COUNT" -ne 1 ]; then
+            echo "Expected exactly one macOS DMG, found $DMG_COUNT"
+            exit 1
+          fi
+          MOUNT=$(mktemp -d)
+          hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT" "$DMG_PATHS"
+          trap 'hdiutil detach "$MOUNT" >/dev/null 2>&1 || true' EXIT
+          codesign --verify --deep --strict --verbose=2 "$MOUNT/neati.app"
+          codesign --display --verbose=2 "$MOUNT/neati.app" 2>&1 | grep -E '^(Identifier|Signature|Sealed Resources)'
 
       - name: Prepare macOS release artifacts
         run: |

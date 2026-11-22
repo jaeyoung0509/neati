@@ -372,6 +372,32 @@ describe('release packaging contracts', () => {
     expect(notes.slice(0, windowsBranch)).not.toContain('endpoint');
   });
 
+  it('signs the macOS bundle ad hoc without an identity and verifies it (#484)', () => {
+    const config = JSON.parse(
+      readFileSync(join(repositoryRoot, '.github/tauri.adhoc-sign-ci.json'), 'utf8'),
+    );
+    expect(config).toEqual({ bundle: { macOS: { signingIdentity: '-' } } });
+
+    const release = readFileSync(join(repositoryRoot, '.github/workflows/release.yml'), 'utf8');
+    const selection = release.split('      - name: Select macOS code-signing identity\n')[1]
+      ?.split('\n      - name:')[0] ?? '';
+    const fallback = selection.split('          else\n')[1] ?? '';
+    expect(fallback).toContain('NEATI_SIGNING_CONFIG=.github/tauri.adhoc-sign-ci.json');
+    const build = release.split('      - name: Build macOS DMG and update archive (ARM64)\n')[1]
+      ?.split('\n      - name:')[0] ?? '';
+    expect(build).toContain('--config "${NEATI_SIGNING_CONFIG}"');
+    const verify = release.split('      - name: Verify the app signature inside the DMG\n')[1]
+      ?.split('\n      - name:')[0] ?? '';
+    expect(verify).toContain('codesign --verify --deep --strict');
+    expect(release.indexOf('Verify the app signature inside the DMG'))
+      .toBeLessThan(release.indexOf('Prepare macOS release artifacts'));
+
+    const ci = readFileSync(join(repositoryRoot, '.github/workflows/ci.yml'), 'utf8');
+    const smoke = ci.split('    name: Package Smoke (macOS)\n')[1]?.split('\n  package-')[0] ?? '';
+    expect(smoke).toContain('--config .github/tauri.adhoc-sign-ci.json');
+    expect(smoke).toContain('codesign --verify --deep --strict');
+  });
+
   it('uses Node 24-based artifact actions in CI and release workflows', () => {
     const workflows = ['.github/workflows/ci.yml', '.github/workflows/release.yml']
       .map((workflow) => readFileSync(join(repositoryRoot, workflow), 'utf8'))

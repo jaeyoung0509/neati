@@ -14,6 +14,8 @@ import { memoryStore } from './memory.svelte';
 export class DevelopmentPortsStore {
   listeners = $state<DevelopmentListener[]>([]);
   isLoading = $state<boolean>(false);
+  /** The first answer arrived (listeners or an error), so an empty list is real. */
+  hasLoaded = $state<boolean>(false);
   releasingId = $state<string | null>(null);
   error = $state<string | null>(null);
   lastAction = $state<string | null>(null);
@@ -37,6 +39,7 @@ export class DevelopmentPortsStore {
         this.error = describeErrorMessage(err);
       } finally {
         this.isLoading = false;
+        this.hasLoaded = true;
         this.inFlightRefresh = null;
       }
     })();

@@ -1,0 +1,36 @@
+import type { DeveloperArtifactKind } from '../models/types';
+
+/** One name per developer artifact kind, shared by every view that lists them. */
+const KIND_LABELS: Record<DeveloperArtifactKind, string> = {
+  cargo_target: 'Rust build output',
+  node_modules: 'Node dependencies',
+  svelte_kit_output: 'SvelteKit output',
+  svelte_kit_types: 'SvelteKit generated types',
+  next_webpack_cache: 'Next.js Webpack build cache',
+  next_output: 'Next.js output',
+  python_venv: 'Python environment',
+  go_module_cache: 'Go module cache',
+  maven_target: 'Maven target',
+  sbt_target: 'sbt target',
+  clojure_target: 'Clojure target',
+  gradle_build: 'Gradle build',
+  gradle_cache: 'Gradle cache',
+  composer_vendor: 'Composer vendor',
+  ruby_bundle: 'Ruby bundle',
+  dotnet_bin: '.NET bin',
+  dotnet_obj: '.NET obj',
+  c_make_build: 'CMake build',
+  swift_build: 'Swift build',
+  flutter_tooling: 'Flutter tooling',
+  elixir_build: 'Elixir build',
+  elixir_deps: 'Elixir dependencies',
+  erlang_build: 'Erlang build',
+  haskell_stack_work: 'Stack work',
+  haskell_dist_newstyle: 'Cabal build',
+  zig_cache: 'Zig cache',
+  terraform_cache: 'Terraform cache',
+};
+
+export function developerArtifactKindLabel(kind: DeveloperArtifactKind): string {
+  return KIND_LABELS[kind];
+}

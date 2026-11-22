@@ -103,6 +103,10 @@
   let capabilitiesFailed = $derived(
     platformCapabilitiesStore.error !== null && platformCapabilitiesStore.capabilities === null
   );
+  // Before the first capability answer, "Unavailable" would read as final.
+  let capabilitiesPending = $derived(
+    platformCapabilitiesStore.capabilities === null && platformCapabilitiesStore.error === null
+  );
 
   let quickCleanableBytes = $derived.by(() =>
     scanStore.quickCleanableBytes(settings)
@@ -532,7 +536,7 @@
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
               <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
             {:else}
-              <p class="mt-0.5 text-caption text-muted-foreground">{cleanupState === 'clean' ? 'No caches to clean' : cleanupState === 'failed' ? 'Scan failed' : cleanupState === 'stopped' ? 'Scan stopped' : cleanupState === 'paused' ? 'Scan incomplete' : cleanupState === 'unavailable' ? 'Unavailable' : cleanupState === 'partial' ? 'Partial scan · No eligible caches' : 'Scan needed'}</p>
+              <p class="mt-0.5 text-caption text-muted-foreground">{cleanupState === 'clean' ? 'No caches to clean' : cleanupState === 'failed' ? 'Scan failed' : cleanupState === 'stopped' ? 'Scan stopped' : cleanupState === 'paused' ? 'Scan incomplete' : cleanupState === 'unavailable' ? (capabilitiesPending ? 'Checking…' : 'Unavailable') : cleanupState === 'partial' ? 'Partial scan · No eligible caches' : 'Scan needed'}</p>
             {/if}
             </div>
           </div>

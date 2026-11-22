@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingState from '../../lib/components/LoadingState.svelte';
   import { onMount, tick, untrack } from 'svelte';
   import TemporaryStorageView from './TemporaryStorageView.svelte';
   import type {
@@ -17,6 +18,7 @@
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
   import {
     refusalForPreview,
@@ -32,6 +34,7 @@
     tauriStartDeveloperArtifactScan,
   } from '../../lib/utils/tauri';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
+  import { developerArtifactKindLabel } from '../../lib/utils/developerArtifactKinds';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { nonOverlappingArtifactIds, remainingArtifactScopes, toggleArtifactSelection } from '../../lib/utils/developerArtifactSelection';
@@ -73,6 +76,8 @@
   let suggestions = $state<DeveloperWorkspaceSuggestion[]>([]);
   // Saved folders that no longer validate; they stay saved until removed.
   let restoreRefusals = $state<DeveloperWorkspaceRefusal[]>([]);
+  // Saved folders are being registered again; the empty hint would mislead.
+  let isRestoring = $state(true);
   let selectedWorkspaceIds = $state<string[]>([]);
   // The last result seeds this view once; every scan after that owns the state,
   // so the prop read is intentionally untracked.
@@ -90,6 +95,8 @@
   let isExecuting = $state(false);
   let activeScanId = $state<string | null>(null);
   let activeWorkspace = $state('');
+  // What the scan is doing right now, so a long measurement never looks idle.
+  let scanActivity = $state('');
   let discoveredCount = $state(seed?.discovered_count ?? 0);
   let measuredCount = $state(seed?.measured_count ?? 0);
   let skippedEntries = $state(seed?.skipped_entries ?? 0);
@@ -134,36 +141,7 @@
   });
 
   function kindLabel(item: DeveloperArtifact): string {
-    const labels: Record<DeveloperArtifact['kind'], string> = {
-      cargo_target: 'Rust build output',
-      node_modules: 'Node dependencies',
-      svelte_kit_output: 'SvelteKit output',
-      svelte_kit_types: 'SvelteKit generated types',
-      next_webpack_cache: 'Next.js Webpack build cache',
-      next_output: 'Next.js output',
-      python_venv: 'Python environment',
-      go_module_cache: 'Go module cache',
-      maven_target: 'Maven target',
-      sbt_target: 'sbt target',
-      clojure_target: 'Clojure target',
-      gradle_build: 'Gradle build',
-      gradle_cache: 'Gradle cache',
-      composer_vendor: 'Composer vendor',
-      ruby_bundle: 'Ruby bundle',
-      dotnet_bin: '.NET bin',
-      dotnet_obj: '.NET obj',
-      c_make_build: 'CMake build',
-      swift_build: 'Swift build',
-      flutter_tooling: 'Flutter tooling',
-      elixir_build: 'Elixir build',
-      elixir_deps: 'Elixir dependencies',
-      erlang_build: 'Erlang build',
-      haskell_stack_work: 'Stack work',
-      haskell_dist_newstyle: 'Cabal build',
-      zig_cache: 'Zig cache',
-      terraform_cache: 'Terraform cache',
-    };
-    return labels[item.kind];
+    return developerArtifactKindLabel(item.kind);
   }
 
   function cleanupScopeLabel(item: DeveloperArtifact): string {
@@ -280,17 +258,21 @@
    * added once is found on every visit without another choice (#486).
    */
   async function restoreSavedFolders() {
+    let restored = false;
     try {
       const restore = await tauriRestoreDeveloperWorkspaces();
       restoreRefusals = restore.refused;
       if (restore.workspaces.length > 0) {
         includeWorkspaces(restore.workspaces);
-        if (!scanResult && !isScanning) await runScan(selectedWorkspaceIds);
+        restored = true;
       }
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
+    } finally {
+      isRestoring = false;
     }
     await refreshSuggestions();
+    if (restored && !scanResult && !isScanning) await runScan(selectedWorkspaceIds);
   }
 
   async function addWorkspace() {
@@ -344,6 +326,7 @@
         discoveredCount = 0;
         measuredCount = 0;
         skippedEntries = 0;
+        scanActivity = '';
         break;
       case 'workspace_started':
         activeWorkspace = event.workspace.display_path;
@@ -389,7 +372,11 @@
         activeScanId = event.scan_id;
         break;
       case 'project_discovered':
+        scanActivity = `Found ${event.project_name}`;
+        break;
       case 'artifact_measurement_started':
+        scanActivity = `Measuring ${event.project_name} · ${developerArtifactKindLabel(event.kind)}`;
+        break;
       case 'workspace_finished':
         break;
     }
@@ -428,6 +415,7 @@
       isScanning = false;
       activeScanId = null;
       activeWorkspace = '';
+      scanActivity = '';
     }
   }
 
@@ -605,7 +593,12 @@
       </div>
     {/if}
 
-    {#if workspaces.length === 0}
+    {#if isRestoring && workspaces.length === 0}
+      <div class="flex items-center gap-2 rounded-lg border border-dashed border-border/80 p-4 text-meta text-muted-foreground" role="status">
+        <LoadingIndicator size="xs" class="text-primary" />
+        Restoring saved project folders…
+      </div>
+    {:else if workspaces.length === 0}
       <div class="rounded-lg border border-dashed border-border/80 p-4 text-meta text-muted-foreground">
         <span class="font-medium text-foreground">Add folder</span> once and neati remembers it, scanning it whenever you open Projects. <span class="font-medium text-foreground">Scan this computer</span> searches all of your user-owned files in one pass.
       </div>
@@ -639,7 +632,10 @@
 
     {#if isScanning}
       <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-meta text-muted-foreground">
-        <span>Scanning {activeWorkspace || 'selected workspaces'}…</span>
+        <span class="flex min-w-0 items-center gap-2" role="status" aria-live="polite">
+          <LoadingIndicator size="xs" word="scanning" class="shrink-0 text-primary" />
+          <span class="truncate">{scanActivity || `Scanning ${activeWorkspace || 'selected workspaces'}…`}</span>
+        </span>
         <span class="font-mono">{measuredCount} / {discoveredCount} measured · {skippedEntries} skipped</span>
       </div>
     {/if}
@@ -742,7 +738,7 @@
           <p class="mt-1 text-meta text-muted-foreground">{plan.item_count} selected artifact{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" size="sm" onclick={() => { plan = null; partialCleanupConfirmed = false; }}>Cancel</Button>
+          <Button variant="ghost" size="sm" disabled={isExecuting} onclick={() => { plan = null; partialCleanupConfirmed = false; }}>Cancel</Button>
           <Button variant="destructive" size="md" onclick={executeCleanup} disabled={isExecuting || isExpired || (hasMeasurementIncompleteSelected && !partialCleanupConfirmed)} class="gap-1.5">
             <LoadingActionContent busy={isExecuting} busyLabel="Deleting…" word="cleaning">
               <Trash2 size={14} aria-hidden="true" />{isExpired ? 'Expired' : 'Permanently delete generated folders'}
@@ -815,7 +811,11 @@
   </div>
 
   {#if sortedItems.length === 0}
-    <Card class="p-8 text-center text-meta text-muted-foreground">No recognized developer artifacts yet. Add a workspace and run a scan.</Card>
+    {#if isScanning}
+      <LoadingState message={scanActivity || 'Scanning project folders…'} word="scanning" detail="Build output and dependencies appear here as each project is measured." />
+    {:else}
+      <Card class="p-8 text-center text-meta text-muted-foreground">No recognized developer artifacts yet. Add a workspace and run a scan.</Card>
+    {/if}
   {:else}
     <div class="developer-artifact-list overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
       {#each sortedItems as item (item.id)}

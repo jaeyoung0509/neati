@@ -311,8 +311,10 @@
                     title={`Review quit options for ${proc.name}`}
                     onclick={() => openTerminationDialog(proc)}
                   >
-                    <LogOut size={12} />
-                    Quit
+                    <LoadingActionContent busy={memoryStore.terminating === proc.name} busyLabel="Quitting" word="working">
+                      <LogOut size={12} />
+                      Quit
+                    </LoadingActionContent>
                   </Button>
                 {/if}
                 </div>

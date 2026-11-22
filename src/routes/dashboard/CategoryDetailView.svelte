@@ -129,8 +129,8 @@
   <!-- Back Button & Category Header -->
   <div class="flex items-center justify-between pb-2 border-b border-border/60">
     <div class="flex items-center gap-3">
-      <Button variant="ghost" size="icon" onclick={onBack} class="h-8 w-8">
-        <ArrowLeft size={16} />
+      <Button variant="ghost" size="icon" onclick={onBack} class="h-8 w-8" aria-label="Back to Clean" title="Back to Clean">
+        <ArrowLeft size={16} aria-hidden="true" />
       </Button>
       <div>
         <div class="flex items-center gap-2">

@@ -22,11 +22,14 @@ remain outside the cleanup boundary.
 - An Overview control tower with CPU, memory, and disk readings, a compact
   battery status, and active tools and services. **Review resources** opens
   storage review and the protected running-app quit flow in one place.
-- Explicit `Safe`, `Rebuild`, and `Manual` cleanup tiers. Only safe items are
-  selected automatically.
-- Optional Intensive cleanup for stale third-party application caches and logs.
-  It is disabled by default and keeps Apple/system namespaces, recent data,
-  settings, credentials, and user files outside the cleanup boundary.
+- Explicit `Safe`, `Rebuild`, and `Manual` cleanup tiers. Fully measured, idle
+  `Safe` and `Rebuild` items are selected by default; `Manual` items never are.
+  Cleanup permanently removes the selected units; it does not move them to the
+  Trash.
+- Extended cache scanning for third-party application caches and logs is
+  standard on supported platforms, not a toggle. It keeps Apple/system
+  namespaces, in-use and recent data, settings, credentials, and user files
+  outside the cleanup boundary.
 - Developer Artifacts scans selected workspaces for generated build output and
   dependencies. Partial measurements remain explicit and cleanup requires review.
 - A bounded Large Files inspector for approved user-content folders and an
@@ -149,8 +152,13 @@ because the developer cannot be verified"* or, for some download paths,
 
 To launch neati on macOS:
 1. Open the downloaded `.dmg` and drag **neati.app** into `/Applications`.
-2. In Finder, navigate to `/Applications`, right-click (or Control-click) **neati.app**, and select **Open**.
-3. In the confirmation dialog, click **Open**. (You only need to do this once).
+2. Open **neati.app** once. macOS refuses to open it and shows the warning.
+3. Open **System Settings → Privacy & Security**, scroll to the message about
+   neati, and click **Open Anyway**. Confirm with your password or Touch ID.
+   You only need to do this once per installed version.
+
+On macOS 15 (Sequoia) and later, Control-click → **Open** no longer bypasses
+this warning; use **Open Anyway** in System Settings instead.
 Do not disable Gatekeeper or clear quarantine attributes. A public neati
 release remains gated on the signing/notarization review in issue #334; a
 locally built app is not evidence of a signed release.
@@ -198,8 +206,8 @@ be executed.
 - OrbStack's reviewed VM disk is reported as manually managed container storage
   using allocated bytes; neati never deletes or compacts it through generic
   cleanup.
-- Intensive cleanup considers only stale direct children of approved user cache
-  and log roots. Symlinks and protected Apple/system namespaces are skipped,
+- Extended cache scanning considers only direct children of approved user cache
+  and log roots, under each signature's age and owner-use policy. Symlinks and protected Apple/system namespaces are skipped,
   and inactivity is checked again immediately before deletion.
 - Local model weights and rebuildable caches require explicit selection.
 - Large Files and App Uninstaller retain backend-owned inventories and use
@@ -250,7 +258,9 @@ cleanup, metrics, provider integrations, and power management. See
 [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the credential and privacy
 boundaries plus the platform ceilings that cannot be removed.
 Windows contributors can follow [`docs/WINDOWS.md`](docs/WINDOWS.md) for the
-MSVC, Tauri, and NSIS development workflow.
+MSVC, Tauri, and NSIS development workflow. The
+[documentation index](docs/README.md) lists every user guide, contributor
+guide, decision record and dated audit.
 
 ## License
 
@@ -361,8 +371,8 @@ exclusions = [
 description = "Compiled artifacts and temporary indices."
 ```
 
-Signatures used only by the opt-in broader scan must declare
-`intensive_only = true`. Broad roots must also declare a minimum age and prefix
+Signatures that belong to the extended scan declare `intensive_only = true`
+(the field keeps its historical name; extended scanning is always enabled). Broad roots must also declare a minimum age and prefix
 protections so the scanner emits reviewable direct children instead of the root
 itself:
 

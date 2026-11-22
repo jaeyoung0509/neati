@@ -5,6 +5,7 @@ import type {
   RemovalResult,
 } from '../models/types';
 import {
+  refusalForPreview,
   tauriExecuteRemovalPlan,
   tauriPrepareDeveloperArtifactCleanup,
   tauriRestoreDeveloperWorkspaces,
@@ -32,6 +33,11 @@ export class ProjectCleanupStore {
   error = $state<string | null>(null);
   lastRemoval = $state<RemovalResult | null>(null);
   private generation = 0;
+
+  /** The preview must never pretend to delete; tests may state otherwise. */
+  constructor(
+    private readonly refusal: (action: string) => string | null = refusalForPreview
+  ) {}
 
   /** Build outputs the backend offered for one-button Clean. */
   get items(): DeveloperArtifact[] {
@@ -96,6 +102,11 @@ export class ProjectCleanupStore {
    */
   async clean(): Promise<RemovalResult | null> {
     if (!this.result || this.selectedIds.length === 0 || this.phase === 'cleaning') return null;
+    const refused = this.refusal('Deleting project build output');
+    if (refused) {
+      this.error = refused;
+      return null;
+    }
     const generation = ++this.generation;
     this.phase = 'cleaning';
     this.error = null;

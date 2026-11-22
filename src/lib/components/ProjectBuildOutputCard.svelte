@@ -32,14 +32,16 @@
 <div class="category-row" data-project-build-output>
   <div class="flex min-w-0 items-center gap-3">
     {#if store.phase === 'ready' && items.length > 0}
+      <div class="shrink-0">
       <Checkbox
-        class="h-8 w-8 shrink-0"
+        class="h-8 w-8"
         checked={allSelected}
         indeterminate={!allSelected && someSelected}
         disabled={disabled}
         onchange={toggleAll}
         ariaLabel="Select all project build output"
       />
+      </div>
     {:else}
       <div class="flex h-8 w-8 shrink-0 items-center justify-center text-meta text-muted-foreground" aria-hidden="true">-</div>
     {/if}

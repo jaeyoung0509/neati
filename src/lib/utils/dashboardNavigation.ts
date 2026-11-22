@@ -29,6 +29,7 @@ export const SECTIONS: readonly SectionDef[] = [
       { route: 'applications', label: 'Apps' },
       { route: 'docker', label: 'Containers' },
       { route: 'models', label: 'Models' },
+      { route: 'disks', label: 'Disks' },
     ],
   },
   {
@@ -53,7 +54,6 @@ export const SECTIONS: readonly SectionDef[] = [
 
 /** Detail routes that live inside a section tab's view. */
 const ROUTE_TAB_OWNER: Readonly<Record<string, string>> = {
-  disks: 'storage',
   memory: 'performance',
   cpu: 'performance',
   battery: 'performance',

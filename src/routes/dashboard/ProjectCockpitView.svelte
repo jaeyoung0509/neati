@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { FolderGit2, RefreshCw, Sparkles } from '@lucide/svelte';
+  import { FolderGit2, RefreshCw } from '@lucide/svelte';
   import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
   import { usageStore } from '../../lib/stores/usage.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
@@ -118,17 +118,6 @@
     icon={FolderGit2}
   >
     {#snippet actions()}
-      {#if onNavigateTab}
-        <Button
-          variant="outline"
-          size="sm"
-          onclick={() => onNavigateTab('ai_control')}
-          class="gap-1.5 text-meta"
-        >
-          <Sparkles size={13} class="text-primary" />
-          <span>Control Center</span>
-        </Button>
-      {/if}
       <Button
         variant="outline"
         size="sm"

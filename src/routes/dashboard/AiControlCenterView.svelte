@@ -103,16 +103,6 @@
     icon={Activity}
   >
     {#snippet actions()}
-      {#if onNavigateTab}
-        <Button
-          variant="outline"
-          size="sm"
-          onclick={() => onNavigateTab('projects')}
-          class="gap-1.5 text-meta"
-        >
-          <span>AI Activity</span>
-        </Button>
-      {/if}
       <Button variant="outline" size="sm" class="gap-1.5" disabled={aiControlStore.isLoading} onclick={() => aiControlStore.refresh(true)}><LoadingActionContent busy={aiControlStore.isLoading} busyLabel="Refreshing…"><RefreshCw size={13} aria-hidden="true" />Refresh</LoadingActionContent></Button>
     {/snippet}
   </PageHeader>

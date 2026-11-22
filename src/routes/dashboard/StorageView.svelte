@@ -218,7 +218,7 @@
     }
     if (onSelectWorkflow) {
       onSelectWorkflow(tab);
-      void tick().then(() => document.getElementById(`${storagePanelId}-workflow`)?.focus());
+      void tick().then(() => document.getElementById(storagePanelId)?.focus());
       return;
     }
     if (tab === 'developer-artifacts' && onOpenDeveloperArtifacts) {
@@ -238,30 +238,15 @@
       return;
     }
     activeSecondaryTab = tab;
-    void tick().then(() => document.getElementById(`${storagePanelId}-workflow`)?.focus());
+    void tick().then(() => document.getElementById(storagePanelId)?.focus());
   }
 </script>
 
-{#snippet workflowSelector()}
-      <select
-        id={`${storagePanelId}-workflow`}
-        aria-label="Storage workflows"
-        aria-controls={storagePanelId}
-        value={activeSecondaryTab}
-        onchange={(event) => handleTabClick(event.currentTarget.value as typeof activeSecondaryTab)}
-        class="h-8 max-w-full rounded-md border border-border-strong bg-card px-2 text-meta text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {#each storageTabs as tab}
-          <option value={tab.id}>{tab.id === 'cleanup' && activeSecondaryTab === 'cleanup' ? 'Storage tools' : tab.label}</option>
-        {/each}
-      </select>
-{/snippet}
 
 <div class="storage-workspace space-y-4">
   {#if activeSecondaryTab === 'cleanup'}
   <PageHeader title="Cleanup" icon={HardDrive} class="storage-header">
     {#snippet actions()}
-      {@render workflowSelector()}
       {#if platformContextStore.context?.platform === "macos"}
         <EmptyTrashAction disabled={scanStore.isScanning || scanStore.isCleaning} />
       {/if}
@@ -280,8 +265,6 @@
       </Button>
     {/snippet}
   </PageHeader>
-  {:else}
-    <div class="flex justify-end">{@render workflowSelector()}</div>
   {/if}
 
   {#if platformCapabilitiesStore.error !== null && platformCapabilitiesStore.capabilities === null}

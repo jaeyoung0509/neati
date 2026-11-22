@@ -365,6 +365,18 @@ Settings          anchored at the bottom
   data.
 - The Clean entry carries the reclaimable total from the current scan.
 - A view never repeats its section's tabs as a selector or a cross-link button.
+- One name per view (#462): a view's page title is its section tab label
+  (Caches, Projects, Large Files, Apps, Containers, Models, Disks; Performance,
+  Ports, Keep Awake; Activity, Controls; Home). Copy that sends someone to the
+  cleanup views says **Clean**, the section's name.
+- A view starts at the top: the content column scrolls to 0 whenever the open
+  view changes.
+- A summary card is as tall as its content. A rule or an actions row is drawn
+  only when it has something under it, so the list it summarizes stays in the
+  first screen at the default window size.
+- One primary action per surface. The primary button carries a cobalt hairline
+  and semibold label over the unchanged action tokens; a neighbouring action is
+  `ghost` or `outline`.
 
 ### Standard page pattern
 

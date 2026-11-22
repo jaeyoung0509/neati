@@ -194,15 +194,15 @@ describe('Storage scan summary', () => {
       settingsStore.settings = { ...previousSettings, quick_panel_sections: ['cleanup'] };
       const overview = render(OverviewView).body;
       expect(overview).toContain(status === 'stopped' ? 'Scan stopped' : 'Scan incomplete');
-      expect(markupDocument(overview).querySelector('button[aria-label="Open Storage"]')).not.toBeNull();
-      expect(overview).not.toContain('Open Storage in Storage');
+      expect(markupDocument(overview).querySelector('button[aria-label="Open Clean"]')).not.toBeNull();
+      expect(overview).not.toContain("Open Clean in Clean");
       const quickDocument = markupDocument(render(QuickPanel).body);
       const quickSummary = quickDocument.querySelector('#quick-cleanup-summary')!;
       expect(quickSummary.textContent).toContain(status === 'stopped' ? 'Scan stopped' : 'Scan incomplete');
       expect(quickSummary.textContent).not.toContain('available');
       expect(Array.from(quickSummary.querySelectorAll('button')).some(button => button.textContent?.trim() === 'Clean')).toBe(false);
       const action = quickSummary.querySelector('button');
-      expect(action?.textContent).toContain(status === 'stopped' ? 'Scan Again' : 'Open Storage');
+      expect(action?.textContent).toContain(status === 'stopped' ? 'Scan Again' : "Open Clean");
     } finally {
       settingsStore.settings = previousSettings;
       settingsStore.hasLoaded = previousLoaded;

@@ -24,7 +24,7 @@ function scan(items: ScanItem[]): ScanResult {
 
 describe('Quick cleanup explanations', () => {
   it('explains reviewed items and settings exclusions without authorizing either', () => {
-    expect(quickCleanupUnavailableReason(scan([item('reviewable')]))).toBe('1 item needs review in Storage');
+    expect(quickCleanupUnavailableReason(scan([item('reviewable')]))).toBe('1 item needs review in Clean');
     expect(quickCleanupUnavailableReason(scan([item('auto_cleanable')]))).toBe('Caches excluded by cleanup settings');
     expect(quickCleanupUnavailableReason(scan([item('recent')]))).toBe('Remaining caches are too recent');
   });
@@ -46,9 +46,9 @@ describe('Quick cleanup explanations', () => {
       quickEligibleCount: 0, busy: true, onClose() {}, onReview() {}, onRescan() {},
     } }).body;
     expect(body).toContain('No items currently qualify for Quick Clean');
-    expect(body).toContain('1 item needs review in Storage');
+    expect(body).toContain('1 item needs review in Clean');
     expect(body).toContain('file ownership and permissions (2)');
-    expect(body).toContain('Open Storage');
+    expect(body).toContain('Open Clean');
     expect(body).toContain('Scan Again');
     expect(body).toContain('disabled');
     expect(body).not.toContain('/tmp/neati-fixture');

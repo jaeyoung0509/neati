@@ -34,7 +34,7 @@
   </p>
   {#if details.reviewCount > 0}
     <p class="mt-3 text-meta font-medium">
-      {details.reviewCount} {details.reviewCount === 1 ? 'item needs' : 'items need'} review in Storage before cleanup.
+      {details.reviewCount} {details.reviewCount === 1 ? 'item needs' : 'items need'} review in Clean before cleanup.
     </p>
   {/if}
   {#if details.excludedAutomaticCount > 0}
@@ -62,6 +62,6 @@
   <div class="mt-4 flex flex-wrap justify-end gap-2">
     <Button size="sm" variant="ghost" onclick={onClose}>Close</Button>
     <Button size="sm" variant="secondary" disabled={busy} onclick={onRescan}>Scan Again</Button>
-    <Button size="sm" variant="primary" onclick={onReview}>Open Storage</Button>
+    <Button size="sm" variant="primary" onclick={onReview}>Open Clean</Button>
   </div>
 </Dialog>

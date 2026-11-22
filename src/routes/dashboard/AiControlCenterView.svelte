@@ -98,7 +98,7 @@
 
 <div class="space-y-6">
   <PageHeader
-    title="AI Control Center"
+    title="Controls"
     subtitle="Verified sessions, account usage, and advisory controls."
     icon={Activity}
   >

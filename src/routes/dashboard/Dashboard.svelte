@@ -93,6 +93,15 @@
   const mainSections = SECTIONS.filter((section) => section.id !== 'settings');
   /** The route each section last showed, so returning to it resumes there. */
   let lastRouteBySection = $state<Partial<Record<SectionId, string>>>({});
+  /** The scrolling content column; a new view always starts at its top. */
+  let contentColumn = $state<HTMLElement>();
+  // Runs after the new view is in the DOM, so the old view's scroll offset is
+  // never applied to it.
+  $effect(() => {
+    void currentTab;
+    void selectedCategory;
+    contentColumn?.scrollTo({ top: 0 });
+  });
   let currentSection = $derived(sectionForRoute(currentTab));
   let currentSectionTab = $derived(sectionTabForRoute(currentTab));
   // A focused detail (Memory opened on its own, a cache category) hides the
@@ -404,7 +413,7 @@
   </aside>
 
   <!-- Main Content Area with fluid native transition -->
-  <main class="@container min-w-0 flex-1 h-full overflow-y-auto scroll-stable scroll-pb-24 {overlayTitleBar ? 'pt-10' : ''}">
+  <main bind:this={contentColumn} class="@container min-w-0 flex-1 h-full overflow-y-auto scroll-stable scroll-pb-24 {overlayTitleBar ? 'pt-10' : ''}">
     {#if !capabilitiesReady}
       <div class="flex h-full items-center justify-center text-body text-muted-foreground p-4 @2xl:p-6">Loading platform capabilities…</div>
     {:else if capabilitiesFailed}

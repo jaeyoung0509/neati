@@ -129,7 +129,7 @@
       ? 'View cleanup'
       : cleanupBusy
         ? 'View scan'
-        : 'Open Storage'
+        : 'Open Clean'
   );
 
   let cleanupDetail = $derived.by(() => {
@@ -145,7 +145,7 @@
       case 'stale':
         return 'Scan again to update cleanup.';
       case 'failed':
-        return 'Scan could not finish. Open Storage for details.';
+        return 'Scan could not finish. Open Clean for details.';
       case 'paused':
       case 'stopped':
         return scanCompletionNotice(scanStore.discovery) ?? '';

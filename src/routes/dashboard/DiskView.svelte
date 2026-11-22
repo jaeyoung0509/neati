@@ -17,7 +17,7 @@
   import Card from '../../lib/components/Card.svelte';
   import ProgressBar from '../../lib/components/ProgressBar.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
-  import { ArrowLeft, ExternalLink, FolderOpen, HardDrive, RefreshCw } from '@lucide/svelte';
+  import { ExternalLink, FolderOpen, HardDrive, RefreshCw } from '@lucide/svelte';
 
   interface Props {
     onReviewCategory: (category: CategoryResult) => void;
@@ -75,18 +75,12 @@
 
 <div class="space-y-6">
   <PageHeader
-    title="Disk Management"
+    title="Disks"
     subtitle="Volumes, free space, and cleanup opportunities"
     icon={HardDrive}
     badge="Disks"
   >
     {#snippet actions()}
-      {#if onBack}
-        <Button variant="ghost" size="sm" class="gap-1.5" onclick={onBack}>
-          <ArrowLeft size={13} />
-          Back to Cleanup
-        </Button>
-      {/if}
       <Button variant="outline" size="sm" class="gap-1.5" onclick={() => tauriOpenStorageSettings()}>
         <ExternalLink size={13} />
         Storage Settings

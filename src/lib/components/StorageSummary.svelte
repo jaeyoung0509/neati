@@ -50,7 +50,7 @@
     </p>
     {#if observed.isAmbiguous && presentation.hasMeasuredResults}<p class="mt-1">Overlapping observations</p>{/if}
   </div>
-    {#if isCurrent && presentation.hasMeasuredResults}
+    {#if isCurrent && presentation.hasMeasuredResults && (availability.running > 0 || availability.review > 0 || summary.unestimated_count > 0)}
       <div class="summary-actions flex flex-wrap items-center gap-x-4 gap-y-1 text-meta text-muted-foreground">
         {#if availability.running > 0}
           <div class="flex flex-wrap items-center gap-1">
@@ -79,7 +79,6 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    min-height: 188px;
     padding: 20px;
     border: 1px solid hsl(var(--border));
     border-radius: 16px;

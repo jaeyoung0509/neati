@@ -150,7 +150,7 @@ describe('developer artifact review workflow', () => {
       props: { onBack: () => undefined },
     });
 
-    expect(rendered.body).toContain('Developer Artifacts');
+    expect(rendered.body).toContain('>Projects<');
     expect(rendered.body).toContain('nothing selected by default');
     expect(rendered.body).toContain('Scan this computer');
     expect(rendered.body).toContain('System, credential, media, and installed-application paths are bypassed');

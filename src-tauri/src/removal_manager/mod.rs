@@ -334,6 +334,9 @@ pub struct RemovalExecutor {
     backend: Arc<dyn neati_platform::RemovalBackend>,
     /// Replaces the native final use probe in tests only (#489).
     final_use_probe: Option<Arc<neati_platform::temporary_storage::FinalUseProbe>>,
+    /// The open-file check repeated immediately before a project build output
+    /// is removed (#494). Native in production.
+    open_files: Arc<dyn neati_platform::open_files::OpenFileProbe>,
 }
 
 impl RemovalExecutor {
@@ -346,7 +349,18 @@ impl RemovalExecutor {
         Self {
             backend,
             final_use_probe: None,
+            open_files: Arc::new(neati_platform::open_files::NativeOpenFileProbe),
         }
+    }
+
+    /// Supplies the open-file check used before a build output is removed,
+    /// so a test states the use it wants instead of depending on lsof timing.
+    pub fn with_open_file_probe(
+        mut self,
+        probe: Arc<dyn neati_platform::open_files::OpenFileProbe>,
+    ) -> Self {
+        self.open_files = probe;
+        self
     }
 
     /// Supplies the final use probe, so a test's verdict does not depend on
@@ -416,9 +430,10 @@ impl RemovalExecutor {
                     },
                 );
             }
+            let open_files = self.open_files.as_ref();
             backend.remove_checked(approved.path(), approved.target.identity.entity(), &|_| {
-                validate_target_with_probe(environment, approved.target, &probe_ownership)
-                    .map(|_| ())
+                validate_target_with_probe(environment, approved.target, &probe_ownership)?;
+                build_output_use_refusal(approved.target, open_files)
             })
         })
     }
@@ -543,6 +558,26 @@ fn validate_target<'a>(
     target: &'a RemovalTarget,
 ) -> Result<ApprovedRemovalTarget<'a>, String> {
     validate_target_with_probe(environment, target, &probe_ownership)
+}
+
+/// A project build output is removed only while no process has files open
+/// in it (#494). Unknown refuses: the check must prove the folder idle.
+fn build_output_use_refusal(
+    target: &RemovalTarget,
+    open_files: &dyn neati_platform::open_files::OpenFileProbe,
+) -> Result<(), String> {
+    let RemovalScope::DeveloperArtifact { kind, .. } = &target.scope else {
+        return Ok(());
+    };
+    if !crate::developer_artifacts::preselection::is_build_output(*kind) {
+        return Ok(());
+    }
+    match crate::developer_artifacts::preselection::refusal_before_removal(
+        open_files.observe(&target.path),
+    ) {
+        Some(reason) => Err(reason.into()),
+        None => Ok(()),
+    }
 }
 
 fn validate_target_with_probe<'a>(
@@ -904,6 +939,16 @@ fn unix_timestamp() -> u64 {
 
 #[cfg(test)]
 mod tests {
+    /// An executor whose pre-removal use check states an idle build folder,
+    /// so removal verdicts never depend on how fast lsof answers (#494).
+    fn idle_executor(backend: Arc<dyn neati_platform::RemovalBackend>) -> RemovalExecutor {
+        RemovalExecutor::new(backend).with_open_file_probe(Arc::new(
+            neati_platform::open_files::FixedOpenFileProbe(
+                neati_platform::open_files::OpenFileState::Idle,
+            ),
+        ))
+    }
+
     use super::*;
     use crate::models::FileIdentity;
     use neati_platform::description::KnownFolder;
@@ -1034,7 +1079,7 @@ mod tests {
                 "{mutation} must revoke planning authority"
             );
             let backend = Arc::new(neati_platform::MockRemovalBackend::new());
-            let result = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+            let result = idle_executor(backend.clone()).execute(&environment, plan);
             assert_eq!(result.removed_count, 0, "{mutation}");
             assert_eq!(result.skipped_count, 1, "{mutation}");
             assert!(
@@ -1060,7 +1105,7 @@ mod tests {
         )
         .unwrap();
         let backend = Arc::new(neati_platform::MockRemovalBackend::new());
-        let result = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+        let result = idle_executor(backend.clone()).execute(&environment, plan);
         assert_eq!(result.removed_count, 1);
         assert_eq!(backend.removed(), vec![record.path.clone()]);
     }
@@ -1157,7 +1202,7 @@ mod tests {
             *artifact_relative = PathBuf::from(".next");
         }
         let backend = Arc::new(neati_platform::MockRemovalBackend::new());
-        let result = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+        let result = idle_executor(backend.clone()).execute(&environment, plan);
         assert_eq!(result.removed_count, 0);
         assert!(backend.removed().is_empty());
         assert_eq!(
@@ -1213,12 +1258,12 @@ mod tests {
             *framework_fingerprint = None;
         }
         let backend = Arc::new(neati_platform::MockRemovalBackend::new());
-        let refused = RemovalExecutor::new(backend.clone()).execute(&environment, forged);
+        let refused = idle_executor(backend.clone()).execute(&environment, forged);
         assert_eq!(refused.removed_count, 0);
         assert!(backend.removed().is_empty());
         pack[15] = 9;
         std::fs::write(writer.join("index.pack"), &pack).unwrap();
-        let changed = RemovalExecutor::new(backend.clone()).execute(&environment, plan);
+        let changed = idle_executor(backend.clone()).execute(&environment, plan);
         assert_eq!(changed.removed_count, 0);
         assert!(changed.items[0].message.contains("changed"));
         assert!(backend.removed().is_empty());
@@ -2125,7 +2170,7 @@ mod tests {
         };
 
         let mock_backend = Arc::new(neati_platform::MockRemovalBackend::new());
-        let executor = RemovalExecutor::new(mock_backend.clone());
+        let executor = idle_executor(mock_backend.clone());
         let result = executor.execute(&environment, plan);
         assert_eq!(result.removed_count, 1);
         assert_eq!(result.failed_count, 0);
@@ -2160,7 +2205,7 @@ mod tests {
                 },
             }],
         };
-        let result = RemovalExecutor::new(Arc::new(neati_platform::NativeRemovalBackend))
+        let result = idle_executor(Arc::new(neati_platform::NativeRemovalBackend))
             .execute(&environment, plan);
         assert_eq!(result.removed_count, 1);
         assert_eq!(result.failed_count, 0);

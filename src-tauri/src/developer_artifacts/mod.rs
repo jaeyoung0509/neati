@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod framework_tests;
+pub mod preselection;
 mod rules;
 pub(crate) use rules::artifact_is_framework_parent;
 pub(crate) use rules::artifact_relative_is_allowed;
@@ -244,7 +245,30 @@ impl DeveloperArtifactScanner {
         workspaces: &[DeveloperWorkspaceRecord],
         downloads_access: FolderAccess,
         cancel: Arc<AtomicBool>,
+        on_event: F,
+    ) -> Result<DeveloperArtifactInventory, String>
+    where
+        F: FnMut(DeveloperArtifactScanEvent),
+    {
+        Self::scan_workspaces_with_use_probe(
+            environment,
+            workspaces,
+            downloads_access,
+            cancel,
+            on_event,
+            &neati_platform::open_files::observe_open_files_batch,
+        )
+    }
+
+    /// As [`Self::scan_workspaces`], with the open-file check that decides
+    /// which build outputs one-button Clean preselects supplied by the caller.
+    pub fn scan_workspaces_with_use_probe<F>(
+        environment: &PlatformEnvironment,
+        workspaces: &[DeveloperWorkspaceRecord],
+        downloads_access: FolderAccess,
+        cancel: Arc<AtomicBool>,
         mut on_event: F,
+        use_probe: &preselection::UseProbe,
     ) -> Result<DeveloperArtifactInventory, String>
     where
         F: FnMut(DeveloperArtifactScanEvent),
@@ -433,6 +457,9 @@ impl DeveloperArtifactScanner {
         let _ = worker.join();
 
         let cancelled = cancel.load(Ordering::Relaxed);
+        if !cancelled {
+            preselection::apply(&mut records, use_probe, &|| cancel.load(Ordering::Relaxed));
+        }
         Self::finish(
             scan_id,
             &workspace_ids,

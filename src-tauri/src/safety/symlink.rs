@@ -120,18 +120,29 @@ impl SymlinkGuard {
         path: &Path,
         meta: &fs::Metadata,
     ) -> std::io::Result<bool> {
-        #[cfg(not(windows))]
-        let _ = path;
         if meta.file_type().is_symlink() {
             return Ok(true);
         }
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::MetadataExt;
-            if meta.file_attributes() & 0x400 != 0 {
-                return classify_name_surrogate_reparse_point(path);
-            }
+        Self::is_name_surrogate_reparse_point(path, meta)
+    }
+
+    /// Windows junctions and other name-surrogate reparse points behave like
+    /// links but are not reported by `is_symlink`. The tag needs a handle query.
+    #[cfg(windows)]
+    fn is_name_surrogate_reparse_point(path: &Path, meta: &fs::Metadata) -> std::io::Result<bool> {
+        use std::os::windows::fs::MetadataExt;
+        if meta.file_attributes() & 0x400 != 0 {
+            return classify_name_surrogate_reparse_point(path);
         }
+        Ok(false)
+    }
+
+    /// Other platforms report every link through `is_symlink`.
+    #[cfg(not(windows))]
+    fn is_name_surrogate_reparse_point(
+        _path: &Path,
+        _meta: &fs::Metadata,
+    ) -> std::io::Result<bool> {
         Ok(false)
     }
 

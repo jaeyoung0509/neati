@@ -30,15 +30,16 @@ ignore = [
     # dependency update.
     { id = "RUSTSEC-2024-0436", reason = "paste 1.0.15 is a build-time macro dependency of the tauri/specta stack and has no successor release." },
     { id = "RUSTSEC-2024-0370", reason = "proc-macro-error 1.0.4 is pulled by tauri's derive stack; replacing it requires an upstream major bump." },
-    # Unicode tables reached through tauri's menu/window stack.
-    { id = "RUSTSEC-2025-0081", reason = "unic-char-property 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
-    { id = "RUSTSEC-2025-0075", reason = "unic-char-range 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
-    { id = "RUSTSEC-2025-0080", reason = "unic-common 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
-    { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
-    { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version 0.9.0 is an unmaintained transitive crate of the tauri dependency tree." },
     # Platform-specific advisory. neati does not ship a Linux artifact; the
     # crate is present only because tauri's Linux backend is in the lockfile.
     { id = "RUSTSEC-2024-0429", reason = "glib 0.18.5 unsoundness is on tauri's Linux GTK path; neati publishes macOS and Windows artifacts only." },
+    # Linux-only unmaintained crates (accepted 2026-11-22, #443). None of them is
+    # compiled for aarch64-apple-darwin or x86_64-pc-windows-msvc; verify with
+    # `cargo tree -i <crate> --target <triple>` before keeping this exception.
+    { id = "RUSTSEC-2026-0543", reason = "chrono 0.4 reaches neati only through trash's Linux freedesktop backend; not built for shipped targets." },
+    { id = "RUSTSEC-2026-0370", reason = "zvariant is on the Linux D-Bus path of tauri-plugin-notification/single-instance; not built for shipped targets." },
+    { id = "RUSTSEC-2026-0371", reason = "zbus_names is on the Linux D-Bus path of tauri-plugin-notification/single-instance; not built for shipped targets." },
+    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive is on the Linux D-Bus path of tauri-plugin-notification/single-instance; not built for shipped targets." },
 ]
 
 [bans]

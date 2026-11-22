@@ -35,6 +35,7 @@ import type {
   PlatformContext,
   UpdateCheck,
   LaunchAtLogin,
+  AiToolProfileSuggestion,
   CleanupHistoryEntry,
   ProviderDescriptor,
   ProviderId,
@@ -1787,6 +1788,7 @@ export const mockApi = {
       launch_at_login: false,
       onboarding_completed: true,
       check_updates_on_launch: false,
+      ai_tool_profiles: [],
       clean_ai_tools: true,
       clean_developer_tools: true,
       clean_docker: true,
@@ -1938,6 +1940,13 @@ export const mockApi = {
       { finished_at: 1795300000, item_count: 6, removed_bytes: 4_812_000_000, partial_count: 0, failed_count: 0, skipped_count: 0 },
       { finished_at: 1794900000, item_count: 3, removed_bytes: 912_400_000, partial_count: 1, failed_count: 0, skipped_count: 1 },
       { finished_at: 1794300000, item_count: 9, removed_bytes: 12_300_000_000, partial_count: 0, failed_count: 2, skipped_count: 0 },
+    ];
+  },
+
+  async suggestAiToolProfiles(): Promise<AiToolProfileSuggestion[]> {
+    return [
+      { tool: 'claude', path: '/Users/preview/.claude-work' },
+      { tool: 'codex', path: '/Users/preview/.codex-personal' },
     ];
   },
 

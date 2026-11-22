@@ -70,6 +70,7 @@
     "allow-get-app-version",
     "allow-check-for-update",
     "allow-get-launch-at-login",
+    "allow-suggest-ai-tool-profiles",
     "allow-get-cleanup-history",
     "allow-set-launch-at-login",
     "allow-install-update",

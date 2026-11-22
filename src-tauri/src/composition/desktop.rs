@@ -198,22 +198,25 @@ pub fn desktop_state_with_catalog(
     // A settings save is one use case that spans domains: the AI caches are
     // keyed to preferences the system service persists, so the AI service is
     // the reaction the persistence path reports to.
-    let system_service = Arc::new(SystemService::new(
-        environment.clone(),
-        container_host,
-        platform_capabilities,
-        operation_gate.clone(),
-        budgets,
-        memory_sampler,
-        memory_termination_store,
-        cpu_sampler,
-        battery_provider,
-        awake_manager,
-        docker_status,
-        dev_port_store,
-        settings.clone(),
-        ai_service.clone(),
-    ));
+    let system_service = Arc::new(
+        SystemService::new(
+            environment.clone(),
+            container_host,
+            platform_capabilities,
+            operation_gate.clone(),
+            budgets,
+            memory_sampler,
+            memory_termination_store,
+            cpu_sampler,
+            battery_provider,
+            awake_manager,
+            docker_status,
+            dev_port_store,
+            settings.clone(),
+            ai_service.clone(),
+        )
+        .with_signature_registry(registry.clone()),
+    );
 
     // The running executable is a process fact observed here, once, like the
     // environment itself; the service never asks the OS where it lives.

@@ -523,7 +523,13 @@ impl ScanEngine {
             // returns what this scope looks at, and the gate below states what
             // the scope permits for each unit that is found.
             let signatures = registry.by_category_for_mode(category, intensive_cleanup);
-            for sig in signatures {
+            // Extra AI tool profiles: observation-only entries with unregistered
+            // ids, snapshotted so this scan sees one consistent profile list.
+            let profile_overlay = registry.profile_overlay();
+            let profile_signatures = profile_overlay.iter().filter(|signature| {
+                signature.category == category && signature.supports_current_platform()
+            });
+            for sig in signatures.into_iter().chain(profile_signatures) {
                 if cancellation.is_cancelled() {
                     was_cancelled = true;
                     break;

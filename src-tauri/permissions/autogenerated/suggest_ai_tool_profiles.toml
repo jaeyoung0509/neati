@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-suggest-ai-tool-profiles"
+description = "Enables the suggest_ai_tool_profiles command without any pre-configured scope."
+commands.allow = ["suggest_ai_tool_profiles"]
+
+[[permission]]
+identifier = "deny-suggest-ai-tool-profiles"
+description = "Denies the suggest_ai_tool_profiles command without any pre-configured scope."
+commands.deny = ["suggest_ai_tool_profiles"]

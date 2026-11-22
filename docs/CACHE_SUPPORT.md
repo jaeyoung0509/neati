@@ -46,6 +46,13 @@ decision record is maintained in
 [USER_SPACE_CLEANER_COVERAGE.md](USER_SPACE_CLEANER_COVERAGE.md). That manifest
 also states the system-maintenance boundary for this coverage.
 
+## Extra AI tool profiles
+
+Claude Code, Codex, Gemini/Antigravity, OpenCode and Cursor rows that are
+observation-only also apply to each profile directory added in Settings → AI
+tool profiles. The same sub-paths are measured under the added directory, the
+item carries the folder name, and the entry stays observation-only.
+
 ## Programming-language ecosystems
 
 | Priority | Language | Actual cache owner(s) | neati mode on macOS / Windows | Reason or consequence |

@@ -405,6 +405,17 @@ safety conventions below when changing neati.
 
 ## Reviewed cleanup additions
 
+- Extra AI tool profiles (#451) are directories the person confirmed in
+  Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They
+  widen measurement only: `signatures::profiles` projects the ids listed in
+  `PROFILE_SIGNATURES`, each of which must be observation-only (`manual` risk
+  and strategy), onto the profile under an unregistered `@profile:` id, so no
+  plan can name it. A profile must be a real, unlinked directory inside the
+  home folder and not the default profile; at most eight are kept. Lookalike
+  folder names are suggestions and never add a profile. Do not project a
+  deletable entry, and do not add partial-name selectors to the catalog for
+  this.
+
 - Preserve the owner-operation scopes and compatibility limits in
   `docs/CLEANUP_362_SCOPE.md`. Mail Downloads and incomplete downloads are typed
   reviewed targets, never generic blacklist exceptions.

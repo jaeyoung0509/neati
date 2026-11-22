@@ -9,6 +9,7 @@ export class SettingsStore {
     launch_at_login: false,
     onboarding_completed: true,
     check_updates_on_launch: false,
+    ai_tool_profiles: [],
     clean_ai_tools: true,
     clean_developer_tools: true,
     clean_docker: true,

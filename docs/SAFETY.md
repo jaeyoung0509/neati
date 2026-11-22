@@ -753,3 +753,26 @@ Composer, Ruby, Node, and CMake keep their specialized evidence checks. The Go
 module cache remains a separately scoped home adapter and never makes every
 `pkg` directory a discovery boundary. Identity, marker, symlink, and execution
 revalidation remain required after recognition.
+
+## Measured accuracy
+
+The guards above are proven one at a time by the safety tests. Their combined
+result is measured by the labelled corpus in
+`src-tauri/tests/accuracy_corpus_tests.rs`: a fixture home directory in which
+every file is labelled `MustKeep` or `Regenerable`, run through the real scan,
+plan and execution path in CI.
+
+| Measure | Rule |
+| --- | --- |
+| `MustKeep` files removed by preselected cleanup | Must be zero; the build fails otherwise |
+| `MustKeep` files removed by anything else neati offers | Pinned to the recorded baseline (currently zero) |
+| `Regenerable` bytes left on disk, by reason | Pinned to the recorded baseline |
+| Bytes the scan offered whose unit the planner refused | Pinned to the recorded baseline |
+
+Recorded 2026-11-22: no `MustKeep` file is removed. Claude and Codex CLI caches
+stay by design (review only). One disagreement is recorded: Xcode DerivedData
+is offered by the scan but refused by the planner because it contains object
+files, so those bytes are shown as ready and not removed (#350).
+
+The corpus is small and synthetic. It is a regression gate for the layouts it
+contains, not a statement about every Mac.

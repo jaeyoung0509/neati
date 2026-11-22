@@ -344,6 +344,13 @@ safety conventions below when changing neati.
   and `Rebuild` caches are selected by default. Cleaning is an explicit user
   action without a mandatory cache review dialog; `Manual` is never selected
   for generic cleanup. Stateful provider operations retain their confirmation.
+- `src-tauri/tests/accuracy_corpus_tests.rs` is the labelled accuracy corpus
+  (#431): a fixture home whose files are `MustKeep` or `Regenerable`, run
+  through the real scan, plan and execution. Preselected cleanup must remove
+  no `MustKeep` file. The false-negative bytes and the "offered but refused"
+  bytes are pinned in `baseline()`; a catalog or policy change that moves them
+  updates the baseline and says why in the same commit. Add a row when a real
+  layout is found that neati gets wrong in either direction.
 - Add a regression test for every safety boundary change. Tests must use
   temporary fixtures and must never clean real user directories.
 - Do not include nonexistent or zero-byte signature paths in scan results.

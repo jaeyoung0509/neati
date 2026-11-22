@@ -409,3 +409,7 @@ macOS App Management can refuse the removal of a signed bundle. If it does, the
 entry is reported as a failure and the remaining entries stay, as for any
 partial removal.
 
+Xcode iOS DeviceSupport (`system.xcode_device_support`) uses the same policy.
+Each per-OS symbol set is its own named unit, removed whole only when it has
+been inactive for 30 days and Xcode, xcodebuild, Simulator and XCBBuildService
+are not running. Xcode downloads the set again when that device reconnects.

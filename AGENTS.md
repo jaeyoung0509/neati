@@ -385,12 +385,12 @@ safety conventions below when changing neati.
   configuration file, a bundle, or an executable inside a pruned tree stays.
   A cache blocked by its owner-use policy is `reviewable` rather than automatic;
   exact-use policies do not infer busy payloads from app presence alone.
-- Owner decision #350 (November 22, 2026): Xcode DerivedData is removable as a
-  whole build-output unit. `OWNER_GUARDED_BUILD_OUTPUT` lists the reviewed
-  signature ids; a listed signature gets
-  `StructuredStatePolicy::OwnerGuardedBuildOutput` only while it is a
-  `build_artifact` cleaned with `delete_contents` and names the processes that
-  write it. That policy permits object files, libraries, built bundles, index
+- Owner decision #350 (November 22, 2026): Xcode DerivedData and Xcode iOS
+  DeviceSupport symbol sets are removable as build-output units.
+  `OWNER_GUARDED_BUILD_OUTPUT` lists the reviewed signature ids; a listed
+  signature gets `StructuredStatePolicy::OwnerGuardedBuildOutput` only while it
+  is a `build_artifact` removed by `delete_contents` or `delete_directory` and
+  names the processes that write it. That policy permits object files, libraries, built bundles, index
   databases and generated configuration inside the unit; a credential or a
   compiled Apple model still refuses the whole unit. The scan measures bundles
   as content only under the same policy, so the scan and the planner agree. Do

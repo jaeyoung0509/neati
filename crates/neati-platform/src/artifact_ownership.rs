@@ -493,6 +493,11 @@ fn verify_components(path: &Path, budget: &mut Budget<'_>) -> Result<(), Uncerta
 }
 
 fn inspect_names(root: &Path, budget: &mut Budget<'_>) -> Result<Option<Evidence>, Uncertainty> {
+    // Terraform keeps the selected workspace in `.terraform/environment`.
+    // Its name is enough: the record is refused without being opened (#476).
+    let terraform_root = root
+        .file_name()
+        .is_some_and(|name| name == std::ffi::OsStr::new(".terraform"));
     let mut pending = vec![(root.to_path_buf(), 0usize)];
     while let Some((directory, depth)) = pending.pop() {
         budget.visit()?;
@@ -515,6 +520,9 @@ fn inspect_names(root: &Path, budget: &mut Budget<'_>) -> Result<Option<Evidence
             }
             if bytes.to_ascii_lowercase().ends_with(b"-keypair.json") {
                 return Ok(Some(Evidence::DeploymentKeyMaterial));
+            }
+            if terraform_root && depth == 0 && bytes == b"environment" {
+                return Ok(Some(Evidence::TerraformWorkspaceSelection));
             }
             let metadata =
                 fs::symlink_metadata(entry.path()).map_err(|_| Uncertainty::UnreadableMetadata)?;

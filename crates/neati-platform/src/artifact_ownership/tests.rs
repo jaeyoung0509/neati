@@ -1197,3 +1197,48 @@ fn replacing_a_git_metadata_ancestor_with_a_link_revokes_its_original_route() {
     );
     assert_eq!(budget.unchanged(), Err(Uncertainty::ChangedDuringProbe));
 }
+
+#[test]
+fn terraform_workspace_record_refuses_the_whole_folder_by_name() {
+    let (_temp, root, _) = repository();
+    let terraform = root.join(".terraform");
+    fs::create_dir_all(terraform.join("providers/registry.terraform.io")).unwrap();
+    fs::create_dir_all(terraform.join("modules/network")).unwrap();
+    fs::write(terraform.join("modules/modules.json"), b"{}").unwrap();
+    assert_eq!(probe(&root, &terraform), Evidence::VerifiedGenerated);
+
+    // Only the top-level record names a selected workspace.
+    fs::write(
+        terraform.join("modules/network/environment"),
+        b"module file",
+    )
+    .unwrap();
+    assert_eq!(probe(&root, &terraform), Evidence::VerifiedGenerated);
+
+    fs::write(terraform.join("environment"), b"staging").unwrap();
+    assert_eq!(
+        probe(&root, &terraform),
+        Evidence::TerraformWorkspaceSelection
+    );
+
+    // The same name means nothing inside another generated folder.
+    let (_other, root, artifact) = repository();
+    fs::write(artifact.join("environment"), b"generated").unwrap();
+    assert_eq!(probe(&root, &artifact), Evidence::VerifiedGenerated);
+}
+
+#[cfg(unix)]
+#[test]
+fn terraform_workspace_record_is_refused_without_being_opened() {
+    use std::os::unix::ffi::OsStrExt;
+    let (_temp, root, _) = repository();
+    let terraform = root.join(".terraform");
+    fs::create_dir_all(&terraform).unwrap();
+    let record = terraform.join("environment");
+    let name = std::ffi::CString::new(record.as_os_str().as_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    assert_eq!(
+        probe(&root, &terraform),
+        Evidence::TerraformWorkspaceSelection
+    );
+}

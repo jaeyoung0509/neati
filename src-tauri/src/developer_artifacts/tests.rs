@@ -1058,3 +1058,54 @@ fn framework_candidate_budget_and_cancelled_discovery_remain_explicit() {
     assert_eq!(discovered, 0);
     assert!(!truncated);
 }
+
+#[test]
+fn terraform_folder_with_a_selected_workspace_is_observed_but_never_cleanable() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("workspace");
+    for (name, workspace) in [("plain", None), ("staging", Some("staging"))] {
+        let project = root.join(name);
+        let terraform = project.join(".terraform");
+        fs::create_dir_all(terraform.join("providers")).unwrap();
+        fs::write(project.join("main.tf"), "terraform {}\n").unwrap();
+        fs::write(project.join(".terraform.lock.hcl"), "# lock\n").unwrap();
+        fs::write(terraform.join("providers/plugin.bin"), [5u8; 40]).unwrap();
+        if let Some(workspace) = workspace {
+            fs::write(terraform.join("environment"), workspace).unwrap();
+        }
+    }
+    let inventory = DeveloperArtifactScanner::scan_workspaces(
+        &environment_with_home(temp.path()),
+        &[workspace_record(&root)],
+        FolderAccess::NotGated,
+        Arc::new(AtomicBool::new(false)),
+        |_| {},
+    )
+    .unwrap();
+    let record = |project: &str| {
+        inventory
+            .records
+            .values()
+            .find(|record| record.artifact.project_name == project)
+            .unwrap_or_else(|| panic!("{project} .terraform is reported"))
+            .artifact
+            .clone()
+    };
+    let plain = record("plain");
+    assert_eq!(plain.kind, DeveloperArtifactKind::TerraformCache);
+    assert_eq!(
+        plain.ownership,
+        ArtifactOwnershipEvidence::VerifiedGenerated
+    );
+
+    let selected = record("staging");
+    assert_eq!(selected.kind, DeveloperArtifactKind::TerraformCache);
+    assert_eq!(
+        selected.ownership,
+        ArtifactOwnershipEvidence::TerraformWorkspaceSelection
+    );
+    assert_eq!(selected.status, DeveloperArtifactStatus::SafetyBlocked);
+    assert!(!selected.status.allows_manual_cleanup());
+    assert!(!selected.selected_by_default);
+    assert_eq!(selected.logical_bytes, 40 + "staging".len() as u64);
+}

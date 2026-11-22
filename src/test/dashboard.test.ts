@@ -9,7 +9,7 @@ import { platformContextStore } from '../lib/stores/platformContext.svelte';
 import { settingsStore } from '../lib/stores/settings.svelte';
 import { goldenCapabilitiesByPlatform } from '../lib/models/platformCapabilities';
 import { mockApi } from '../lib/api/mock';
-import { DEFAULT_DASHBOARD_TABS, dashboardNavigationOwner, initialDashboardTab } from '../lib/utils/dashboardNavigation';
+import { SECTIONS, dashboardNavigationOwner, initialDashboardRoute, sectionEntryRoute, sectionForRoute, sectionTabForRoute } from '../lib/utils/dashboardNavigation';
 
 beforeEach(() => {
   scanStore.lastScan = {
@@ -75,69 +75,46 @@ describe('Dashboard sidebar affordances', () => {
     expect(rendered.body).toContain('14 MB');
   });
 
-  it('exposes Development Servers as its own dashboard route', () => {
-    const rendered = render(Dashboard);
+  it('keeps Development Servers out of the Memory panel', () => {
     const memorySource = readFileSync(
       new URL('../lib/components/performance/MemoryPanel.svelte', import.meta.url),
       'utf8'
     );
-
-    expect(rendered.body).toContain('Dev Servers');
     expect(memorySource).not.toContain('developmentPortsStore');
     expect(memorySource).not.toContain('Development Servers Section');
   });
 
-  it('exposes the consolidated AI Activity dashboard route', () => {
+  it('shows four sections plus Settings instead of one entry per feature', () => {
     const rendered = render(Dashboard);
-    expect(rendered.body).toContain('AI Activity');
+    const sections = [...rendered.body.matchAll(/data-section="([a-z]+)"/g)].map((match) => match[1]);
+    expect(sections).toEqual(['home', 'clean', 'system', 'ai']);
+    expect(rendered.body).toContain('aria-label="Settings"');
+    // Old per-feature sidebar entries and group headings are gone.
+    for (const label of ['Containers', 'Local Models', 'Dev Servers', 'Keep Awake', 'Memory']) {
+      expect(rendered.body).not.toContain(`aria-label="${label}"`);
+    }
+    expect(rendered.body).not.toContain('data-navigation-parent');
+    expect(rendered.body).not.toContain('>Tools</div>');
   });
 
-  it('keeps tools visible with one heading and a direct Memory shortcut', () => {
-    const previousTabs = settingsStore.settings.dashboard_tabs;
-    settingsStore.settings = {
-      ...settingsStore.settings,
-      dashboard_tabs: [
-        'overview', 'docker', 'storage', 'models', 'performance',
-        'development_servers', 'projects', 'awake',
-      ],
-    };
+  it('carries the reclaimable total on the Clean section', () => {
+    const rendered = render(Dashboard);
+    expect(rendered.body).toMatch(/aria-label="Clean, 14 MB reclaimable"/);
+  });
 
-    try {
-      const rendered = render(Dashboard);
-      expect(rendered.body.match(/>Tools<\/div>/g)).toHaveLength(1);
-      expect(rendered.body.match(/>System<\/div>/g)).toHaveLength(1);
-      expect(rendered.body).toContain('data-navigation-parent="storage"');
-      expect(rendered.body).toContain('data-navigation-parent="performance"');
-      expect(rendered.body.indexOf('aria-label="Storage')).toBeLessThan(rendered.body.indexOf('aria-label="Containers"'));
-      expect(rendered.body.indexOf('aria-label="Memory"')).toBeLessThan(rendered.body.indexOf('aria-label="Containers"'));
-      expect(rendered.body).not.toContain('aria-label="Tools"');
-      expect(rendered.body).toContain('aria-label="Memory"');
-      expect(rendered.body).toContain('aria-label="Developer Artifacts"');
-      expect(rendered.body).toContain('aria-label="Large Files"');
-      expect(rendered.body).toContain('aria-label="Applications"');
-      expect(settingsStore.settings.dashboard_tabs[0]).toBe('overview');
-      expect(rendered.body.indexOf('aria-label="Containers"')).toBeLessThan(rendered.body.indexOf('aria-label="Local Models"'));
-    } finally {
-      settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: previousTabs };
+  it('opens on Clean with its views as tabs, Beta labelled where data is advisory', () => {
+    const rendered = render(Dashboard);
+    expect(rendered.body).toContain('aria-label="Clean views"');
+    const tablist = rendered.body.split('aria-label="Clean views"')[1]?.split('</div>')[0] ?? '';
+    for (const label of ['Caches', 'Projects', 'Large Files', 'Apps', 'Containers', 'Models']) {
+      expect(tablist).toContain(`<span>${label}</span>`);
     }
+    expect(tablist.match(/>\s*Beta\s*</g)).toHaveLength(2);
   });
 });
 
 describe('Cleanup-first navigation', () => {
-  it('hides direct shortcuts when their owning destinations are disabled', () => {
-    const previousTabs = settingsStore.settings.dashboard_tabs;
-    settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: ['overview', 'projects'] };
-    try {
-      const rendered = render(Dashboard);
-      for (const label of ['Memory', 'Developer Artifacts', 'Large Files', 'Applications']) {
-        expect(rendered.body).not.toContain(`aria-label="${label}"`);
-      }
-    } finally {
-      settingsStore.settings = { ...settingsStore.settings, dashboard_tabs: previousTabs };
-    }
-  });
-
-  it('gates Developer Artifacts with its dedicated platform capability', () => {
+  it('keeps a closed view visible as a disabled tab that names the reason', () => {
     platformCapabilitiesStore.capabilities = {
       ...goldenCapabilitiesByPlatform.macos,
       developer_artifacts: {
@@ -148,7 +125,7 @@ describe('Cleanup-first navigation', () => {
 
     const rendered = render(Dashboard);
     expect(rendered.body).toMatch(
-      /<button(?=[^>]*disabled)(?=[^>]*aria-label="Developer Artifacts")(?=[^>]*title="Developer artifact cleanup is unavailable on this platform\.")[^>]*>/
+      /<button(?=[^>]*disabled)(?=[^>]*role="tab")(?=[^>]*title="Developer artifact cleanup is unavailable on this platform\.")[^>]*>/
     );
   });
 
@@ -159,17 +136,49 @@ describe('Cleanup-first navigation', () => {
     expect(rendered.body).not.toContain('role="tablist"');
     expect(rendered.body).not.toContain('>Performance</h1>');
   });
-  it('opens enabled cleanup ahead of overview without changing the saved order', () => {
-    const tabs = [...DEFAULT_DASHBOARD_TABS];
-    expect(initialDashboardTab(tabs, () => true)).toBe('storage');
-    expect(tabs).toEqual(DEFAULT_DASHBOARD_TABS);
+  it('opens cleanup first, then the first route the platform can open', () => {
+    expect(initialDashboardRoute(() => true)).toBe('storage');
+    expect(initialDashboardRoute((route) => route !== 'storage')).toBe('overview');
+    expect(initialDashboardRoute((route) => route === 'awake')).toBe('awake');
+    expect(initialDashboardRoute(() => false)).toBe('settings');
   });
 
-  it('respects hidden and unavailable destinations, including a capability failure', () => {
-    expect(initialDashboardTab(['models', 'performance'], () => true)).toBe('models');
-    expect(initialDashboardTab(['storage', 'performance'], tab => tab !== 'storage')).toBe('performance');
-    expect(initialDashboardTab(DEFAULT_DASHBOARD_TABS, () => false)).toBe('settings');
-    expect(initialDashboardTab([], () => true)).toBe('settings');
+  it('maps every legacy and detail route to one section and tab', () => {
+    const cases: Array<[string, string, string]> = [
+      ['overview', 'home', 'overview'],
+      ['storage', 'clean', 'storage'],
+      ['disk', 'clean', 'storage'],
+      ['disks', 'clean', 'storage'],
+      ['large-files', 'clean', 'large-files'],
+      ['applications', 'clean', 'applications'],
+      ['developer-artifacts', 'clean', 'developer-artifacts'],
+      ['docker', 'clean', 'docker'],
+      ['models', 'clean', 'models'],
+      ['performance', 'system', 'performance'],
+      ['memory', 'system', 'performance'],
+      ['cpu', 'system', 'performance'],
+      ['battery', 'system', 'performance'],
+      ['development_servers', 'system', 'development_servers'],
+      ['awake', 'system', 'awake'],
+      ['projects', 'ai', 'projects'],
+      ['usage', 'ai', 'projects'],
+      ['ai_control', 'ai', 'ai_control'],
+      ['settings', 'settings', 'settings'],
+    ];
+    for (const [route, section, tab] of cases) {
+      expect(sectionForRoute(route).id, route).toBe(section);
+      expect(sectionTabForRoute(route), route).toBe(tab);
+    }
+  });
+
+  it('returns to the route a section last showed, when it is still available', () => {
+    const clean = SECTIONS.find((section) => section.id === 'clean')!;
+    expect(sectionEntryRoute(clean, undefined, () => true)).toBe('storage');
+    expect(sectionEntryRoute(clean, 'models', () => true)).toBe('models');
+    expect(sectionEntryRoute(clean, 'models', (route) => route !== 'models')).toBe('storage');
+    // A route remembered for another section is not this section's entry.
+    expect(sectionEntryRoute(clean, 'awake', () => true)).toBe('storage');
+    expect(sectionEntryRoute(clean, undefined, () => false)).toBeNull();
   });
 
   it('keeps detail routes associated with their visible navigation destination', () => {

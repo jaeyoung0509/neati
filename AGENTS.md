@@ -395,9 +395,13 @@ safety conventions below when changing neati.
   precisely whether data is live, local, or manual instead of implying a quota
   is available.
 - Keep unrelated user changes intact and avoid destructive Git commands.
-- Sidebar presentation groups destinations into Overview, Storage, System,
-  and Tools. Preserve saved visibility and relative order within each group;
-  indent direct workflow shortcuts beneath their owner without changing routes.
+- Navigation is four sections plus Settings (owner decision #450): Home, Clean,
+  System, AI. The model lives in `SECTIONS`
+  (`src/lib/utils/dashboardNavigation.ts`); a feature is a tab in its section,
+  not a sidebar entry. Keep route ids stable so tray, Quick Panel and deep
+  links keep working, and do not reintroduce sidebar order or visibility
+  customization. Beta is presentation only (`dashboardStage`): it must not hide
+  a view or gate a capability.
 
 ## Reviewed cleanup additions
 

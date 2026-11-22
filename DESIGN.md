@@ -335,41 +335,35 @@ feedback remain. Nothing animates in a hidden window.
 
 ### Navigation
 
-Keep the existing fully visible sidebar. Reduce nested workflow choices and
-shorten the path to inspection, selection, and cleanup, not the number of destinations:
+Owner decision #450 (November 22, 2026): the sidebar holds four sections and
+Settings. Every feature is a tab inside its section; none was removed.
 
 ```text
-Overview          existing system summary
-Storage           cleanup-first entry; secondary workflows use a compact native selector
-Large Files       direct shortcut to file selection and reviewed permanent deletion
-Applications      direct shortcut to application inspection and supported uninstall
-Performance       CPU / Memory / Battery detail
-Memory            focused memory page, no nested section selector
-AI Activity       Usage / Projects & Sessions; AI Control Center remains an explicit action
-
-Tools             visible group, expanded by default
-  Containers
-  Local Models
-  Dev Servers
-  Keep Awake
+Home              Overview: status and the next useful action
+Clean             Caches · Projects · Large Files · Apps · Containers · Models
+System            Performance · Ports · Keep Awake
+AI                Activity · Controls
 
 Settings          anchored at the bottom
 ```
 
-- `Overview` is the user-facing name of the control tower. It summarizes the
-  existing services and links to them; it is not a second policy layer and it
-  never mounts a full route offscreen to collect data.
-- Legacy persisted `memory` preferences still normalize to Performance; the
-  exact `memory` route opens the focused Memory page. Saved layouts and deep
-  links keep working. Cleanup opens when enabled and supported; otherwise the first
-  available saved destination opens. Exact Quick Panel deep links take priority.
-- Saved visibility and relative order within each group remain authoritative;
-  the shell presents Overview, Storage, System, and Tools in task order without
-  rewriting those preferences. Memory is an indented detail beneath Performance; Large
-  Files and Applications beside Storage. These shortcuts follow their parent
-  destination's visibility and platform gates. Settings stays pinned at the bottom.
-- Local tab strips belong to a page's own sections. There is no second global
-  Overview/Cleanup/Performance/AI strip inside a page.
+- A section opens on the view it last showed, or its first available view.
+  The app opens on Clean → Caches when cleanup is supported.
+- One underline tab strip sits above the page for a section with more than one
+  view. A focused detail (a cache category, the standalone Memory page) hides
+  it so the page keeps a single selector. A page's own local tabs stay below
+  its header.
+- A view whose platform capability is missing stays as a disabled tab whose
+  tooltip states the reason.
+- Route ids are unchanged (`storage`, `docker`, `development_servers`, …), so
+  the tray, the Quick Panel and saved deep links open the same view. Legacy
+  `memory` and `disk` ids still normalize.
+- The sidebar is fixed: order and visibility are no longer customizable. Saved
+  `dashboard_tabs` still load and are ignored.
+- `Overview` summarizes the existing services and links to them; it is not a
+  second policy layer and it never mounts a full route offscreen to collect
+  data.
+- The Clean entry carries the reclaimable total from the current scan.
 
 ### Standard page pattern
 
@@ -416,9 +410,14 @@ inventory is still valid.
   `status-chip-{…}` (30 % border, 10 % fill) for a compact notice or badge.
   Text colour stays with the caller. Hand-built `border-<tone>/N bg-<tone>/N`
   pairs are rejected by the design test.
-- **Navigation group**: destinations remain visible, with each group heading
-  appearing once even when custom order separates its entries. Selected navigation uses
-  a pale blue surface, cobalt text, and a visible leading marker.
+- **v1 core and Beta**: Overview, Caches, Projects, Large Files, Apps,
+  Performance and Keep Awake are the v1 core. Containers, Models, Ports and the
+  AI views are labelled **Beta** with one small badge on their section tab and
+  a tooltip. Beta is a label owned by `dashboardStage`; it never changes
+  visibility or what a view may do.
+- **Section navigation**: selected navigation uses a pale blue surface, cobalt
+  text, and a visible leading marker. Section tabs use the `underline`
+  `SegmentedTabs` appearance with `role="tablist"`.
 - **Badge**: status carries text meaning beyond colour (`success`, `warning`,
   `destructive`, `ai`, `outline`), at `text-caption` or above, on the
   `status-chip-*` recipe.

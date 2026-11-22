@@ -17,6 +17,19 @@ remain outside the cleanup boundary.
 
 ## Features
 
+The app has four sections and Settings:
+
+- **Home**: an overview of this Mac and the next useful action.
+- **Clean**: caches, project build output, large files, apps, containers and
+  local models.
+- **System**: performance readings, development ports and Keep Awake.
+- **AI**: usage, agent sessions and advisory controls.
+
+Containers, Models, Ports and the AI views are labelled **Beta**: they work, but
+their data depends on tools neati only observes and may be incomplete.
+
+What those sections cover:
+
 - Storage cleanup for Claude Code, Cursor, Antigravity (and legacy Gemini CLI caches), Codex,
   OpenCode, Cargo, Go, Node.js, Python, Xcode, Docker, and related tools.
 - An Overview control tower with CPU, memory, and disk readings, a compact

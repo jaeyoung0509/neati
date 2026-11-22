@@ -27,31 +27,24 @@
   import SettingsView from './SettingsView.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import { formatBytes } from '../../lib/utils/format';
-  import { DEFAULT_DASHBOARD_TABS, dashboardGroup, groupedDashboardTabs, dashboardNavigationOwner, initialDashboardTab, normalizeDashboardTab } from '../../lib/utils/dashboardNavigation';
+  import { SECTIONS, sectionForRoute, sectionTabForRoute, sectionEntryRoute, dashboardNavigationOwner, dashboardStage, BETA_NOTE, initialDashboardRoute, normalizeDashboardTab, type SectionDef, type SectionId } from '../../lib/utils/dashboardNavigation';
+  import SegmentedTabs from '../../lib/components/SegmentedTabs.svelte';
   import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation, observeDashboardNavigation } from '../../lib/utils/tauri';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import BrandIcon from '../../lib/components/BrandIcon.svelte';
   import Card from '../../lib/components/Card.svelte';
   import {
-    Activity,
     AlertCircle,
-    Boxes,
-    ChartNoAxesCombined,
-    Container,
+    Brush,
     ChevronsLeft,
     ChevronsRight,
     Gauge,
-    HardDrive,
-    Moon,
-    MemoryStick,
-    FileSearch,
-    FolderSearch,
-    AppWindow,
+    House,
     RotateCw,
-    Server,
     Settings,
     Shield,
+    Sparkles,
   } from '@lucide/svelte';
 
   /** Routes the shell can show: persisted routes plus the storage sub-views and
@@ -80,7 +73,6 @@
   let workflowsMounted = false;
   let stopFreshness: (() => void) | undefined;
   let settings = $derived(settingsStore.settings);
-  let visibleTabs = $derived(groupedDashboardTabs(settings.dashboard_tabs ?? DEFAULT_DASHBOARD_TABS));
   let sidebarCollapsed = $derived(settings.sidebar_collapsed ?? false);
   // Only the platform that actually draws an overlay title bar reserves the top
   // band or gets a drag strip; a native caption bar would otherwise show dead
@@ -90,30 +82,33 @@
 
   type DashboardCapability = keyof Omit<PlatformCapabilities, 'platform'>;
 
-  type TabDef = { label: string; icon: any };
-
-  const tabDefs: Partial<Record<Tab, TabDef>> = {
-    overview: { label: 'Overview', icon: Gauge },
-    storage: { label: 'Storage', icon: HardDrive },
-    disk: { label: 'Storage', icon: HardDrive },
-    performance: { label: 'Performance', icon: Activity },
-    memory: { label: 'Performance', icon: Activity },
-    docker: { label: 'Containers', icon: Container },
-    models: { label: 'Local Models', icon: Boxes },
-    development_servers: { label: 'Dev Servers', icon: Server },
-    projects: { label: 'AI Activity', icon: ChartNoAxesCombined },
-    ai_control: { label: 'AI Activity', icon: ChartNoAxesCombined },
-    usage: { label: 'AI Activity', icon: ChartNoAxesCombined },
-    awake: { label: 'Keep Awake', icon: Moon },
-    'developer-artifacts': { label: 'Developer Artifacts', icon: FolderSearch },
-    'large-files': { label: 'Large Files', icon: FileSearch },
-    applications: { label: 'Applications', icon: AppWindow },
+  const sectionIcons: Record<SectionId, typeof House> = {
+    home: House,
+    clean: Brush,
+    system: Gauge,
+    ai: Sparkles,
+    settings: Settings,
   };
-  const directTabs: Partial<Record<DashboardTab, Tab[]>> = {
-    storage: ['developer-artifacts', 'large-files', 'applications'],
-    performance: ['memory'],
-  };
-  const directTabIds = new Set<Tab>(Object.values(directTabs).flatMap((tabs) => tabs ?? []));
+  /** Sidebar entries; Settings keeps its own place at the bottom. */
+  const mainSections = SECTIONS.filter((section) => section.id !== 'settings');
+  /** The route each section last showed, so returning to it resumes there. */
+  let lastRouteBySection = $state<Partial<Record<SectionId, string>>>({});
+  let currentSection = $derived(sectionForRoute(currentTab));
+  let currentSectionTab = $derived(sectionTabForRoute(currentTab));
+  // A focused detail (Memory opened on its own, a cache category) hides the
+  // section tabs so the page keeps one selector, as before.
+  let showSectionTabs = $derived(
+    currentSection.routes.length > 1 && !selectedCategory && currentTab !== 'memory'
+  );
+  let sectionTabs = $derived(
+    currentSection.routes.map((entry) => ({
+      id: entry.route,
+      label: entry.label,
+      badge: dashboardStage(entry.route) === 'beta' ? 'Beta' : undefined,
+      disabled: !isRouteAvailable(entry.route),
+      title: routeUnavailableReason(entry.route) ?? (dashboardStage(entry.route) === 'beta' ? BETA_NOTE : undefined),
+    }))
+  );
 
   /**
    * One capability per destination. A route whose adapter is missing stays
@@ -141,16 +136,29 @@
     awake: 'keep_awake',
   };
 
-  // `null` keeps a destination ungrouped; each named group receives one
-  // heading even when saved navigation order separates its destinations.
-  const tabGroups = Object.fromEntries(Object.keys(tabDefs).map(tab => [tab, dashboardGroup(tab)]));
-
   /** Whether a destination can run on this platform right now. */
   function isRouteAvailable(route: string): boolean {
     if (!capabilitiesReady || capabilitiesFailed) return false;
     if (route === 'applications' && !platformCapabilitiesStore.isInspectable('installed_apps')) return false;
     const capability = routeCapabilities[normalizeDashboardTab(route)] ?? null;
     return !capability || platformCapabilitiesStore.isAvailable(capability);
+  }
+
+  /** Why a route is closed on this platform, when it is. */
+  function routeUnavailableReason(route: string): string | undefined {
+    if (isRouteAvailable(route)) return undefined;
+    const capabilityName = route === 'applications' ? 'installed_apps' : routeCapabilities[normalizeDashboardTab(route)];
+    const reason = capabilityName ? platformCapabilitiesStore.feature(capabilityName)?.reason : undefined;
+    return reason ?? 'Unavailable on this platform';
+  }
+
+  function isSectionAvailable(section: SectionDef): boolean {
+    return section.routes.some((entry) => isRouteAvailable(entry.route));
+  }
+
+  function selectSection(section: SectionDef) {
+    const route = sectionEntryRoute(section, lastRouteBySection[section.id], isRouteAvailable);
+    if (route) selectTab(route);
   }
 
   /**
@@ -183,8 +191,7 @@
     // A persisted tab may have become unavailable after an upgrade or on a
     // different platform. Start on the first available tab instead of
     // mounting an unsupported route.
-    const preferredTabs = settingsStore.settings.dashboard_tabs ?? DEFAULT_DASHBOARD_TABS;
-    currentTab = initialDashboardTab(preferredTabs, isRouteAvailable) as Tab;
+    currentTab = initialDashboardRoute(isRouteAvailable) as Tab;
   }
 
   onMount(() => {
@@ -223,6 +230,7 @@
     if (tab === 'memory') {
       currentTab = 'memory';
       selectedCategory = null;
+      lastRouteBySection.system = 'memory';
       return;
     }
 
@@ -243,6 +251,7 @@
       currentTab = tab as Tab;
     }
     selectedCategory = null;
+    lastRouteBySection[sectionForRoute(currentTab).id] = currentTab;
   }
 
   async function toggleSidebar() {
@@ -305,91 +314,47 @@
     <div class="min-h-0 flex-1 overflow-y-auto scroll-stable">
       <!-- Navigation Links -->
       <nav class="space-y-0.5 no-drag" aria-label="Main Navigation">
-        {#each visibleTabs as tabId, i}
-          {@const def = tabDefs[tabId as DashboardTab]}
-          {#if def}
-            {@const capabilityName = routeCapabilities[tabId]}
-            {@const capability = capabilityName ? platformCapabilitiesStore.feature(capabilityName) : null}
-            {@const tabAvailable = isRouteAvailable(tabId)}
-            {@const currentGroup = tabGroups[tabId as DashboardTab] ?? null}
-            {@const prevTabId = visibleTabs[i - 1]}
-            {@const prevGroup = prevTabId ? tabGroups[prevTabId as DashboardTab] ?? null : null}
-            {@const groupShownEarlier =
-              !!currentGroup &&
-              visibleTabs.slice(0, i).some(
-                (priorTabId) => tabGroups[priorTabId as DashboardTab] === currentGroup
-              )}
-            {@const showGroupHeader = !sidebarCollapsed && currentGroup && !groupShownEarlier}
-            {@const isTabActive = !directTabIds.has(currentTab) && dashboardNavigationOwner(currentTab) === dashboardNavigationOwner(tabId)}
-
-            {#if showGroupHeader}
-              <div class="px-2.5 {i === 0 ? 'pt-1' : 'pt-3'} pb-1 text-caption font-medium tracking-normal text-muted-foreground select-none">
-                {currentGroup}
-              </div>
-            {:else if !sidebarCollapsed && currentGroup && prevGroup !== currentGroup && groupShownEarlier}
-              <div class="mx-2 my-1 h-px bg-border/70" role="separator"></div>
-            {:else if sidebarCollapsed && prevGroup && prevGroup !== currentGroup && i > 0}
-              <div class="my-1.5 mx-2 h-px bg-border" role="separator"></div>
+        {#each mainSections as section (section.id)}
+          {@const Icon = sectionIcons[section.id]}
+          {@const available = isSectionAvailable(section)}
+          {@const active = currentSection.id === section.id}
+          {@const reclaimable = section.id === 'clean' ? scanStore.reclaimableBytes : 0}
+          <button
+            type="button"
+            onclick={() => selectSection(section)}
+            disabled={!available}
+            aria-current={active ? 'page' : undefined}
+            aria-label={reclaimable > 0 ? `${section.label}, ${formatBytes(reclaimable)} reclaimable` : section.label}
+            title={available ? (sidebarCollapsed ? section.label : undefined) : `${section.label} is unavailable on this platform`}
+            data-section={section.id}
+            class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {active
+              ? 'bg-accent text-primary font-semibold'
+              : available
+                ? 'text-muted-foreground hover:text-foreground hover:bg-card'
+                : 'text-muted-foreground/50 cursor-not-allowed'}"
+          >
+            {#if active}<span aria-hidden="true" class="absolute left-0 inset-y-2 w-0.5 rounded-full bg-primary"></span>{/if}
+            <Icon size={17} strokeWidth={1.75} class="shrink-0" />
+            {#if !sidebarCollapsed}
+              <span class="truncate">{section.label}</span>
             {/if}
-
-            <button
-              type="button"
-              onclick={() => selectTab(tabId as Tab)}
-              disabled={!tabAvailable}
-              aria-current={isTabActive ? 'page' : undefined}
-              aria-label={tabId === 'storage' && scanStore.reclaimableBytes > 0
-                ? `${def.label}, ${formatBytes(scanStore.reclaimableBytes)} reclaimable`
-                : def.label}
-              title={tabAvailable ? (sidebarCollapsed ? def.label : undefined) : (capability?.reason ?? `${def.label} is unavailable`)}
-              class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {isTabActive
-                ? 'bg-accent text-primary font-semibold'
-                : tabAvailable
-                  ? 'text-muted-foreground hover:text-foreground hover:bg-card'
-                  : 'text-muted-foreground/50 cursor-not-allowed'}"
-            >
-              {#if isTabActive}<span aria-hidden="true" class="absolute left-0 inset-y-2 w-0.5 rounded-full bg-primary"></span>{/if}
-              <def.icon size={17} strokeWidth={1.75} class="shrink-0" />
-              {#if !sidebarCollapsed}
-                <span class="truncate">{def.label}</span>
-              {/if}
-              {#if tabId === 'storage' && scanStore.reclaimableBytes > 0}
-                <span
-                  class="{sidebarCollapsed
-                    ? 'absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary'
-                    : 'ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-mono font-medium tracking-tight text-primary'}"
-                  title="Reclaimable storage available"
-                >
-                  {#if sidebarCollapsed}
-                    <span class="sr-only">{formatBytes(scanStore.reclaimableBytes)} reclaimable</span>
-                  {:else}
-                    <span aria-hidden="true" class="h-1.5 w-1.5 rounded-full bg-primary/90"></span>
-                    {formatBytes(scanStore.reclaimableBytes)}
-                  {/if}
-                </span>
-              {/if}
-            </button>
-            {#each directTabs[tabId] ?? [] as shortcut}
-              {@const shortcutDef = shortcut === 'memory' ? { label: 'Memory', icon: MemoryStick } : tabDefs[shortcut]!}
-              {@const shortcutAvailable = isRouteAvailable(shortcut)}
-              {@const shortcutCapability = shortcut === 'applications' ? 'installed_apps' : routeCapabilities[shortcut]}
-              <button
-                type="button"
-                onclick={() => selectTab(shortcut)}
-                disabled={!shortcutAvailable}
-                aria-current={currentTab === shortcut ? 'page' : undefined}
-                aria-label={shortcutDef.label}
-                title={shortcutAvailable ? (sidebarCollapsed ? shortcutDef.label : undefined) : (shortcutCapability ? platformCapabilitiesStore.feature(shortcutCapability)?.reason : null) ?? `${shortcutDef.label} is unavailable`}
-                data-navigation-parent={tabId}
-                class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2 pl-6 pr-2'} py-1.5 rounded-md text-meta font-medium transition-[background-color,color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {currentTab === shortcut ? 'bg-accent text-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-card'}"
+            {#if reclaimable > 0}
+              <span
+                class="{sidebarCollapsed
+                  ? 'absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary'
+                  : 'ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-mono font-medium tracking-tight text-primary'}"
+                title="Reclaimable storage available"
               >
-                {#if currentTab === shortcut}<span aria-hidden="true" class="absolute left-0 inset-y-2 w-0.5 rounded-full bg-primary"></span>{/if}
-                <shortcutDef.icon size={17} strokeWidth={1.75} class="shrink-0" />
-                {#if !sidebarCollapsed}<span>{shortcutDef.label}</span>{/if}
-              </button>
-            {/each}
-          {/if}
+                {#if sidebarCollapsed}
+                  <span class="sr-only">{formatBytes(reclaimable)} reclaimable</span>
+                {:else}
+                  <span aria-hidden="true" class="h-1.5 w-1.5 rounded-full bg-primary/90"></span>
+                  {formatBytes(reclaimable)}
+                {/if}
+              </span>
+            {/if}
+          </button>
         {/each}
-
       </nav>
     </div>
 
@@ -472,6 +437,16 @@
       </div>
     {:else}
       <div class="p-4 @2xl:p-6">
+        {#if showSectionTabs}
+          <SegmentedTabs
+            tabs={sectionTabs}
+            activeTab={currentSectionTab}
+            onSelect={(route) => selectTab(route)}
+            ariaLabel={`${currentSection.label} views`}
+            appearance="underline"
+            class="mb-4"
+          />
+        {/if}
         {#key selectedCategory ? selectedCategory.category : dashboardNavigationOwner(currentTab) === 'storage' ? 'storage' : currentTab}
           <div in:fade={{ duration: fadeDuration, easing: cubicOut }}>
             {#if selectedCategory}

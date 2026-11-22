@@ -180,7 +180,11 @@ impl UpdateService {
 
     /// Downloads, verifies and installs the update this process last checked,
     /// then restarts neati. `version` must be the version the person was shown.
-    pub async fn install<R: Runtime>(&self, app: &AppHandle<R>, version: &str) -> Result<(), String> {
+    pub async fn install<R: Runtime>(
+        &self,
+        app: &AppHandle<R>,
+        version: &str,
+    ) -> Result<(), String> {
         let (lookup, pending) = self.lock().take_for(version, Instant::now());
         match lookup {
             PendingLookup::Ready => {}
@@ -232,7 +236,10 @@ mod tests {
     #[test]
     fn install_requires_a_prior_check() {
         let mut slot = PendingSlot::<u8>::new();
-        assert_eq!(slot.take_for("1.0.0", Instant::now()), (PendingLookup::NoneChecked, None));
+        assert_eq!(
+            slot.take_for("1.0.0", Instant::now()),
+            (PendingLookup::NoneChecked, None)
+        );
     }
 
     #[test]
@@ -241,7 +248,10 @@ mod tests {
         let now = Instant::now();
         slot.store(7u8, "1.2.3".to_string(), now);
         assert_eq!(slot.take_for("1.2.3", now), (PendingLookup::Ready, Some(7)));
-        assert_eq!(slot.take_for("1.2.3", now), (PendingLookup::NoneChecked, None));
+        assert_eq!(
+            slot.take_for("1.2.3", now),
+            (PendingLookup::NoneChecked, None)
+        );
     }
 
     #[test]
@@ -251,7 +261,12 @@ mod tests {
         slot.store(7u8, "1.2.3".to_string(), now);
         assert_eq!(
             slot.take_for("9.9.9", now),
-            (PendingLookup::VersionMismatch { checked: "1.2.3".to_string() }, None)
+            (
+                PendingLookup::VersionMismatch {
+                    checked: "1.2.3".to_string()
+                },
+                None
+            )
         );
         // The shown version stays installable.
         assert_eq!(slot.take_for("1.2.3", now), (PendingLookup::Ready, Some(7)));
@@ -263,8 +278,14 @@ mod tests {
         let checked_at = Instant::now();
         slot.store(7u8, "1.2.3".to_string(), checked_at);
         let later = checked_at + PENDING_UPDATE_TTL + Duration::from_secs(1);
-        assert_eq!(slot.take_for("1.2.3", later), (PendingLookup::Expired, None));
-        assert_eq!(slot.take_for("1.2.3", later), (PendingLookup::NoneChecked, None));
+        assert_eq!(
+            slot.take_for("1.2.3", later),
+            (PendingLookup::Expired, None)
+        );
+        assert_eq!(
+            slot.take_for("1.2.3", later),
+            (PendingLookup::NoneChecked, None)
+        );
     }
 
     #[test]

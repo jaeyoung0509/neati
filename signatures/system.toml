@@ -423,6 +423,21 @@ exclusions = [
 description = "A narrowly named renderer, GPU, or shader cache subtree inside an application's data directory, including recently generated caches. Service Worker CacheStorage is excluded because it can hold offline application state. Cursor has a separate owner-verified cache contract."
 
 [[signatures]]
+id = "system.app_support_partition_cache_segments"
+name = "Application Session Cache Subtree"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = [
+    "~/Library/Application Support/*/Partitions/*/{Cache,Code Cache,GPUCache}",
+]
+unit = "named_subtree"
+min_age_days = 0
+description = "A narrowly named HTTP, code or GPU cache subtree inside a persistent session partition of an Electron application: the same caches its default session keeps one level up. The partition's cookies, Local Storage, IndexedDB and Service Worker storage stay outside this scope. Owner-specific entries such as Cursor's cover only default-session caches, so no partition is counted twice."
+
+[[signatures]]
 id = "system.saved_application_state"
 name = "Saved Application State"
 category = "system"

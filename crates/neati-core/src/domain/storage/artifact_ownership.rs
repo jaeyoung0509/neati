@@ -22,6 +22,9 @@ pub enum ArtifactOwnershipEvidence {
     TrackedContent,
     NestedRepository,
     DeploymentKeyMaterial,
+    /// Terraform's record of the selected workspace. Removing it returns the
+    /// project to the `default` workspace without saying so (#476).
+    TerraformWorkspaceSelection,
     Incomplete(ArtifactOwnershipUncertainty),
 }
 
@@ -36,6 +39,7 @@ impl ArtifactOwnershipEvidence {
             Self::TrackedContent => Some("Git-tracked content is inside this artifact; cleanup is unavailable."),
             Self::NestedRepository => Some("Nested repository or worktree metadata is inside this artifact; cleanup is unavailable."),
             Self::DeploymentKeyMaterial => Some("A deployment keypair filename is inside this artifact; cleanup is unavailable. Key contents were not read."),
+            Self::TerraformWorkspaceSelection => Some("Terraform's selected-workspace record is inside this folder; removing it would switch the project back to the default workspace. Cleanup is unavailable."),
             Self::Incomplete(reason) => Some(match reason {
                 ArtifactOwnershipUncertainty::MissingGit => "Git ownership could not be checked because Git is unavailable; cleanup is unavailable.",
                 ArtifactOwnershipUncertainty::TimedOut => "The ownership check timed out; cleanup is unavailable. Scan again.",
@@ -61,6 +65,7 @@ mod tests {
             ArtifactOwnershipEvidence::TrackedContent,
             ArtifactOwnershipEvidence::NestedRepository,
             ArtifactOwnershipEvidence::DeploymentKeyMaterial,
+            ArtifactOwnershipEvidence::TerraformWorkspaceSelection,
             ArtifactOwnershipEvidence::Incomplete(ArtifactOwnershipUncertainty::Cancelled),
         ] {
             assert!(!evidence.allows_cleanup());

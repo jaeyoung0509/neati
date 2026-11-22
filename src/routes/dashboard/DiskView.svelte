@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import { describeError } from '../../lib/utils/errors';
   import { onMount } from 'svelte';
   import type { CategoryResult, DiskVolume } from '../../lib/models/types';
@@ -59,7 +60,9 @@
     error = null;
     try {
       volumes = await tauriGetDiskVolumes();
-      if (!scanStore.lastScan) await scanStore.runScan();
+      // The storage scan takes much longer than reading volumes; start it
+      // without holding Refresh, and show its own progress below (#491).
+      if (!scanStore.lastScan && !scanStore.isScanning) void scanStore.runScan();
     } catch (cause) {
       error = describeError(cause, 'Could not inspect disks');
     } finally {
@@ -174,7 +177,7 @@
         <p class="mt-0.5 text-caption text-muted-foreground">Largest detected categories first</p>
       </div>
       <span class="flex items-center gap-1.5 font-mono text-meta text-muted-foreground">
-        <span>{scanObservedRange.isAmbiguous ? `${formatBytes(scanObservedRange.lower)} – ${formatBytes(scanObservedRange.upper)} observed` : `${formatBytes(scanObservedRange.upper)} detected`}</span>
+        <span>{!scanStore.lastScan && scanStore.isScanning ? 'Scanning…' : scanObservedRange.isAmbiguous ? `${formatBytes(scanObservedRange.lower)} – ${formatBytes(scanObservedRange.upper)} observed` : `${formatBytes(scanObservedRange.upper)} detected`}</span>
         {#if notCleanableBytes > 0}
           <span
             class="text-caption"
@@ -197,7 +200,14 @@
           </span>
         </button>
       {:else}
-        <div class="px-4 py-8 text-center text-meta text-muted-foreground">Run a storage scan to find cleanup opportunities.</div>
+        {#if scanStore.isScanning}
+          <div class="flex items-center justify-center gap-2 px-4 py-8 text-meta text-muted-foreground" role="status">
+            <LoadingIndicator size="xs" word="scanning" class="text-primary" />
+            Scanning storage for cleanup opportunities…
+          </div>
+        {:else}
+          <div class="px-4 py-8 text-center text-meta text-muted-foreground">Run a storage scan to find cleanup opportunities.</div>
+        {/if}
       {/each}
     </Card>
   </section>

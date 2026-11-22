@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingActionContent from './LoadingActionContent.svelte';
   import { settingsStore } from '../stores/settings.svelte';
   import { updateStore } from '../stores/updates.svelte';
   import Button from './Button.svelte';
@@ -30,7 +31,7 @@
 
   <div class="flex flex-wrap items-center gap-2">
     <Button size="sm" variant="outline" disabled={busy} onclick={() => void updateStore.checkNow()}>
-      {updateStore.phase === 'checking' ? 'Checking…' : 'Check now'}
+      <LoadingActionContent busy={updateStore.phase === 'checking'} busyLabel="Checking…">Check now</LoadingActionContent>
     </Button>
     {#if status}<span role="status" class="text-muted-foreground">{status}</span>{/if}
   </div>
@@ -43,7 +44,9 @@
         neati downloads the update, verifies its signature, replaces this copy and restarts. Save any open work in the Quick Panel first.
       </p>
       <Button size="sm" disabled={busy} onclick={() => void updateStore.installAvailable()}>
-        {updateStore.phase === 'installing' ? 'Installing…' : 'Install and restart'}
+        <LoadingActionContent busy={updateStore.phase === 'installing'} busyLabel="Downloading and verifying…" word="working">
+          Install and restart
+        </LoadingActionContent>
       </Button>
     </div>
   {/if}

@@ -50,7 +50,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJDQzEzOEQ3NDkyMDI2QkEKUldTNkppQkoxempCTEduWGVWQXBnWjRSd08yb0tPYXZLa1lOZ00vVHJhekFFK2tBUE9xOXRzZmoK",
       "endpoints": [
         "https://github.com/jaeyoung0509/neati/releases/download/updater-manifest/latest.json"
       ],

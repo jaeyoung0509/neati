@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingActionContent from './LoadingActionContent.svelte';
   import Badge from './Badge.svelte';
   import Button from './Button.svelte';
   import AnimatedValue from './AnimatedValue.svelte';
@@ -12,8 +13,10 @@
     onQuit?: () => void;
     onReview?: () => void;
     actionsDisabled?: boolean;
+    /** The quit review is being prepared (#491). */
+    quitBusy?: boolean;
   }
-  let { onQuit, onReview, actionsDisabled = false }: Props = $props();
+  let { onQuit, onReview, actionsDisabled = false, quitBusy = false }: Props = $props();
   let scan = $derived(scanStore.lastScan);
   let presentation = $derived(cleanupView(scan, scanStore.freshness, scanStore.discovery, !!scanStore.error));
   let summary = $derived(summarizeCategory(presentation.items));
@@ -55,7 +58,7 @@
         {#if availability.running > 0}
           <div class="flex flex-wrap items-center gap-1">
             <span>{formatBytes(availability.running)} requires idle apps</span>
-            {#if onQuit}<Button variant="ghost" size="xs" disabled={!scanStore.canClean || actionsDisabled} onclick={onQuit}>Review apps…</Button>{/if}
+            {#if onQuit}<Button variant="ghost" size="xs" disabled={!scanStore.canClean || actionsDisabled} onclick={onQuit}><LoadingActionContent busy={quitBusy} busyLabel="Checking apps…">Review apps…</LoadingActionContent></Button>{/if}
           </div>
         {/if}
         {#if availability.review > 0}

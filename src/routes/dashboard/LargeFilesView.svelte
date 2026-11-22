@@ -232,13 +232,18 @@
       error = cause instanceof Error ? cause.message : String(cause);
     } finally {
       isScanning = false;
+      isStopping = false;
       activeScanId = null;
       activeRoot = '';
     }
   }
 
+  // Stop is acknowledged at once; the scan ends when the backend confirms.
+  let isStopping = $state(false);
+
   async function cancelScan() {
-    if (!activeScanId) return;
+    if (!activeScanId || isStopping) return;
+    isStopping = true;
     try {
       await tauriCancelLargeFileScan(activeScanId);
     } catch (cause) {
@@ -369,9 +374,11 @@
 
       <div class="flex items-center gap-2">
         {#if isScanning && activeScanId}
-          <Button variant="outline" size="md" onclick={cancelScan} class="gap-1.5">
-            <X size={14} />
-            Cancel
+          <Button variant="outline" size="md" onclick={cancelScan} disabled={isStopping} class="gap-1.5">
+            <LoadingActionContent busy={isStopping} busyLabel="Stopping…" word="working">
+              <X size={14} />
+              Cancel
+            </LoadingActionContent>
           </Button>
         {/if}
         <Button

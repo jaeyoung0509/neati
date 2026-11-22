@@ -130,14 +130,18 @@
   let runningItems = $derived(scan?.categories.flatMap(category => category.items)
     .filter(item => item.owner_running && isActionable(item)) ?? []);
 
+  let isPreviewingQuit = $state(false);
+
   async function previewQuit() {
-    if (!scan || !scanStore.canClean) return;
+    // Both the summary and the guidance list can ask; one review at a time.
+    if (!scan || !scanStore.canClean || isPreparingReview) return;
     isPreparingReview = true;
+    isPreviewingQuit = true;
     try {
       quitProgress = '';
       quitPreview = await tauriPreviewCleanupQuit(scan.scan_id, runningItems.map(item => item.id));
     } catch (error) { scanStore.error = String(error); }
-    finally { isPreparingReview = false; }
+    finally { isPreparingReview = false; isPreviewingQuit = false; }
   }
 
   function cancelQuit() {
@@ -331,7 +335,7 @@
     />
   {:else}
     {#if !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
-      <StorageSummary onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onReview={openItemDetails} actionsDisabled={isPreparingReview || quitBusy} />
+      <StorageSummary onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onReview={openItemDetails} actionsDisabled={isPreparingReview || quitBusy} quitBusy={isPreviewingQuit} />
     {/if}
 
     <!-- No old inventory or selection is exposed while the new scan runs. -->

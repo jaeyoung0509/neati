@@ -51,7 +51,25 @@
     }).join(' · ');
   }
 
+  // One preference save at a time: each rebuilds the snapshot and reloads
+  // settings, so a second click would race the first (#491).
+  let savingPreference = $state<'autopilot' | 'budget' | 'manual' | null>(null);
+
+  async function guardedSave(kind: 'autopilot' | 'budget' | 'manual', save: () => Promise<void>) {
+    if (savingPreference) return;
+    savingPreference = kind;
+    try {
+      await save();
+    } finally {
+      savingPreference = null;
+    }
+  }
+
   async function updateAutopilot(key: keyof NonNullable<AiControlPreferences['autopilot']>, value: boolean) {
+    await guardedSave('autopilot', () => saveAutopilot(key, value));
+  }
+
+  async function saveAutopilot(key: keyof NonNullable<AiControlPreferences['autopilot']>, value: boolean) {
     await aiControlStore.savePreferences({
       ...preferences,
       autopilot: { ...preferences.autopilot, [key]: value },
@@ -60,6 +78,10 @@
   }
 
   async function addBudget() {
+    await guardedSave('budget', saveBudget);
+  }
+
+  async function saveBudget() {
     const limit = Number(budgetLimit);
     if (!Number.isFinite(limit) || limit <= 0) return;
     await aiControlStore.savePreferences({
@@ -73,6 +95,10 @@
   }
 
   async function saveManualUsage() {
+    await guardedSave('manual', saveManualValue);
+  }
+
+  async function saveManualValue() {
     const spent = Number(manualSpent);
     const limit = manualLimit === '' ? null : Number(manualLimit);
     if (!Number.isFinite(spent) || spent < 0 || (limit != null && (!Number.isFinite(limit) || limit <= 0))) return;
@@ -150,13 +176,13 @@
         {/each}
       </div>
       <div class="grid grid-cols-1 gap-3 @2xl:grid-cols-2">
-        <Card class="space-y-3"><h3 class="text-sm font-semibold">neati local budget alert</h3><p class="text-caption text-muted-foreground">A local alert only. It does not change provider billing or limits.</p><div class="grid grid-cols-3 gap-2"><select bind:value={budgetProvider} aria-label="Budget provider" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta"><option value="openai-api">OpenAI API</option><option value="openrouter">OpenRouter</option><option value="anthropic-api">Anthropic API</option><option value="xai-api">xAI API</option></select><select bind:value={budgetPeriod} aria-label="Budget period" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta"><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select><input bind:value={budgetLimit} aria-label={`${titleCase(budgetPeriod)} budget in USD`} inputmode="decimal" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta" placeholder={`${titleCase(budgetPeriod)} USD`} /></div><Button size="sm" onclick={addBudget}>Save local alert</Button>{#each snapshot.budget_statuses as status}<div class="space-y-1"><div class="flex justify-between text-caption"><span>{titleCase(status.period)} · {status.source_label}{status.mixed_sources ? ' · mixed sources' : ''}</span><span>{dollars(status.spent.micros)} / {dollars(status.limit.micros)}</span></div><ProgressBar value={status.used_basis_points / 100} height="h-1.5" /></div>{/each}</Card>
-        <Card class="space-y-3"><h3 class="text-sm font-semibold">Manual provider entry</h3><p class="text-caption text-muted-foreground">Stored locally and always labelled Manual.</p><select bind:value={manualProvider} class="w-full rounded-md border border-border bg-background px-2 py-1.5 text-meta"><option value="claude-individual">Claude individual</option><option value="cursor-individual">Cursor individual</option><option value="grok-individual">Grok individual</option><option value="gemini-enterprise">Gemini enterprise</option><option value="openai-api">OpenAI API</option></select><div class="grid grid-cols-2 gap-2"><input bind:value={manualSpent} aria-label="Manual spend in USD" inputmode="decimal" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta" placeholder="Spent USD" /><input bind:value={manualLimit} aria-label="Manual limit in USD" inputmode="decimal" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta" placeholder="Limit (optional)" /></div><Button size="sm" onclick={saveManualUsage}>Save manual value</Button></Card>
+        <Card class="space-y-3"><h3 class="text-sm font-semibold">neati local budget alert</h3><p class="text-caption text-muted-foreground">A local alert only. It does not change provider billing or limits.</p><div class="grid grid-cols-3 gap-2"><select bind:value={budgetProvider} aria-label="Budget provider" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta"><option value="openai-api">OpenAI API</option><option value="openrouter">OpenRouter</option><option value="anthropic-api">Anthropic API</option><option value="xai-api">xAI API</option></select><select bind:value={budgetPeriod} aria-label="Budget period" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta"><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select><input bind:value={budgetLimit} aria-label={`${titleCase(budgetPeriod)} budget in USD`} inputmode="decimal" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta" placeholder={`${titleCase(budgetPeriod)} USD`} /></div><Button size="sm" onclick={addBudget} disabled={savingPreference !== null}><LoadingActionContent busy={savingPreference === 'budget'} busyLabel="Saving…">Save local alert</LoadingActionContent></Button>{#each snapshot.budget_statuses as status}<div class="space-y-1"><div class="flex justify-between text-caption"><span>{titleCase(status.period)} · {status.source_label}{status.mixed_sources ? ' · mixed sources' : ''}</span><span>{dollars(status.spent.micros)} / {dollars(status.limit.micros)}</span></div><ProgressBar value={status.used_basis_points / 100} height="h-1.5" /></div>{/each}</Card>
+        <Card class="space-y-3"><h3 class="text-sm font-semibold">Manual provider entry</h3><p class="text-caption text-muted-foreground">Stored locally and always labelled Manual.</p><select bind:value={manualProvider} class="w-full rounded-md border border-border bg-background px-2 py-1.5 text-meta"><option value="claude-individual">Claude individual</option><option value="cursor-individual">Cursor individual</option><option value="grok-individual">Grok individual</option><option value="gemini-enterprise">Gemini enterprise</option><option value="openai-api">OpenAI API</option></select><div class="grid grid-cols-2 gap-2"><input bind:value={manualSpent} aria-label="Manual spend in USD" inputmode="decimal" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta" placeholder="Spent USD" /><input bind:value={manualLimit} aria-label="Manual limit in USD" inputmode="decimal" class="rounded-md border border-border bg-background px-2 py-1.5 text-meta" placeholder="Limit (optional)" /></div><Button size="sm" onclick={saveManualUsage} disabled={savingPreference !== null}><LoadingActionContent busy={savingPreference === 'manual'} busyLabel="Saving…">Save manual value</LoadingActionContent></Button></Card>
       </div>
     {:else if selectedSection === 'autopilot'}
       <Card class="space-y-4"><div><h3 class="text-sm font-semibold">Explicit automation</h3><p class="mt-1 text-caption text-muted-foreground">Off by default. Recommendations never terminate processes, close ports, or clean files.</p></div>
         {#each [['keep_awake_for_verified_sessions', 'Keep Awake for verified sessions', 'Uses canonical session identity and releases when the session ends.'], ['keep_awake_ac_only', 'AC power only', 'Unknown power state fails closed.'], ['notify_on_battery', 'Battery recommendation notifications', 'Advisory only.'], ['notify_on_memory_pressure', 'Memory pressure notifications', 'Advisory only.'], ['notify_on_session_completion', 'Session completion notifications', 'Advisory only.']] as option}
-          <div class="flex items-center justify-between gap-4 border-t border-border/50 pt-3"><div><p class="text-meta font-medium">{option[1]}</p><p class="text-caption text-muted-foreground">{option[2]}</p></div><Switch checked={Boolean(preferences.autopilot?.[option[0] as keyof NonNullable<AiControlPreferences['autopilot']>])} ariaLabel={option[1]} onchange={(checked) => updateAutopilot(option[0] as keyof NonNullable<AiControlPreferences['autopilot']>, checked)} /></div>
+          <div class="flex items-center justify-between gap-4 border-t border-border/50 pt-3"><div><p class="text-meta font-medium">{option[1]}</p><p class="text-caption text-muted-foreground">{option[2]}</p></div><Switch checked={Boolean(preferences.autopilot?.[option[0] as keyof NonNullable<AiControlPreferences['autopilot']>])} ariaLabel={option[1]} disabled={savingPreference !== null} onchange={(checked) => updateAutopilot(option[0] as keyof NonNullable<AiControlPreferences['autopilot']>, checked)} /></div>
         {/each}
       </Card>
       <div class="grid grid-cols-2 gap-3">{#each snapshot.resources as resource}<Card class="space-y-2"><div class="flex justify-between"><h3 class="text-sm font-semibold">{resource.tool_name}</h3><span class="text-caption {resource.mutable_actions_allowed ? 'text-success' : 'text-warning'}">{resource.mutable_actions_allowed ? 'Verified' : 'Unassigned'}</span></div><div class="grid grid-cols-3 gap-2 text-caption"><span>{formatBytes(resource.memory_bytes)}</span><span>{resource.cpu_percent == null ? 'CPU —' : `CPU ${resource.cpu_percent.toFixed(1)}%`}</span><span>{resource.open_dev_ports} ports</span></div><p class="text-caption text-muted-foreground">{resource.reason}</p></Card>{/each}</div>

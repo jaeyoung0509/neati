@@ -356,6 +356,20 @@ describe('release packaging contracts', () => {
     const publish = release.split('  publish-release:\n')[1] ?? '';
     expect(publish).toContain('${RELEASE_INSTALLERS}');
     expect(publish).not.toMatch(/--commit "\$\{GITHUB_SHA\}" \\\n\s+artifacts\/neati-windows/);
+    // The endpoint review is a submission of the Windows installers: a
+    // macOS-only release must neither require the record nor claim one.
+    for (const name of [
+      'Record endpoint-protection submission result',
+      'Verify endpoint-protection review before publishing',
+    ]) {
+      const step = publish.split(`      - name: ${name}\n`)[1]?.split('\n      - name:')[0] ?? '';
+      expect(step).toContain("if: env.WINDOWS_PUBLISHED == 'true'");
+    }
+    const notes = publish.split('      - name: Write release notes\n')[1]?.split('\n      - name:')[0] ?? '';
+    const windowsBranch = notes.indexOf('if [ "${WINDOWS_PUBLISHED}" = "true" ]; then');
+    expect(windowsBranch).toBeGreaterThan(-1);
+    expect(notes.indexOf('endpoint-protection analysis')).toBeGreaterThan(windowsBranch);
+    expect(notes.slice(0, windowsBranch)).not.toContain('endpoint');
   });
 
   it('uses Node 24-based artifact actions in CI and release workflows', () => {

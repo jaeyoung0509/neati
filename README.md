@@ -98,7 +98,7 @@ and AI usage snapshots use a short backend cache.
 
 neati is distributed as a public beta for Apple Silicon (ARM64) Macs. A
 pre-built `.dmg`, an SPDX software bill of materials, SHA256 checksums, build
-metadata, a recorded endpoint-protection review, and GitHub build provenance
+metadata, and GitHub build provenance
 attestation are available under
 [GitHub Releases](https://github.com/jaeyoung0509/neati/releases).
 

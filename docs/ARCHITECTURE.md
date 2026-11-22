@@ -934,7 +934,8 @@ its immutable URL can be validated in Windows Sandbox.
 Two gates run before publication. The `attest-provenance` job uses
 `actions/attest-build-provenance` to bind each installer and SBOM to the
 repository, workflow, and tagged commit. The publishing job then runs inside the
-`release-approval` environment, where a maintainer submits the installers to
+`release-approval` environment. When the release carries Windows installers
+(paused, #445), a maintainer submits them to
 Microsoft's endpoint-protection analysis and records the result; a detection, a
 missing record, or an artifact whose hash differs from the reviewed bytes fails
 the release before the publish step. `scripts/endpoint_review.cjs` writes and

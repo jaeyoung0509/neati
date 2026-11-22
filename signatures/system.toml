@@ -840,8 +840,8 @@ strategy = "delete_stale_contents"
 platforms = ["macos"]
 paths = ["~/Library/Application Support/BraveSoftware/Brave-Browser/Crashpad/completed"]
 min_age_days = 7
-fail_if_running = ["Brave Browser", "Brave Browser Helper", "chrome_crashpad_handler"]
-description = "Completed crash uploads older than seven days. Pending reports and browser profile state stay outside this scope."
+fail_if_running = ["Brave Browser", "Brave Browser Helper"]
+description = "Completed crash uploads older than seven days. Pending reports and browser profile state stay outside this scope. The shared crash handler is not a guard: every Chromium and Electron app runs one, and completed reports are no longer written."
 
 [[signatures]]
 id = "system.suggestions.observation"

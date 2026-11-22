@@ -387,9 +387,14 @@ fn actual_generated_default_whole_units_move_with_exact_accounting_and_overlap_r
         );
         let trash = root.join("fixture-trash");
         fs::create_dir(&trash).unwrap();
+        // The final use verdict is fixed here so the removal accounting this
+        // test checks does not depend on lsof finishing within its budget on a
+        // loaded runner (#489). The native probe keeps its own tests, and
+        // `active_project_working_directory_blocks_*` still uses it.
         let result = RemovalExecutor::new(Arc::new(FixtureTrash {
             directory: trash.clone(),
         }))
+        .with_final_use_probe(Arc::new(|_, _, _| no_use_detected()))
         .execute(&env, plan);
         assert_eq!(result.removed_count, 1, "{:?}", result.items);
         assert_eq!(
@@ -696,4 +701,15 @@ fn active_project_working_directory_blocks_whole_and_generated_child_without_unk
     assert_eq!(result.removed_count, 0);
     assert!(backend.removed().is_empty());
     assert!(project.join(".next").exists());
+}
+
+/// A completed final use probe that saw nothing open in the unit.
+fn no_use_detected() -> neati_core::application::dto::temporary_storage::TemporaryUsageObservation {
+    neati_core::application::dto::temporary_storage::TemporaryUsageObservation {
+        state: neati_core::domain::storage::TemporaryUsageState::NoUseDetected,
+        observed_at: 0,
+        probe: "fixture".into(),
+        evidence: Vec::new(),
+        limitation: String::new(),
+    }
 }

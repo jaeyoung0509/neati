@@ -657,7 +657,12 @@ export type ApplicationIdentity = {
 	path: string,
 };
 
-export type ArtifactOwnershipEvidence = { state: "verified_generated" } | { state: "tracked_content" } | { state: "nested_repository" } | { state: "deployment_key_material" } | { state: "incomplete"; reason: ArtifactOwnershipUncertainty };
+export type ArtifactOwnershipEvidence = { state: "verified_generated" } | { state: "tracked_content" } | { state: "nested_repository" } | { state: "deployment_key_material" } |
+/**
+ *  Terraform's record of the selected workspace. Removing it returns the
+ *  project to the `default` workspace without saying so (#476).
+ */
+{ state: "terraform_workspace_selection" } | { state: "incomplete"; reason: ArtifactOwnershipUncertainty };
 
 export type ArtifactOwnershipUncertainty = "unreadable_metadata" | "malformed_metadata" | "missing_git" | "timed_out" | "cancelled" | "budget_exceeded" | "changed_during_probe" | "outside_scope" | "unsupported_index";
 

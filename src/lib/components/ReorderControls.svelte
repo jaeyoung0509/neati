@@ -19,7 +19,7 @@
     class="h-7 w-7"
     disabled={index <= 0}
     onclick={() => void onMove(-1)}
-    ariaLabel={`Move ${label} up`}
+    aria-label={`Move ${label} up`}
     title={`Move ${label} up`}
   >
     <ArrowUp size={12} />
@@ -30,7 +30,7 @@
     class="h-7 w-7"
     disabled={index === -1 || index >= count - 1}
     onclick={() => void onMove(1)}
-    ariaLabel={`Move ${label} down`}
+    aria-label={`Move ${label} down`}
     title={`Move ${label} down`}
   >
     <ArrowDown size={12} />

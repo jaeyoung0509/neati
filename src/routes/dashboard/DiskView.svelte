@@ -99,7 +99,7 @@
   </PageHeader>
 
   {#if error}
-    <div class="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-xs text-destructive">{error}</div>
+    <div class="rounded-xl border status-panel-destructive p-4 text-meta text-destructive">{error}</div>
   {:else if primary}
     <Card class="p-5">
       <div class="flex items-start justify-between gap-6">
@@ -109,7 +109,7 @@
           <p class="mt-0.5 text-caption font-mono text-muted-foreground">{primary.mount_point} · {primary.file_system} · {primary.disk_type}</p>
         </div>
         <div class="text-right">
-          <p class="font-mono text-2xl font-semibold">{formatBytes(primary.available_bytes)}</p>
+          <p class="font-mono text-metric font-semibold">{formatBytes(primary.available_bytes)}</p>
           <p class="text-caption text-muted-foreground">available of {formatBytes(primary.total_bytes)}</p>
         </div>
       </div>
@@ -122,7 +122,7 @@
       </div>
     </Card>
   {:else if isLoading}
-    <div class="py-16 text-center text-xs text-muted-foreground">Reading mounted volumes…</div>
+    <div class="py-16 text-center text-meta text-muted-foreground">Reading mounted volumes…</div>
   {/if}
 
   {#if volumes.length > 0}
@@ -137,8 +137,8 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
-                  <p class="truncate text-xs font-medium">{volume.name || volume.mount_point}</p>
-                  {#if volume.is_primary}<span class="rounded-full border border-success/25 bg-success/10 px-1.5 py-0.5 text-micro text-success">Primary</span>{/if}
+                  <p class="truncate text-meta font-medium">{volume.name || volume.mount_point}</p>
+                  {#if volume.is_primary}<span class="rounded-full border status-chip-success px-1.5 py-0.5 text-micro text-success">Primary</span>{/if}
                   {#if volume.is_removable}<span class="rounded-full border border-border px-1.5 py-0.5 text-micro text-muted-foreground">External</span>{/if}
                 </div>
                 <p class="mt-1 truncate text-micro font-mono text-muted-foreground">{volume.mount_point}</p>
@@ -148,7 +148,7 @@
                 size="icon"
                 class="h-7 w-7"
                 disabled={!canReveal()}
-                ariaLabel="Show volume in file manager"
+                aria-label="Show volume in file manager"
                 title={canReveal() ? platformContextStore.revealLabel : revealUnavailableReason()}
                 onclick={() =>
                   void runReveal(
@@ -178,7 +178,7 @@
         <h3 class="text-sm font-semibold">Cleanup Opportunities</h3>
         <p class="mt-0.5 text-caption text-muted-foreground">Largest detected categories first</p>
       </div>
-      <span class="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+      <span class="flex items-center gap-1.5 font-mono text-meta text-muted-foreground">
         <span>{scanObservedRange.isAmbiguous ? `${formatBytes(scanObservedRange.lower)} – ${formatBytes(scanObservedRange.upper)} observed` : `${formatBytes(scanObservedRange.upper)} detected`}</span>
         {#if notCleanableBytes > 0}
           <span
@@ -192,17 +192,17 @@
       {#each opportunities as category (category.category)}
         <button type="button" onclick={() => onReviewCategory(category)} class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/40 transition-colors">
           <div>
-            <p class="text-xs font-medium">{category.display_name}</p>
+            <p class="text-meta font-medium">{category.display_name}</p>
             <p class="mt-0.5 text-caption text-muted-foreground">{formatBytes(category.safe_bytes)} safe · {formatBytes(category.rebuild_bytes)} rebuild</p>
           </div>
-          <span class="font-mono text-xs font-semibold">
+          <span class="font-mono text-meta font-semibold">
             {(category.ambiguous_overlap_bytes ?? 0) > 0
               ? `${formatBytes(observedByteRange(category.total_bytes, category.ambiguous_overlap_bytes ?? 0).lower)} – ${formatBytes(category.total_bytes)}`
               : formatBytes(category.total_bytes)}
           </span>
         </button>
       {:else}
-        <div class="px-4 py-8 text-center text-xs text-muted-foreground">Run a storage scan to find cleanup opportunities.</div>
+        <div class="px-4 py-8 text-center text-meta text-muted-foreground">Run a storage scan to find cleanup opportunities.</div>
       {/each}
     </Card>
   </section>

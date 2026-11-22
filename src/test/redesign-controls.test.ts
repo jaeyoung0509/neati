@@ -71,7 +71,7 @@ describe('redesign interaction semantics', () => {
 
   it('announces informational notices politely and errors urgently', () => {
     expect(render(InlineNotice, { props: { message: 'Refresh complete' } }).body).toContain('role="status"');
-    expect(render(InlineNotice, { props: { variant: 'error', message: 'Refresh failed' } }).body).toContain('role="alert"');
+    expect(render(InlineNotice, { props: { variant: 'destructive', message: 'Refresh failed' } }).body).toContain('role="alert"');
   });
 
   it('keeps the reviewed paths and concise operation summary without per-item jargon', () => {

@@ -4,7 +4,7 @@
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { formatBytes } from '../../lib/utils/format';
   import { withMinimumDuration } from '../../lib/utils/async';
-  import { modalDialog } from '../../lib/utils/modalDialog';
+  import Dialog from '../../lib/components/Dialog.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import Badge from '../../lib/components/Badge.svelte';
@@ -75,7 +75,7 @@
         size="sm"
         disabled={isRefreshing || dockerStore.isLoading || dockerStore.isPruning}
         onclick={handleRefresh}
-        class="gap-1.5 text-xs"
+        class="gap-1.5 text-meta"
       >
         <LoadingActionContent busy={isRefreshing || dockerStore.isLoading} busyLabel="Refreshing…">
           <RotateCw size={13} aria-hidden="true" /><span>Refresh</span>
@@ -108,14 +108,14 @@
       <Card class="p-4 space-y-3 bg-card/60 flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div class="flex items-center gap-2 text-meta font-medium text-muted-foreground">
               <Layers size={15} class="text-primary" />
               <span>Build Cache</span>
             </div>
             <Badge variant="success">Safe</Badge>
           </div>
           <div class="mt-3">
-            <div class="text-xl font-bold font-mono text-foreground">
+            <div class="text-title font-bold font-mono text-foreground">
               {formatBytes(overview.build_cache.reclaimable_bytes)}
             </div>
             <p class="text-meta text-muted-foreground mt-0.5">Unused BuildKit layers</p>
@@ -126,7 +126,7 @@
           size="sm"
           disabled={dockerStore.isPruning || overview.build_cache.reclaimable_bytes === 0}
           onclick={() => dockerStore.pruneTarget('container.docker.builder')}
-          class="w-full text-xs gap-1.5 min-h-[30px]"
+          class="w-full text-meta gap-1.5 min-h-[30px]"
         >
           <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
             <Trash2 size={12} aria-hidden="true" /><span>Prune Cache</span>
@@ -138,14 +138,14 @@
       <Card class="p-4 space-y-3 bg-card/60 flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div class="flex items-center gap-2 text-meta font-medium text-muted-foreground">
               <Container size={15} class="text-success" />
               <span>Dangling</span>
             </div>
             <Badge variant="success">Safe</Badge>
           </div>
           <div class="mt-3">
-            <div class="text-xl font-bold font-mono text-foreground">
+            <div class="text-title font-bold font-mono text-foreground">
               {danglingBytes > 0 ? formatBytes(danglingBytes) : (danglingImages.length > 0 ? `${danglingImages.length} images` : '0 B')}
             </div>
             <p class="text-meta text-muted-foreground mt-0.5">Untagged layers</p>
@@ -156,7 +156,7 @@
           size="sm"
           disabled={dockerStore.isPruning || danglingImages.length === 0}
           onclick={() => dockerStore.pruneTarget('container.docker.dangling_images')}
-          class="w-full text-xs gap-1.5 min-h-[30px]"
+          class="w-full text-meta gap-1.5 min-h-[30px]"
         >
           <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
             <Trash2 size={12} aria-hidden="true" /><span>Prune Dangling</span>
@@ -168,14 +168,14 @@
       <Card class="p-4 space-y-3 bg-card/60 flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div class="flex items-center gap-2 text-meta font-medium text-muted-foreground">
               <Container size={15} class="text-warning" />
               <span>Unused Images</span>
             </div>
             <Badge variant="warning">Rebuild</Badge>
           </div>
           <div class="mt-3">
-            <div class="text-xl font-bold font-mono text-foreground">
+            <div class="text-title font-bold font-mono text-foreground">
               {formatBytes(overview.images.reclaimable_bytes)}
             </div>
             <p class="text-meta text-muted-foreground mt-0.5">Unreferenced images</p>
@@ -186,7 +186,7 @@
           size="sm"
           disabled={dockerStore.isPruning || overview.images.reclaimable_bytes === 0}
           onclick={() => dockerStore.pruneTarget('container.docker.unused_images')}
-          class="w-full text-xs gap-1.5 min-h-[30px]"
+          class="w-full text-meta gap-1.5 min-h-[30px]"
         >
           <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
             <Trash2 size={12} aria-hidden="true" /><span>Remove Unused</span>
@@ -198,14 +198,14 @@
       <Card class="p-4 space-y-3 bg-card/60 flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div class="flex items-center gap-2 text-meta font-medium text-muted-foreground">
               <Server size={15} class="text-warning" />
               <span>Containers</span>
             </div>
             <Badge variant="warning">Rebuild</Badge>
           </div>
           <div class="mt-3">
-            <div class="text-xl font-bold font-mono text-foreground">
+            <div class="text-title font-bold font-mono text-foreground">
               {formatBytes(overview.containers.reclaimable_bytes)}
             </div>
             <p class="text-meta text-muted-foreground mt-0.5">Exited container data</p>
@@ -216,7 +216,7 @@
           size="sm"
           disabled={dockerStore.isPruning || overview.containers.reclaimable_bytes === 0}
           onclick={() => dockerStore.pruneTarget('container.docker.stopped_containers')}
-          class="w-full text-xs gap-1.5 min-h-[30px]"
+          class="w-full text-meta gap-1.5 min-h-[30px]"
         >
           <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
             <Trash2 size={12} aria-hidden="true" /><span>Prune Containers</span>
@@ -228,14 +228,14 @@
       <Card class="p-4 space-y-3 bg-card/60 flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div class="flex items-center gap-2 text-meta font-medium text-muted-foreground">
               <HardDrive size={15} class="text-destructive" />
               <span>Volumes</span>
             </div>
-            <Badge variant="danger">Manual</Badge>
+            <Badge variant="destructive">Manual</Badge>
           </div>
           <div class="mt-3">
-            <div class="text-xl font-bold font-mono text-foreground">
+            <div class="text-title font-bold font-mono text-foreground">
               {formatBytes(overview.volumes.reclaimable_bytes)}
             </div>
             <p class="text-meta text-muted-foreground mt-0.5">of {formatBytes(overview.volumes.total_bytes)} total</p>
@@ -246,7 +246,7 @@
           size="sm"
           disabled={dockerStore.isPruning || overview.volumes.reclaimable_bytes === 0}
           onclick={() => (confirmVolumePrune = true)}
-          class="w-full text-xs gap-1.5 text-destructive hover:text-destructive min-h-[30px]"
+          class="w-full text-meta gap-1.5 text-destructive hover:text-destructive min-h-[30px]"
         >
           <LoadingActionContent busy={dockerStore.isPruning} busyLabel="Pruning…" word="cleaning">
             <Trash2 size={12} aria-hidden="true" /><span>Prune Volumes</span>
@@ -258,12 +258,12 @@
     <!-- Active Containers & Images Table -->
     {#if status?.containers && status.containers.length > 0}
       <div class="space-y-3 pt-2">
-        <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+        <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
           Detected Containers ({status.containers.length})
         </h3>
         <div class="space-y-2 max-h-60 overflow-y-auto scroll-stable">
           {#each status.containers as container}
-            <div class="flex items-center justify-between p-3 rounded-lg bg-card/70 border border-border/60 text-xs">
+            <div class="flex items-center justify-between p-3 rounded-lg bg-card/70 border border-border/60 text-meta">
               <div class="space-y-0.5">
                 <div class="flex items-center gap-2 font-medium text-foreground">
                   <span>{container.name}</span>
@@ -286,16 +286,16 @@
   {/if}
 
   {#if confirmVolumePrune}
-    <dialog
-      use:modalDialog={{ onCancel: () => (confirmVolumePrune = false), initialFocus: '#volume-prune-cancel' }}
+    <Dialog
+      onCancel={() => (confirmVolumePrune = false)} initialFocus="#volume-prune-cancel"
       aria-labelledby="volume-prune-title" aria-describedby="volume-prune-description"
-      class="m-auto w-[calc(100%-2rem)] max-w-sm max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable space-y-4 rounded-xl border border-border bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
-    >
+      size="sm" class="space-y-4"
+      >
         <div class="flex items-start gap-3">
           <div class="mt-0.5 text-destructive"><AlertCircle size={20} /></div>
           <div>
             <h3 id="volume-prune-title" class="text-sm font-semibold">Prune unused Docker volumes?</h3>
-            <p id="volume-prune-description" class="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p id="volume-prune-description" class="mt-1 text-meta leading-relaxed text-muted-foreground">
               Docker reports {formatBytes(overview?.volumes.reclaimable_bytes ?? 0)} as reclaimable. Volumes may contain persistent application data and cannot be restored by neati.
             </p>
           </div>
@@ -304,6 +304,6 @@
           <Button id="volume-prune-cancel" variant="ghost" size="sm" onclick={() => (confirmVolumePrune = false)}>Cancel</Button>
           <Button variant="destructive" size="sm" onclick={pruneVolumes}>Prune Volumes</Button>
         </div>
-    </dialog>
+    </Dialog>
   {/if}
 </div>

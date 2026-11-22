@@ -34,10 +34,10 @@
     class="sr-only peer"
   />
   <div
-    class="w-9 h-5 border border-border-strong bg-secondary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background rounded-full transition-colors duration-140 ease-out {color} relative"
+    class="w-9 h-5 border border-border-strong bg-secondary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background rounded-full transition-colors duration-fast ease-out {color} relative"
   >
     <div
-      class="absolute top-[1px] left-[1px] rounded-full h-4 w-4 transition-transform duration-140 ease-[cubic-bezier(0.16,1,0.3,1)] {checked ? 'translate-x-4 bg-success-foreground' : 'translate-x-0 bg-muted-foreground'}"
+      class="absolute top-[1px] left-[1px] rounded-full h-4 w-4 transition-transform duration-fast ease-standard {checked ? 'translate-x-4 bg-success-foreground' : 'translate-x-0 bg-muted-foreground'}"
     ></div>
   </div>
 </label>

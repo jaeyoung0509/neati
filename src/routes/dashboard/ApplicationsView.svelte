@@ -300,18 +300,18 @@
 
 <div class="space-y-5">
   <div class="flex items-start gap-3">
-    <Button variant="ghost" size="icon" onclick={onBack} ariaLabel="Back to Storage">
+    <Button variant="ghost" size="icon" onclick={onBack} aria-label="Back to Storage">
       <ArrowLeft size={16} />
     </Button>
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h1 class="text-xl font-semibold tracking-tight">Applications</h1>
+        <h1 class="text-title font-semibold tracking-tight">Applications</h1>
         <div class="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
           <ShieldCheck size={14} class="text-success" />
           <span>{isUninstallAvailable ? 'Permanently deletes the app and selected data' : 'Application inventory'}</span>
         </div>
       </div>
-      <p class="mt-1 text-xs text-muted-foreground">
+      <p class="mt-1 text-meta text-muted-foreground">
         Inspect installed applications and the related data neati can identify.
       </p>
     </div>
@@ -319,19 +319,19 @@
 
   {#if platformCapabilitiesStore.error && !platformCapabilitiesStore.capabilities}
     <InlineNotice
-      variant="error"
+      variant="destructive"
       title="Platform capabilities unavailable"
       message={platformCapabilitiesStore.error}
       actionLabel="Retry"
       onAction={() => void platformCapabilitiesStore.load(true)}
     />
   {:else if platformCapabilitiesStore.feature('installed_apps') && !isInstalledAppsInspectable}
-    <div class="rounded-xl border border-border bg-secondary/40 p-3 space-y-1.5 text-xs text-muted-foreground">
+    <div class="rounded-xl border border-border bg-secondary/40 p-3 space-y-1.5 text-meta text-muted-foreground">
       <p class="font-medium text-foreground">Applications unavailable</p>
       <p>{installedAppsReason}</p>
     </div>
   {:else if platformCapabilitiesStore.feature('app_uninstall') && !isUninstallAvailable}
-    <div class="rounded-xl border border-border bg-secondary/40 p-3 space-y-1.5 text-xs text-muted-foreground">
+    <div class="rounded-xl border border-border bg-secondary/40 p-3 space-y-1.5 text-meta text-muted-foreground">
       <p class="font-medium text-foreground">Uninstallation unavailable</p>
       <p>{uninstallReason}</p>
     </div>
@@ -343,7 +343,7 @@
 
   {#if inventoryQuality === 'unavailable'}
     <InlineNotice
-      variant="error"
+      variant="destructive"
       title="Application discovery unavailable"
       message={incompleteReasons[0] || 'Application directories could not be read.'}
     />
@@ -356,15 +356,15 @@
   {/if}
 
   {#if error}
-    <div class="p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive flex items-center gap-2.5 text-xs">
+    <div class="p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive flex items-center gap-2.5 text-meta">
       <AlertCircle size={16} class="shrink-0" />
       <span>{error}</span>
     </div>
   {/if}
 
   {#if removalResult}
-    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
-      <div class="flex items-center justify-between gap-3 text-xs">
+    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'status-panel-warning' : 'status-panel-success'}`}>
+      <div class="flex items-center justify-between gap-3 text-meta">
         <span class={`font-medium flex items-center gap-2 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
           {#if removalResult.failed_count + removalResult.skipped_count > 0}
             <AlertCircle size={15} />
@@ -388,7 +388,7 @@
           <h2 class="text-sm font-semibold">Installed apps</h2>
           <p class="text-caption text-muted-foreground mt-0.5">Configured application folders</p>
         </div>
-        <Button variant="ghost" size="sm" class="w-24 shrink-0" onclick={loadApps} disabled={isLoading || !isInstalledAppsInspectable} ariaLabel="Refresh applications" title="Refresh applications">
+        <Button variant="ghost" size="sm" class="w-24 shrink-0" onclick={loadApps} disabled={isLoading || !isInstalledAppsInspectable} aria-label="Refresh applications" title="Refresh applications">
           <LoadingActionContent busy={isLoading} busyLabel="" word="scanning">
             <RefreshCw size={14} aria-hidden="true" /><span>Refresh</span>
           </LoadingActionContent>
@@ -402,13 +402,13 @@
           bind:value={query}
           placeholder="Search applications"
           aria-label="Search applications"
-          class="focus-ring w-full h-8 rounded-lg border border-border bg-background pl-8 pr-3 text-xs outline-none focus:border-ring"
+          class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-full h-8 rounded-lg border border-border bg-background pl-8 pr-3 text-meta outline-none focus:border-ring"
         />
       </div>
 
       <!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard users must be able to scroll the virtualized region) -->
       <div
-        class="focus-ring max-h-[calc(100vh-245px)] overflow-y-auto scroll-stable md:min-h-0 md:max-h-none md:flex-1"
+        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-h-[calc(100vh-245px)] overflow-y-auto scroll-stable md:min-h-0 md:max-h-none md:flex-1"
         bind:clientHeight={appListViewportHeight}
         onscroll={(event) => (appListScrollTop = event.currentTarget.scrollTop)}
         role="region"
@@ -416,20 +416,20 @@
         tabindex="0"
       >
         {#if isLoading}
-          <div class="py-10 text-center text-xs text-muted-foreground">Loading applications…</div>
+          <div class="py-10 text-center text-meta text-muted-foreground">Loading applications…</div>
         {:else if filteredApps.length === 0}
           {#if inventoryQuality === 'unavailable'}
-            <div class="py-10 text-center text-xs text-destructive">
+            <div class="py-10 text-center text-meta text-destructive">
               Application discovery failed. Could not read application directories.
             </div>
           {:else if query}
-            <div class="py-10 text-center text-xs text-muted-foreground">No applications found matching "{query}".</div>
+            <div class="py-10 text-center text-meta text-muted-foreground">No applications found matching "{query}".</div>
           {:else if inventoryQuality === 'partial'}
-            <div class="py-10 text-center text-xs text-warning">
+            <div class="py-10 text-center text-meta text-warning">
               No applications discovered. Some application locations were inaccessible.
             </div>
           {:else}
-            <div class="py-10 text-center text-xs text-muted-foreground">No applications found.</div>
+            <div class="py-10 text-center text-meta text-muted-foreground">No applications found.</div>
           {/if}
         {:else}
           <div style={`height: ${appWindow.offsetTop}px`}></div>
@@ -449,7 +449,7 @@
                   </div>
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
-                      <span class="text-xs font-medium truncate">{app.name}</span>
+                      <span class="text-meta font-medium truncate">{app.name}</span>
                       {#if app.is_running}
                         <span class="px-1.5 py-0.5 rounded text-micro bg-warning/10 text-warning border border-warning/20">Running</span>
                       {/if}
@@ -476,7 +476,7 @@
 
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (application details have an independent scroller) -->
     <div
-      class="focus-ring space-y-4 min-w-0 md:max-h-[calc(100vh-5rem)] md:overflow-y-auto md:scroll-stable"
+      class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring space-y-4 min-w-0 md:max-h-[calc(100vh-5rem)] md:overflow-y-auto md:scroll-stable"
       role="region"
       aria-label="Application details"
       tabindex="0"
@@ -486,7 +486,7 @@
           <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <h2 class="text-base font-semibold">{inspection.app.name}</h2>
+                <h2 class="text-sm font-semibold">{inspection.app.name}</h2>
                 {#if inspection.app.version}
                   <span class="px-1.5 py-0.5 rounded text-micro border border-border bg-secondary/50 text-muted-foreground">v{inspection.app.version}</span>
                 {/if}
@@ -533,7 +533,7 @@
           {/if}
 
           {#if inspection.warnings.length > 0 || inspection.incomplete}
-            <div class="rounded-lg border border-warning/25 bg-warning/5 p-3 space-y-1.5 text-meta text-warning">
+            <div class="rounded-lg border status-panel-warning p-3 space-y-1.5 text-meta text-warning">
               <div class="flex items-center gap-1.5 font-medium">
                 <ShieldAlert size={14} />
                 Inspection warnings
@@ -548,9 +548,9 @@
           {/if}
 
           {#if !isUninstallAvailable}
-            <p class="text-xs text-muted-foreground">Application details are available for inspection only.</p>
+            <p class="text-meta text-muted-foreground">Application details are available for inspection only.</p>
           {:else if plan}
-            <div class={`rounded-xl border p-4 space-y-3 ${isExpired ? 'border-destructive/40 bg-destructive/5' : isExpiringSoon ? 'border-warning/50 bg-warning/10' : 'border-warning/30 bg-warning/5'}`}>
+            <div class={`rounded-xl border p-4 space-y-3 ${isExpired ? 'status-panel-destructive' : isExpiringSoon ? 'status-chip-warning' : 'status-panel-warning'}`}>
               <div class="flex flex-col gap-3">
                 <div>
                   <div class="text-sm font-semibold flex items-center gap-2">
@@ -559,7 +559,7 @@
                       {formatCountdown(remainingSecs)}
                     </span>
                   </div>
-                  <p class="text-xs text-muted-foreground mt-1">
+                  <p class="text-meta text-muted-foreground mt-1">
                     This cannot be undone from Trash. App bundle plus reviewed data: {plan.item_count} items · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)}
                   </p>
                 </div>
@@ -572,7 +572,7 @@
                 </div>
               </div>
               {#if isExpired}
-                <div role="alert" class="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive flex flex-col gap-2">
+                <div role="alert" class="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-meta text-destructive flex flex-col gap-2">
                   <span>Plan expired — refresh and re-inspect to create a new 5 min review window.</span>
                   <div class="flex flex-wrap gap-1.5">
                     <Button id="applications-expiry-action" variant="ghost" size="sm" onclick={() => void recoverExpiredUninstallPlan()}>Refresh and re-inspect</Button>
@@ -588,7 +588,7 @@
           {:else}
             <div class="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-3">
               <div>
-                <div class="text-xs font-medium">Ready to review this uninstall?</div>
+                <div class="text-meta font-medium">Ready to review this uninstall?</div>
                 <p class="text-meta text-muted-foreground mt-1">
                   {isSelectedLowerBound ? '≥ ' : ''}{formatBytes(selectedBytes)} selected for review. You can adjust related {platformContextStore.appDataLabel} below before creating the one-shot permanent-deletion plan.
                 </p>
@@ -609,7 +609,7 @@
           <div class="pt-3 border-t border-border/60 space-y-2">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <h3 class="text-xs font-semibold">Related {platformContextStore.appDataLabel}</h3>
+                <h3 class="text-meta font-semibold">Related {platformContextStore.appDataLabel}</h3>
                 <p class="text-caption text-muted-foreground mt-0.5">
                   Only high-confidence exact bundle matches are selected by default.
                 </p>
@@ -620,7 +620,7 @@
             </div>
 
             {#if inspection.related_items.length === 0}
-              <div class="py-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+              <div class="py-6 text-center text-meta text-muted-foreground border border-dashed border-border rounded-lg">
                 No related data matched the constrained resolver.
               </div>
             {:else}
@@ -637,7 +637,7 @@
                       />
                       <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
-                          <span class="text-xs font-medium truncate">{item.name}</span>
+                          <span class="text-meta font-medium truncate">{item.name}</span>
                           <span class={`px-1.5 py-0.5 rounded text-micro border ${confidenceClass(item.confidence)}`}>
                             {confidenceLabel(item.confidence)}
                           </span>
@@ -668,7 +668,7 @@
         <Card class="py-20 text-center">
           <AppWindow size={28} class="mx-auto text-muted-foreground/50" />
           <p class="mt-3 text-sm font-medium">Choose an application</p>
-          <p class="mt-1 text-xs text-muted-foreground max-w-md mx-auto px-8">
+          <p class="mt-1 text-meta text-muted-foreground max-w-md mx-auto px-8">
             Running apps are intentionally blocked. neati first builds a backend-owned inventory, then resolves related data with exact bundle or exact app-name matches only.
           </p>
         </Card>

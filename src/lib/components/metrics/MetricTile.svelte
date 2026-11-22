@@ -48,7 +48,7 @@
   onclick={onclick}
   aria-label={onclick ? actionLabel ?? label : undefined}
   class="metric-tile group flex flex-col min-w-0 w-full text-left rounded-xl border border-border bg-card p-4 space-y-2 {onclick
-    ? 'transition-[background-color,border-color] duration-140 hover:border-border-strong hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+    ? 'transition-[background-color,border-color] duration-fast hover:border-border-strong hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
     : ''} {toneClass[tone]} {className}"
 >
   <span class="flex items-center justify-between gap-2">

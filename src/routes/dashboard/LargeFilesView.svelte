@@ -294,18 +294,18 @@
 
 <div class="space-y-5">
   <div class="flex items-start gap-3">
-    <Button variant="ghost" size="icon" onclick={onBack} ariaLabel="Back to Storage">
+    <Button variant="ghost" size="icon" onclick={onBack} aria-label="Back to Storage">
       <ArrowLeft size={16} />
     </Button>
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h1 class="text-xl font-semibold tracking-tight">Large Files</h1>
+        <h1 class="text-title font-semibold tracking-tight">Large Files</h1>
         <div class="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
           <ShieldCheck size={14} class="text-success" />
           <span>Identity rechecked before permanent deletion</span>
         </div>
       </div>
-      <p class="mt-1 text-xs text-muted-foreground">
+      <p class="mt-1 text-meta text-muted-foreground">
         {scanFilter === 'installers'
           ? `Review disk images and installer packages in approved personal folders. Nothing is selected automatically and selected items are permanently deleted and cannot be restored from Trash.`
           : `Inspect large personal files. Nothing is selected automatically and selected files are permanently deleted and cannot be restored from Trash.`}
@@ -317,10 +317,10 @@
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-end">
       <div class="space-y-3">
         <div>
-          <div class="text-xs font-medium mb-2">Folders</div>
+          <div class="text-meta font-medium mb-2">Folders</div>
           <div class="flex flex-wrap gap-2">
             {#each LARGE_FILE_ROOTS as root}
-              <label class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border/70 bg-secondary/20 text-xs cursor-pointer hover:bg-secondary/40">
+              <label class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border/70 bg-secondary/20 text-meta cursor-pointer hover:bg-secondary/40">
                 <input
                   type="checkbox"
                   checked={selectedRoots.includes(root.id)}
@@ -334,23 +334,23 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <label for="large-file-filter" class="text-xs font-medium">File type</label>
+          <label for="large-file-filter" class="text-meta font-medium">File type</label>
           <select
             id="large-file-filter"
             value={scanFilter}
             onchange={(event) => changeScanFilter((event.currentTarget as HTMLSelectElement).value as LargeFileFilter)}
             disabled={isScanning}
-            class="h-8 rounded-lg border border-border bg-background px-2.5 text-xs"
+            class="h-8 rounded-lg border border-border bg-background px-2.5 text-meta"
           >
             <option value="all">All large files</option>
             <option value="installers">Installers &amp; disk images</option>
           </select>
-          <label for="large-file-threshold" class="text-xs font-medium">Minimum size</label>
+          <label for="large-file-threshold" class="text-meta font-medium">Minimum size</label>
           <select
             id="large-file-threshold"
             bind:value={thresholdMb}
             disabled={isScanning}
-            class="h-8 rounded-lg border border-border bg-background px-2.5 text-xs"
+            class="h-8 rounded-lg border border-border bg-background px-2.5 text-meta"
           >
             {#if scanFilter === 'installers'}
               <option value={10}>10 MB</option>
@@ -401,15 +401,15 @@
   </Card>
 
   {#if error}
-    <div class="p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive flex items-center gap-2.5 text-xs">
+    <div class="p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive flex items-center gap-2.5 text-meta">
       <AlertCircle size={16} class="shrink-0" />
       <span>{error}</span>
     </div>
   {/if}
 
   {#if removalResult}
-    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
-      <div class="flex items-center justify-between gap-3 text-xs">
+    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'status-panel-warning' : 'status-panel-success'}`}>
+      <div class="flex items-center justify-between gap-3 text-meta">
         <span class={`font-medium ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
           Permanently removed {removalResult.removed_count} item{removalResult.removed_count === 1 ? '' : 's'}
           {#if removalResult.failed_count + removalResult.skipped_count > 0}
@@ -422,14 +422,14 @@
   {/if}
 
   {#if scanResult?.truncated}
-    <div class="p-3.5 rounded-xl bg-warning/10 border border-warning/30 text-warning flex items-center gap-2.5 text-xs">
+    <div class="p-3.5 rounded-xl bg-warning/10 border border-warning/30 text-warning flex items-center gap-2.5 text-meta">
       <AlertCircle size={16} class="shrink-0" />
       <span>More than 10,000 files matched. Results show the 10,000 largest files.</span>
     </div>
   {/if}
 
   {#if plan}
-    <Card class={`p-5 space-y-3 ${isExpired ? 'border-destructive/40 bg-destructive/5' : isExpiringSoon ? 'border-warning/50 bg-warning/10' : 'border-warning/30 bg-warning/5'}`}>
+    <Card class={`p-5 space-y-3 ${isExpired ? 'status-panel-destructive' : isExpiringSoon ? 'status-chip-warning' : 'status-panel-warning'}`}>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div class="text-sm font-semibold flex items-center gap-2">
@@ -438,7 +438,7 @@
               {formatCountdown(remainingSecs)}
             </span>
           </div>
-          <p class="text-xs text-muted-foreground mt-1">
+          <p class="text-meta text-muted-foreground mt-1">
             These files cannot be restored from Trash. {plan.item_count} selected item{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated
           </p>
         </div>
@@ -451,7 +451,7 @@
         </div>
       </div>
       {#if isExpired}
-        <div role="alert" class="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive flex items-center justify-between gap-2">
+        <div role="alert" class="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-meta text-destructive flex items-center justify-between gap-2">
           <span>Plan expired. Inventory is valid for 15 min — scan again to refresh.</span>
           <div class="flex gap-1.5">
             <Button id="large-files-expiry-action" variant="ghost" size="sm" onclick={() => { plan = null; void scanFiles(); }}>Scan again</Button>
@@ -531,7 +531,7 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <span class="text-xs font-medium truncate">{item.name}</span>
+                  <span class="text-meta font-medium truncate">{item.name}</span>
                   <span class="px-1.5 py-0.5 rounded text-micro bg-secondary text-muted-foreground border border-border/60">
                     {largeFileKindLabel(item.kind)}
                   </span>
@@ -544,7 +544,7 @@
                 </div>
               </div>
               <div class="text-right shrink-0">
-                <div class="text-xs font-semibold font-mono">{formatBytes(item.allocated_size)}</div>
+                <div class="text-meta font-semibold font-mono">{formatBytes(item.allocated_size)}</div>
                 {#if item.logical_size !== item.allocated_size}
                   <div class="text-micro text-muted-foreground font-mono">{formatBytes(item.logical_size)} logical</div>
                 {/if}
@@ -554,7 +554,7 @@
                 size="icon"
                 disabled={!canReveal()}
                 onclick={() => void runReveal(() => tauriRevealLargeFile(item.id), (message) => (error = message))}
-                ariaLabel={`Show ${item.name} in file manager`}
+                aria-label={`Show ${item.name} in file manager`}
                 title={canReveal() ? platformContextStore.revealLabel : revealUnavailableReason()}
               >
                 <FolderOpen size={14} />
@@ -568,7 +568,7 @@
   {:else if !isScanning}
     <Card class="py-14 text-center">
       <FileSearch size={26} class="mx-auto text-muted-foreground/50" />
-      <p class="mt-3 text-xs text-muted-foreground">
+      <p class="mt-3 text-meta text-muted-foreground">
         {scanResult ? 'No files matched this size threshold.' : 'No large-file scan yet.'}
       </p>
     </Card>

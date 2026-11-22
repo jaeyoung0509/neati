@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import type { PlanPreview, ScanItem } from '../models/types';
   import { summarizeCleanupReview } from '../utils/cleanupReview';
   import { formatBytes } from '../utils/format';
   import Button from './Button.svelte';
-  import { isFocusable, restoreFocus } from '../utils/focus';
-  import { trapDialogFocus } from '../utils/modalDialog';
+  import Dialog from './Dialog.svelte';
+  import { isFocusable } from '../utils/focus';
   import { platformContextStore } from '../stores/platformContext.svelte';
 
   let { plan, items = [], disabled = false, onCancel, onConfirm, returnFocusTarget }: {
@@ -17,7 +16,6 @@
     returnFocusTarget?: HTMLElement | null;
   } = $props();
   const id = $props.id();
-  let dialog: HTMLDialogElement;
   let summary = $derived(summarizeCleanupReview(plan, items));
   let hasRebuild = $derived(summary.groups.some(group => !group.consequence
     && group.targets.some(target => target.risk === 'rebuild')));
@@ -27,23 +25,6 @@
       ? `Some items move to ${platformContextStore.trashLabel}; others are deleted`
       : 'Delete permanently');
   let isConfirmed = false;
-
-  onMount(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
-    if (typeof dialog?.showModal === 'function') {
-      dialog.showModal();
-      dialog.focus({ preventScroll: true });
-    }
-    return () => {
-      if (dialog?.open) {
-        dialog.close();
-      }
-      if (!isConfirmed) {
-        const preferred = isFocusable(returnFocusTarget) ? returnFocusTarget : previousFocus;
-        restoreFocus(preferred);
-      }
-    };
-  });
 
   function handleConfirm() {
     isConfirmed = true;
@@ -55,16 +36,14 @@
   }
 </script>
 
-<dialog
-  use:trapDialogFocus
-  bind:this={dialog}
+<Dialog
+  onCancel={handleCancel}
+  returnFocusTarget={() => (isFocusable(returnFocusTarget) ? returnFocusTarget : null)}
+  restoreFocusOnClose={() => !isConfirmed}
+  layout="flex"
   id={id + '-dialog'}
-  aria-modal="true"
   aria-labelledby={id + '-title'}
   aria-describedby={id + '-description'}
-  tabindex="-1"
-  oncancel={(event) => { event.preventDefault(); handleCancel(); }}
-  class="m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)] overflow-hidden rounded-2xl border border-border bg-card p-0 text-foreground shadow-xl backdrop:bg-foreground/30 focus:outline-none open:flex open:flex-col"
 >
   <header class="shrink-0 border-b border-border p-5">
   <h2 id={id + '-title'} class="text-title font-semibold tracking-tight">Clean {plan.targets.length} {plan.targets.length === 1 ? 'item' : 'items'}?</h2>
@@ -123,4 +102,4 @@
     <Button variant="destructive" disabled={disabled || plan.targets.length === 0} onclick={handleConfirm}>Clean items</Button>
   </div>
   </footer>
-</dialog>
+</Dialog>

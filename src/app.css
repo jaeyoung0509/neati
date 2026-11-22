@@ -17,8 +17,6 @@
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-action: hsl(var(--action));
@@ -38,7 +36,6 @@
   --color-ai-foreground: hsl(var(--primary-foreground));
   --color-border: hsl(var(--border));
   --color-border-strong: hsl(var(--border-strong));
-  --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Segoe UI Mono", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", monospace;
@@ -65,14 +62,32 @@
   --radius-2xl: 1.25rem;
 }
 
+/* Motion: the duration and easing tokens from `:root`, as utilities, so
+   components never spell a literal millisecond value (#430). */
+@utility duration-instant { --tw-duration: var(--duration-instant); transition-duration: var(--duration-instant); }
+@utility duration-fast { --tw-duration: var(--duration-fast); transition-duration: var(--duration-fast); }
+@utility duration-normal { --tw-duration: var(--duration-normal); transition-duration: var(--duration-normal); }
+@utility duration-overlay { --tw-duration: var(--duration-overlay); transition-duration: var(--duration-overlay); }
+@utility ease-standard { --tw-ease: var(--ease-out-cubic); transition-timing-function: var(--ease-out-cubic); }
+
+/* Status surfaces: one border/background pair per tone (#430). A panel is a
+   low-emphasis box around explanatory content; a chip is a compact notice or
+   badge whose tint must read at small sizes. Text colour stays the caller's. */
+@utility status-panel-warning { border-color: hsl(var(--warning) / 0.3); background-color: hsl(var(--warning) / 0.05); }
+@utility status-panel-destructive { border-color: hsl(var(--destructive) / 0.3); background-color: hsl(var(--destructive) / 0.05); }
+@utility status-panel-success { border-color: hsl(var(--success) / 0.3); background-color: hsl(var(--success) / 0.05); }
+@utility status-panel-ai { border-color: hsl(var(--ai) / 0.3); background-color: hsl(var(--ai) / 0.05); }
+@utility status-chip-warning { border-color: hsl(var(--warning) / 0.3); background-color: hsl(var(--warning) / 0.1); }
+@utility status-chip-destructive { border-color: hsl(var(--destructive) / 0.3); background-color: hsl(var(--destructive) / 0.1); }
+@utility status-chip-success { border-color: hsl(var(--success) / 0.3); background-color: hsl(var(--success) / 0.1); }
+@utility status-chip-ai { border-color: hsl(var(--ai) / 0.3); background-color: hsl(var(--ai) / 0.1); }
+
 @layer base {
   :root {
     --background: 230 35% 97%;
     --foreground: 225 24% 17%;
     --card: 230 40% 99%;
     --card-foreground: 225 24% 17%;
-    --popover: 230 40% 99%;
-    --popover-foreground: 225 24% 17%;
     --primary: 215 76% 39%;
     --primary-foreground: 0 0% 100%;
     --action: 218 92% 90%;
@@ -98,10 +113,8 @@
     /* Essential boundaries (inputs, interactive chrome) clear 3:1 on white;
        decorative separators stay on --border, which is intentionally quieter. */
     --border-strong: 225 13% 49%;
-    --input: 225 13% 49%;
     /* Cobalt focus is visible against the warm page and white working surfaces. */
     --ring: 220 82% 36%;
-    --radius: 0.75rem;
     --glass-surface: 230 40% 97%;
     --glass-muted: 225 16% 25%;
     --glass-edge: 0 0% 100%;
@@ -113,6 +126,17 @@
     --duration-normal: 180ms;
     --duration-overlay: 200ms;
     --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+
+    /* Decorative spectrum, separate from semantic status colours. */
+    --cosmic-ice: 204 82% 65%;
+    --cosmic-cobalt: 221 78% 62%;
+    --cosmic-coral: 260 76% 82%;
+    --cosmic-line: 218 42% 57%;
+    --cosmic-night: 233 42% 28%;
+    --cosmic-surface: 225 60% 63%;
+    --cosmic-water: 211 85% 84%;
+    --cosmic-highlight: 238 80% 96%;
+    --cosmic-warm: 260 65% 75%;
   }
 
   .dark {
@@ -120,8 +144,6 @@
     --foreground: 230 35% 95%;
     --card: 222 20% 13%;
     --card-foreground: 230 35% 95%;
-    --popover: 222 20% 13%;
-    --popover-foreground: 230 35% 95%;
     --primary: 218 82% 76%;
     --primary-foreground: 224 48% 13%;
     --action: 220 74% 81%;
@@ -145,12 +167,16 @@
     --meter-track: 220 18% 23%;
     --border: 220 18% 25%;
     --border-strong: 220 20% 49%;
-    --input: 220 20% 49%;
     --ring: 217 88% 68%;
     --glass-surface: 222 24% 8%;
     --glass-muted: 220 14% 84%;
     --glass-edge: 220 20% 78%;
     --glass-opacity: 0.86;
+
+    --cosmic-ice: 205 76% 48%;
+    --cosmic-cobalt: 220 72% 60%;
+    --cosmic-coral: 260 62% 66%;
+    --cosmic-line: 218 46% 66%;
   }
 }
 
@@ -193,23 +219,6 @@
   transition-property: color, background-color, border-color, opacity, box-shadow, transform;
   transition-timing-function: var(--ease-out-cubic);
   transition-duration: var(--duration-instant);
-}
-
-.transition-motion-fast {
-  transition-property: color, background-color, border-color, opacity, transform;
-  transition-timing-function: var(--ease-out-cubic);
-  transition-duration: var(--duration-fast);
-}
-
-.transition-motion-normal {
-  transition-property: color, background-color, border-color, opacity, transform;
-  transition-timing-function: var(--ease-out-cubic);
-  transition-duration: var(--duration-normal);
-}
-
-.focus-ring:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 1px;
 }
 
 /* Group comparable rows inside one surface instead of nesting a card around
@@ -323,12 +332,19 @@ html.native-material-window #app {
 /* A bright working surface with restrained material on navigation chrome. */
 .dashboard-shell {
   isolation: isolate;
+  background-image:
+    radial-gradient(ellipse 65% 38% at 95% -8%, hsl(var(--cosmic-cobalt) / 0.15), transparent 75%),
+    radial-gradient(ellipse 38% 28% at 66% -7%, hsl(var(--cosmic-ice) / 0.12), transparent 75%);
 }
 
 .liquid-sidebar {
   --muted-foreground: var(--glass-muted);
   z-index: 1;
   background: hsl(var(--glass-surface) / var(--glass-opacity));
+  background-image:
+    linear-gradient(145deg, hsl(var(--glass-edge) / 0.18), transparent 38%),
+    radial-gradient(ellipse 120% 42% at 0% 0%, hsl(var(--cosmic-cobalt) / 0.16), transparent 72%),
+    radial-gradient(ellipse 100% 50% at 100% 70%, hsl(var(--cosmic-coral) / 0.16), transparent 75%);
   box-shadow: inset -1px 0 hsl(var(--glass-edge) / 0.42);
   -webkit-backdrop-filter: blur(22px) saturate(145%);
   backdrop-filter: blur(22px) saturate(145%);
@@ -348,9 +364,15 @@ html.native-material-window #app {
 }
 
 .overview-hero {
-  min-height: 140px;
-  padding: 20px 24px;
+  isolation: isolate;
+  min-height: 152px;
+  padding: 20px 220px 20px 24px;
   border-radius: var(--radius-2xl);
+  box-shadow: 0 5px 24px hsl(var(--cosmic-cobalt) / 0.06);
+  background-image:
+    radial-gradient(ellipse 44% 145% at 100% 110%, hsl(var(--cosmic-cobalt) / 0.12), transparent 72%),
+    radial-gradient(ellipse 36% 115% at 85% 0%, hsl(var(--cosmic-ice) / 0.13), transparent 72%),
+    radial-gradient(ellipse 30% 80% at 76% 100%, hsl(var(--cosmic-coral) / 0.08), transparent 72%);
 }
 
 .overview-hero-value {
@@ -444,53 +466,7 @@ html.native-material-window #app {
   }
 }
 
-@media (prefers-reduced-transparency: reduce) {
-  .liquid-sidebar,
-  .quick-liquid-shell,
-  .quick-liquid-chrome {
-    background: hsl(var(--secondary));
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
-
-/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 */
-/* Hallmark · genre: atmospheric utility · design-system: DESIGN.md · designed-as-app */
-/* Decorative spectrum is separate from semantic status colours. No animation. */
-@layer base {
-  :root {
-    --cosmic-ice: 204 82% 65%;
-    --cosmic-cobalt: 221 78% 62%;
-    --cosmic-coral: 260 76% 82%;
-    --cosmic-line: 218 42% 57%;
-    --cosmic-night: 233 42% 28%;
-    --cosmic-surface: 225 60% 63%;
-    --cosmic-water: 211 85% 84%;
-    --cosmic-highlight: 238 80% 96%;
-    --cosmic-warm: 260 65% 75%;
-  }
-
-  .dark {
-    --cosmic-ice: 205 76% 48%;
-    --cosmic-cobalt: 220 72% 60%;
-    --cosmic-coral: 260 62% 66%;
-    --cosmic-line: 218 46% 66%;
-  }
-}
-
-.dashboard-shell {
-  background-image:
-    radial-gradient(ellipse 65% 38% at 95% -8%, hsl(var(--cosmic-cobalt) / 0.15), transparent 75%),
-    radial-gradient(ellipse 38% 28% at 66% -7%, hsl(var(--cosmic-ice) / 0.12), transparent 75%);
-}
-
-.liquid-sidebar {
-  background-image:
-    linear-gradient(145deg, hsl(var(--glass-edge) / 0.18), transparent 38%),
-    radial-gradient(ellipse 120% 42% at 0% 0%, hsl(var(--cosmic-cobalt) / 0.16), transparent 72%),
-    radial-gradient(ellipse 100% 50% at 100% 70%, hsl(var(--cosmic-coral) / 0.16), transparent 75%);
-}
-
+/* Atmospheric decoration (no animation). Semantic status colours stay separate. */
 .native-material-window .dashboard-shell { background: transparent; }
 .native-material-window .dashboard-shell > main { background: hsl(var(--background)); }
 .native-material-window .liquid-sidebar {
@@ -510,17 +486,6 @@ html.native-material-window #app {
 
 .page-header {
   border-image: linear-gradient(90deg, hsl(var(--border)), hsl(var(--cosmic-cobalt) / 0.32), hsl(var(--cosmic-ice) / 0.18)) 1;
-}
-
-.overview-hero {
-  isolation: isolate;
-  min-height: 152px;
-  padding-right: 220px;
-  box-shadow: 0 5px 24px hsl(var(--cosmic-cobalt) / 0.06);
-  background-image:
-    radial-gradient(ellipse 44% 145% at 100% 110%, hsl(var(--cosmic-cobalt) / 0.12), transparent 72%),
-    radial-gradient(ellipse 36% 115% at 85% 0%, hsl(var(--cosmic-ice) / 0.13), transparent 72%),
-    radial-gradient(ellipse 30% 80% at 76% 100%, hsl(var(--cosmic-coral) / 0.08), transparent 72%);
 }
 
 .overview-ripples {
@@ -562,15 +527,17 @@ html.native-material-window #app {
   background: currentColor;
 }
 
-.quick-liquid-chrome {
-  background-image: none;
-}
-
 @media (prefers-reduced-transparency: reduce) {
-  .dashboard-shell,
   .liquid-sidebar,
-  .overview-hero,
+  .quick-liquid-shell,
   .quick-liquid-chrome {
+    background: hsl(var(--secondary));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .dashboard-shell,
+  .overview-hero {
     background-image: none;
   }
 

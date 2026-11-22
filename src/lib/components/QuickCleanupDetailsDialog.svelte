@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { trapDialogFocus } from '../utils/modalDialog';
   import type { ScanResult } from '../models/types';
   import { quickCleanupDetails } from '../utils/quickCleanupDetails';
   import Button from './Button.svelte';
+  import Dialog from './Dialog.svelte';
 
   let { scan, quickEligibleCount, busy = false, onClose, onReview, onRescan }: {
     scan: ScanResult;
@@ -14,26 +13,16 @@
     onRescan: () => void;
   } = $props();
   const id = $props.id();
-  let dialog: HTMLDialogElement;
   let details = $derived(quickCleanupDetails(scan, quickEligibleCount));
 
-  onMount(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
-    dialog.showModal();
-    return () => {
-      if (dialog.open) dialog.close();
-      if (previousFocus?.isConnected) previousFocus.focus();
-    };
-  });
 </script>
 
-<dialog
-  use:trapDialogFocus
-  bind:this={dialog}
+<Dialog
+  onCancel={onClose}
+  size="sm"
+  density="compact"
   aria-labelledby={id + '-title'}
   aria-describedby={id + '-description'}
-  oncancel={(event) => { event.preventDefault(); onClose(); }}
-  class="m-auto w-[calc(100%-1.5rem)] max-w-sm max-h-[calc(100%-1.5rem)] overflow-y-auto scroll-stable rounded-2xl border border-border bg-card p-4 text-foreground shadow-xl backdrop:bg-foreground/30 focus:outline-none"
 >
   <h2 id={id + '-title'} class="text-body font-semibold">Cleanup details</h2>
   <p id={id + '-description'} class="mt-2 text-meta leading-snug text-muted-foreground">
@@ -75,4 +64,4 @@
     <Button size="sm" variant="secondary" disabled={busy} onclick={onRescan}>Scan Again</Button>
     <Button size="sm" variant="primary" onclick={onReview}>Open Storage</Button>
   </div>
-</dialog>
+</Dialog>

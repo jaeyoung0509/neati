@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { cn } from '../utils/cn';
 
   interface Props {
     /**
@@ -9,10 +10,9 @@
     surface?: 'card' | 'subtle' | 'plain';
     class?: string;
     children?: Snippet;
-    onclick?: () => void;
   }
 
-  let { surface = 'card', class: className = '', children, onclick }: Props = $props();
+  let { surface = 'card', class: className = '', children }: Props = $props();
 
   const surfaceStyles = {
     card: 'bg-card text-card-foreground border border-border',
@@ -21,12 +21,9 @@
   };
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div
-  class="rounded-xl p-4 {surfaceStyles[surface]} {className}"
-  {onclick}
->
+<!-- A card is a static surface. Interactive content goes in a Button or a
+     native link inside it, so every action stays keyboard reachable. -->
+<div class={cn('rounded-xl p-4', surfaceStyles[surface], className)}>
   {#if children}
     {@render children()}
   {/if}

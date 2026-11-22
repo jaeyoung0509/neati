@@ -221,7 +221,7 @@
         variant="ghost"
         size="sm"
         class="gap-1.5"
-        ariaLabel="Refresh system readings"
+        aria-label="Refresh system readings"
         disabled={refreshing}
         onclick={() => void refreshReadings()}
       >
@@ -254,7 +254,7 @@
       {/if}
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <Button variant="primary" size="md" onclick={reviewResources} ariaExpanded={reviewOpen} ariaControls="overview-resource-review" ariaLabel={reviewOpen ? "Close resource review" : "Review storage and running apps"}>
+      <Button variant="primary" size="md" onclick={reviewResources} aria-expanded={reviewOpen} aria-controls="overview-resource-review" aria-label={reviewOpen ? "Close resource review" : "Review storage and running apps"}>
         {reviewOpen ? 'Close review' : 'Review resources'}
       </Button>
       {#if (cleanupState === 'ready' || cleanupState === 'partial') && scanStore.selectedCount > 0}
@@ -267,7 +267,7 @@
         size="md"
         disabled={!cleanupAvailable}
         onclick={() => onNavigateTab?.('storage')}
-        ariaLabel={cleanupActionLabel === 'Open Storage' ? cleanupActionLabel : `${cleanupActionLabel} in Storage`}
+        aria-label={cleanupActionLabel === 'Open Storage' ? cleanupActionLabel : `${cleanupActionLabel} in Storage`}
         class="gap-1.5"
       >
         <span>{cleanupActionLabel}</span>
@@ -402,7 +402,7 @@
     </div>
     <div class="flex items-center gap-2 shrink-0">
       {#if awakeAvailable && awake.is_active}
-        <Button variant="secondary" size="sm" onclick={() => void awakeStore.disableManual()} ariaLabel="Stop keeping this Mac awake">
+        <Button variant="secondary" size="sm" onclick={() => void awakeStore.disableManual()} aria-label="Stop keeping this Mac awake">
           <span>Stop</span>
         </Button>
       {:else}
@@ -411,12 +411,12 @@
           size="sm"
           disabled={!awakeAvailable || awakeStore.isLoading}
           onclick={() => void awakeStore.setManual(3600, 'prevent_system_sleep')}
-          ariaLabel="Keep this Mac awake for one hour"
+          aria-label="Keep this Mac awake for one hour"
         >
           <span>Keep awake 1 h</span>
         </Button>
       {/if}
-      <Button variant="ghost" size="sm" onclick={() => onNavigateTab?.('awake')} ariaLabel="Open Keep Awake">
+      <Button variant="ghost" size="sm" onclick={() => onNavigateTab?.('awake')} aria-label="Open Keep Awake">
         <span>Open</span>
       </Button>
     </div>

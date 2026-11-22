@@ -49,7 +49,7 @@
         {#if loading}
           <span class="inline-flex h-5 shrink-0 items-center gap-1.5 text-caption text-muted-foreground"><LoadingIndicator size="xs" class="text-primary" />Loading</span>
         {:else}
-          <span class="shrink-0 text-caption px-2 py-0.5 rounded-md border {provider.connected ? 'border-success/25 bg-success/10 text-success' : provider.support === 'local' ? 'border-ai/25 bg-ai/10 text-ai' : 'border-border text-muted-foreground'}">
+          <span class="shrink-0 text-caption px-2 py-0.5 rounded-md border {provider.connected ? 'status-chip-success text-success' : provider.support === 'local' ? 'status-chip-ai text-ai' : 'border-border text-muted-foreground'}">
             {provider.collection_status && provider.collection_status !== 'fresh'
               ? provider.collection_status === 'signed_out' ? 'Sign-in required' : 'Usage unavailable'
               : provider.connected ? 'Connected' : provider.support === 'manual' ? 'Manual' : 'Available'}

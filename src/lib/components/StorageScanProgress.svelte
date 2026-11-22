@@ -42,7 +42,7 @@
         </p>
       </div>
     </div>
-    <Button variant="outline" size="sm" motion="paint" disabled={scanStore.isCancelling || !scanStore.scanId} title={!scanStore.scanId ? 'Waiting for the scan to start.' : undefined} onclick={() => void scanStore.cancelScan()} ariaLabel={scanStore.isCancelling ? 'Stopping scan' : 'Stop scan'} class="shrink-0 gap-1.5">
+    <Button variant="outline" size="sm" motion="paint" disabled={scanStore.isCancelling || !scanStore.scanId} title={!scanStore.scanId ? 'Waiting for the scan to start.' : undefined} onclick={() => void scanStore.cancelScan()} aria-label={scanStore.isCancelling ? 'Stopping scan' : 'Stop scan'} class="shrink-0 gap-1.5">
       <Square size={12} aria-hidden="true" /><span>{scanStore.isCancelling ? 'Stopping…' : 'Stop scan'}</span>
     </Button>
   </div>

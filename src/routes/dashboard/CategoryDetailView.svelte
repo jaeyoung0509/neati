@@ -134,11 +134,11 @@
       </Button>
       <div>
         <div class="flex items-center gap-2">
-          <h2 class="text-base font-semibold text-foreground tracking-tight">
+          <h2 class="text-sm font-semibold text-foreground tracking-tight">
             {categoryResult.display_name}
           </h2>
         </div>
-        <p class="text-xs text-muted-foreground">
+        <p class="text-meta text-muted-foreground">
           {presentedCount} {presentedCount === 1 ? 'item' : 'items'} · {summary.cleanable_bytes > 0 ? `${formatBytes(summary.cleanable_bytes)} ${estimateLabels.current ? 'can be cleaned' : estimateLabels.categoryLabel.toLowerCase()}` : summary.cleanable_count > 0 ? 'Reclaim size not estimated' : emptyCategoryMessage(summary, categoryResult.quality, categoryResult.category)}
         </p>
       </div>
@@ -151,7 +151,7 @@
         disabled={cleanableFilteredItems.length === 0 || !scanStore.canClean}
         title={selectFilteredTitle}
         onclick={toggleAllFiltered}
-        class="gap-1.5 text-xs"
+        class="gap-1.5 text-meta"
       >
         {#if allFilteredSelected}
           <Square size={13} />
@@ -179,7 +179,7 @@
 
   <!-- Adapter Quick Link Banners for Stateful Categories -->
   {#if categoryResult.category === 'model'}
-    <div class="flex items-center justify-between p-3.5 rounded-xl border border-warning/25 bg-warning/10 text-warning text-xs">
+    <div class="flex items-center justify-between p-3.5 rounded-xl border status-chip-warning text-warning text-meta">
       <div class="flex items-center gap-2.5">
         <Boxes size={16} class="text-warning shrink-0" />
         <span>Local models are stateful assets. Manage, inspect, or delete them safely in the Local Models manager.</span>
@@ -188,7 +188,7 @@
         <Button
           variant="outline"
           size="sm"
-          class="border-warning/40 text-warning hover:bg-warning/20 text-xs shrink-0"
+          class="border-warning/40 text-warning hover:bg-warning/20 text-meta shrink-0"
           onclick={() => onNavigateTab('models')}
         >
           <span>Open Local Models →</span>
@@ -196,7 +196,7 @@
       {/if}
     </div>
   {:else if categoryResult.category === 'container'}
-    <div class="flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary text-foreground text-xs">
+    <div class="flex items-center justify-between p-3.5 rounded-xl border border-border bg-secondary text-foreground text-meta">
       <div class="flex items-center gap-2.5">
         <Container size={16} class="text-primary shrink-0" />
         <span>Docker and OrbStack data are stateful resources. neati reports their storage without deleting it; use the owning container manager for changes.</span>
@@ -205,7 +205,7 @@
         <Button
           variant="outline"
           size="sm"
-          class="text-xs shrink-0"
+          class="text-meta shrink-0"
           onclick={() => onNavigateTab('docker')}
         >
           <span>Open Containers →</span>
@@ -216,9 +216,9 @@
 
   <!-- Cleaning In Progress Bar -->
   {#if scanStore.isCleaning}
-    <Card class="p-3.5 bg-secondary/60 border-primary/40 transition-colors duration-200">
+    <Card class="p-3.5 bg-secondary/60 border-primary/40 transition-colors duration-normal">
       <div class="space-y-1.5" role="status">
-        <div class="flex items-center justify-between gap-3 text-xs">
+        <div class="flex items-center justify-between gap-3 text-meta">
           <span class="min-w-0 font-medium text-foreground flex items-center gap-2">
             <LoadingIndicator size="xs" word="cleaning" motion="flow" />
             <span class="min-w-0 break-words">Cleaning: {scanStore.cleanProgress.currentItem}</span>
@@ -234,7 +234,7 @@
 
   <!-- Error Alert -->
   {#if scanStore.error}
-    <div class="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive flex items-center gap-2.5 text-xs">
+    <div class="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive flex items-center gap-2.5 text-meta">
       <AlertCircle size={15} class="shrink-0" />
       <span>{scanStore.error}</span>
     </div>
@@ -253,7 +253,7 @@
         bind:value={searchQuery}
         aria-label="Filter cleanup items by name or path"
         placeholder="Filter by name or path..."
-        class="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        class="w-full h-8 pl-8 pr-3 text-meta rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       />
     </div>
 
@@ -262,7 +262,7 @@
         <select
           bind:value={sortMode}
           aria-label="Sort cleanup items"
-          class="h-8 rounded-lg border border-border bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          class="h-8 rounded-lg border border-border bg-card px-2.5 text-meta text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
           <option value="size">Largest first</option>
           <option value="modified">Recently modified</option>
@@ -286,7 +286,7 @@
       {/each}
     </div>
   {:else}
-    <div class="py-16 text-center text-xs text-muted-foreground">
+    <div class="py-16 text-center text-meta text-muted-foreground">
       No items match your search.
     </div>
   {/if}

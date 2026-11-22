@@ -41,7 +41,7 @@
   opened = event.currentTarget.open;
   if (opened && !inventory && !loading && !error) void refresh();
 }}>
-  <summary class="cursor-pointer px-4 py-3 text-sm font-medium focus-ring">
+  <summary class="cursor-pointer px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
     Review possible app leftovers
     <span class="ml-2 text-caption font-normal text-muted-foreground">Read-only</span>
   </summary>
@@ -53,8 +53,8 @@
           <RefreshCw size={14} aria-hidden="true" />{loading ? 'Inspecting…' : 'Refresh review'}
         </Button>
       </div>
-      {#if error}<InlineNotice variant="error" title="Resource review unavailable" message={error} />{/if}
-      {#if revealError}<InlineNotice variant="error" title="Could not reveal resource" message={revealError} />{/if}
+      {#if error}<InlineNotice variant="destructive" title="Resource review unavailable" message={error} />{/if}
+      {#if revealError}<InlineNotice variant="destructive" title="Could not reveal resource" message={revealError} />{/if}
       {#if loading}<p class="text-meta text-muted-foreground" role="status">Inspecting named user Library locations and application identities…</p>{/if}
       {#if inventory}
         {#if loading || error}<p class="text-meta text-muted-foreground">Showing the previous observation; a fresh review has not completed.</p>{/if}
@@ -82,7 +82,7 @@
                   </span>
                 </div>
                 <details class="text-meta">
-                  <summary class="w-fit cursor-pointer text-muted-foreground focus-ring">Evidence and location</summary>
+                  <summary class="w-fit cursor-pointer text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Evidence and location</summary>
                   <div class="mt-2 space-y-2">
                     <p class="max-w-prose text-muted-foreground">{item.evidence}</p>
                     {#if item.owner_names.length}<p class="text-muted-foreground">Matched owners: {item.owner_names.join(', ')}</p>{/if}
@@ -99,7 +99,7 @@
           </ul>
         {/if}
         {#if inventory.incomplete_reasons.length > 1}
-          <details class="text-meta text-muted-foreground"><summary class="cursor-pointer focus-ring">Inspection limits</summary>
+          <details class="text-meta text-muted-foreground"><summary class="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Inspection limits</summary>
             <ul class="mt-2 list-disc space-y-1 pl-4">{#each inventory.incomplete_reasons as reason}<li>{reason}</li>{/each}</ul>
           </details>
         {/if}

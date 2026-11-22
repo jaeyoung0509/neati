@@ -219,3 +219,93 @@ describe('design-system source contracts', () => {
     }
   });
 });
+
+describe('shared primitive adoption (#430)', () => {
+  const read = (path: string) => readFileSync(`${srcRoot}/${path}`, 'utf8');
+  const productFiles = svelteFiles.filter((path) => !path.startsWith('test/'));
+
+  it('renders every modal through the shared Dialog primitive', () => {
+    const owner = 'lib/components/Dialog.svelte';
+    const violations = productFiles.filter((path) => path !== owner && /<dialog[\s>]/.test(read(path)));
+    expect(violations).toEqual([]);
+    expect(read(owner)).toContain('use:modalDialog');
+  });
+});
+
+describe('status surface recipes (#430)', () => {
+  const read = (path: string) => readFileSync(`${srcRoot}/${path}`, 'utf8');
+  const productFiles = svelteFiles.filter((path) => !path.startsWith('test/'));
+  it('uses one status-panel or status-chip recipe instead of hand-built tone pairs', () => {
+    const pair = /(?<![\w:-])(?:border-(warning|destructive|success|ai)\/\d+ bg-\1\/\d+|bg-(warning|destructive|success|ai)\/\d+ border-\2\/\d+)(?![\w/])/;
+    expect(productFiles.filter((path) => pair.test(read(path)))).toEqual([]);
+  });
+  it('keeps one name per tone in Badge and InlineNotice', () => {
+    expect(read('lib/components/Badge.svelte')).not.toMatch(/\bdanger\b/);
+    expect(read('lib/components/InlineNotice.svelte')).not.toMatch(/["']error["']/);
+  });
+});
+
+describe('motion tokens (#430)', () => {
+  const read = (path: string) => readFileSync(`${srcRoot}/${path}`, 'utf8');
+  it('uses duration and easing tokens instead of literal transition values', () => {
+    const literal = /(?<![\w-])(?:duration-\d+|ease-\[)/;
+    expect(svelteFiles.filter((path) => !path.startsWith('test/') && literal.test(read(path)))).toEqual([]);
+  });
+});
+
+describe('Button, focus and Card primitives (#430)', () => {
+  const read = (path: string) => readFileSync(`${srcRoot}/${path}`, 'utf8');
+  it('keeps Button sizes distinct and forwards native attributes', () => {
+    const button = read('lib/components/Button.svelte');
+    expect(button).not.toMatch(/\blg:/);
+    expect(button).toContain('{...rest}');
+    expect(button).toContain('cn(');
+  });
+  it('uses one focus recipe instead of the retired .focus-ring helper', () => {
+    expect(read('app.css')).not.toContain('.focus-ring');
+    expect(svelteFiles.filter((path) => /(?<![\w:-])focus-ring(?![\w-])/.test(read(path)))).toEqual([]);
+  });
+  it('keeps Card a static surface without click handling', () => {
+    const card = read('lib/components/Card.svelte');
+    expect(card).not.toContain('onclick');
+    expect(card).not.toContain('svelte-ignore');
+  });
+});
+
+describe('app.css structure (#430)', () => {
+  const css = readFileSync(`${srcRoot}/app.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  it('defines each single-selector rule once per media or container context', () => {
+    const stack: string[] = [];
+    const counts = new Map<string, number>();
+    let buffer = '';
+    for (const char of css) {
+      if (char === '{') { stack.push(buffer.trim()); buffer = ''; continue; }
+      if (char === '}') {
+        const header = stack.pop() ?? '';
+        if (header && !header.startsWith('@') && !header.includes(',')) {
+          const context = stack.filter((entry) => /^@(media|container|supports)/.test(entry)).join(' | ');
+          const key = `${context} :: ${header}`;
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+        buffer = '';
+        continue;
+      }
+      buffer += char;
+    }
+    expect([...counts].filter(([, count]) => count > 1).map(([key]) => key)).toEqual([]);
+  });
+  it('carries no unused theme tokens', () => {
+    expect(css).not.toMatch(/--(?:popover|input|radius):/);
+    expect(css).not.toMatch(/--color-(?:popover|input)\b/);
+  });
+});
+
+describe('typography scale (#430)', () => {
+  it('uses only the named type steps from DESIGN.md', () => {
+    const offScale = /(?<![\w-])(?:[a-z]+:)?text-(?:xs|base|lg|xl|[2-9]xl)(?![\w-])/;
+    const violations = svelteFiles.filter((path) =>
+      !path.startsWith('test/') && offScale.test(readFileSync(`${srcRoot}/${path}`, 'utf8'))
+    );
+    expect(violations).toEqual([]);
+  });
+});

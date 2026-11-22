@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingState from '../../lib/components/LoadingState.svelte';
   import { onMount } from 'svelte';
   import { dockerStore } from '../../lib/stores/docker.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
@@ -64,7 +65,7 @@
         <Badge variant="success">Daemon Running</Badge>
       {:else if status?.is_available}
         <Badge variant="warning">Daemon Stopped</Badge>
-      {:else}
+      {:else if status}
         <Badge variant="secondary">Not Installed</Badge>
       {/if}
     {/snippet}
@@ -93,7 +94,9 @@
     />
   {/if}
 
-  {#if !status?.is_running}
+  {#if !status && !dockerStore.error}
+    <LoadingState message="Checking Docker…" word="scanning" />
+  {:else if !status?.is_running}
     <EmptyState
       icon={Container}
       title="Docker Daemon is Inactive"

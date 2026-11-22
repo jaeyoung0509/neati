@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingState from '../../lib/components/LoadingState.svelte';
   import { onMount } from 'svelte';
   import type { DevelopmentListener } from '../../lib/models/types';
   import {
@@ -227,7 +228,9 @@
                   onclick={() => openReleaseDialog(listener)}
                   title={isWindows ? `Force release port ${listener.port}` : `Request graceful release of port ${listener.port}`}
                 >
-                  <LogOut size={12} /> Release
+                  <LoadingActionContent busy={developmentPortsStore.releasingId === listener.id} busyLabel="Releasing" word="working">
+                    <LogOut size={12} /> Release
+                  </LoadingActionContent>
                 </Button>
               {:else}
                 <span class="inline-flex cursor-help items-center gap-1 rounded bg-secondary/40 px-2 py-1 text-meta font-medium text-muted-foreground" title={listener.blocked_reason || 'Protected process cannot be released'}>
@@ -244,6 +247,8 @@
       <p class="text-meta text-muted-foreground">No development servers matching "{searchQuery}"</p>
       <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')} class="text-meta">Clear Search</Button>
     </div>
+  {:else if !developmentPortsStore.hasLoaded}
+    <LoadingState message="Checking listening ports…" word="scanning" />
   {:else}
     <EmptyState
       icon={Server}

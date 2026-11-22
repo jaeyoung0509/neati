@@ -162,7 +162,7 @@ there; it does not execute or rewrite the configuration it finds.
   [CODE_SIGNING_POLICY.md](../CODE_SIGNING_POLICY.md). Do not assume
   operating-system attestation of the binary. Release trust currently rests on
   published SHA256 checksums, GitHub build provenance attestation, SPDX SBOMs,
-  and a recorded Microsoft endpoint-protection review. Those bind an artifact
+  and, for Windows installers, a recorded Microsoft endpoint-protection review. Those bind an artifact
   to this repository, workflow, and commit, but none of them make the binary's
   behavior trustworthy to the operating system, and none of them confer
   SmartScreen reputation.

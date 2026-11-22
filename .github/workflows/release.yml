@@ -423,11 +423,14 @@ jobs:
     if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.release-mac.result == 'success' && needs.attest-provenance.result == 'success' && (needs.release-windows.result == 'success' || needs.release-windows.result == 'skipped') }}
     needs: [release-mac, release-windows, attest-provenance]
     runs-on: ubuntu-latest
-    # Manual approval gate. The maintainer submits the built installers to
-    # Microsoft's endpoint-protection analysis, then records the result in this
-    # environment's variables (ENDPOINT_REVIEW_STATUS, ENDPOINT_REVIEW_REFERENCE,
+    # Manual approval gate for Windows installers. When a release carries them,
+    # the maintainer submits them to Microsoft's endpoint-protection analysis,
+    # then records the result in this environment's variables
+    # (ENDPOINT_REVIEW_STATUS, ENDPOINT_REVIEW_REFERENCE,
     # ENDPOINT_REVIEW_REVIEWER, ENDPOINT_REVIEW_DATE) and approves the gate. A
-    # detection, or a missing or mismatched record, blocks publication.
+    # detection, or a missing or mismatched record, blocks publication. A
+    # macOS-only release (Windows paused, #445) has nothing to submit and skips
+    # the record and its verification.
     environment:
       name: release-approval
     permissions:
@@ -461,7 +464,11 @@ jobs:
           echo "RELEASE_INSTALLERS=$INSTALLERS" >> "$GITHUB_ENV"
           echo "RELEASE_CHECKSUMS=$CHECKSUMS" >> "$GITHUB_ENV"
 
+      # The endpoint-protection review is a submission of the Windows installers
+      # (CODE_SIGNING_POLICY.md). With no Windows build there is nothing to submit,
+      # so the record and its verification run only when Windows was published.
       - name: Record endpoint-protection submission result
+        if: env.WINDOWS_PUBLISHED == 'true'
         env:
           ENDPOINT_REVIEW_STATUS: ${{ vars.ENDPOINT_REVIEW_STATUS }}
           ENDPOINT_REVIEW_REFERENCE: ${{ vars.ENDPOINT_REVIEW_REFERENCE }}
@@ -490,6 +497,7 @@ jobs:
           (cd artifacts && shasum -a 256 -c SHA256SUMS.txt)
 
       - name: Verify endpoint-protection review before publishing
+        if: env.WINDOWS_PUBLISHED == 'true'
         run: |
           node scripts/endpoint_review.cjs verify \
             --review artifacts/endpoint-review.json \
@@ -516,8 +524,6 @@ jobs:
 
           The macOS ARM64 build is not notarized with an Apple Developer ID. macOS Gatekeeper blocks the first launch until the user chooses **Open Anyway** in System Settings → Privacy & Security. Verify the published SHA256 checksum before overriding the warning.
 
-          Each installer was submitted to Microsoft's endpoint-protection analysis before publication. `endpoint-review.json` records the reviewed outcome for these exact bytes, and a detection blocks publication.
-
           Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/neati`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
 
           neati performs no background network activity for updates. On macOS, Settings → Updates can check this repository's signed release manifest when you press Check now, or once per launch if you turn that on; the update archive is verified against the minisign key built into neati before it replaces the app. Windows builds do not self-update: open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
@@ -525,6 +531,8 @@ jobs:
           NOTES
             if [ "${WINDOWS_PUBLISHED}" = "true" ]; then
               cat <<'NOTES'
+          Each installer was submitted to Microsoft's endpoint-protection analysis before publication. `endpoint-review.json` records the reviewed outcome for these exact bytes, and a detection blocks publication.
+
           The Windows x64 NSIS installers are not yet code signed. Windows users should expect Microsoft Defender SmartScreen to show an unknown-publisher warning; verify the published SHA256 checksum before running either installer.
 
           SignPath Foundation issues organization-validated certificates. That establishes a verifiable publisher identity, but it does not transfer SmartScreen reputation, so the unknown-publisher warning is expected to persist after the first signed release until the certificate builds reputation on its own.

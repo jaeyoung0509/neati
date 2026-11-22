@@ -168,8 +168,15 @@ from the exact bytes that are uploaded.
 
 ## Endpoint-protection review gate
 
-The release process submits the built installers to Microsoft's
-endpoint-protection analysis before publication. The analysis is performed
+The gate applies to the Windows installers. While Windows builds are paused
+(#445) a release publishes the macOS build only: there is nothing to submit, the
+record and verification steps do not run, no `endpoint-review.json` is
+published, and the release notes make no endpoint-review claim. macOS trust for
+such a release rests on the checksums, the build provenance attestation, the
+SBOM and the updater signature, not on this gate.
+
+When a release carries Windows installers, the release process submits them to
+Microsoft's endpoint-protection analysis before publication. The analysis is performed
 manually through the vendor portal; it cannot run automatically in CI, so the
 gate is explicit about who does what:
 
@@ -194,7 +201,9 @@ gate is explicit about who does what:
 What blocks publication: a recorded detection, a missing or unset
 `ENDPOINT_REVIEW_STATUS`, an unreadable or malformed record, a version or commit
 mismatch, or any artifact whose bytes differ from the reviewed ones. The gate
-fails closed, and the release environment must not be bypassed.
+fails closed, and the release environment must not be bypassed. Required
+reviewers must be configured on `release-approval` before Windows publication
+resumes; a macOS-only release does not depend on them.
 
 ## Team roles
 

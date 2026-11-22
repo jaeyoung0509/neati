@@ -216,6 +216,39 @@ const CORPUS: &[Entry] = &[
         "Library/Application Support/Steam/config/htmlcache/Default/Login Data",
         "embedded browser saved sign-ins",
     ),
+    // An Electron session partition keeps the default session's caches one
+    // level deeper, beside its own sign-in and storage (#482).
+    regen(
+        "Library/Application Support/com.example.chat/Partitions/persist-main/Cache/Cache_Data/0a1b2c3d4e5f6071_0",
+        128 * KB,
+        "partition HTTP cache",
+    ),
+    regen(
+        "Library/Application Support/com.example.chat/Partitions/persist-main/Code Cache/js/1a2b3c4d5e6f7081_0",
+        64 * KB,
+        "partition code cache",
+    ),
+    regen(
+        "Library/Application Support/com.example.chat/Partitions/persist-main/GPUCache/data_1",
+        16 * KB,
+        "partition GPU cache",
+    ),
+    keep(
+        "Library/Application Support/com.example.chat/Partitions/persist-main/Cookies",
+        "partition cookies",
+    ),
+    keep(
+        "Library/Application Support/com.example.chat/Partitions/persist-main/Local Storage/leveldb/000003.log",
+        "partition web storage",
+    ),
+    keep(
+        "Library/Application Support/com.example.chat/Partitions/persist-main/IndexedDB/https_app.example.com_0.indexeddb.leveldb/000003.log",
+        "partition database",
+    ),
+    keep(
+        "Library/Application Support/com.example.chat/Partitions/persist-main/Service Worker/CacheStorage/0a1b/index",
+        "offline web app state",
+    ),
     regen(
         "Library/Application Support/Adobe/Common/Media Cache Files/clip 48000.cfa",
         256 * KB,
@@ -576,6 +609,9 @@ fn accuracy_matches_the_recorded_baseline() {
 ///   plugin cache is a configured location, not a default one, so it still has
 ///   no entry (128 KB). Expo's row moved out of the corpus: its guard is the
 ///   shared `node` executable.
+/// - 2026-11-22, #482: an Electron session partition's HTTP, code and GPU
+///   caches are reclaimed (208 KB); its cookies, Local Storage, IndexedDB and
+///   Service Worker storage are kept.
 fn baseline() -> Accuracy {
     Accuracy {
         preselected_false_positives: Vec::new(),
@@ -613,7 +649,10 @@ fn baseline() -> Accuracy {
             + 16
             + 64
             + 64
-            + 32)
+            + 32
+            + 128
+            + 64
+            + 16)
             * KB,
     }
 }

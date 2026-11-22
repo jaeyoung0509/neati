@@ -83,13 +83,19 @@ and AI usage snapshots use a short backend cache.
 
 ## Public Beta Installation
 
-neati is distributed as a public beta for Apple Silicon (ARM64) Macs and
-Windows x64. Pre-built `.dmg` and NSIS `.exe` installers, an SPDX software bill
-of materials, SHA256 checksums, build metadata, a recorded endpoint-protection
-review, and GitHub build provenance attestation are available under
+neati is distributed as a public beta for Apple Silicon (ARM64) Macs. A
+pre-built `.dmg`, an SPDX software bill of materials, SHA256 checksums, build
+metadata, a recorded endpoint-protection review, and GitHub build provenance
+attestation are available under
 [GitHub Releases](https://github.com/jaeyoung0509/neati/releases).
 
-### Windows x64
+> **Windows is paused (2026-11-22, #445).** While neati prepares its macOS
+> launch, Windows builds are not produced, tested in CI, or published. The
+> Windows source and the workflow jobs are kept and can be re-enabled; the
+> section below describes the installers of earlier releases, which receive no
+> fixes.
+
+### Windows x64 (paused)
 
 Two NSIS installers are published for Windows x64:
 
@@ -326,9 +332,12 @@ just build-fast        # macOS: debug .app bundle
 ### What CI does and does not verify
 
 CI verifies frontend typecheck, Vitest, binding drift, and the Vite build; Rust
-formatting, clippy, unit and safety tests on macOS and Windows x64; packaging
-smoke builds for macOS and Windows; the declared MSRV build with Rust 1.95.0;
-and locked-dependency audits for both ecosystems. On Windows it also silently
+formatting, clippy, unit and safety tests on macOS; a packaging smoke build for
+macOS; the declared MSRV build with Rust 1.95.0; and locked-dependency audits
+for both ecosystems. The Windows jobs (Rust checks, Windows-target MSRV and
+packaging smoke) are paused behind the `WINDOWS_SUPPORT` repository variable
+and do not run, so nothing below about Windows is currently verified. When
+enabled, on Windows it also silently
 installs the per-user installer, runs `Neati --doctor`, requires every
 self-check to pass, silently uninstalls, and fails if the install directory
 survives, and the machine-wide installer runs the same gate with its install scope asserted. The same job builds both installers.

@@ -124,11 +124,7 @@ pub fn is_protected_process(
         "system",
         "ctfmon",
     ];
-    if matches_any(SYSTEM) {
-        return true;
-    }
-
-    false
+    matches_any(SYSTEM)
 }
 
 #[cfg(test)]

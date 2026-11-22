@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingState from '../../lib/components/LoadingState.svelte';
   import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { onMount, tick } from 'svelte';
   import type {
@@ -77,6 +78,7 @@
   let query = $state('');
   let isLoading = $state(false);
   let isInspecting = $state(false);
+  let inspectingName = $state('');
   let isPreparing = $state(false);
   let isExecuting = $state(false);
   // svelte-ignore state_referenced_locally
@@ -202,6 +204,7 @@
   async function inspectApp(app: InstalledApp) {
     if (app.is_running || app.is_system_protected) return;
     isInspecting = true;
+    inspectingName = app.name;
     error = null;
     revealError = null;
     plan = null;
@@ -477,7 +480,9 @@
       aria-label="Application details"
       tabindex="0"
     >
-      {#if inspection}
+      {#if isInspecting}
+        <LoadingState message={`Inspecting ${inspectingName}…`} detail="Finding the app's related data with exact bundle and name matches." />
+      {:else if inspection}
         <Card class="p-5 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div class="min-w-0">
@@ -560,10 +565,12 @@
                   </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <Button variant="ghost" size="sm" onclick={() => (plan = null)}>Cancel</Button>
+                  <Button variant="ghost" size="sm" disabled={isExecuting} onclick={() => (plan = null)}>Cancel</Button>
                   <Button variant="destructive" size="md" onclick={executeUninstall} disabled={isExecuting || isExpired} class="gap-1.5" title={isExpired ? 'Plan expired — review again' : ''}>
-                    <Trash2 size={14} />
-                    {isExecuting ? 'Deleting…' : isExpired ? 'Expired' : 'Permanently delete app'}
+                    <LoadingActionContent busy={isExecuting} busyLabel="Deleting…" word="cleaning">
+                      <Trash2 size={14} />
+                      {isExpired ? 'Expired' : 'Permanently delete app'}
+                    </LoadingActionContent>
                   </Button>
                 </div>
               </div>

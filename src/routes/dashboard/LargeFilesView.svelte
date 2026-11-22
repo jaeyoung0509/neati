@@ -439,10 +439,12 @@
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onclick={() => (plan = null)}>Cancel</Button>
+          <Button variant="ghost" size="sm" disabled={isExecuting} onclick={() => (plan = null)}>Cancel</Button>
           <Button variant="destructive" size="md" onclick={executeRemoval} disabled={isExecuting || isExpired} class="gap-1.5" title={isExpired ? 'Plan expired — prepare again' : ''}>
-            <Trash2 size={14} />
-            {isExecuting ? 'Deleting…' : isExpired ? 'Expired' : 'Permanently delete files'}
+            <LoadingActionContent busy={isExecuting} busyLabel="Deleting…" word="cleaning">
+              <Trash2 size={14} />
+              {isExpired ? 'Expired' : 'Permanently delete files'}
+            </LoadingActionContent>
           </Button>
         </div>
       </div>

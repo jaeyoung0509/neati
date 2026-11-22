@@ -12,7 +12,8 @@ use crate::models::{
     ArtifactOwnershipEvidence, DeveloperArtifact, DeveloperArtifactKind,
     DeveloperArtifactScanEvent, DeveloperArtifactScanResult, DeveloperArtifactStatus,
     DeveloperArtifactUninspected, DeveloperArtifactUninspectedReason, DeveloperEcosystem,
-    DeveloperWorkspace, ReviewedFileIdentity,
+    DeveloperWorkspace, DeveloperWorkspaceRefusal, DeveloperWorkspaceRestore,
+    DeveloperWorkspaceSuggestion, ReviewedFileIdentity,
 };
 use crate::safety::{Blacklist, SymlinkGuard};
 use neati_platform::description::PlatformEnvironment;
@@ -615,6 +616,218 @@ pub fn register_workspace_path(
     store_workspace(canonical, name, false, workspaces_store)
 }
 
+/// At most this many project folders are remembered across launches (#486),
+/// the same bound the in-memory workspace registry keeps.
+pub const MAX_SAVED_PROJECT_FOLDERS: usize = MAX_WORKSPACES;
+
+/// Home-relative names that commonly hold source checkouts. A match is only
+/// a suggestion: nothing is scanned until the person adds it.
+const SUGGESTED_PROJECT_ROOTS: &[&str] = &[
+    "Developer",
+    "Projects",
+    "Project",
+    "Myproject",
+    "Myprojects",
+    "code",
+    "src",
+    "dev",
+    "repos",
+    "repositories",
+    "git",
+    "GitHub",
+    "workspace",
+    "workspaces",
+    "Work",
+];
+
+/// Direct children read per suggested root; the probe never descends further.
+const SUGGESTION_CHILD_LIMIT: usize = 256;
+
+/// Names whose presence makes a folder count as a project for a suggestion.
+const PROJECT_MARKERS: &[&str] = &[
+    ".git",
+    "Cargo.toml",
+    "package.json",
+    "pyproject.toml",
+    "requirements.txt",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "Package.swift",
+    "pubspec.yaml",
+    "composer.json",
+    "Gemfile",
+    "mix.exs",
+    "CMakeLists.txt",
+    "build.zig",
+    "deno.json",
+];
+
+fn has_project_marker(directory: &Path) -> bool {
+    PROJECT_MARKERS
+        .iter()
+        .any(|marker| fs::symlink_metadata(directory.join(marker)).is_ok())
+}
+
+/// Counts the folder itself and its direct, unlinked child folders that carry
+/// a project marker. Bounded, metadata-only and never recursive.
+fn project_count(root: &Path) -> u32 {
+    let mut count = u32::from(has_project_marker(root));
+    let Ok(entries) = fs::read_dir(root) else {
+        return count;
+    };
+    for entry in entries.flatten().take(SUGGESTION_CHILD_LIMIT) {
+        let path = entry.path();
+        let Ok(metadata) = fs::symlink_metadata(&path) else {
+            continue;
+        };
+        if metadata.is_dir() && !SymlinkGuard::is_symlink(&path) && has_project_marker(&path) {
+            count = count.saturating_add(1);
+        }
+    }
+    count
+}
+
+fn canonical_home(environment: &PlatformEnvironment) -> Option<PathBuf> {
+    environment
+        .user_home()
+        .and_then(|home| fs::canonicalize(home).ok())
+}
+
+/// Likely project folders in the home directory that are not saved yet.
+///
+/// Discovery is not permission (#486): a suggestion is a valid workspace root
+/// that holds at least one project, and nothing is scanned until the person
+/// adds it. Names that resolve to the same folder are reported once.
+pub fn suggest_workspaces(
+    environment: &PlatformEnvironment,
+    saved: &[String],
+) -> Vec<DeveloperWorkspaceSuggestion> {
+    let Some(home) = canonical_home(environment) else {
+        return Vec::new();
+    };
+    let saved: HashSet<PathBuf> = saved
+        .iter()
+        .filter_map(|folder| fs::canonicalize(folder).ok())
+        .collect();
+    let mut seen = HashSet::new();
+    let mut suggestions = Vec::new();
+    for name in SUGGESTED_PROJECT_ROOTS {
+        let candidate = home.join(name);
+        let Ok(canonical) = validate_workspace_root(environment, &candidate) else {
+            continue;
+        };
+        if saved.contains(&canonical) || !seen.insert(canonical.clone()) {
+            continue;
+        }
+        let count = project_count(&canonical);
+        if count == 0 {
+            continue;
+        }
+        let path = canonical.to_string_lossy().into_owned();
+        suggestions.push(DeveloperWorkspaceSuggestion {
+            display_path: path.clone(),
+            path,
+            project_count: count,
+        });
+    }
+    suggestions.sort_by(|left, right| {
+        right
+            .project_count
+            .cmp(&left.project_count)
+            .then_with(|| left.path.cmp(&right.path))
+    });
+    suggestions
+}
+
+/// Registers a folder the person accepted from the current suggestions.
+///
+/// The interface may only hand back a path neati itself suggested; any other
+/// folder goes through the native picker.
+pub fn register_suggested_workspace(
+    environment: &PlatformEnvironment,
+    path: &str,
+    saved: &[String],
+    workspaces_store: &Mutex<HashMap<String, DeveloperWorkspaceRecord>>,
+) -> Result<DeveloperWorkspace, String> {
+    if !suggest_workspaces(environment, saved)
+        .iter()
+        .any(|suggestion| suggestion.path == path)
+    {
+        return Err(
+            "That folder is no longer a suggestion. Use Add folder to choose it.".to_string(),
+        );
+    }
+    Ok(register_workspace_path(environment, Path::new(path), workspaces_store)?.workspace)
+}
+
+/// Registers the saved project folders again at launch.
+///
+/// Each one is validated as if it were picked now. A folder that moved, became
+/// a link, or sits on a volume that is not mounted is reported, not dropped:
+/// the setting keeps it until the person removes it.
+pub fn restore_workspaces(
+    environment: &PlatformEnvironment,
+    saved: &[String],
+    workspaces_store: &Mutex<HashMap<String, DeveloperWorkspaceRecord>>,
+) -> DeveloperWorkspaceRestore {
+    let home = canonical_home(environment);
+    let mut restore = DeveloperWorkspaceRestore {
+        workspaces: Vec::new(),
+        refused: Vec::new(),
+    };
+    for folder in saved.iter().take(MAX_SAVED_PROJECT_FOLDERS) {
+        let path = Path::new(folder);
+        let is_home = home
+            .as_deref()
+            .is_some_and(|home| fs::canonicalize(path).ok().as_deref() == Some(home));
+        let registered = if is_home {
+            register_home_workspace(environment, workspaces_store)
+        } else {
+            register_workspace_path(environment, path, workspaces_store)
+                .map(|record| record.workspace)
+        };
+        match registered {
+            Ok(workspace) => {
+                if !restore
+                    .workspaces
+                    .iter()
+                    .any(|existing| existing.id == workspace.id)
+                {
+                    restore.workspaces.push(workspace);
+                }
+            }
+            Err(reason) => restore.refused.push(DeveloperWorkspaceRefusal {
+                path: folder.clone(),
+                reason,
+            }),
+        }
+    }
+    restore
+}
+
+/// The saved list must be absolute paths within the bound; each is validated
+/// in full when it is used, because a folder may come and go between saves.
+pub fn validate_saved_project_folders(folders: &[String]) -> Result<(), String> {
+    if folders.len() > MAX_SAVED_PROJECT_FOLDERS {
+        return Err(format!(
+            "At most {MAX_SAVED_PROJECT_FOLDERS} project folders can be remembered."
+        ));
+    }
+    for folder in folders {
+        let path = Path::new(folder);
+        if !path.is_absolute()
+            || path
+                .components()
+                .any(|part| matches!(part, std::path::Component::ParentDir))
+        {
+            return Err(format!("{folder} is not an absolute folder path."));
+        }
+    }
+    Ok(())
+}
+
 fn store_workspace(
     canonical: PathBuf,
     name: String,
@@ -647,6 +860,7 @@ fn store_workspace(
             display_path: neati_platform::path_algebra::normalize_lexical(&canonical)
                 .to_string_lossy()
                 .into_owned(),
+            path: canonical.to_string_lossy().into_owned(),
         },
         path: canonical,
         identity,

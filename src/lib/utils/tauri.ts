@@ -23,6 +23,8 @@ import type {
   DeveloperArtifactScanEvent,
   DeveloperArtifactScanResult,
   DeveloperWorkspace,
+  DeveloperWorkspaceRestore,
+  DeveloperWorkspaceSuggestion,
   DiagnosticsSnapshot,
   EnvironmentReport,
   BatteryMetrics,
@@ -454,6 +456,18 @@ export function tauriPickDeveloperWorkspace(): Promise<DeveloperWorkspace | null
 
 export function tauriRegisterDeveloperHomeWorkspace(): Promise<DeveloperWorkspace> {
   return storageApi.registerDeveloperHomeWorkspace();
+}
+
+export function tauriRestoreDeveloperWorkspaces(): Promise<DeveloperWorkspaceRestore> {
+  return storageApi.restoreDeveloperWorkspaces();
+}
+
+export function tauriSuggestDeveloperWorkspaces(): Promise<DeveloperWorkspaceSuggestion[]> {
+  return storageApi.suggestDeveloperWorkspaces();
+}
+
+export function tauriAddSuggestedDeveloperWorkspace(path: string): Promise<DeveloperWorkspace> {
+  return storageApi.addSuggestedDeveloperWorkspace(path);
 }
 
 export function tauriStartDeveloperArtifactScan(

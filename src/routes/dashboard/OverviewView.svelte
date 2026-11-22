@@ -64,6 +64,11 @@
   }
 
   let settings = $derived(settingsStore.settings);
+  // Clean covers application and tool caches. Project build output is found
+  // only in saved project folders, so say so while none is saved (#486).
+  let projectFoldersUnscanned = $derived(
+    settingsStore.hasLoaded && (settings.project_folders ?? []).length === 0
+  );
   let scan = $derived(scanStore.lastScan);
   let memory = $derived(memoryStore.memory);
   let cpu = $derived(systemMetricsStore.cpu);
@@ -273,6 +278,12 @@
         <span>{cleanupActionLabel}</span>
       </Button>
     </div>
+    {#if projectFoldersUnscanned && !cleanupBusy}
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted-foreground">
+        <span>Project build folders are not scanned yet.</span>
+        <Button variant="ghost" size="sm" onclick={() => onNavigateTab?.('developer-artifacts')}>Add a projects folder</Button>
+      </div>
+    {/if}
   </section>
 
   <!-- Core readings. -->

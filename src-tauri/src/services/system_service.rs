@@ -496,6 +496,7 @@ impl SystemService {
         // only thing that can refuse is still the save itself.
         KeepAwakeManager::validate_rules(&next.awake_rules)?;
         self.validate_ai_tool_profiles(&next.ai_tool_profiles)?;
+        crate::developer_artifacts::validate_saved_project_folders(&next.project_folders)?;
         self.settings_reaction.before_save(&next, notifications)?;
         let ai_tool_profiles = next.ai_tool_profiles.clone();
 

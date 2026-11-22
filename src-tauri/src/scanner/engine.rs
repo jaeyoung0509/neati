@@ -539,7 +539,8 @@ impl ScanEngine {
                 }
                 let gate = sig.eligibility_gate(intensive_cleanup);
                 let context =
-                    WalkContext::new(environment, cancellation, limits, &counters, &events);
+                    WalkContext::new(environment, cancellation, limits, &counters, &events)
+                        .for_structured_state_policy(sig.structured_state_policy());
                 let span_started = Instant::now();
                 let mut scanned = DirectoryScanner::scan_signature_with_context(
                     sig,

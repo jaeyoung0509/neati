@@ -496,7 +496,8 @@ impl SafetyValidator {
                     crate::scanner::ScanLimits::default(),
                     &counters,
                     &crate::scanner::NoRootProgress,
-                );
+                )
+                .for_structured_state_policy(target.structured_state_policy);
                 let stats = crate::scanner::DirectoryScanner::measure_tree_stats(
                     &context,
                     path,

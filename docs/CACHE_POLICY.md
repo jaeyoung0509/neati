@@ -389,3 +389,23 @@ reviewed `~/.gem/ruby/<ABI>/bin/pod` launcher. The ABI must match its Ruby;
 inherited gem/Bundler paths remain disabled. Loaded gem specifications are
 included in the runtime identity alongside libraries and the interpreter.
 See [the scope ledger](CLEANUP_362_SCOPE.md) for compatibility validation limits.
+
+## Owner-guarded build output — owner-approved #350 (November 22, 2026)
+
+Xcode DerivedData (`dev.xcode.derived_data`) is cleaned by content while Xcode,
+xcodebuild, Simulator, XCBBuildService, swift-frontend and SourceKitService are
+not running. A DerivedData tree always holds object files, dynamic libraries,
+built `.app` products, index databases and generated plists. Under the default
+structured-state policy each of those refuses the whole unit, which made the
+scan offer bytes that Clean then left.
+
+`StructuredStatePolicy::OwnerGuardedBuildOutput` treats those entries as the
+content of the unit. It applies only to ids in `OWNER_GUARDED_BUILD_OUTPUT`, and
+only while the signature is a `build_artifact` with `delete_contents` and a
+process guard. A credential file or a compiled Apple model inside the tree
+still refuses the whole unit, and the DerivedData directory itself stays.
+
+macOS App Management can refuse the removal of a signed bundle. If it does, the
+entry is reported as a failure and the remaining entries stay, as for any
+partial removal.
+

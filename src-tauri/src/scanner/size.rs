@@ -375,6 +375,8 @@ pub struct SizeCalculator;
 struct MeasurementPolicy {
     blacklist: crate::safety::blacklist::PreparedBlacklist,
     exclusions: crate::signatures::exclusions::PreparedExclusions,
+    /// See `WalkContext::permit_application_bundles`.
+    permit_application_bundles: bool,
 }
 
 impl MeasurementPolicy {
@@ -385,6 +387,7 @@ impl MeasurementPolicy {
                 exclusions,
                 environment,
             ),
+            permit_application_bundles: false,
         }
     }
 }
@@ -491,9 +494,35 @@ impl SizeCalculator {
         limits: ScanLimits,
         counters: &TraversalCounters,
     ) -> PathMeasurement {
+        Self::measure_path_with_bundle_rule(
+            path,
+            exclusions,
+            pool,
+            environment,
+            cancellation,
+            limits,
+            counters,
+            false,
+        )
+    }
+
+    /// [`Self::measure_path_with_pool`] for a walk whose signature permits
+    /// application bundles as content (owner-guarded build output).
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn measure_path_with_bundle_rule<P: AsRef<Path>>(
+        path: P,
+        exclusions: &[String],
+        pool: Option<&ThreadPool>,
+        environment: &PlatformEnvironment,
+        cancellation: &dyn CancellationProbe,
+        limits: ScanLimits,
+        counters: &TraversalCounters,
+        permit_application_bundles: bool,
+    ) -> PathMeasurement {
         let path = path.as_ref();
         counters.visit_entry();
-        let policy = MeasurementPolicy::new(exclusions, environment);
+        let mut policy = MeasurementPolicy::new(exclusions, environment);
+        policy.permit_application_bundles = permit_application_bundles;
         // Check if path is in blacklist
         if policy.blacklist.is_blacklisted(path) {
             return PathMeasurement::incomplete(
@@ -783,6 +812,7 @@ impl SizeCalculator {
             }) {
                 Ok((meta, is_link)) => {
                     if !is_link
+                        && !policy.permit_application_bundles
                         && meta.is_dir()
                         && child_path
                             .extension()
@@ -980,6 +1010,7 @@ impl SizeCalculator {
             }) {
                 Ok((meta, is_link)) => {
                     if !is_link
+                        && !policy.permit_application_bundles
                         && meta.is_dir()
                         && child_path
                             .extension()

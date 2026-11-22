@@ -145,6 +145,25 @@ const CORPUS: &[Entry] = &[
         512 * KB,
         "rebuildable build output",
     ),
+    regen(
+        "Library/Developer/Xcode/DerivedData/App-abc/Build/Products/Debug/App.app/Contents/MacOS/App",
+        128 * KB,
+        "built product, rebuilt by Xcode",
+    ),
+    regen(
+        "Library/Developer/Xcode/DerivedData/App-abc/Index.noindex/DataStore/index.sqlite",
+        64 * KB,
+        "index database, rebuilt by Xcode",
+    ),
+    regen(
+        "Library/Developer/Xcode/iOS DeviceSupport/17.0 (21A329)/Symbols/usr/lib/libobjc.A.dylib",
+        256 * KB,
+        "device symbol dump, re-downloaded when the device connects",
+    ),
+    keep(
+        "Library/Developer/Xcode/UserData/FontAndColorThemes/Mine.xccolortheme",
+        "Xcode user data beside DerivedData",
+    ),
 ];
 
 struct Fixture {
@@ -387,17 +406,18 @@ fn accuracy_matches_the_recorded_baseline() {
 
 /// The numbers a catalog or policy change must restate.
 ///
-/// Recorded 2026-11-22 against the embedded catalog:
-///
 /// - No `MustKeep` file is removed, preselected or offered.
 /// - The two generic application caches and the application log are reclaimed.
 ///   The database, its WAL and the lock file inside the cache namespace stay.
 /// - Claude and Codex CLI caches are advisory by design (review only).
-/// - **Known disagreement:** Xcode DerivedData is `AutoCleanable` in the scan,
-///   but the planner refuses the unit because it contains object files
-///   (`.o`, classified as executable images). Real DerivedData always does, so
-///   the interface counts bytes as ready that Clean leaves. Tracked in #350;
-///   fixing it must move `offered_but_refused_bytes` to zero here.
+/// - 2026-11-22, #350: Xcode DerivedData is reclaimed, including object files,
+///   a built app bundle and the index database. Before that change the scan
+///   offered it and the planner refused it (512 KB offered but refused).
+/// - **Known disagreement:** an Xcode DeviceSupport symbol set is offered by
+///   the scan but refused by the planner, because it contains `.dylib` files
+///   and its signature keeps the default structured-state policy. The owner
+///   approved the build-output policy for DerivedData only; extending it to
+///   DeviceSupport is a separate decision (#350).
 fn baseline() -> Accuracy {
     Accuracy {
         preselected_false_positives: Vec::new(),
@@ -406,11 +426,12 @@ fn baseline() -> Accuracy {
             ("ai.claude.cache · Advisory".to_string(), 64 * KB),
             ("ai.codex.cache · Advisory".to_string(), 64 * KB),
             (
-                "dev.xcode.derived_data · offered in the scan, refused by the planner".to_string(),
-                512 * KB,
+                "system.xcode_device_support · offered in the scan, refused by the planner"
+                    .to_string(),
+                256 * KB,
             ),
         ]),
-        offered_but_refused_bytes: 512 * KB,
-        reclaimed_regenerable_bytes: (256 + 128 + 32) * KB,
+        offered_but_refused_bytes: 256 * KB,
+        reclaimed_regenerable_bytes: (256 + 128 + 32 + 512 + 128 + 64) * KB,
     }
 }

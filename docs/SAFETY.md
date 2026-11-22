@@ -770,9 +770,11 @@ plan and execution path in CI.
 | Bytes the scan offered whose unit the planner refused | Pinned to the recorded baseline |
 
 Recorded 2026-11-22: no `MustKeep` file is removed. Claude and Codex CLI caches
-stay by design (review only). One disagreement is recorded: Xcode DerivedData
-is offered by the scan but refused by the planner because it contains object
-files, so those bytes are shown as ready and not removed (#350).
+stay by design (review only). Xcode DerivedData is reclaimed, including object
+files, a built app bundle and the index database, under the owner-guarded
+build-output policy (#350). One disagreement remains recorded: an Xcode
+DeviceSupport symbol set is offered by the scan but refused by the planner
+because it contains `.dylib` files.
 
 The corpus is small and synthetic. It is a regression gate for the layouts it
 contains, not a statement about every Mac.

@@ -552,7 +552,7 @@ impl DirectoryScanner {
                     let facts = CandidateFacts::read(path_buf, &metadata);
                     (
                         true,
-                        SizeCalculator::measure_path_with_pool(
+                        SizeCalculator::measure_path_with_bundle_rule(
                             path_buf,
                             &signature.exclusions,
                             pool,
@@ -560,6 +560,7 @@ impl DirectoryScanner {
                             context.cancellation,
                             context.limits,
                             context.counters,
+                            context.permit_application_bundles,
                         ),
                         Some(facts),
                     )
@@ -1630,7 +1631,12 @@ impl DirectoryScanner {
         // chmod and deletion inside them fail with EPERM even for the owning
         // user, so generic cleanup can never succeed. Treat any bundle in the
         // tree like an unreadable subtree and fail closed.
-        if meta.is_dir()
+        //
+        // A signature whose policy permits bundles (owner-guarded build
+        // output) measures built products as content. If macOS still refuses
+        // one at removal, execution reports that entry as a failure.
+        if !context.permit_application_bundles
+            && meta.is_dir()
             && path
                 .extension()
                 .and_then(|ext| ext.to_str())

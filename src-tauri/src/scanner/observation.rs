@@ -183,6 +183,11 @@ pub struct WalkContext<'a> {
     pub limits: ScanLimits,
     pub counters: &'a TraversalCounters,
     pub progress: &'a dyn RootProgressSink,
+    /// Whether an application bundle inside the measured tree is part of the
+    /// unit. `false` everywhere except a signature whose structured-state
+    /// policy permits bundles (owner-guarded build output), where a built
+    /// product is the content being measured rather than a protected app.
+    pub permit_application_bundles: bool,
 }
 
 impl<'a> WalkContext<'a> {
@@ -199,7 +204,18 @@ impl<'a> WalkContext<'a> {
             limits,
             counters,
             progress,
+            permit_application_bundles: false,
         }
+    }
+
+    /// Applies a signature's structured-state policy to this walk.
+    pub fn for_structured_state_policy(
+        mut self,
+        policy: crate::models::StructuredStatePolicy,
+    ) -> Self {
+        self.permit_application_bundles =
+            policy.permits(crate::models::StructuredStateKind::ApplicationBundle);
+        self
     }
 }
 

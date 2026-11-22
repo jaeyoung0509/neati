@@ -80,9 +80,10 @@ What the user-facing instructions must say (currently
 [README.md](README.md#opening-unsigned-beta-builds-on-macos)):
 
 - The build is unsigned and not notarized, and the warning is expected.
-- The exact way past it for one application: Finder → **Applications** →
-  right-click **neati.app** → **Open** → **Open** again, or System Settings →
-  Privacy & Security → **Open Anyway** after the first blocked attempt.
+- The exact way past it for one application: open **neati.app** once, then
+  System Settings → Privacy & Security → **Open Anyway** after that blocked
+  attempt. On macOS 15 (Sequoia) and later, Control-click → **Open** no longer
+  bypasses Gatekeeper, so it must not be presented as the primary path.
 - Never instruct the user to disable Gatekeeper globally, to remove quarantine
   from every downloaded file, or to run `sudo spctl --master-disable`. Clearing
   the quarantine attribute on this one bundle (`xattr -cr /Applications/neati.app`)

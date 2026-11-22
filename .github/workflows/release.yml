@@ -437,7 +437,7 @@ jobs:
           body: |
             ## Public beta trust notice
 
-            The macOS ARM64 build is not notarized with an Apple Developer ID, and the Windows x64 NSIS installers are not yet code signed. macOS Gatekeeper blocks the first launch until the user explicitly opens the app. Windows users should expect Microsoft Defender SmartScreen to show an unknown-publisher warning; verify the published SHA256 checksum before running either installer.
+            The macOS ARM64 build is not notarized with an Apple Developer ID, and the Windows x64 NSIS installers are not yet code signed. macOS Gatekeeper blocks the first launch until the user chooses **Open Anyway** in System Settings → Privacy & Security. Windows users should expect Microsoft Defender SmartScreen to show an unknown-publisher warning; verify the published SHA256 checksum before running either installer.
 
             SignPath Foundation issues organization-validated certificates. That establishes a verifiable publisher identity, but it does not transfer SmartScreen reputation, so the unknown-publisher warning is expected to persist after the first signed release until the certificate builds reputation on its own.
 

@@ -1,3 +1,4 @@
+import { describeError } from '../utils/errors';
 import type { AiProviderId, DashboardTab, QuickPanelSection, NeatiSettings } from '../models/types';
 import { tauriGetSettings, tauriSaveSettings, tauriSetWindowTheme } from '../utils/tauri';
 import { moveOrdered, reorderOrdered, toggleOrdered } from '../utils/quickPanel';
@@ -179,11 +180,11 @@ export class SettingsStore {
     let snapshot: NeatiSettings;
     try {
       snapshot = serializeSettingsSnapshot($state.snapshot(this.settings));
-    } catch (err: any) {
+    } catch (err) {
       if (revision === this.saveRevision) {
         this.settings = this.persistedSettings ?? serializeSettingsSnapshot(previousSettings);
         this.applyTheme(this.settings.theme);
-        this.error = err?.toString() || 'Failed to serialize settings';
+        this.error = describeError(err, 'Failed to serialize settings');
       }
       return false;
     }
@@ -202,11 +203,11 @@ export class SettingsStore {
     try {
       await currentSave;
       return true;
-    } catch (error: any) {
+    } catch (error) {
       // Only the latest queued save may roll back the optimistic UI.
       // If a newer snapshot was queued, allow that newer save to complete without clobbering UI state.
       if (revision === this.saveRevision) {
-        this.error = error?.toString() || 'Could not save preferences';
+        this.error = describeError(error, 'Could not save preferences');
         this.settings = this.persistedSettings ?? serializeSettingsSnapshot(previousSettings);
         this.applyTheme(this.settings.theme);
       }
@@ -295,8 +296,8 @@ export class SettingsStore {
 
         if (typeof this.mediaQueryList.addEventListener === 'function') {
           this.mediaQueryList.addEventListener('change', this.mediaQueryListener);
-        } else if (typeof (this.mediaQueryList as any).addListener === 'function') {
-          (this.mediaQueryList as any).addListener(this.mediaQueryListener);
+        } else if (typeof this.mediaQueryList.addListener === 'function') {
+          this.mediaQueryList.addListener(this.mediaQueryListener);
         }
       }
     }
@@ -306,8 +307,8 @@ export class SettingsStore {
     if (this.mediaQueryList && this.mediaQueryListener) {
       if (typeof this.mediaQueryList.removeEventListener === 'function') {
         this.mediaQueryList.removeEventListener('change', this.mediaQueryListener);
-      } else if (typeof (this.mediaQueryList as any).removeListener === 'function') {
-        (this.mediaQueryList as any).removeListener(this.mediaQueryListener);
+      } else if (typeof this.mediaQueryList.removeListener === 'function') {
+        this.mediaQueryList.removeListener(this.mediaQueryListener);
       }
       this.mediaQueryList = null;
       this.mediaQueryListener = null;

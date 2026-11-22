@@ -1,3 +1,4 @@
+import { describeErrorMessage } from '../utils/errors';
 import {
   refusalForPreview,
   tauriListDevelopmentListeners,
@@ -32,8 +33,8 @@ export class DevelopmentPortsStore {
         const data = await tauriListDevelopmentListeners();
         this.listeners = data;
         this.error = null;
-      } catch (err: any) {
-        this.error = err?.message || String(err);
+      } catch (err) {
+        this.error = describeErrorMessage(err);
       } finally {
         this.isLoading = false;
         this.inFlightRefresh = null;
@@ -82,8 +83,8 @@ export class DevelopmentPortsStore {
       }
 
       return result;
-    } catch (err: any) {
-      this.error = err?.message || String(err);
+    } catch (err) {
+      this.error = describeErrorMessage(err);
       throw err;
     } finally {
       this.releasingId = null;

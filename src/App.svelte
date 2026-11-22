@@ -15,7 +15,7 @@
   type View = 'dashboard' | 'quick';
 
   let currentView = $state<View | null>(null);
-  let ActiveComponent = $state<Component<any> | null>(null);
+  let ActiveComponent = $state<Component | null>(null);
 
   $effect(() => {
     const nativeMaterial = isTauri() && currentView === 'dashboard'
@@ -33,14 +33,11 @@
       : 'dashboard';
   }
 
-  async function importView(view: View): Promise<Component<any>> {
+  async function importView(view: View): Promise<Component> {
     if (view === 'quick') {
-      const module: any = await import('./routes/quick/QuickPanel.svelte');
-      return module.default ?? module;
+      return (await import('./routes/quick/QuickPanel.svelte')).default;
     }
-
-    const module: any = await import('./routes/dashboard/Dashboard.svelte');
-    return module.default ?? module;
+    return (await import('./routes/dashboard/Dashboard.svelte')).default;
   }
 
   onMount(() => {

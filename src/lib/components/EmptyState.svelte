@@ -1,8 +1,9 @@
 <script lang="ts">
+  import type { IconComponent } from '../models/icons';
   import Button from "./Button.svelte";
 
   interface Props {
-    icon?: any;
+    icon?: IconComponent;
     title: string;
     description?: string;
     actionLabel?: string;

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { describeError } from '../../lib/utils/errors';
   import CleanupGuidanceList from '../../lib/components/CleanupGuidanceList.svelte';
   import { scanStore } from '../../lib/stores/scan.svelte';
   import type { CategoryResult } from '../../lib/models/types';
@@ -199,8 +200,8 @@
   async function handleOpenLogs() {
     try {
       await tauriOpenLogsFolder();
-    } catch (e: any) {
-      settingsStore.error = e?.toString() || 'Failed to open logs folder';
+    } catch (e) {
+      settingsStore.error = describeError(e, 'Failed to open logs folder');
     }
   }
 
@@ -214,8 +215,8 @@
           copiedDiagnostics = false;
         }, 2500);
       }
-    } catch (e: any) {
-      settingsStore.error = e?.toString() || 'Failed to export diagnostics';
+    } catch (e) {
+      settingsStore.error = describeError(e, 'Failed to export diagnostics');
     }
   }
 
@@ -224,9 +225,9 @@
     selfCheckError = null;
     try {
       selfCheck = await tauriRunEnvironmentSelfCheck();
-    } catch (e: any) {
+    } catch (e) {
       selfCheck = null;
-      selfCheckError = e?.toString() || 'Environment self-check did not complete';
+      selfCheckError = describeError(e, 'Environment self-check did not complete');
     } finally {
       selfCheckRunning = false;
     }

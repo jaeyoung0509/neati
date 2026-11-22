@@ -24,3 +24,19 @@ if (missing.length > 0) {
 }
 
 console.log(`Verified Tailwind utilities in ${cssFiles.length} production CSS asset(s).`);
+
+// Preview fixtures must stay in their own lazily loaded chunk (#432): the
+// entry and view chunks the packaged app always loads carry no fixture data.
+const scripts = readdirSync(assetsDir).filter((file) => file.endsWith('.js'));
+const fixtureMarker = '/Users/preview/';
+const fixtureChunks = scripts.filter((file) =>
+  readFileSync(join(assetsDir, file), 'utf8').includes(fixtureMarker),
+);
+if (fixtureChunks.length === 0) {
+  throw new Error('Preview fixture chunk is missing; the fixture marker may have changed');
+}
+const leaked = fixtureChunks.filter((file) => !/^mock-/.test(file));
+if (leaked.length > 0) {
+  throw new Error(`Preview fixtures leaked into always-loaded chunks: ${leaked.join(', ')}`);
+}
+console.log(`Verified preview fixtures stay in ${fixtureChunks.join(', ')}.`);

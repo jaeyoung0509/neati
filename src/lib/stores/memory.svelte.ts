@@ -1,3 +1,4 @@
+import { describeError } from '../utils/errors';
 import type { DiskMetrics, DiskVolume, MemoryMetrics, MemoryTerminationMode } from '../models/types';
 import {
   refusalForPreview,
@@ -39,8 +40,8 @@ export class MemoryStore {
     this.error = null;
     try {
       this.memory = await tauriGetMemoryMetrics();
-    } catch (e: any) {
-      this.error = e?.toString() || 'Failed to fetch metrics';
+    } catch (e) {
+      this.error = describeError(e, 'Failed to fetch metrics');
     } finally {
       this.isLoading = false;
     }
@@ -68,8 +69,8 @@ export class MemoryStore {
         available_bytes: primary.available_bytes,
         percent_used: primary.percent_used,
       } : null;
-    } catch (e: any) {
-      this.error = e?.toString() || 'Failed to fetch disk metrics';
+    } catch (e) {
+      this.error = describeError(e, 'Failed to fetch disk metrics');
     } finally {
       this.isDiskLoading = false;
     }
@@ -101,8 +102,8 @@ export class MemoryStore {
       await new Promise((resolve) => window.setTimeout(resolve, mode === 'force' ? 300 : 900));
       await this.refreshMemory();
       return result;
-    } catch (error: any) {
-      this.error = error?.toString() || `Could not terminate ${displayName}`;
+    } catch (error) {
+      this.error = describeError(error, `Could not terminate ${displayName}`);
       return null;
     } finally {
       this.terminating = null;

@@ -1,5 +1,4 @@
 import { nativeApi } from './native';
-import { mockApi } from './mock';
 
 export type ApiBridgeMode = 'native' | 'preview';
 
@@ -135,7 +134,33 @@ export function dispatchApi<T extends object>(nativeImpl: T, previewImpl: T): T 
 
 export type NeatiApi = typeof nativeApi;
 
-export const api: NeatiApi = dispatchApi(nativeApi, mockApi);
+/**
+ * Preview fixtures are loaded on first use (#432). The packaged app runs on
+ * the native bridge and never downloads them into memory; the browser preview
+ * and the missing-bridge fallback load one extra chunk when a command is first
+ * answered from fixtures. Every API member is an async function, so deferring
+ * the import behind the returned promise does not change a caller.
+ */
+let previewModule: Promise<typeof import('./mock')> | null = null;
+
+function loadPreviewApi(): Promise<NeatiApi> {
+  previewModule ??= import('./mock');
+  return previewModule.then((module) => module.mockApi);
+}
+
+const lazyPreviewApi = new Proxy({} as NeatiApi, {
+  get(_target, property) {
+    return async (...args: unknown[]) => {
+      const preview = await loadPreviewApi();
+      const member = Reflect.get(preview, property);
+      if (typeof member !== 'function') {
+        throw new Error(`Preview API has no command named ${String(property)}`);
+      }
+      return member.apply(preview, args);
+    };
+  },
+});
+
+export const api: NeatiApi = dispatchApi(nativeApi, lazyPreviewApi);
 
 export { nativeApi } from './native';
-export { mockApi } from './mock';

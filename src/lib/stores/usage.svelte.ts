@@ -1,3 +1,4 @@
+import { describeError } from '../utils/errors';
 import type { AiProviderUsage, AiUsageSnapshot, ProviderDescriptor, ProviderId } from '../models/types';
 import {
   refusalForPreview,
@@ -219,8 +220,8 @@ export class UsageStore {
       });
       if (isCurrent()) this.snapshot = snapshot;
       this.providerReceivedAt = {};
-    } catch (error: any) {
-      this.error = error?.toString() || 'Could not load AI usage';
+    } catch (error) {
+      this.error = describeError(error, 'Could not load AI usage');
     } finally {
       this.loadingProviders = [];
       this.isLoading = false;
@@ -233,8 +234,8 @@ export class UsageStore {
     try {
       await tauriConnectOpenRouter();
       await this.refresh(true);
-    } catch (error: any) {
-      this.error = error?.toString() || 'OpenRouter sign-in failed';
+    } catch (error) {
+      this.error = describeError(error, 'OpenRouter sign-in failed');
     } finally {
       this.connectingProvider = null;
     }
@@ -251,10 +252,10 @@ export class UsageStore {
     try {
       await tauriDisconnectAiProvider('openrouter');
       await this.refresh(true);
-    } catch (error: any) {
+    } catch (error) {
       // The credential is removed locally even when provider revocation fails;
       // surface the message and refresh so the UI shows the disconnected state.
-      this.error = error?.toString() || 'OpenRouter disconnect failed';
+      this.error = describeError(error, 'OpenRouter disconnect failed');
       await this.refresh(true);
     } finally {
       this.connectingProvider = null;

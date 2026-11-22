@@ -1,11 +1,12 @@
 <script lang="ts">
+  import type { IconComponent } from '../models/icons';
   import type { Snippet } from "svelte";
   import Badge from "./Badge.svelte";
 
   interface Props {
     title: string;
     subtitle?: string;
-    icon?: any;
+    icon?: IconComponent;
     badge?:
       | string
       | {

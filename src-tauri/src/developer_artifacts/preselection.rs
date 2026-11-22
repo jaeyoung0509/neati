@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// Observes the open-file state of many folders, one verdict per folder.
-pub type UseProbe = dyn Fn(&[PathBuf], &dyn Fn() -> bool) -> Vec<OpenFileState> + Sync;
+pub type UseProbe<'a> = dyn Fn(&[PathBuf], &dyn Fn() -> bool) -> Vec<OpenFileState> + Sync + 'a;
 
 /// Compiler build outputs, recreated by the project's own build.
 pub fn is_build_output(kind: DeveloperArtifactKind) -> bool {
@@ -52,7 +52,7 @@ pub fn is_candidate(
 /// in use, or whose use could not be determined, stays a reviewable item.
 pub fn apply(
     records: &mut HashMap<String, DeveloperArtifactRecord>,
-    probe: &UseProbe,
+    probe: &UseProbe<'_>,
     is_cancelled: &dyn Fn() -> bool,
 ) {
     let candidates: Vec<(String, PathBuf)> = records

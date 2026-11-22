@@ -268,7 +268,7 @@ impl DeveloperArtifactScanner {
         downloads_access: FolderAccess,
         cancel: Arc<AtomicBool>,
         mut on_event: F,
-        use_probe: &preselection::UseProbe,
+        use_probe: &preselection::UseProbe<'_>,
     ) -> Result<DeveloperArtifactInventory, String>
     where
         F: FnMut(DeveloperArtifactScanEvent),

@@ -1111,6 +1111,43 @@ mod tests {
     }
 
     #[test]
+    fn a_build_output_is_removed_only_while_it_is_proven_idle() {
+        use neati_platform::open_files::{FixedOpenFileProbe, OpenFileState};
+        for (state, removed) in [
+            (OpenFileState::Idle, true),
+            (OpenFileState::InUse, false),
+            (OpenFileState::Unknown, false),
+        ] {
+            let (_temp, environment, inventory) = ownership_fixture();
+            let record = inventory.records.values().next().unwrap();
+            assert_eq!(
+                record.artifact.kind,
+                crate::models::DeveloperArtifactKind::CargoTarget
+            );
+            let plan = RemovalPlanner::from_developer_artifacts(
+                &environment,
+                &inventory,
+                std::slice::from_ref(&record.artifact.id),
+            )
+            .unwrap();
+            let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+            let result = RemovalExecutor::new(backend.clone())
+                .with_open_file_probe(Arc::new(FixedOpenFileProbe(state)))
+                .execute(&environment, plan);
+            assert_eq!(result.removed_count == 1, removed, "{state:?}");
+            assert_eq!(backend.removed().is_empty(), !removed, "{state:?}");
+            if !removed {
+                assert!(
+                    result.items[0].message.contains("build"),
+                    "{state:?}: {}",
+                    result.items[0].message
+                );
+                assert!(record.path.join("assets/output.bin").is_file());
+            }
+        }
+    }
+
+    #[test]
     fn replaced_project_during_probe_cannot_gain_the_old_plan_authority() {
         use neati_platform::RemovalBackend;
         let (temp, environment, inventory) = ownership_fixture();

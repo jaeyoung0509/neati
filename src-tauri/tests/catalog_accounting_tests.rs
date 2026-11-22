@@ -474,3 +474,41 @@ fn model_weights_are_owned_by_model_inventory_and_old_settings_still_load() {
         .get("clean_local_models")
         .is_none());
 }
+
+/// Every cleanup workflow permanently removes what it authorizes (#416), so no
+/// catalog or provider copy may promise a recoverable move to Trash (#475).
+/// The Trash entry itself describes the Trash, and is the one exception.
+#[test]
+fn cleanup_copy_never_promises_a_move_to_trash() {
+    fn claims_trash(text: &str) -> bool {
+        let lower = text.to_lowercase();
+        ["to trash", "empty trash", "trash unit"]
+            .iter()
+            .any(|claim| lower.contains(claim))
+    }
+    let registry = SignatureRegistry::load_embedded_catalog().unwrap();
+    let mut offending: Vec<String> = registry
+        .all()
+        .into_iter()
+        .filter(|signature| signature.id != "system.advisory.trash")
+        .filter(|signature| {
+            claims_trash(&signature.consequence) || claims_trash(&signature.description)
+        })
+        .map(|signature| signature.id.clone())
+        .collect();
+
+    let providers = OwnerProviderRegistry::native(
+        Arc::new(neati_lib::cleaner::SysinfoProcessProbe),
+        Arc::new(neati_lib::scanner::SizeCalculatorMeasurement),
+    );
+    for id in providers.implemented_ids() {
+        let provider = providers.get(id).expect("implemented provider");
+        if claims_trash(provider.consequence()) {
+            offending.push(format!("provider {id}"));
+        }
+    }
+    assert!(
+        offending.is_empty(),
+        "copy still promises Trash: {offending:?}"
+    );
+}

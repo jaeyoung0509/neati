@@ -201,11 +201,9 @@ const CORPUS: &[Entry] = &[
         256 * KB,
         "media conform cache, rebuilt on import",
     ),
-    regen(
-        ".expo/versions-cache/versions.json",
-        16 * KB,
-        "downloaded SDK version index",
-    ),
+    // Expo's version index (`dev.expo.user_caches`, #478) is not a row: its
+    // owner guard is the shared `node` executable, so the verdict would depend
+    // on what the host happens to run.
     regen(
         ".cache/terraform/registry.terraform.io/hashicorp/null/3.2.2/darwin_arm64/terraform-provider-null_v3.2.2_x5",
         128 * KB,
@@ -225,6 +223,66 @@ const CORPUS: &[Entry] = &[
         "Library/Caches/ms-playwright/chromium-1140/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
         256 * KB,
         "test browser, reinstalled by playwright install",
+    ),
+    // --- Found in mac-cleanup-py, kondo, npkill and DevCleaner (#478) -------
+    // State those tools remove or offer. Each would be a false positive here.
+    keep(
+        "Library/Application Support/MobileSync/Backup/00008110-ABCDEF/Manifest.db",
+        "device backup, irreplaceable",
+    ),
+    keep(
+        "Library/Group Containers/6N38VWS5BX.ru.keepcoder.Telegram/stable/account-1/postbox/db/db_sqlite",
+        "message database",
+    ),
+    keep(
+        "Library/Application Support/Microsoft/Teams/IndexedDB/https_teams.microsoft.com_0.indexeddb.leveldb/000003.log",
+        "web app database",
+    ),
+    keep(
+        "Library/Application Support/Microsoft/Teams/Local Storage/leveldb/000003.log",
+        "web app storage",
+    ),
+    keep(
+        "Library/Application Support/Google/DriveFS/1234567890/content_cache/d1/f1",
+        "file content that may not be uploaded yet",
+    ),
+    keep("java_pid1234.hprof", "heap dump kept for diagnosis"),
+    keep(
+        "Music/iTunes/iTunes Media/Mobile Applications/App 1.0.ipa",
+        "user media library",
+    ),
+    keep(
+        "Projects/notebook/.ipynb_checkpoints/analysis-checkpoint.ipynb",
+        "notebook checkpoint, the only recovery copy",
+    ),
+    keep(
+        "Projects/game/Saved/Config/Mac/GameUserSettings.ini",
+        "Unreal project settings in Saved",
+    ),
+    keep(
+        "Library/Application Support/Adobe/Common/Media Cache/Media Cache Database.db",
+        "index of the media cache files",
+    ),
+    // Regenerable data those tools reclaim.
+    regen(
+        "Library/Application Support/Steam/steamapps/shadercache/730/fozpipelinesv6/steamapp.foz",
+        64 * KB,
+        "shader cache, rebuilt by the game",
+    ),
+    regen(
+        "Library/Developer/Xcode/DocumentationCache/v270/15.0/index.db",
+        32 * KB,
+        "documentation cache of an older Xcode",
+    ),
+    regen(
+        "Library/Developer/Xcode/iOS Device Logs/iOS Device Logs 17.0.db",
+        32 * KB,
+        "device log database copied from a device",
+    ),
+    regen(
+        "Library/Application Support/Vivaldi/Crashpad/completed/c3d4.dmp",
+        32 * KB,
+        "submitted crash report",
     ),
 ];
 
@@ -485,6 +543,16 @@ fn accuracy_matches_the_recorded_baseline() {
 ///   is observed only (256 KB). VS Code logs, Steam's web cache, Adobe's media
 ///   cache, Expo's version index, Terraform's plugin cache and Arc's crash
 ///   reports have no catalog entry yet (608 KB).
+/// - 2026-11-22, #478: rows found in mac-cleanup-py, kondo, npkill and
+///   DevCleaner. Every new state row (device backups, a message database, web
+///   app storage, Drive file content, a heap dump, notebook checkpoints,
+///   Unreal settings, the Adobe media cache index) is kept. New entries
+///   reclaim VS Code session logs, Steam's web and shader caches and Arc and
+///   Vivaldi crash reports (304 KB). Adobe's media cache and Xcode's
+///   documentation cache and device logs are reported for review. Terraform's
+///   plugin cache is a configured location, not a default one, so it still has
+///   no entry (128 KB). Expo's row moved out of the corpus: its guard is the
+///   shared `node` executable.
 fn baseline() -> Accuracy {
     Accuracy {
         preselected_false_positives: Vec::new(),
@@ -496,12 +564,31 @@ fn baseline() -> Accuracy {
                 "coverage:system.intensive.user_app_caches · Advisory".to_string(),
                 256 * KB,
             ),
+            ("dev.xcode.device_logs · Advisory".to_string(), 32 * KB),
             (
-                "no catalog entry".to_string(),
-                (16 + 128 + 256 + 16 + 128 + 64) * KB,
+                "dev.xcode.documentation_cache · Advisory".to_string(),
+                32 * KB,
+            ),
+            ("no catalog entry".to_string(), 128 * KB),
+            (
+                "system.adobe.media_cache_files · Advisory".to_string(),
+                256 * KB,
             ),
         ]),
         offered_but_refused_bytes: 0,
-        reclaimed_regenerable_bytes: (256 + 128 + 32 + 512 + 128 + 64 + 256 + 8) * KB,
+        reclaimed_regenerable_bytes: (256
+            + 128
+            + 32
+            + 512
+            + 128
+            + 64
+            + 256
+            + 8
+            + 16
+            + 128
+            + 64
+            + 64
+            + 32)
+            * KB,
     }
 }

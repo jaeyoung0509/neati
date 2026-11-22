@@ -14,7 +14,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::models::DashboardRoute;
 use crate::services::{
-    AiService, CleanupService, SettingsAuthority, StorageService, SystemService, UpdateService,
+    AiService, CleanupService, LoginItemService, SettingsAuthority, StorageService, SystemService,
+    UpdateService,
 };
 use crate::signatures::SignatureRegistry;
 
@@ -38,6 +39,8 @@ pub struct DesktopState {
     pub system: Arc<SystemService>,
     /// The checked self-update an install request may act on.
     pub updates: Arc<UpdateService>,
+    /// Launch-at-login registration for the running copy.
+    pub login_item: Arc<LoginItemService>,
     /// The destination the dashboard must open on, when the surface that asked
     /// for the window named one.
     ///
@@ -61,6 +64,7 @@ impl DesktopState {
         ai: Arc<AiService>,
         system: Arc<SystemService>,
         updates: Arc<UpdateService>,
+        login_item: Arc<LoginItemService>,
     ) -> Self {
         Self {
             environment,
@@ -72,6 +76,7 @@ impl DesktopState {
             ai,
             system,
             updates,
+            login_item,
             pending_navigation: Mutex::new(None),
         }
     }

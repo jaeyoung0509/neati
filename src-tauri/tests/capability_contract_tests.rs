@@ -54,7 +54,7 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 20] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 48] = [
+const READ_ONLY_PERMISSIONS: [&str; 49] = [
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
     "allow-cancel-temporary-storage-scan",
@@ -106,6 +106,7 @@ const READ_ONLY_PERMISSIONS: [&str; 48] = [
     "allow-run-ai-safety-scan",
     // Reads the signed release manifest; nothing is downloaded or changed (#434).
     "allow-check-for-update",
+    "allow-get-launch-at-login",
 ];
 
 /// Command permissions that change machine or persistent state, spawn a
@@ -118,7 +119,7 @@ const READ_ONLY_PERMISSIONS: [&str; 48] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 37] = [
+const MUTATING_PERMISSIONS: [&str; 38] = [
     "allow-connect-openrouter-oauth",
     "allow-consume-ai-recommendation-preview",
     "allow-create-delete-plan",
@@ -157,6 +158,8 @@ const MUTATING_PERMISSIONS: [&str; 37] = [
     "allow-terminate-memory-group",
     // Replaces the installed app with the checked, signature-verified update (#434).
     "allow-install-update",
+    // Writes or removes neati's own LaunchAgent (#436).
+    "allow-set-launch-at-login",
 ];
 
 /// The quick panel's deliberately narrow mutating use case. The backend

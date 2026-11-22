@@ -15,7 +15,7 @@ use crate::blocking::run_blocking;
 use crate::events::notifications::TauriNotifications;
 use crate::models::{
     AwakeBehavior, AwakeRule, AwakeState, BatteryMetrics, CpuMetrics, DashboardRoute,
-    DevelopmentListener, DiagnosticsSnapshot, DiskMetrics, DiskVolume, DockerStatus,
+    DevelopmentListener, DiagnosticsSnapshot, DiskMetrics, DiskVolume, DockerStatus, LaunchAtLogin,
     LocalModelInventory, MemoryMetrics, MemoryTerminationMode, MemoryTerminationResult,
     NeatiSettings, PlatformCapabilities, PlatformContext, ReleaseDevelopmentListenerResult,
     ReleaseMode, SelectedApplication, UpdateCheck,
@@ -238,6 +238,25 @@ fn open_dashboard_window_for_runtime<R: tauri::Runtime>(
 #[specta::specta]
 pub fn take_pending_navigation(state: State<'_, DesktopState>) -> Option<DashboardRoute> {
     state.take_pending_navigation()
+}
+
+/// Whether this installed copy starts at login, read from the system.
+#[tauri::command]
+#[specta::specta]
+pub async fn get_launch_at_login(state: State<'_, DesktopState>) -> Result<LaunchAtLogin, String> {
+    let login_item = state.login_item.clone();
+    run_blocking(move || Ok(login_item.status()), "launch-at-login status").await
+}
+
+/// Registers or removes the login item and returns what the system now holds.
+#[tauri::command]
+#[specta::specta]
+pub async fn set_launch_at_login(
+    state: State<'_, DesktopState>,
+    enabled: bool,
+) -> Result<LaunchAtLogin, String> {
+    let login_item = state.login_item.clone();
+    run_blocking(move || login_item.set(enabled), "launch-at-login change").await
 }
 
 /// Reads the signed release manifest. Started by the person, or once at launch

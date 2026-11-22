@@ -10,6 +10,7 @@
   import { awakeStore } from '../../lib/stores/awake.svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { updateStore } from '../../lib/stores/updates.svelte';
+  import OnboardingDialog from '../../lib/components/OnboardingDialog.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import PreviewModeIndicator from '../../lib/components/PreviewModeIndicator.svelte';
@@ -515,3 +516,9 @@
     {/if}
   </main>
 </div>
+
+<!-- First-run guide. The store defaults to completed until settings load, so
+     it never flashes for someone who already finished it. -->
+{#if !settings.onboarding_completed}
+  <OnboardingDialog onFinish={() => void settingsStore.save({ onboarding_completed: true })} />
+{/if}

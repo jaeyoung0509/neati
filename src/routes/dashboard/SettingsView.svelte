@@ -34,6 +34,7 @@
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import UpdateSettings from '../../lib/components/UpdateSettings.svelte';
+  import LaunchAtLoginSetting from '../../lib/components/LaunchAtLoginSetting.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
@@ -339,16 +340,13 @@
       General
     </h3>
     <Card class="p-4 space-y-4 bg-card">
-      <div class="flex items-center justify-between text-meta">
+      <LaunchAtLoginSetting />
+      <div class="flex items-center justify-between gap-3 text-meta">
         <div>
-          <div class="flex items-center gap-2 font-medium text-foreground">Launch neati at login <Badge variant="outline">Planned</Badge></div>
-          <div class="text-meta text-muted-foreground">Autostart is not enabled in this build.</div>
+          <div class="font-medium text-foreground">Welcome guide</div>
+          <div class="text-muted-foreground">What neati cleans, what permanent removal means, and optional setup.</div>
         </div>
-        <Switch
-          checked={settings.launch_at_login}
-          disabled={true}
-          ariaLabel="Launch neati at login"
-        />
+        <Button size="sm" variant="outline" onclick={() => void settingsStore.save({ onboarding_completed: false })}>Show guide</Button>
       </div>
     </Card>
   </div>

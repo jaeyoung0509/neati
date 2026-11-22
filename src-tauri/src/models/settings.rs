@@ -170,7 +170,12 @@ where
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(default)]
 pub struct NeatiSettings {
+    /// Legacy mirror kept so older settings files still load. The LaunchAgent
+    /// on disk is the source of truth (`get_launch_at_login`).
     pub launch_at_login: bool,
+    /// The first-run guide was finished or dismissed. Missing in older files,
+    /// so an upgraded install sees the guide once.
+    pub onboarding_completed: bool,
     /// Read the signed release manifest once when neati opens. Off by default:
     /// neati makes no network request for updates unless the person opts in.
     pub check_updates_on_launch: bool,
@@ -208,6 +213,7 @@ impl Default for NeatiSettings {
     fn default() -> Self {
         Self {
             launch_at_login: false,
+            onboarding_completed: false,
             check_updates_on_launch: false,
             clean_ai_tools: true,
             clean_developer_tools: true,

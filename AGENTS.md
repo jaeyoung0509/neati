@@ -148,6 +148,16 @@ safety conventions below when changing neati.
   it showed; URLs and signatures stay in `UpdateService`. Keep
   `requireSignedVersion` on and keep the release job failing without the
   updater key. See `docs/UPDATER.md`.
+- Launch at login is one LaunchAgent neati owns
+  (`~/Library/LaunchAgents/com.neati.desktop.login.plist`), written by
+  `neati_platform::login_item`. The plist is the source of truth: the interface
+  reads `get_launch_at_login`, never the legacy `launch_at_login` setting. Only
+  an installed `.app` copy may register; build-tree and translocated copies
+  report `unavailable`. The agent passes `--background`, and a start with that
+  argument does not open the main window. Never follow or replace a link at the
+  agent path.
+- The first-run guide shows once (`onboarding_completed`), can be reopened from
+  Settings, and must keep stating that cleaning is permanent removal.
 - Create the tray icon once in Rust. The tray menu must include Open neati,
   Toggle Quick Panel, and Quit neati.
 - Position the quick panel from the tray click coordinates, clamp it to the

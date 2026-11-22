@@ -34,6 +34,7 @@ import type {
   PlatformCapabilities,
   PlatformContext,
   UpdateCheck,
+  LaunchAtLogin,
   ProviderDescriptor,
   ProviderId,
   PublishedScan,
@@ -1783,6 +1784,7 @@ export const mockApi = {
     }
     return {
       launch_at_login: false,
+      onboarding_completed: true,
       check_updates_on_launch: false,
       clean_ai_tools: true,
       clean_developer_tools: true,
@@ -1928,6 +1930,14 @@ export const mockApi = {
 
   async openLogsFolder(): Promise<void> {
     // No-op in browser mock
+  },
+
+  async getLaunchAtLogin(): Promise<LaunchAtLogin> {
+    return { status: 'unavailable', reason: 'Start at login is set in the desktop app, not the browser preview.' };
+  },
+
+  async setLaunchAtLogin(): Promise<LaunchAtLogin> {
+    throw new Error('The browser preview cannot change login items.');
   },
 
   async checkForUpdate(): Promise<UpdateCheck> {

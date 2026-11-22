@@ -1,4 +1,4 @@
-# Design system consolidation — 0.3.110 (#430)
+# Design system consolidation — 0.3.111 (#430)
 
 Browser preview (`pnpm dev`, mocked IPC), 1100 × 760 viewport, light theme.
 

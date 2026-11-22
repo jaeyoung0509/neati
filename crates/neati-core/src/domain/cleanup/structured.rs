@@ -35,20 +35,30 @@ pub enum StructuredStatePolicy {
     #[default]
     ProtectAll,
     VerifiedRegenerableCache,
+    /// A build-output directory a named tool regenerates in full (Xcode
+    /// DerivedData). Object files, libraries, built bundles, index databases
+    /// and generated configuration are the content of such a directory, not
+    /// state beside it, so they belong to the unit. Credentials still
+    /// invalidate it: nothing a build writes there is a key.
+    OwnerGuardedBuildOutput,
 }
 
 impl StructuredStatePolicy {
     /// Whether a classified entry is within this policy's cleanup authority.
     pub fn permits(self, kind: StructuredStateKind) -> bool {
-        matches!(
-            (self, kind),
-            (
-                Self::VerifiedRegenerableCache,
+        match self {
+            Self::ProtectAll => false,
+            Self::VerifiedRegenerableCache => matches!(
+                kind,
                 StructuredStateKind::Database
                     | StructuredStateKind::DatabaseCompanion
                     | StructuredStateKind::Lock
-            )
-        )
+            ),
+            Self::OwnerGuardedBuildOutput => !matches!(
+                kind,
+                StructuredStateKind::Credential | StructuredStateKind::CompiledModelCache
+            ),
+        }
     }
 }
 
@@ -316,6 +326,36 @@ mod tests {
 
     fn directory(name: &str) -> Option<StructuredStateKind> {
         classify_structured_state(PathFacts::new(name, EntryKind::Directory))
+    }
+
+    #[test]
+    fn each_policy_permits_exactly_its_reviewed_kinds() {
+        use StructuredStateKind::*;
+        let all = [
+            Database,
+            DatabaseCompanion,
+            Lock,
+            Credential,
+            Configuration,
+            ApplicationBundle,
+            CompiledModelCache,
+            Executable,
+        ];
+        for kind in all {
+            assert!(!StructuredStatePolicy::ProtectAll.permits(kind), "{kind:?}");
+            assert_eq!(
+                StructuredStatePolicy::VerifiedRegenerableCache.permits(kind),
+                matches!(kind, Database | DatabaseCompanion | Lock),
+                "{kind:?}"
+            );
+            // Build output is everything a build writes; a credential or a
+            // compiled Apple model is never something a build writes.
+            assert_eq!(
+                StructuredStatePolicy::OwnerGuardedBuildOutput.permits(kind),
+                !matches!(kind, Credential | CompiledModelCache),
+                "{kind:?}"
+            );
+        }
     }
 
     #[test]

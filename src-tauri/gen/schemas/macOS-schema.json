@@ -399,6 +399,12 @@
           "markdownDescription": "Enables the get_last_scan command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_launch_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-launch-at-login",
+          "markdownDescription": "Enables the get_launch_at_login command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_local_models command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-local-models",
@@ -625,6 +631,12 @@
           "type": "string",
           "const": "allow-set-awake-rules",
           "markdownDescription": "Enables the set_awake_rules command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_launch_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-launch-at-login",
+          "markdownDescription": "Enables the set_launch_at_login command without any pre-configured scope."
         },
         {
           "description": "Enables the set_manual_awake command without any pre-configured scope.",
@@ -909,6 +921,12 @@
           "markdownDescription": "Denies the get_last_scan command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_launch_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-launch-at-login",
+          "markdownDescription": "Denies the get_launch_at_login command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_local_models command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-local-models",
@@ -1135,6 +1153,12 @@
           "type": "string",
           "const": "deny-set-awake-rules",
           "markdownDescription": "Denies the set_awake_rules command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_launch_at_login command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-launch-at-login",
+          "markdownDescription": "Denies the set_launch_at_login command without any pre-configured scope."
         },
         {
           "description": "Denies the set_manual_awake command without any pre-configured scope.",

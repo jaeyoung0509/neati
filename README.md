@@ -163,6 +163,18 @@ Do not disable Gatekeeper or clear quarantine attributes. A public neati
 release remains gated on the signing/notarization review in issue #334; a
 locally built app is not evidence of a signed release.
 
+### First launch and starting at login
+
+The first time neati opens it shows a three-step guide: what it cleans, that
+cleaning is permanent removal (nothing goes to the Trash), and two optional
+settings. You can reopen it from **Settings → General → Show guide**.
+
+**Start neati when you log in** (macOS) registers one LaunchAgent in
+`~/Library/LaunchAgents`. neati then starts in the menu bar without opening a
+window, from the next login. The switch reads that file back, so it shows what
+will actually happen. It is available only for a copy installed as an `.app`
+(for example in Applications); turning it off removes the file.
+
 ### Updating neati
 
 On macOS, **Settings → Updates** checks this repository's release manifest

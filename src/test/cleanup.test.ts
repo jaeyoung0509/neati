@@ -86,6 +86,7 @@ function item(overrides: Partial<ScanItem>): ScanItem {
 /** Settings that enable every cleanup category, used by the store tests. */
 const allCategoriesEnabledSettings: NeatiSettings = {
   launch_at_login: false,
+  onboarding_completed: true,
   check_updates_on_launch: false,
   clean_ai_tools: true,
   clean_developer_tools: true,

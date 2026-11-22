@@ -38,6 +38,7 @@ import type {
   PlatformCapabilities,
   PlatformContext,
   UpdateCheck,
+  LaunchAtLogin,
   ProviderDescriptor,
   ProviderId_Deserialize,
   PublishedScan,
@@ -411,6 +412,14 @@ export const nativeApi = {
 
   async openLogsFolder(): Promise<void> {
     await unwrap(commands.openLogsFolder());
+  },
+
+  async getLaunchAtLogin(): Promise<LaunchAtLogin> {
+    return await unwrap(commands.getLaunchAtLogin());
+  },
+
+  async setLaunchAtLogin(enabled: boolean): Promise<LaunchAtLogin> {
+    return await unwrap(commands.setLaunchAtLogin(enabled));
   },
 
   async checkForUpdate(): Promise<UpdateCheck> {

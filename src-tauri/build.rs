@@ -60,6 +60,8 @@ fn main() {
         "toggle_quick_panel",
         "get_app_version",
         "check_for_update",
+        "get_launch_at_login",
+        "set_launch_at_login",
         "install_update",
         "get_platform_capabilities",
         "get_platform_context",

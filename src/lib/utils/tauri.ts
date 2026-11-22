@@ -47,6 +47,7 @@ import type {
   PlatformCapabilities,
   PlatformContext,
   UpdateCheck,
+  LaunchAtLogin,
   ProviderDescriptor,
   ProviderId,
   RecommendationPreview,
@@ -382,6 +383,14 @@ export function tauriRunEnvironmentSelfCheck(): Promise<EnvironmentReport> {
 
 export function tauriOpenLogsFolder(): Promise<void> {
   return api.openLogsFolder();
+}
+
+export function tauriGetLaunchAtLogin(): Promise<LaunchAtLogin> {
+  return api.getLaunchAtLogin();
+}
+
+export function tauriSetLaunchAtLogin(enabled: boolean): Promise<LaunchAtLogin> {
+  return api.setLaunchAtLogin(enabled);
 }
 
 export function tauriCheckForUpdate(): Promise<UpdateCheck> {

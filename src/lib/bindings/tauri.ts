@@ -141,6 +141,10 @@ export const commands = {
 	 *  when they opted in; never on a timer.
 	 */
 	checkForUpdate: () => typedError<UpdateCheck, string>(__TAURI_INVOKE("check_for_update")),
+	/**  Whether this installed copy starts at login, read from the system. */
+	getLaunchAtLogin: () => typedError<LaunchAtLogin, string>(__TAURI_INVOKE("get_launch_at_login")),
+	/**  Registers or removes the login item and returns what the system now holds. */
+	setLaunchAtLogin: (enabled: boolean) => typedError<LaunchAtLogin, string>(__TAURI_INVOKE("set_launch_at_login", { enabled })),
 	/**
 	 *  Installs the update the last check found and restarts neati. The webview
 	 *  names only the version it showed; the URL and signature never leave Rust.
@@ -2292,6 +2296,16 @@ export type LargeFileScanResult_Serialize = {
 	truncated: boolean,
 };
 
+/**
+ *  Whether this installed copy starts when the person logs in.
+ *
+ *  Read from the system's own registration, never from a saved preference:
+ *  the switch shows what will actually happen at the next login.
+ */
+export type LaunchAtLogin = { status: "enabled" } | { status: "disabled" } |
+/**  No adapter on this platform, or this copy cannot be registered. */
+{ status: "unavailable"; reason: string };
+
 export type ListenerExposure = "loopback" | "network" | "all_interfaces";
 
 export type ListenerProtocol = "tcp";
@@ -2421,7 +2435,16 @@ export type MoneyMicros = {
 export type NeatiSettings = NeatiSettings_Serialize | NeatiSettings_Deserialize;
 
 export type NeatiSettings_Deserialize = {
+	/**
+	 *  Legacy mirror kept so older settings files still load. The LaunchAgent
+	 *  on disk is the source of truth (`get_launch_at_login`).
+	 */
 	launch_at_login?: boolean,
+	/**
+	 *  The first-run guide was finished or dismissed. Missing in older files,
+	 *  so an upgraded install sees the guide once.
+	 */
+	onboarding_completed?: boolean,
 	/**
 	 *  Read the signed release manifest once when neati opens. Off by default:
 	 *  neati makes no network request for updates unless the person opts in.
@@ -2446,7 +2469,16 @@ export type NeatiSettings_Deserialize = {
 };
 
 export type NeatiSettings_Serialize = {
+	/**
+	 *  Legacy mirror kept so older settings files still load. The LaunchAgent
+	 *  on disk is the source of truth (`get_launch_at_login`).
+	 */
 	launch_at_login: boolean,
+	/**
+	 *  The first-run guide was finished or dismissed. Missing in older files,
+	 *  so an upgraded install sees the guide once.
+	 */
+	onboarding_completed: boolean,
 	/**
 	 *  Read the signed release manifest once when neati opens. Off by default:
 	 *  neati makes no network request for updates unless the person opts in.

@@ -69,6 +69,8 @@
     "allow-toggle-quick-panel",
     "allow-get-app-version",
     "allow-check-for-update",
+    "allow-get-launch-at-login",
+    "allow-set-launch-at-login",
     "allow-install-update",
     "allow-get-diagnostics",
     "allow-open-logs-folder",

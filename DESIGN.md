@@ -399,6 +399,10 @@ inventory is still valid.
   `shadow-xl`, `backdrop:bg-foreground/30`; sizes `sm`…`xl`, `compact` density
   for the Quick Panel, `flex` layout for a fixed header and footer, and a
   `destructive` tone border. A raw `<dialog>` elsewhere fails the design test.
+- **First-run guide**: one `Dialog` with three steps (what neati cleans,
+  permanent removal, optional setup), a visible step count, Skip always
+  available, and focus moved to the step heading on each change. It appears
+  once and is reopened from Settings → General. It never blocks scanning.
 - **Card / surface**: `bg-card` + 1 px `--border` + `rounded-xl`. Data rows
   remain opaque; the optional `surface="subtle"` variant groups rows on
   `--secondary`. Navigation and Quick Panel chrome carry translucency. A card is

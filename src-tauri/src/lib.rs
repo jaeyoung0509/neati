@@ -612,9 +612,18 @@ pub fn run() {
         }
     };
 
-    app.run(|app, event| match event {
+    // A start from the login item stays in the menu bar: the tray is the way
+    // in, and opening a window at every login would be an interruption. The
+    // argument is the fixed one neati's own LaunchAgent passes.
+    let started_at_login = std::env::args()
+        .skip(1)
+        .any(|argument| argument == neati_platform::login_item::BACKGROUND_LAUNCH_ARGUMENT);
+
+    app.run(move |app, event| match event {
         tauri::RunEvent::Ready => {
-            show_main_window_or_report(app);
+            if !started_at_login {
+                show_main_window_or_report(app);
+            }
         }
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Reopen { .. } => {
@@ -685,6 +694,8 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::take_pending_navigation,
             commands::get_app_version,
             commands::check_for_update,
+            commands::get_launch_at_login,
+            commands::set_launch_at_login,
             commands::install_update,
             commands::get_platform_capabilities,
             commands::get_platform_context,

@@ -286,7 +286,7 @@
 
   {#if platformCapabilitiesStore.error !== null && platformCapabilitiesStore.capabilities === null}
     <InlineNotice
-      variant="error"
+      variant="destructive"
       message={`Could not verify installed-application inspection: ${platformCapabilitiesStore.error}. Retry to restore Applications.`}
       actionLabel="Retry"
       onAction={() => void platformCapabilitiesStore.load(true)}
@@ -326,9 +326,9 @@
 
     <!-- Cleaning In Progress Bar -->
     {#if scanStore.isCleaning}
-      <Card class="p-4 bg-secondary/60 border-primary/40 transition-colors duration-200">
+      <Card class="p-4 bg-secondary/60 border-primary/40 transition-colors duration-normal">
         <div class="space-y-2" role="status" aria-live="polite">
-          <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex flex-wrap items-center justify-between gap-3 text-meta">
             <span class="min-w-0 font-medium text-foreground flex items-center gap-2">
               <LoadingIndicator word="cleaning" size="xs" />
               <span class="min-w-0 break-words">Cleaning: {scanStore.cleanProgress.currentItem}</span>
@@ -345,7 +345,7 @@
     <!-- Error Alert -->
     {#if scanStore.error}
       <InlineNotice
-        variant="error"
+        variant="destructive"
         title="Storage check needs attention"
         message={scanStore.error}
       />
@@ -426,7 +426,7 @@
             onclick={() => tauriOpenStorageSettings()}
             class="text-muted-foreground"
             title="Open storage settings"
-            ariaLabel="Open storage settings"
+            aria-label="Open storage settings"
           >
             <ExternalLink size={12} />
             <span class="hidden lg:inline">Storage Settings</span>

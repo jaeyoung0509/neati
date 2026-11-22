@@ -286,7 +286,7 @@
 
   <!-- Appearance -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
       Appearance
     </h3>
     <Card class="p-4 bg-card">
@@ -295,7 +295,7 @@
           type="button"
           onclick={() => handleTheme('system')}
           aria-pressed={settings.theme === 'system'}
-          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
+          class="flex flex-col items-center justify-center p-3 rounded-lg border text-meta gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
           'system'
             ? 'border-primary bg-secondary/80 text-foreground font-semibold'
             : 'border-border text-muted-foreground hover:text-foreground'}"
@@ -308,7 +308,7 @@
           type="button"
           onclick={() => handleTheme('dark')}
           aria-pressed={settings.theme === 'dark'}
-          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
+          class="flex flex-col items-center justify-center p-3 rounded-lg border text-meta gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
           'dark'
             ? 'border-primary bg-secondary/80 text-foreground font-semibold'
             : 'border-border text-muted-foreground hover:text-foreground'}"
@@ -321,7 +321,7 @@
           type="button"
           onclick={() => handleTheme('light')}
           aria-pressed={settings.theme === 'light'}
-          class="flex flex-col items-center justify-center p-3 rounded-lg border text-xs gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
+          class="flex flex-col items-center justify-center p-3 rounded-lg border text-meta gap-2 transition-[background-color,color,border-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {settings.theme ===
           'light'
             ? 'border-primary bg-secondary/80 text-foreground font-semibold'
             : 'border-border text-muted-foreground hover:text-foreground'}"
@@ -335,11 +335,11 @@
 
   <!-- General Preferences -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
       General
     </h3>
     <Card class="p-4 space-y-4 bg-card">
-      <div class="flex items-center justify-between text-xs">
+      <div class="flex items-center justify-between text-meta">
         <div>
           <div class="flex items-center gap-2 font-medium text-foreground">Launch neati at login <Badge variant="outline">Planned</Badge></div>
           <div class="text-meta text-muted-foreground">Autostart is not enabled in this build.</div>
@@ -366,7 +366,7 @@
   <!-- Dashboard Navigation Customization -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
         Sidebar navigation
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
@@ -374,7 +374,7 @@
       </p>
     </div>
     <Card class="p-4 bg-card space-y-3">
-      <div class="flex items-center gap-2 text-xs font-medium text-foreground pb-1">
+      <div class="flex items-center gap-2 text-meta font-medium text-foreground pb-1">
         <LayoutList size={14} /> Sidebar order
       </div>
       {#each orderedDashboardTabs() as tabOption (tabOption.id)}
@@ -418,7 +418,7 @@
             ariaLabel={`Show ${tabOption.label} in sidebar`}
           />
           <div class="min-w-0 flex-1 select-none">
-            <div class="text-xs font-medium text-foreground">{tabOption.label} <span class="text-muted-foreground">· {dashboardGroup(tabOption.id) ?? 'Overview'}</span></div>
+            <div class="text-meta font-medium text-foreground">{tabOption.label} <span class="text-muted-foreground">· {dashboardGroup(tabOption.id) ?? 'Overview'}</span></div>
             <div class="text-caption text-muted-foreground">{tabOption.description}</div>
           </div>
           {#if enabled}
@@ -437,7 +437,7 @@
   <!-- AI Accounts & Quota Customization -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
         AI accounts and usage
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
@@ -445,7 +445,7 @@
       </p>
     </div>
     <Card class="p-4 bg-card space-y-3">
-      <div class="flex items-center gap-2 text-xs font-medium text-foreground pb-1">
+      <div class="flex items-center gap-2 text-meta font-medium text-foreground pb-1">
         <Users size={14} /> Provider order
       </div>
       {#each orderedAccountProviders() as provider (provider.id)}
@@ -488,7 +488,7 @@
             ariaLabel={`Collect and show ${provider.label} account usage`}
           />
           <div class="min-w-0 flex-1 select-none">
-            <div class="text-xs font-medium text-foreground">{provider.label}</div>
+            <div class="text-meta font-medium text-foreground">{provider.label}</div>
             <div class="text-caption text-muted-foreground">{provider.description}</div>
           </div>
           {#if enabled}
@@ -507,7 +507,7 @@
   <!-- Quick Panel Customization -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
         {platformContextStore.quickPanelSurfaceLabel
           ? `${titleCaseLabel(platformContextStore.quickPanelSurfaceLabel)} Quick Panel`
           : 'Quick Panel'}
@@ -518,7 +518,7 @@
     </div>
     <Card class="p-4 bg-card space-y-5">
       <div class="space-y-2">
-        <div class="flex items-center gap-2 text-xs font-medium text-foreground">
+        <div class="flex items-center gap-2 text-meta font-medium text-foreground">
           <PanelTop size={14} /> Sections
         </div>
         {#each orderedSections() as option (option.id)}
@@ -561,7 +561,7 @@
               ariaLabel={`Show ${option.label} in quick panel`}
             />
             <div class="min-w-0 flex-1 select-none">
-              <div class="text-xs font-medium text-foreground">{option.label}</div>
+              <div class="text-meta font-medium text-foreground">{option.label}</div>
               <div class="text-caption text-muted-foreground">{option.description}</div>
             </div>
             {#if enabled}
@@ -577,7 +577,7 @@
       </div>
 
       <div class="space-y-2 pt-4 border-t border-border/60">
-        <div class="flex items-center gap-2 text-xs font-medium text-foreground">
+        <div class="flex items-center gap-2 text-meta font-medium text-foreground">
           <Sparkles size={14} /> AI Provider Priority
         </div>
         <p class="text-caption text-muted-foreground">Show usage for accounts enabled under AI accounts and usage, in this order. Turning usage off hides its quota row; observed local sessions remain separate.</p>
@@ -620,7 +620,7 @@
               onchange={() => settingsStore.toggleQuickPanelProvider(provider.id)}
               ariaLabel={`Show ${provider.label} usage`}
             />
-            <span class="flex-1 text-xs font-medium text-foreground select-none">{provider.label}</span>
+            <span class="flex-1 text-meta font-medium text-foreground select-none">{provider.label}</span>
             {#if enabled}
               <ReorderControls
                 label={provider.label}
@@ -638,7 +638,7 @@
   <!-- Cleanup Scan Scope -->
   <div class="space-y-3">
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
         Cache scanning
       </h3>
       <p class="text-meta text-muted-foreground mt-1">
@@ -648,14 +648,14 @@
     <Card class="p-4 bg-card">
       {#if platformCapabilitiesStore.error && !platformCapabilitiesStore.capabilities}
         <InlineNotice
-          variant="error"
+          variant="destructive"
           title="Platform capabilities unavailable"
           message={platformCapabilitiesStore.error}
           actionLabel="Retry"
           onAction={() => void platformCapabilitiesStore.load(true)}
         />
       {:else}
-        <div class="flex items-start justify-between gap-5 text-xs">
+        <div class="flex items-start justify-between gap-5 text-meta">
           <div class="min-w-0">
             <div class="flex items-center gap-2 font-medium text-foreground">
               <AlertTriangle size={14} class="text-warning" />
@@ -692,12 +692,12 @@
 
   <!-- Cleaning Categories Defaults -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
       Quick Clean categories
     </h3>
     <Card class="p-4 space-y-4 bg-card divide-y divide-border/60">
       <!-- AI Tools -->
-      <div class="flex items-center justify-between text-xs pt-3 first:pt-0">
+      <div class="flex items-center justify-between text-meta pt-3 first:pt-0">
         <div>
           <div class="font-medium text-foreground">AI Assistant Caches & Logs</div>
           <div class="text-meta text-muted-foreground">Claude Code, Cursor, Gemini CLI, Codex, Aider.</div>
@@ -710,7 +710,7 @@
       </div>
 
       <!-- Developer Tools -->
-      <div class="flex items-center justify-between text-xs pt-3">
+      <div class="flex items-center justify-between text-meta pt-3">
         <div>
           <div class="font-medium text-foreground">Developer Compilers & Package Managers</div>
           <div class="text-meta text-muted-foreground">Go build, Cargo cache, npm, pnpm, uv, Xcode DerivedData.</div>
@@ -723,7 +723,7 @@
       </div>
 
       <!-- Docker -->
-      <div class="flex items-center justify-between text-xs pt-3">
+      <div class="flex items-center justify-between text-meta pt-3">
         <div>
           <div class="font-medium text-foreground">Docker Dangling Images & BuildKit Cache</div>
           <div class="text-meta text-muted-foreground">Clean safe Docker cache layers via official Docker CLI.</div>
@@ -741,14 +741,14 @@
   <!-- Agent Activity Notifications -->
   <div class="space-y-3">
     <div class="flex items-center justify-between">
-      <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
         Agent notifications
       </h3>
       <Badge variant="outline">Privacy Safe</Badge>
     </div>
     <Card class="p-4 space-y-4 bg-card divide-y divide-border/60">
       <!-- Master toggle -->
-      <div class="flex items-center justify-between text-xs pt-3 first:pt-0">
+      <div class="flex items-center justify-between text-meta pt-3 first:pt-0">
         <div>
           <div class="font-medium text-foreground">Enable Desktop Notifications</div>
           <div class="text-meta text-muted-foreground">Opt-in notifications for agent lifecycle and user attention events.</div>
@@ -762,7 +762,7 @@
 
       {#if settings.agent_notifications?.enabled}
         <!-- Turn completed -->
-        <div class="flex items-center justify-between text-xs pt-3">
+        <div class="flex items-center justify-between text-meta pt-3">
           <div>
             <div class="font-medium text-foreground">Turn Completed</div>
             <div class="text-meta text-muted-foreground">Notify when an agent finishes its active response turn.</div>
@@ -775,7 +775,7 @@
         </div>
 
         <!-- Approval or input needed -->
-        <div class="flex items-center justify-between text-xs pt-3">
+        <div class="flex items-center justify-between text-meta pt-3">
           <div>
             <div class="font-medium text-foreground">Needs Approval or Input</div>
             <div class="text-meta text-muted-foreground">Notify when an agent is waiting for confirmation, tool permission, or user input.</div>
@@ -788,7 +788,7 @@
         </div>
 
         <!-- Possibly inactive -->
-        <div class="flex items-center justify-between text-xs pt-3">
+        <div class="flex items-center justify-between text-meta pt-3">
           <div>
             <div class="font-medium text-foreground">Possibly Inactive</div>
             <div class="text-meta text-muted-foreground">Notify if an agent has been running with no observable activity past the threshold.</div>
@@ -801,7 +801,7 @@
         </div>
 
         <!-- Hide project basename -->
-        <div class="flex items-center justify-between text-xs pt-3">
+        <div class="flex items-center justify-between text-meta pt-3">
           <div>
             <div class="font-medium text-foreground">Hide Project Name in Notifications</div>
             <div class="text-meta text-muted-foreground">Replaces the project folder name with "an active project" in notification body text.</div>
@@ -814,7 +814,7 @@
         </div>
 
         <!-- Inactivity threshold slider -->
-        <div class="text-xs pt-3 space-y-2">
+        <div class="text-meta pt-3 space-y-2">
           <div class="flex items-center justify-between">
             <span class="font-medium text-foreground">Inactivity Alert Threshold</span>
             <span class="font-mono text-muted-foreground">{settings.agent_notifications?.inactivity_threshold_minutes ?? 15} minutes</span>
@@ -835,20 +835,20 @@
 
   <!-- Diagnostics & Logs -->
   <div class="space-y-3">
-    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
       Diagnostics and logs
     </h3>
     <ToolDetectionDisclosure />
     <Card class="p-4 bg-card space-y-4">
       <div class="space-y-1">
-        <div class="text-xs font-medium text-foreground">Local System & Error Logs</div>
+        <div class="text-meta font-medium text-foreground">Local System & Error Logs</div>
         <p class="text-meta text-muted-foreground leading-relaxed">
           neati keeps zero telemetry and never transmits analytics or secrets. Error and subprocess failure logs are stored locally on your machine at <code class="font-mono text-caption bg-secondary/80 px-1 py-0.5 rounded">{platformContextStore.logDirectory ?? LOG_DIRECTORY_FALLBACK}</code>.
         </p>
       </div>
 
       {#if diagnosticsData?.settings_corrupt_recovered}
-        <div class="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+        <div class="flex items-center gap-2 rounded-lg border status-chip-warning px-3 py-2 text-meta text-warning">
           <AlertTriangle size={14} class="shrink-0" />
           <span>A damaged configuration file was detected, safely backed up, and reset to defaults.</span>
         </div>
@@ -875,14 +875,14 @@
       </div>
 
       <div class="space-y-2 border-t border-border/60 pt-3">
-        <div class="text-xs font-medium text-foreground">Uncaught Frontend Errors</div>
+        <div class="text-meta font-medium text-foreground">Uncaught Frontend Errors</div>
         {#if frontendErrorStore.entries.length === 0}
           <p class="text-meta text-muted-foreground">No uncaught frontend errors.</p>
         {:else}
           <ul class="space-y-1.5">
             {#each frontendErrorStore.entries as entry (entry.id)}
               <li
-                class="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-meta"
+                class="rounded-lg border status-panel-destructive px-3 py-2 text-meta"
                 role="alert"
               >
                 <div class="flex items-center gap-2 text-destructive">
@@ -903,7 +903,7 @@
 
       {#if selfCheckError}
         <div
-          class="mt-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          class="mt-3 flex items-start gap-2 rounded-lg border status-chip-destructive px-3 py-2 text-meta text-destructive"
           role="alert"
         >
           <AlertTriangle size={14} class="mt-0.5 shrink-0" />
@@ -915,7 +915,7 @@
         <div class="mt-3 space-y-2">
           {#if selfCheck.failures > 0}
             <div
-              class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+              class="flex items-center gap-2 rounded-lg border status-chip-destructive px-3 py-2 text-meta text-destructive"
               role="alert"
             >
               <AlertTriangle size={14} class="shrink-0" />
@@ -927,7 +927,7 @@
             </div>
           {:else}
             <div
-              class="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success"
+              class="flex items-center gap-2 rounded-lg border status-chip-success px-3 py-2 text-meta text-success"
             >
               <ShieldCheck size={14} class="shrink-0" />
               <span>All {selfCheck.checks.length} environment self-checks passed.</span>
@@ -966,7 +966,7 @@
           role="region"
           aria-label="Application diagnostics"
           tabindex="0"
-          class="mt-3 rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta font-mono text-muted-foreground space-y-1 overflow-x-auto max-h-48 overflow-y-auto scroll-stable focus-ring"
+          class="mt-3 rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta font-mono text-muted-foreground space-y-1 overflow-x-auto max-h-48 overflow-y-auto scroll-stable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <div>
             <span class="text-foreground font-semibold">neati:</span>
@@ -1006,17 +1006,17 @@
 
   <!-- About -->
   <div class="space-y-3 pt-2">
-    <h3 class="text-xs font-semibold text-muted-foreground tracking-normal">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
       About neati
     </h3>
-    <Card class="p-4 bg-card text-xs space-y-2">
+    <Card class="p-4 bg-card text-meta space-y-2">
       <div class="flex items-center justify-between gap-3">
         <span class="font-medium text-foreground">neati Developer System Manager</span>
         <Badge variant="outline" class="font-mono">{formatVersion(APP_VERSION)}</Badge>
       </div>
       {#if releasesUrl}
         <a
-          class="inline-block text-primary underline underline-offset-2 text-xs"
+          class="inline-block text-primary underline underline-offset-2 text-meta"
           href={releasesUrl}
           target="_blank"
           rel="noreferrer noopener"

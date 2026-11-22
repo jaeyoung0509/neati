@@ -1,27 +1,15 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import type { CleanupQuitPreview } from '../models/types';
   import Button from './Button.svelte';
-  import { restoreFocus } from '../utils/focus';
-  import { trapDialogFocus } from '../utils/modalDialog';
+  import Dialog from './Dialog.svelte';
   let { preview, busy, progress, onConfirm, onCancel }: {
     preview: CleanupQuitPreview; busy: boolean; progress: string;
     onConfirm: () => void; onCancel: () => void;
   } = $props();
-  let dialog: HTMLDialogElement;
   const id = $props.id();
-  onMount(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    dialog.showModal?.();
-    dialog.focus();
-    return () => { dialog.close?.(); restoreFocus(previous); };
-  });
 </script>
 
-<dialog use:trapDialogFocus bind:this={dialog} tabindex="-1" aria-modal="true" aria-labelledby={id + '-title'}
-  aria-describedby={id + '-description'}
-  oncancel={(event) => { event.preventDefault(); onCancel(); }}
-  class="m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30">
+<Dialog {onCancel} aria-labelledby={id + '-title'} aria-describedby={id + '-description'}>
   <h2 id={id + '-title'} class="text-title font-semibold">Quit apps and check caches?</h2>
   <p id={id + '-description'} class="mt-2 text-body text-muted-foreground">
     Save your work first. These apps will receive a quit request. neati will scan again and review the newly available caches before cleaning.
@@ -38,4 +26,4 @@
     <Button variant="outline" onclick={onCancel}>{busy ? 'Stop after current step' : 'Cancel'}</Button>
     <Button disabled={busy || preview.apps.length === 0} onclick={onConfirm}>Quit and check caches</Button>
   </div>
-</dialog>
+</Dialog>

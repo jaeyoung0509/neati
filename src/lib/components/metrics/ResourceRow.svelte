@@ -40,7 +40,7 @@
     type="button"
     onclick={onclick}
     aria-label={actionLabel ?? `${label}: ${value}`}
-    class="group w-full min-h-11 flex items-center gap-3 px-3 py-2 text-left transition-[background-color] duration-140 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset {className}"
+    class="group w-full min-h-11 flex items-center gap-3 px-3 py-2 text-left transition-[background-color] duration-fast hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset {className}"
   >
     {#if icon}
       <span class="shrink-0 flex items-center justify-center w-5">{@render icon()}</span>

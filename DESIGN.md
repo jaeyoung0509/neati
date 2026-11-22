@@ -204,9 +204,10 @@ brand.
 
 ### Keyboard focus
 
-`--ring` is the focus token in each theme, applied through
-`focus-visible:ring-2 focus-visible:ring-ring` (or the `.focus-ring` outline
-helper). A focus ring is never removed without a visible replacement. Measure
+`--ring` is the focus token in each theme, applied through one recipe:
+`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`
+(buttons add `focus-visible:ring-offset-1`). The former `.focus-ring` outline
+helper is retired and rejected by the design test. A focus ring is never removed without a visible replacement. Measure
 it against the surface immediately outside each focused control, including
 offset rings, rather than assuming every control sits on the page background.
 
@@ -221,6 +222,10 @@ offset rings, rather than assuming every control sits on the page background.
 - Body and controls: `text-body` (13 px) / `text-sm` (14 px).
 - Supporting information: `text-meta` (12 px). Captions and timestamps:
   `text-caption` (11 px). Micro badges and status dots: `text-micro` (10 px).
+- These named steps plus `text-sm` are the whole scale. Tailwind's `text-xs`,
+  `text-base`, `text-lg` and `text-xl`…`text-9xl` are rejected by the design
+  test: `text-xs` duplicated `text-meta` with a shorter 16 px line height, and
+  the larger steps sat between `text-sm`, `text-title` and `text-metric`.
 - A critical warning never uses `text-micro`, and "9 px" warnings are not
   allowed anywhere. Arbitrary `text-[Npx]` utilities are rejected by the design
   test; use the named steps.
@@ -242,7 +247,9 @@ offset rings, rather than assuming every control sits on the page background.
 - 4 px spacing scale: 4 / 8 / 12 / 16 / 24 / 32 px.
 - Radii: 10–12 px controls (`rounded-md`/`rounded-lg`), 16 px grouped surfaces
   and rows inside a surface (`rounded-xl`), 20 px overlays and the Quick Panel
-  shell (`rounded-2xl`). Neither hard squares nor pill-shaped everything.
+  shell (`rounded-2xl`). `rounded` (4 px) is reserved for inline technical
+  tokens (paths, ports, key caps) and micro chips. Neither hard squares nor
+  pill-shaped everything.
 - Main window: 960 × 660 default, 800 × 560 minimum, expanded by users on
   larger displays. Sidebar 224 px expanded, 64 px collapsed.
 - Content insets are driven by the **content width**, not the viewport: 16 px
@@ -314,6 +321,12 @@ visibility and accessibility preferences; no animation timers are added.
 | Sidebar collapse | ≤ 180 ms | Width and padding only, labels fade; content stays fluid |
 | Observed working state | 2–3 s breathing dot | Only for an actually observed, currently running agent session while the surface is visible |
 
+Components spell motion through utilities generated from these tokens:
+`duration-instant`, `duration-fast`, `duration-normal`, `duration-overlay` and
+`ease-standard` (`--ease-out-cubic`). Literal `duration-N` and arbitrary
+`ease-[…]` values are rejected by the design test. Keyframe animations that are
+not transitions (loading dots, ripples) keep their own timing in the component.
+
 `prefers-reduced-motion: reduce` removes decorative movement: breathing,
 spinners, and every transition are disabled while value updates and focus
 feedback remain. Nothing animates in a hidden window.
@@ -372,17 +385,35 @@ inventory is still valid.
 ## Components and interaction contract
 
 - **Button**: semantic variants (`primary`, `secondary`, `outline`, `ghost`,
-  `destructive`) and sizes (`xs`, `sm`, `md`, `lg`, `icon`) with
-  `focus-visible:ring-2 focus-visible:ring-ring`, a visible disabled state, and
-  a tooltip or explanation when disabled.
+  `destructive`) and distinct sizes (`xs` 28 px, `sm` 32 px, `md` 36 px,
+  `icon` 32 × 32 px) with the shared focus recipe, a visible disabled state,
+  and a tooltip or explanation when disabled. Native attributes (`type`,
+  `aria-*`, `title`, handlers) are forwarded as written, and `class` is merged
+  through `cn()` (`clsx` + `tailwind-merge` taught the named type steps) so a
+  caller's override wins regardless of stylesheet order.
+- **Dialog**: every modal renders through `Dialog.svelte`. Mounting it calls
+  `showModal()`, Escape calls the owner's `onCancel`, Tab stays inside, and
+  unmounting closes it and returns focus to the trigger (or an explicit
+  `returnFocusTarget`; `restoreFocusOnClose` lets a confirmation hand focus to
+  the next step). One shell: `rounded-2xl`, 1 px border, `bg-card`,
+  `shadow-xl`, `backdrop:bg-foreground/30`; sizes `sm`…`xl`, `compact` density
+  for the Quick Panel, `flex` layout for a fixed header and footer, and a
+  `destructive` tone border. A raw `<dialog>` elsewhere fails the design test.
 - **Card / surface**: `bg-card` + 1 px `--border` + `rounded-xl`. Data rows
   remain opaque; the optional `surface="subtle"` variant groups rows on
-  `--secondary`. Navigation and Quick Panel chrome carry translucency.
+  `--secondary`. Navigation and Quick Panel chrome carry translucency. A card is
+  a static surface; its actions are Buttons or links inside it.
+- **Status surfaces**: one recipe per tone — `status-panel-{warning,destructive,success,ai}`
+  (30 % border, 5 % fill) for an explanatory box, and
+  `status-chip-{…}` (30 % border, 10 % fill) for a compact notice or badge.
+  Text colour stays with the caller. Hand-built `border-<tone>/N bg-<tone>/N`
+  pairs are rejected by the design test.
 - **Navigation group**: destinations remain visible, with each group heading
   appearing once even when custom order separates its entries. Selected navigation uses
   a pale blue surface, cobalt text, and a visible leading marker.
 - **Badge**: status carries text meaning beyond colour (`success`, `warning`,
-  `outline`), at `text-caption` or above.
+  `destructive`, `ai`, `outline`), at `text-caption` or above, on the
+  `status-chip-*` recipe.
 - **ProgressBar**: 4–8 px tall, no looping shimmer, no indeterminate gradient.
 - **ByteValue**: monospace tabular numerals for every byte metric.
 - **LoadingIndicator**: three staggered bouncing dots by default, in compact
@@ -421,7 +452,9 @@ inventory is still valid.
   lists do not show an unusable bulk selector or cleanup toolbar. The header's
   Scan Storage action remains available, with reason-specific recovery nearby.
   Permission setup uses an accessible disclosure for the detailed instructions.
-- **InlineNotice**: `role="status"` for information, `role="alert"` for errors,
+- **InlineNotice**: variants `info`, `warning`, `success` and `destructive`
+  (one name per tone, shared with Badge and Button). `role="status"` for
+  information, `role="alert"` for `destructive`,
   with the concrete reason and, when the action can be retried, one retry.
 
 ### Brand identity

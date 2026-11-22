@@ -2,7 +2,7 @@
   import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from "@lucide/svelte";
 
   interface Props {
-    variant?: "info" | "warning" | "error" | "destructive" | "success";
+    variant?: "info" | "warning" | "destructive" | "success";
     title?: string;
     message: string;
     onDismiss?: () => void;
@@ -23,16 +23,14 @@
 
   const variantStyles = {
     info: "bg-secondary border-border text-foreground",
-    warning: "bg-warning/10 border-warning/30 text-warning",
-    error: "bg-destructive/10 border-destructive/30 text-destructive",
-    destructive: "bg-destructive/10 border-destructive/30 text-destructive",
-    success: "bg-success/10 border-success/30 text-success",
+    warning: "status-chip-warning text-warning",
+    destructive: "status-chip-destructive text-destructive",
+    success: "status-chip-success text-success",
   };
 
   const icons = {
     info: Info,
     warning: AlertTriangle,
-    error: AlertCircle,
     destructive: AlertCircle,
     success: CheckCircle2,
   };
@@ -40,7 +38,7 @@
 </script>
 
 <div
-  role={variant === "error" || variant === "destructive" ? "alert" : "status"}
+  role={variant === "destructive" ? "alert" : "status"}
   class="flex items-start justify-between gap-3 rounded-xl border p-3 text-meta leading-relaxed {variantStyles[variant]} {className}"
 >
   <div class="flex items-start gap-2.5 min-w-0">

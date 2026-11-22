@@ -135,7 +135,7 @@
       class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
       disabled={!canReveal()}
       onclick={handleReveal}
-      ariaLabel={`Show ${item.name} in file manager`}
+      aria-label={`Show ${item.name} in file manager`}
       title={canReveal() ? platformContextStore.revealLabel : revealUnavailableReason()}
     >
       <FolderOpen size={14} class="text-muted-foreground" />

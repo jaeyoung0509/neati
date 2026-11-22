@@ -269,7 +269,7 @@
   <aside
     class="liquid-sidebar {sidebarCollapsed ? 'w-16 p-2' : 'w-56 p-3'} shrink-0 border-r border-border flex flex-col justify-between {overlayTitleBar
       ? 'pt-9'
-      : ''} relative transition-[width,padding] duration-150"
+      : ''} relative transition-[width,padding] duration-fast"
   >
     <div class="shrink-0 pb-4 flex items-center {sidebarCollapsed ? 'flex-col' : 'justify-between'} gap-2">
         <div
@@ -289,7 +289,7 @@
           variant="ghost"
           size="icon"
           class="no-drag h-7 w-7 shrink-0 rounded-md border border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground"
-          ariaLabel={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           onclick={toggleSidebar}
         >
@@ -340,7 +340,7 @@
                 ? `${def.label}, ${formatBytes(scanStore.reclaimableBytes)} reclaimable`
                 : def.label}
               title={tabAvailable ? (sidebarCollapsed ? def.label : undefined) : (capability?.reason ?? `${def.label} is unavailable`)}
-              class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-140 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {isTabActive
+              class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {isTabActive
                 ? 'bg-accent text-primary font-semibold'
                 : tabAvailable
                   ? 'text-muted-foreground hover:text-foreground hover:bg-card'
@@ -379,7 +379,7 @@
                 aria-label={shortcutDef.label}
                 title={shortcutAvailable ? (sidebarCollapsed ? shortcutDef.label : undefined) : (shortcutCapability ? platformCapabilitiesStore.feature(shortcutCapability)?.reason : null) ?? `${shortcutDef.label} is unavailable`}
                 data-navigation-parent={tabId}
-                class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2 pl-6 pr-2'} py-1.5 rounded-md text-meta font-medium transition-[background-color,color] duration-140 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {currentTab === shortcut ? 'bg-accent text-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-card'}"
+                class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2 pl-6 pr-2'} py-1.5 rounded-md text-meta font-medium transition-[background-color,color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 {currentTab === shortcut ? 'bg-accent text-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-card'}"
               >
                 {#if currentTab === shortcut}<span aria-hidden="true" class="absolute left-0 inset-y-2 w-0.5 rounded-full bg-primary"></span>{/if}
                 <shortcutDef.icon size={17} strokeWidth={1.75} class="shrink-0" />
@@ -406,7 +406,7 @@
           aria-current={currentTab === 'settings' ? 'page' : undefined}
           aria-label="Settings"
           title={sidebarCollapsed ? 'Settings' : undefined}
-          class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-140 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {currentTab ===
+          class="relative w-full flex items-center {sidebarCollapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} py-2 rounded-md text-body font-medium transition-[background-color,color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {currentTab ===
           'settings'
             ? 'bg-accent text-primary font-semibold'
             : 'text-muted-foreground hover:text-foreground hover:bg-card'}"

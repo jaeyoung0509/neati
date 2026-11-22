@@ -3,7 +3,7 @@
   import { awakeStore } from '../../lib/stores/awake.svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { formatTimeUntil } from '../../lib/utils/format';
-  import { modalDialog } from '../../lib/utils/modalDialog';
+  import Dialog from '../../lib/components/Dialog.svelte';
   import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { tauriPickKeepAwakeApplication } from '../../lib/utils/tauri';
   import {
@@ -237,9 +237,9 @@
   }
 
   function statusClass(status: AwakeRuleStatus): string {
-    if (status === 'active') return 'border-success/25 bg-success/10 text-success';
-    if (status === 'waiting_power') return 'border-warning/30 bg-warning/10 text-warning';
-    if (status === 'invalid_application') return 'border-destructive/25 bg-destructive/10 text-destructive';
+    if (status === 'active') return 'status-chip-success text-success';
+    if (status === 'waiting_power') return 'status-chip-warning text-warning';
+    if (status === 'invalid_application') return 'status-chip-destructive text-destructive';
     if (status === 'disabled') return 'border-border/50 text-muted-foreground/70';
     return 'border-border bg-secondary/50 text-muted-foreground';
   }
@@ -276,7 +276,7 @@
     {/snippet}
 
     {#snippet actions()}
-      <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/70 bg-card/60 text-xs" aria-label="Current power source">
+      <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/70 bg-card/60 text-meta" aria-label="Current power source">
         {#if awakeState.power_source === 'ac'}
           <Zap size={14} class="text-success" aria-hidden="true" />
           <span class="font-medium text-foreground">Plugged In (AC)</span>
@@ -321,7 +321,7 @@
     />
   {/if}
 
-  <Card class="p-5 {awakeState.is_active ? 'bg-warning/10 border-warning/30' : 'bg-card'} transition-colors duration-200">
+  <Card class="p-5 {awakeState.is_active ? 'status-chip-warning' : 'bg-card'} transition-colors duration-normal">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="space-y-1.5">
         <div class="flex items-center gap-2">
@@ -341,7 +341,7 @@
           </h2>
         </div>
 
-        <p class="text-xs text-muted-foreground leading-relaxed">
+        <p class="text-meta text-muted-foreground leading-relaxed">
           {#if awakeState.is_active}
             {#if awakeState.manual_expires_at != null}
               Manual session · <strong class="text-foreground font-mono">{formatCountdown(awakeState.manual_expires_at)}</strong> · {awakeState.behavior === 'keep_display_awake' ? 'Display stays awake.' : 'Display may sleep.'}
@@ -364,7 +364,7 @@
             Stop Manual Session
           </Button>
         {:else if activeRule}
-          <Button variant="outline" size="sm" class="text-xs border-warning/40 hover:bg-warning/20" onclick={() => void awakeStore.toggleRule(activeRule.id)}>
+          <Button variant="outline" size="sm" class="text-meta border-warning/40 hover:bg-warning/20" onclick={() => void awakeStore.toggleRule(activeRule.id)}>
             Disable {activeRule.app_name} Rule
           </Button>
         {/if}
@@ -378,7 +378,7 @@
         <h2 id="manual-heading" class="text-sm font-semibold tracking-tight text-foreground">Quick Manual Duration</h2>
         <p class="text-meta text-muted-foreground mt-0.5">Temporarily keep the computer awake regardless of automatic rules.</p>
       </div>
-      <div class="flex items-center gap-1.5 p-1 rounded-lg bg-card/80 border border-border/70 text-xs" role="group" aria-label="Manual sleep behavior">
+      <div class="flex items-center gap-1.5 p-1 rounded-lg bg-card/80 border border-border/70 text-meta" role="group" aria-label="Manual sleep behavior">
         <button
           type="button"
           aria-pressed={manualBehavior === 'prevent_system_sleep'}
@@ -401,19 +401,19 @@
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(30)} class="flex-col h-auto py-3 text-xs gap-1">
+      <Button variant="outline" size="md" onclick={() => handleSetTimer(30)} class="flex-col h-auto py-3 text-meta gap-1">
         <Clock size={16} class="text-muted-foreground" aria-hidden="true" />
         <span class="font-medium text-foreground">30 Minutes</span>
       </Button>
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(60)} class="flex-col h-auto py-3 text-xs gap-1">
+      <Button variant="outline" size="md" onclick={() => handleSetTimer(60)} class="flex-col h-auto py-3 text-meta gap-1">
         <Clock size={16} class="text-muted-foreground" aria-hidden="true" />
         <span class="font-medium text-foreground">1 Hour</span>
       </Button>
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(120)} class="flex-col h-auto py-3 text-xs gap-1">
+      <Button variant="outline" size="md" onclick={() => handleSetTimer(120)} class="flex-col h-auto py-3 text-meta gap-1">
         <Clock size={16} class="text-muted-foreground" aria-hidden="true" />
         <span class="font-medium text-foreground">2 Hours</span>
       </Button>
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(null)} class="flex-col h-auto py-3 text-xs gap-1">
+      <Button variant="outline" size="md" onclick={() => handleSetTimer(null)} class="flex-col h-auto py-3 text-meta gap-1">
         <Moon size={16} class="text-warning" aria-hidden="true" />
         <span class="font-medium text-foreground">Indefinite</span>
       </Button>
@@ -421,13 +421,13 @@
   </section>
 
   {#if rules.length > 0 && rules.every((rule) => !rule.enabled)}
-    <Card class="p-4 bg-ai/5 border-ai/20 space-y-3">
+    <Card class="p-4 status-panel-ai space-y-3">
       <div class="flex items-start gap-3">
         <div class="h-8 w-8 rounded-lg bg-ai/10 text-ai flex items-center justify-center shrink-0 mt-0.5">
           <AlertCircle size={16} aria-hidden="true" />
         </div>
         <div class="space-y-1 flex-1">
-          <div class="text-xs font-semibold text-foreground">Automatic rules are off</div>
+          <div class="text-meta font-semibold text-foreground">Automatic rules are off</div>
           <p class="text-meta text-muted-foreground leading-relaxed">
             Rules are saved disabled to protect battery life. Review the rule summary, then enable only the rules you explicitly want to run.
           </p>
@@ -460,7 +460,7 @@
         </div>
         <div class="space-y-1">
           <h3 class="text-sm font-semibold text-foreground">Choose an installed app to get started</h3>
-          <p class="text-xs text-muted-foreground max-w-lg mx-auto leading-relaxed">
+          <p class="text-meta text-muted-foreground max-w-lg mx-auto leading-relaxed">
             For example, choose Warp, select Codex or another agent, and keep the computer awake only while plugged in. Leaving agents empty creates an app-only rule.
           </p>
         </div>
@@ -487,12 +487,12 @@
                     <Badge variant="secondary">Off</Badge>
                   {/if}
                 </div>
-                <p class="text-xs text-muted-foreground leading-relaxed">{awakeRuleSummary(rule)}</p>
+                <p class="text-meta text-muted-foreground leading-relaxed">{awakeRuleSummary(rule)}</p>
                 <div class="flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
                   {#if (rule.agent_ids ?? []).length > 0}
                     <span>Any selected agent:</span>
                     {#each rule.agent_ids ?? [] as agentId}
-                      <span class="inline-flex items-center rounded-full border border-ai/20 bg-ai/10 px-2 py-0.5 text-ai">{awakeAgentLabel(agentId)}</span>
+                      <span class="inline-flex items-center rounded-full border status-chip-ai px-2 py-0.5 text-ai">{awakeAgentLabel(agentId)}</span>
                     {/each}
                   {:else}
                     <span>App alone triggers this rule</span>
@@ -524,7 +524,7 @@
   </section>
 
   <details class="group rounded-xl border border-border/70 bg-card/30">
-    <summary class="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-meta font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <span>Advanced / legacy rules ({legacyRules.length})</span>
       <span class="text-meta text-muted-foreground group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
     </summary>
@@ -537,7 +537,7 @@
         Add custom legacy rule
       </Button>
       {#if legacyRules.length === 0}
-        <p class="text-xs text-muted-foreground">No legacy rules are configured.</p>
+        <p class="text-meta text-muted-foreground">No legacy rules are configured.</p>
       {:else}
         <div class="space-y-2">
           {#each legacyRules as rule (rule.id)}
@@ -545,7 +545,7 @@
             <div class="flex flex-col gap-3 rounded-lg border border-border/70 bg-card/60 p-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0 space-y-1.5">
                 <div class="flex flex-wrap items-center gap-2">
-                  <span class="text-xs font-medium text-foreground">{rule.app_name}</span>
+                  <span class="text-meta font-medium text-foreground">{rule.app_name}</span>
                   {#if evaluation}
                     <span class="px-2 py-0.5 rounded-full text-caption font-medium border {statusClass(evaluation.status)}">{statusLabel(evaluation.status)}</span>
                   {/if}
@@ -573,11 +573,11 @@
   </details>
 
   {#if showRuleEditor}
-    <dialog
-      use:modalDialog={{ onCancel: () => { if (!isSavingRule) closeRuleEditor(); }, initialFocus: '#rule-editor-title' }}
+    <Dialog
+      onCancel={() => { if (!isSavingRule) closeRuleEditor(); }} initialFocus="#rule-editor-title"
       aria-labelledby="rule-editor-title"
-      class="m-auto w-[calc(100%-2rem)] max-w-xl max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable rounded-xl border border-border bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
-    >
+      size="xl"
+      >
         <div class="flex items-start justify-between gap-3 border-b border-border/60 pb-3">
           <div>
             <h2 id="rule-editor-title" tabindex="-1" class="text-sm font-semibold">{editorMode === 'basic' ? 'Build an app rule' : 'Edit legacy process rule'}</h2>
@@ -591,12 +591,12 @@
         {#if editorMode === 'basic'}
           <div class="space-y-5 pt-5">
             <fieldset class="space-y-2">
-              <legend class="text-xs font-semibold text-foreground">When this application is open</legend>
+              <legend class="text-meta font-semibold text-foreground">When this application is open</legend>
               <p class="text-meta text-muted-foreground">Choose a native application. The saved identity includes its exact bundle or executable path.</p>
-              <button type="button" onclick={() => void pickApplication()} disabled={isPickingApp} class="flex w-full items-center gap-3 rounded-xl border border-ai/25 bg-ai/5 p-3 text-left transition-colors hover:bg-ai/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <button type="button" onclick={() => void pickApplication()} disabled={isPickingApp} class="flex w-full items-center gap-3 rounded-xl border status-panel-ai p-3 text-left transition-colors hover:bg-ai/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ai/10 text-ai"><AppWindow size={18} aria-hidden="true" /></div>
                 <div class="min-w-0 flex-1">
-                  <p class="text-xs font-medium text-foreground">{isPickingApp ? 'Opening Applications…' : newApplication ? 'Change selected application' : 'Choose from installed applications'}</p>
+                  <p class="text-meta font-medium text-foreground">{isPickingApp ? 'Opening Applications…' : newApplication ? 'Change selected application' : 'Choose from installed applications'}</p>
                   <p class="mt-0.5 truncate text-caption text-muted-foreground">{newApplication ? `${newApplication.display_name} · ${newApplication.executable_name}` : 'Cancellation leaves the rule unchanged.'}</p>
                 </div>
                 <FolderOpen size={15} class="shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -610,14 +610,14 @@
             </fieldset>
 
             <fieldset class="space-y-2">
-              <legend class="text-xs font-semibold text-foreground">And any of these agents is active <span class="font-normal text-muted-foreground">(optional)</span></legend>
+              <legend class="text-meta font-semibold text-foreground">And any of these agents is active <span class="font-normal text-muted-foreground">(optional)</span></legend>
               <p class="text-meta text-muted-foreground">Select one or more. The app must be open and at least one selected agent must be active. Leave empty for an app-only rule.</p>
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="group" aria-label="Known Keep Awake agents">
                 {#each AWAKE_AGENT_OPTIONS as agent}
                   {@const selected = selectedAgents.includes(agent.id)}
-                  <button type="button" aria-pressed={selected} onclick={() => (selectedAgents = toggleAwakeAgent(selectedAgents, agent.id))} class="flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {selected ? 'border-ai/40 bg-ai/10 text-foreground' : 'border-border/70 text-muted-foreground hover:bg-secondary/50'}">
+                  <button type="button" aria-pressed={selected} onclick={() => (selectedAgents = toggleAwakeAgent(selectedAgents, agent.id))} class="flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring {selected ? 'status-chip-ai text-foreground' : 'border-border/70 text-muted-foreground hover:bg-secondary/50'}">
                     <span class="flex h-4 w-4 items-center justify-center rounded border {selected ? 'border-ai bg-ai text-white' : 'border-border'}" aria-hidden="true">{#if selected}<Check size={11} />{/if}</span>
-                    <span class="min-w-0"><span class="block text-xs font-medium">{agent.label}</span><span class="block text-caption text-muted-foreground">{agent.hint}</span></span>
+                    <span class="min-w-0"><span class="block text-meta font-medium">{agent.label}</span><span class="block text-caption text-muted-foreground">{agent.hint}</span></span>
                   </button>
                 {/each}
               </div>
@@ -625,7 +625,7 @@
                 <div class="flex flex-wrap items-center gap-1.5 pt-1" aria-label="Selected agents">
                   <span class="text-caption text-muted-foreground">Any of:</span>
                   {#each selectedAgents as agentId}
-                    <span class="inline-flex items-center gap-1 rounded-full border border-ai/25 bg-ai/10 pl-2 pr-1 py-0.5 text-caption text-ai">
+                    <span class="inline-flex items-center gap-1 rounded-full border status-chip-ai pl-2 pr-1 py-0.5 text-caption text-ai">
                       {awakeAgentLabel(agentId)}
                       <button type="button" onclick={() => removeAgent(agentId)} class="rounded-full p-0.5 hover:bg-ai/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={`Remove ${awakeAgentLabel(agentId)}`} aria-label={`Remove ${awakeAgentLabel(agentId)}`}><X size={11} aria-hidden="true" /></button>
                     </span>
@@ -635,29 +635,29 @@
             </fieldset>
 
             <fieldset class="space-y-2">
-              <legend class="text-xs font-semibold text-foreground">Power</legend>
+              <legend class="text-meta font-semibold text-foreground">Power</legend>
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newPowerCondition === 'ac_power_only' ? 'border-success/40 bg-success/5' : 'border-border/70 hover:bg-secondary/40'}">
+                <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newPowerCondition === 'ac_power_only' ? 'status-panel-success' : 'border-border/70 hover:bg-secondary/40'}">
                   <input type="radio" name="rule-power" value="ac_power_only" bind:group={newPowerCondition} class="mt-0.5 accent-success" />
-                  <span><span class="block text-xs font-medium">Plugged in only</span><span class="mt-0.5 block text-caption text-muted-foreground">Recommended to avoid battery drain. Unknown power is ineligible.</span></span>
+                  <span><span class="block text-meta font-medium">Plugged in only</span><span class="mt-0.5 block text-caption text-muted-foreground">Recommended to avoid battery drain. Unknown power is ineligible.</span></span>
                 </label>
-                <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newPowerCondition === 'always' ? 'border-warning/40 bg-warning/5' : 'border-border/70 hover:bg-secondary/40'}">
+                <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newPowerCondition === 'always' ? 'status-panel-warning' : 'border-border/70 hover:bg-secondary/40'}">
                   <input type="radio" name="rule-power" value="always" bind:group={newPowerCondition} class="mt-0.5 accent-warning" />
-                  <span><span class="block text-xs font-medium">AC or battery</span><span class="mt-0.5 block text-caption text-muted-foreground">Use only when keeping work alive on battery is intentional.</span></span>
+                  <span><span class="block text-meta font-medium">AC or battery</span><span class="mt-0.5 block text-caption text-muted-foreground">Use only when keeping work alive on battery is intentional.</span></span>
                 </label>
               </div>
             </fieldset>
 
             <fieldset class="space-y-2">
-              <legend class="text-xs font-semibold text-foreground">Sleep behavior</legend>
+              <legend class="text-meta font-semibold text-foreground">Sleep behavior</legend>
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newBehavior === 'prevent_system_sleep' ? 'border-primary/40 bg-primary/5' : 'border-border/70 hover:bg-secondary/40'}">
                   <input type="radio" name="rule-behavior" value="prevent_system_sleep" bind:group={newBehavior} class="mt-0.5 accent-primary" />
-                  <span><span class="block text-xs font-medium">Computer awake</span><span class="mt-0.5 block text-caption text-muted-foreground">Work continues; the display may sleep.</span></span>
+                  <span><span class="block text-meta font-medium">Computer awake</span><span class="mt-0.5 block text-caption text-muted-foreground">Work continues; the display may sleep.</span></span>
                 </label>
                 <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newBehavior === 'keep_display_awake' ? 'border-primary/40 bg-primary/5' : 'border-border/70 hover:bg-secondary/40'}">
                   <input type="radio" name="rule-behavior" value="keep_display_awake" bind:group={newBehavior} class="mt-0.5 accent-primary" />
-                  <span><span class="block text-xs font-medium">Computer + display awake</span><span class="mt-0.5 block text-caption text-muted-foreground">Use when the visible display must remain on.</span></span>
+                  <span><span class="block text-meta font-medium">Computer + display awake</span><span class="mt-0.5 block text-caption text-muted-foreground">Use when the visible display must remain on.</span></span>
                 </label>
               </div>
             </fieldset>
@@ -665,36 +665,36 @@
             {#if newApplication}
               <div class="rounded-lg border border-border/70 bg-secondary/25 p-3" aria-live="polite">
                 <p class="text-caption font-semibold tracking-normal text-muted-foreground">Before saving</p>
-                <p class="mt-1 text-xs leading-relaxed text-foreground">{awakeRuleSummary({ id: 'preview', app_name: newApplication.display_name, executable_pattern: newApplication.executable_name, requires_process_pattern: null, application: newApplication, agent_ids: selectedAgents, behavior: newBehavior, power_condition: newPowerCondition, enabled: false })}</p>
+                <p class="mt-1 text-meta leading-relaxed text-foreground">{awakeRuleSummary({ id: 'preview', app_name: newApplication.display_name, executable_pattern: newApplication.executable_name, requires_process_pattern: null, application: newApplication, agent_ids: selectedAgents, behavior: newBehavior, power_condition: newPowerCondition, enabled: false })}</p>
                 <p class="mt-1 text-caption text-warning">New rules are saved off. Turn the rule on after reviewing it.</p>
               </div>
             {/if}
           </div>
         {:else}
           <div class="space-y-4 pt-5">
-            <div class="rounded-lg border border-warning/25 bg-warning/5 p-3 text-meta text-muted-foreground">Legacy matching may inspect process name, executable path, and command line. Keep this path for older/custom workflows; typed app rules are safer for known agents.</div>
-            <div class="space-y-1.5"><label for="legacy-app-name" class="text-xs font-medium text-muted-foreground">Rule name</label><input id="legacy-app-name" type="text" bind:value={newAppName} placeholder="e.g. Blender render" class="h-9 w-full rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
-            <div class="space-y-1.5"><label for="legacy-primary" class="text-xs font-medium text-muted-foreground">Executable fragments</label><input id="legacy-primary" type="text" bind:value={newExecutable} placeholder="custom process fragment" class="h-9 w-full rounded-lg border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
-            <div class="space-y-1.5"><label for="legacy-required" class="text-xs font-medium text-muted-foreground">Also require process (optional)</label><input id="legacy-required" type="text" bind:value={newRequiresPattern} placeholder="secondary fragment or pipe-separated OR values" class="h-9 w-full rounded-lg border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
+            <div class="rounded-lg border status-panel-warning p-3 text-meta text-muted-foreground">Legacy matching may inspect process name, executable path, and command line. Keep this path for older/custom workflows; typed app rules are safer for known agents.</div>
+            <div class="space-y-1.5"><label for="legacy-app-name" class="text-meta font-medium text-muted-foreground">Rule name</label><input id="legacy-app-name" type="text" bind:value={newAppName} placeholder="e.g. Blender render" class="h-9 w-full rounded-lg border border-border bg-background px-3 text-meta text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
+            <div class="space-y-1.5"><label for="legacy-primary" class="text-meta font-medium text-muted-foreground">Executable fragments</label><input id="legacy-primary" type="text" bind:value={newExecutable} placeholder="custom process fragment" class="h-9 w-full rounded-lg border border-border bg-background px-3 font-mono text-meta text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
+            <div class="space-y-1.5"><label for="legacy-required" class="text-meta font-medium text-muted-foreground">Also require process (optional)</label><input id="legacy-required" type="text" bind:value={newRequiresPattern} placeholder="secondary fragment or pipe-separated OR values" class="h-9 w-full rounded-lg border border-border bg-background px-3 font-mono text-meta text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-power" value="ac_power_only" bind:group={newPowerCondition} class="mt-0.5 accent-success" /><span class="text-xs">Plugged in only</span></label>
-              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-power" value="always" bind:group={newPowerCondition} class="mt-0.5 accent-warning" /><span class="text-xs">AC or battery</span></label>
+              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-power" value="ac_power_only" bind:group={newPowerCondition} class="mt-0.5 accent-success" /><span class="text-meta">Plugged in only</span></label>
+              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-power" value="always" bind:group={newPowerCondition} class="mt-0.5 accent-warning" /><span class="text-meta">AC or battery</span></label>
             </div>
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="prevent_system_sleep" bind:group={newBehavior} class="mt-0.5 accent-primary" /><span class="text-xs">Computer awake; display may sleep</span></label>
-              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="keep_display_awake" bind:group={newBehavior} class="mt-0.5 accent-primary" /><span class="text-xs">Computer + display awake</span></label>
+              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="prevent_system_sleep" bind:group={newBehavior} class="mt-0.5 accent-primary" /><span class="text-meta">Computer awake; display may sleep</span></label>
+              <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="keep_display_awake" bind:group={newBehavior} class="mt-0.5 accent-primary" /><span class="text-meta">Computer + display awake</span></label>
             </div>
           </div>
         {/if}
 
         {#if pickerError}
-          <p class="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-meta text-destructive" role="alert">{pickerError}</p>
+          <p class="mt-4 rounded-lg border status-panel-destructive px-3 py-2 text-meta text-destructive" role="alert">{pickerError}</p>
         {/if}
 
         <div class="flex justify-end gap-2 border-t border-border/60 pt-4 mt-5">
           <Button variant="ghost" size="sm" onclick={closeRuleEditor} disabled={isSavingRule}>Cancel</Button>
           <Button variant="primary" size="sm" onclick={() => void saveRule()} disabled={!isEditorValid() || isSavingRule}>{isSavingRule ? 'Saving…' : editingRuleId ? 'Save changes' : 'Save rule'}</Button>
         </div>
-    </dialog>
+    </Dialog>
   {/if}
 </div>

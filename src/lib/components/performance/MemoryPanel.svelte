@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { restoreFocus } from '../../utils/focus';
-  import { trapDialogFocus } from '../../utils/modalDialog';
+  import Dialog from '../Dialog.svelte';
   import type { ProcessMemory } from '../../models/types';
   import { memoryStore } from '../../stores/memory.svelte';
   import { platformCapabilitiesStore } from '../../stores/platformCapabilities.svelte';
@@ -29,17 +28,7 @@
   } from '@lucide/svelte';
 
   let { compact = false }: { compact?: boolean } = $props();
-  let terminationDialog = $state<HTMLDialogElement>();
   let returnFocus: HTMLElement | null = null;
-  $effect(() => {
-    const dialog = terminationDialog;
-    if (!dialog || !pendingProcess) return;
-    dialog.showModal();
-    return () => {
-      dialog.close();
-      restoreFocus(returnFocus);
-    };
-  });
 
   let memory = $derived(memoryStore.memory);
   let pendingProcess = $state<ProcessMemory | null>(null);
@@ -68,9 +57,9 @@
    * the two readings are never collapsed into one.
    */
   const pressureStyles = {
-    normal: { chip: 'border-success/25 bg-success/10 text-success', dot: 'bg-success' },
-    warning: { chip: 'border-warning/25 bg-warning/10 text-warning', dot: 'bg-warning' },
-    critical: { chip: 'border-destructive/25 bg-destructive/10 text-destructive', dot: 'bg-destructive' },
+    normal: { chip: 'status-chip-success text-success', dot: 'bg-success' },
+    warning: { chip: 'status-chip-warning text-warning', dot: 'bg-warning' },
+    critical: { chip: 'status-chip-destructive text-destructive', dot: 'bg-destructive' },
   } as const;
 
   let pressureStyle = $derived(pressureStyles[memory?.pressure ?? 'normal']);
@@ -318,7 +307,7 @@
                     size="sm"
                     class="gap-1.5 opacity-70 group-hover:opacity-100"
                     disabled={memoryStore.terminating !== null}
-                    ariaLabel={`Quit ${proc.name}`}
+                    aria-label={`Quit ${proc.name}`}
                     title={`Review quit options for ${proc.name}`}
                     onclick={() => openTerminationDialog(proc)}
                   >
@@ -354,8 +343,7 @@
 
   <!-- Quit Process Group Modal -->
   {#if pendingProcess}
-    <dialog use:trapDialogFocus bind:this={terminationDialog} class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable border-0 bg-transparent p-0 text-foreground backdrop:bg-background/80 [overflow-wrap:anywhere]" aria-labelledby="terminate-title" oncancel={() => { pendingProcess = null; forceAuthorized = false; }}>
-      <Card class="w-full max-w-md space-y-4 border-border bg-card p-5 shadow-2xl">
+    <Dialog onCancel={() => { pendingProcess = null; forceAuthorized = false; }} returnFocusTarget={() => returnFocus} size="md" class="space-y-4" aria-labelledby="terminate-title">
         <div class="flex items-start gap-3">
           <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
             <TriangleAlert size={17} />
@@ -386,8 +374,7 @@
             <Button variant="destructive" size="sm" onclick={() => terminatePending('force')}>Force Quit</Button>
           {/if}
         </div>
-      </Card>
-    </dialog>
+    </Dialog>
   {/if}
 </div>
 

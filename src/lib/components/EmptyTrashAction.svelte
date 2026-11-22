@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { onDestroy, tick } from 'svelte';
+  import { onDestroy } from 'svelte';
   import Button from './Button.svelte';
-  import { restoreFocus } from '../utils/focus';
-  import { trapDialogFocus } from '../utils/modalDialog';
+  import Dialog from './Dialog.svelte';
   import { formatBytes } from '../utils/format';
   import { emptyReviewedTrash } from '../utils/emptyTrash';
   import { tauriPreviewEmptyTrash, tauriCancelEmptyTrash } from '../utils/tauri';
@@ -13,7 +12,6 @@
   let error = $state('');
   let busy = $state(false);
   let loading = $state(false);
-  let dialog = $state<HTMLDialogElement>();
   let previous: HTMLElement | null = null;
   let disposed = false;
   const id = $props.id();
@@ -24,7 +22,6 @@
       const next = await tauriPreviewEmptyTrash();
       if (disposed) { void tauriCancelEmptyTrash(next.plan_id).catch(() => {}); return; }
       preview = next;
-      await tick(); dialog?.showModal?.(); dialog?.focus();
     } catch (cause) { error = String(cause); }
     finally { loading = false; }
   }
@@ -38,16 +35,14 @@
   function close() {
     if (preview) void tauriCancelEmptyTrash(preview.plan_id).catch(cause => { error = String(cause); });
     if (busy) return;
-    dialog?.close(); preview = null; result = null; restoreFocus(previous);
+    preview = null; result = null;
   }
   onDestroy(() => { disposed = true; if (preview) void tauriCancelEmptyTrash(preview.plan_id).catch(() => {}); });
 </script>
 <Button variant="outline" size="sm" disabled={disabled || loading} onclick={review}>{loading ? 'Reading Trash…' : 'Review Trash'}</Button>
 {#if error && !preview}<span role="alert" class="text-meta text-destructive">{error}</span>{/if}
 {#if preview}
-  <dialog use:trapDialogFocus bind:this={dialog} tabindex="-1" aria-labelledby={id + '-title'} aria-describedby={id + '-description'}
-    oncancel={event => { event.preventDefault(); close(); }}
-    class="m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-xl backdrop:bg-foreground/30">
+  <Dialog onCancel={close} returnFocusTarget={() => previous} aria-labelledby={id + '-title'} aria-describedby={id + '-description'}>
     <h2 id={id + '-title'} class="text-title font-semibold">{result ? 'Trash cleanup result' : 'Empty home Trash?'}</h2>
     <p id={id + '-description'} class="mt-2 text-body text-muted-foreground">This permanently removes the reviewed items. You cannot put them back afterward. Other volumes’ Trash stays intact.</p>
     <p class="mt-3 break-all text-meta text-muted-foreground">{preview.scope}</p>
@@ -69,5 +64,5 @@
       <Button variant="outline" onclick={close}>{busy ? 'Stop' : result ? 'Done' : 'Cancel'}</Button>
       {#if !result}<Button variant="destructive" disabled={busy || preview.entry_count === 0 || !!error} onclick={execute}>Empty reviewed Trash</Button>{/if}
     </div>
-  </dialog>
+  </Dialog>
 {/if}

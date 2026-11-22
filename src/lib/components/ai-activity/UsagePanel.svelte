@@ -33,7 +33,7 @@
   </div>
 
   {#if usageStore.error}
-    <div role="alert" class="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+    <div role="alert" class="rounded-xl border status-panel-destructive px-4 py-3 text-meta text-destructive">
       Usage refresh failed. The last successful usage snapshot remains visible. {usageStore.error}
     </div>
   {/if}

@@ -417,7 +417,7 @@
         size="icon"
         class="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
         onclick={() => handleOpenRoute('settings')}
-        ariaLabel="Open Settings"
+        aria-label="Open Settings"
         title="Open Settings"
       >
         <Settings size={15} aria-hidden="true" />
@@ -427,7 +427,7 @@
         size="icon"
         class="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
         onclick={handleClose}
-        ariaLabel="Close quick panel"
+        aria-label="Close quick panel"
         title="Close quick panel (Esc)"
       >
         <X size={15} aria-hidden="true" />
@@ -442,7 +442,7 @@
         <!-- A failed capability query is not an unsupported platform: offer a retry
              instead of reporting missing features. -->
         <InlineNotice
-          variant="error"
+          variant="destructive"
           title="Platform capabilities unavailable"
           message={platformCapabilitiesStore.error ?? 'neati could not read this platform\'s capability matrix from the backend.'}
           actionLabel="Retry"
@@ -466,7 +466,7 @@
         onclick={() => {
           if (cleanupAvailable) void scanStore.runScan();
         }}
-        class="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors duration-140 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors duration-fast disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Refresh storage scan"
         title={cleanupAvailable ? 'Rescan storage' : (cleanupCapability?.reason ?? 'Storage cleanup is unavailable on this platform.')}
       >
@@ -541,7 +541,7 @@
         {:else if cleanupState === 'partial' || cleanupState === 'clean'}
           <Button variant="primary" size="sm" disabled title={scan ? quickCleanupUnavailableReason(scan) : cleanupDetail} class="shrink-0 gap-1.5"><Trash2 size={14} /><span>Clean</span></Button>
         {:else}
-          <Button variant="ghost" size="sm" class="gap-1 shrink-0 text-meta text-primary" disabled={!cleanupAvailable} onclick={() => handleOpenRoute('storage')} ariaLabel={`${cleanupActionLabel} in the main window`} title={cleanupDetail}>
+          <Button variant="ghost" size="sm" class="gap-1 shrink-0 text-meta text-primary" disabled={!cleanupAvailable} onclick={() => handleOpenRoute('storage')} aria-label={`${cleanupActionLabel} in the main window`} title={cleanupDetail}>
             <span>{cleanupActionLabel}</span>
             <ArrowRight size={12} aria-hidden="true" />
           </Button>
@@ -736,7 +736,7 @@
           class="text-meta shrink-0"
           disabled={awakeStore.isLoading}
           onclick={() => (awakeState.is_active ? awakeStore.disableManual() : awakeStore.setManual(3600, 'prevent_system_sleep'))}
-          ariaLabel={awakeState.is_active ? 'Stop keeping this Mac awake' : 'Keep this Mac awake for one hour'}
+          aria-label={awakeState.is_active ? 'Stop keeping this Mac awake' : 'Keep this Mac awake for one hour'}
         >
           <span>{awakeState.is_active ? 'Stop' : '1 h'}</span>
         </Button>

@@ -76,7 +76,7 @@
     if (!reason) return null;
     switch (reason) {
       case 'approval':
-        return { label: 'Approval Needed', variant: 'danger' as const };
+        return { label: 'Approval Needed', variant: 'destructive' as const };
       case 'input':
         return { label: 'Input Needed', variant: 'warning' as const };
       case 'turn_complete':
@@ -129,7 +129,7 @@
       size="sm"
       onclick={onBack}
       class="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground"
-      ariaLabel="Back to Projects"
+      aria-label="Back to Projects"
       title="Back to Projects"
     >
       <ArrowLeft size={14} />
@@ -161,7 +161,7 @@
         disabled={agentActivityStore.isLoading}
         onclick={() => agentActivityStore.refresh(true)}
         title="Refresh project activity"
-        ariaLabel="Refresh project activity"
+        aria-label="Refresh project activity"
       >
         <LoadingActionContent busy={agentActivityStore.isLoading} busyLabel="Refreshing…">
           <RefreshCw size={13} aria-hidden="true" />Refresh
@@ -174,7 +174,7 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <div class="flex items-center gap-2.5 flex-wrap">
-          <h2 class="text-xl font-bold tracking-tight">{project.identity.display_name}</h2>
+          <h2 class="text-title font-bold tracking-tight">{project.identity.display_name}</h2>
           {#if project.identity.is_worktree}
             <Badge variant="outline">Worktree</Badge>
           {/if}
@@ -188,10 +188,10 @@
             <Badge variant="warning">Modified working tree</Badge>
           {/if}
         </div>
-        <p class="mt-1 font-mono text-xs text-muted-foreground">{project.identity.display_path}</p>
+        <p class="mt-1 font-mono text-meta text-muted-foreground">{project.identity.display_path}</p>
       </div>
 
-      <div class="flex items-center gap-4 text-xs text-muted-foreground divide-x divide-border/60">
+      <div class="flex items-center gap-4 text-meta text-muted-foreground divide-x divide-border/60">
         <div>
           <span class="font-semibold text-foreground">{project.sessions.length}</span>
           <span> agent sessions</span>
@@ -213,13 +213,13 @@
   </Card>
 
   {#if actionFeedback}
-    <div role="status" class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary">
+    <div role="status" class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-meta text-primary">
       {actionFeedback}
     </div>
   {/if}
 
   {#if revealError}
-    <div role="alert" class="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+    <div role="alert" class="rounded-xl border status-panel-destructive px-4 py-3 text-meta text-destructive">
       {revealError}
     </div>
   {/if}
@@ -235,7 +235,7 @@
     {#if project.sessions.length === 0}
       <Card class="p-8 text-center bg-card/50">
         <Bot size={24} class="mx-auto text-muted-foreground mb-2" />
-        <p class="text-xs text-muted-foreground">No active agent sessions running in this project.</p>
+        <p class="text-meta text-muted-foreground">No active agent sessions running in this project.</p>
       </Card>
     {:else}
       <div class="space-y-3">
@@ -258,7 +258,7 @@
                       <Badge variant={attention.variant}>{attention.label}</Badge>
                     {/if}
                   </div>
-                  <p class="mt-1 text-xs text-muted-foreground">{session.detail}</p>
+                  <p class="mt-1 text-meta text-muted-foreground">{session.detail}</p>
                 </div>
               </div>
 
@@ -292,7 +292,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <Server size={16} class="text-primary" />
-          <h4 class="text-xs font-semibold tracking-normal">Development Services</h4>
+          <h4 class="text-meta font-semibold tracking-normal">Development Services</h4>
         </div>
         {#if onNavigateTab}
           <Button
@@ -311,7 +311,7 @@
       {:else}
         <div class="flex flex-wrap gap-2 pt-1">
           {#each project.dev_ports as port}
-            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 text-foreground text-xs font-mono">
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 text-foreground text-meta font-mono">
               <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
               <span>localhost:{port}</span>
             </div>
@@ -324,7 +324,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <HardDrive size={16} class="text-primary" />
-          <h4 class="text-xs font-semibold tracking-normal">Developer Storage</h4>
+          <h4 class="text-meta font-semibold tracking-normal">Developer Storage</h4>
         </div>
         {#if onNavigateTab}
           <Button
@@ -340,7 +340,7 @@
 
       {#if project.artifact_size_bytes}
         <div class="pt-1">
-          <div class="text-lg font-semibold tabular-nums">{formatBytes(project.artifact_size_bytes)}</div>
+          <div class="text-title font-semibold tabular-nums">{formatBytes(project.artifact_size_bytes)}</div>
           <p class="text-caption text-muted-foreground mt-0.5">
             Correlated node_modules, build caches, and test artifacts in this project root.
           </p>

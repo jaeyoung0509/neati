@@ -58,7 +58,7 @@
           <FileSearch size={17} class="text-muted-foreground" />
         </span>
         <span class="min-w-0 flex-1">
-          <span class="block text-xs font-semibold">Large Files</span>
+          <span class="block text-meta font-semibold">Large Files</span>
           <span class="block text-caption text-muted-foreground mt-0.5">
             Find files taking significant disk space
           </span>
@@ -80,7 +80,7 @@
           <AppWindow size={17} class="text-muted-foreground" />
         </span>
         <span class="min-w-0 flex-1">
-          <span class="block text-xs font-semibold">Applications</span>
+          <span class="block text-meta font-semibold">Applications</span>
           <span class="block text-caption text-muted-foreground mt-0.5">
             Remove apps and review related files
           </span>
@@ -103,7 +103,7 @@
           <FolderSearch size={17} class="text-muted-foreground" />
         </span>
         <span class="min-w-0 flex-1">
-          <span class="block text-xs font-semibold">Developer Artifacts</span>
+          <span class="block text-meta font-semibold">Developer Artifacts</span>
           <span class="block text-caption text-muted-foreground mt-0.5">
             Scan projects for rebuildable artifacts
           </span>

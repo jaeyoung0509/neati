@@ -1,12 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import type { CleanResult } from '../models/types';
   import { formatBytes } from '../utils/format';
   import { cleanOutcome, cleanItemAmounts, diskFreeChange } from '../utils/cleanResult';
   import Button from './Button.svelte';
   import { CheckCircle2, AlertTriangle, X, AlertCircle, CircleMinus } from '@lucide/svelte';
-  import { restoreFocus } from '../utils/focus';
-  import { trapDialogFocus } from '../utils/modalDialog';
+  import Dialog from './Dialog.svelte';
   import { platformContextStore } from '../stores/platformContext.svelte';
 
   interface Props {
@@ -18,7 +16,6 @@
 
   let { result, onClose, returnFocusTarget, returnFocusTargetId }: Props = $props();
   const id = $props.id();
-  let dialog: HTMLDialogElement;
 
   let outcome = $derived(cleanOutcome(result));
   let freeChange = $derived(diskFreeChange(result));
@@ -50,24 +47,9 @@
     `${partialCount} partly cleaned · ${failedCount} failed · ${skippedCount} skipped`
   );
 
-  onMount(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
-    if (typeof dialog?.showModal === 'function') {
-      dialog.showModal();
-    }
-    dialog?.focus({ preventScroll: true });
-    if (dialog) dialog.scrollTop = 0;
-
-    return () => {
-      if (dialog?.open) {
-        dialog.close();
-      }
-      const explicitTarget = returnFocusTargetId
-        ? document.getElementById(returnFocusTargetId)
-        : returnFocusTarget;
-      restoreFocus(explicitTarget ?? previousFocus);
-    };
-  });
+  function explicitReturnTarget(): HTMLElement | null {
+    return (returnFocusTargetId ? document.getElementById(returnFocusTargetId) : returnFocusTarget) ?? null;
+  }
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
@@ -79,7 +61,8 @@
   }
 
   function handleBackdropClick(event: MouseEvent) {
-    if (event.target === dialog) {
+    const dialog = event.currentTarget;
+    if (dialog instanceof HTMLDialogElement && event.target === dialog) {
       const rect = dialog.getBoundingClientRect();
       const isInDialog =
         rect.top <= event.clientY &&
@@ -93,18 +76,15 @@
   }
 </script>
 
-<dialog
-  use:trapDialogFocus
-  bind:this={dialog}
-  tabindex="-1"
+<Dialog
+  onCancel={onClose}
+  returnFocusTarget={explicitReturnTarget}
+  size="md"
   id={id + '-dialog'}
-  aria-modal="true"
   aria-labelledby={id + '-title'}
   aria-describedby={id + '-description'}
-  oncancel={(event) => { event.preventDefault(); onClose(); }}
   onclick={handleBackdropClick}
   onkeydown={handleKeydown}
-  class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable rounded-2xl border border-border bg-card p-5 text-foreground [overflow-wrap:anywhere] shadow-xl backdrop:bg-foreground/30 focus:outline-none"
 >
   <div class="sticky top-0 z-10 bg-card flex items-center justify-between pb-3 border-b border-border">
     <div class="flex items-center gap-2">
@@ -148,7 +128,7 @@
         </p>
       </div>
     </div>
-    <Button variant="ghost" size="icon" onclick={onClose} ariaLabel="Close cleanup result" title="Close">
+    <Button variant="ghost" size="icon" onclick={onClose} aria-label="Close cleanup result" title="Close">
       <X size={16} />
     </Button>
   </div>
@@ -194,7 +174,7 @@
           <AlertCircle size={14} />
           <span>{failedCount} {failedCount === 1 ? 'item' : 'items'} failed</span>
         </div>
-        <div class="divide-y divide-destructive/15 rounded-xl border border-destructive/25 bg-destructive/5">
+        <div class="divide-y divide-destructive/15 rounded-xl border status-panel-destructive">
           {#each failedItems as item}
             <div class="p-2.5 text-meta">
               <div class="font-medium text-foreground">{item.name}</div>
@@ -234,7 +214,7 @@
           <AlertTriangle size={14} />
           <span>{partialCount} {partialCount === 1 ? 'item needs' : 'items need'} attention</span>
         </div>
-        <div class="divide-y divide-warning/15 rounded-xl border border-warning/25 bg-warning/5">
+        <div class="divide-y divide-warning/15 rounded-xl border status-panel-warning">
           {#each partialItems as item}
             <div class="p-2.5 text-meta">
               <div class="flex items-center justify-between gap-2">
@@ -284,4 +264,4 @@
       Done
     </Button>
   </div>
-</dialog>
+</Dialog>

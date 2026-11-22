@@ -21,7 +21,7 @@
     },
     manual: {
       label: 'Manual',
-      variant: 'danger' as const,
+      variant: 'destructive' as const,
       tooltip: 'Stateful data requiring explicit manual review.',
     },
   };

@@ -49,7 +49,7 @@
           {#if row.action === 'unavailable'}
             <p class="font-medium">{row.actionLabel}</p>
           {:else}
-            <Button variant="outline" size="sm" onclick={() => act(row)} ariaLabel={`${row.actionLabel}: ${row.name}`} disabled={row.action === 'quit' && !current}>{row.actionLabel}</Button>
+            <Button variant="outline" size="sm" onclick={() => act(row)} aria-label={`${row.actionLabel}: ${row.name}`} disabled={row.action === 'quit' && !current}>{row.actionLabel}</Button>
           {/if}
         </li>
       {/each}

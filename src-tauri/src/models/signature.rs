@@ -105,7 +105,13 @@ pub struct Signature {
 /// refuses, so the scan offered bytes the planner then left. Add an id here
 /// only with the same evidence: the tool documents the directory as
 /// disposable, and the signature names the processes that write it.
-pub const OWNER_GUARDED_BUILD_OUTPUT: [&str; 1] = ["dev.xcode.derived_data"];
+///
+/// Owner decision (November 22, 2026, #350): Xcode iOS DeviceSupport symbol
+/// sets are removable under their existing rule (inactive for 30 days, Xcode
+/// and Simulator closed). They consist of `.dylib` symbol files that Xcode
+/// downloads again when the device reconnects.
+pub const OWNER_GUARDED_BUILD_OUTPUT: [&str; 2] =
+    ["dev.xcode.derived_data", "system.xcode_device_support"];
 
 impl Signature {
     pub fn cache_metadata(&self) -> CacheMetadata {
@@ -675,7 +681,8 @@ impl Signature {
     ///
     /// `OwnerGuardedBuildOutput` is granted by id, not by shape: the reviewed
     /// list is [`OWNER_GUARDED_BUILD_OUTPUT`], and a listed signature still has
-    /// to be a build artifact cleaned by content with a process guard, so
+    /// to be a build artifact removed by content or as a named unit, with a
+    /// process guard, so
     /// editing the catalog entry into something else silently withdraws it.
     pub fn structured_state_policy(&self) -> StructuredStatePolicy {
         if self.artifact_kind == CacheArtifactKind::RendererCache
@@ -684,7 +691,10 @@ impl Signature {
             StructuredStatePolicy::VerifiedRegenerableCache
         } else if OWNER_GUARDED_BUILD_OUTPUT.contains(&self.id.as_str())
             && self.artifact_kind == CacheArtifactKind::BuildArtifact
-            && self.strategy == CleanStrategy::DeleteContents
+            && matches!(
+                self.strategy,
+                CleanStrategy::DeleteContents | CleanStrategy::DeleteDirectory
+            )
             && !self.fail_if_running.is_empty()
         {
             StructuredStatePolicy::OwnerGuardedBuildOutput

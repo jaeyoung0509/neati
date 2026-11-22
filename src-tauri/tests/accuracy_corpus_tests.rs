@@ -413,11 +413,8 @@ fn accuracy_matches_the_recorded_baseline() {
 /// - 2026-11-22, #350: Xcode DerivedData is reclaimed, including object files,
 ///   a built app bundle and the index database. Before that change the scan
 ///   offered it and the planner refused it (512 KB offered but refused).
-/// - **Known disagreement:** an Xcode DeviceSupport symbol set is offered by
-///   the scan but refused by the planner, because it contains `.dylib` files
-///   and its signature keeps the default structured-state policy. The owner
-///   approved the build-output policy for DerivedData only; extending it to
-///   DeviceSupport is a separate decision (#350).
+/// - 2026-11-22, #350: an Xcode DeviceSupport symbol set (`.dylib` files) is
+///   reclaimed too. Nothing the scan offers is refused by the planner.
 fn baseline() -> Accuracy {
     Accuracy {
         preselected_false_positives: Vec::new(),
@@ -425,13 +422,8 @@ fn baseline() -> Accuracy {
         false_negative_bytes: BTreeMap::from([
             ("ai.claude.cache · Advisory".to_string(), 64 * KB),
             ("ai.codex.cache · Advisory".to_string(), 64 * KB),
-            (
-                "system.xcode_device_support · offered in the scan, refused by the planner"
-                    .to_string(),
-                256 * KB,
-            ),
         ]),
-        offered_but_refused_bytes: 256 * KB,
-        reclaimed_regenerable_bytes: (256 + 128 + 32 + 512 + 128 + 64) * KB,
+        offered_but_refused_bytes: 0,
+        reclaimed_regenerable_bytes: (256 + 128 + 32 + 512 + 128 + 64 + 256) * KB,
     }
 }

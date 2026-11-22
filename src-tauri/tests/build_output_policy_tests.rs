@@ -85,7 +85,11 @@ fn only_the_reviewed_signature_receives_the_build_output_policy() {
         })
         .map(|signature| signature.id.as_str())
         .collect();
-    assert_eq!(granted, OWNER_GUARDED_BUILD_OUTPUT);
+    let mut granted = granted;
+    granted.sort_unstable();
+    let mut reviewed = OWNER_GUARDED_BUILD_OUTPUT.to_vec();
+    reviewed.sort_unstable();
+    assert_eq!(granted, reviewed);
 }
 
 #[test]
@@ -105,10 +109,10 @@ fn a_listed_signature_loses_the_policy_when_it_stops_being_guarded_build_output(
         StructuredStatePolicy::ProtectAll
     );
 
-    let mut whole_directory = reviewed.clone();
-    whole_directory.strategy = CleanStrategy::DeleteDirectory;
+    let mut observation_only = reviewed.clone();
+    observation_only.strategy = CleanStrategy::Manual;
     assert_eq!(
-        whole_directory.structured_state_policy(),
+        observation_only.structured_state_policy(),
         StructuredStatePolicy::ProtectAll
     );
 
@@ -205,4 +209,103 @@ fn a_credential_inside_derived_data_still_refuses_the_whole_unit() {
         .join(DERIVED_DATA)
         .join("App-abc/signing/distribution.p12")
         .is_file());
+}
+
+const DEVICE_SUPPORT: &str = "Library/Developer/Xcode/iOS DeviceSupport";
+
+fn device_support_items(home: &Path, registry: &SignatureRegistry) -> Vec<ScanItem> {
+    ScanEngine::scan(
+        registry,
+        &LifecycleProviderRegistry::new(Vec::new()),
+        &OwnerProviderRegistry::new(Vec::new()),
+        None,
+        &[],
+        true,
+        &environment(home),
+        &NeverCancelled,
+        |_| {},
+    )
+    .categories
+    .into_iter()
+    .flat_map(|category| category.items)
+    .filter(|item| item.signature_id == "system.xcode_device_support")
+    .collect()
+}
+
+/// An old symbol set is removed as one named unit; its siblings are their own
+/// units and are untouched by a plan that does not name them.
+#[test]
+fn an_old_device_support_symbol_set_is_removed_as_one_named_unit() {
+    let home = tempfile::tempdir().unwrap();
+    let old = "17.0 (21A329)";
+    let other = "18.1 (22B83)";
+    for version in [old, other] {
+        write(
+            home.path(),
+            &format!("{DEVICE_SUPPORT}/{version}/Symbols/usr/lib/libobjc.A.dylib"),
+        );
+        write(
+            home.path(),
+            &format!("{DEVICE_SUPPORT}/{version}/Symbols/System/Library/Frameworks/UIKit.framework/UIKit"),
+        );
+        write(
+            home.path(),
+            &format!("{DEVICE_SUPPORT}/{version}/Info.plist"),
+        );
+        // The age rule reads the unit directory as well as its files.
+        let aged = SystemTime::now() - Duration::from_secs(90 * 24 * 60 * 60);
+        let mut stack = vec![home.path().join(DEVICE_SUPPORT).join(version)];
+        while let Some(dir) = stack.pop() {
+            for entry in fs::read_dir(&dir).unwrap().flatten() {
+                if entry.file_type().unwrap().is_dir() {
+                    stack.push(entry.path());
+                }
+            }
+            fs::File::open(&dir).unwrap().set_modified(aged).unwrap();
+        }
+    }
+
+    let env = environment(home.path());
+    let registry = SignatureRegistry::load_embedded_with(&env).unwrap();
+    let items = device_support_items(home.path(), &registry);
+    assert_eq!(items.len(), 2, "{items:?}");
+    let target = items
+        .iter()
+        .find(|item| item.path.ends_with(old))
+        .expect("the old symbol set is its own unit");
+    assert!(
+        target.disposition.is_cleanable(),
+        "{:?}",
+        target.disposition
+    );
+
+    let owner_providers = OwnerProviderRegistry::new(Vec::new());
+    let plan = SafetyPlanner::create_plan_with_environment(
+        std::slice::from_ref(target),
+        &registry,
+        &env,
+        &owner_providers,
+    )
+    .expect("a symbol set made of dylibs is plannable");
+    let result = CleanExecutor::execute(
+        plan,
+        &env,
+        &LifecycleProviderRegistry::new(Vec::new()),
+        &owner_providers,
+        &neati_platform::MockTrashBackend::new(),
+        |_| {},
+    );
+    assert!(
+        result.items.iter().all(|item| item.success),
+        "{:?}",
+        result.items
+    );
+    assert!(!home.path().join(DEVICE_SUPPORT).join(old).exists());
+    assert!(home
+        .path()
+        .join(DEVICE_SUPPORT)
+        .join(other)
+        .join("Symbols/usr/lib/libobjc.A.dylib")
+        .is_file());
+    assert!(home.path().join(DEVICE_SUPPORT).is_dir());
 }

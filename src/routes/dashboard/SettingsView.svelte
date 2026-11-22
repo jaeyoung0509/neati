@@ -35,6 +35,7 @@
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import UpdateSettings from '../../lib/components/UpdateSettings.svelte';
   import LaunchAtLoginSetting from '../../lib/components/LaunchAtLoginSetting.svelte';
+  import CleanupHistory from '../../lib/components/CleanupHistory.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
@@ -121,6 +122,10 @@
     const url = platformContextStore.context?.releases_url;
     return typeof url === 'string' && url.length > 0 ? url : null;
   });
+
+  // Derived from the one release URL the backend states. No query string: the
+  // person pastes the report themselves, so nothing personal rides in a URL.
+  let issueUrl = $derived(releasesUrl ? releasesUrl.replace(/\/releases\/?$/, '/issues/new') : null);
 
   let isIntensiveAvailable = $derived(
     platformCapabilitiesStore.isAvailable('intensive_cleanup')
@@ -831,6 +836,16 @@
     </Card>
   </div>
 
+  <!-- Cleanup history -->
+  <div class="space-y-3">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
+      Cleanup history
+    </h3>
+    <Card class="p-4 bg-card">
+      <CleanupHistory />
+    </Card>
+  </div>
+
   <!-- Diagnostics & Logs -->
   <div class="space-y-3">
     <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
@@ -871,6 +886,13 @@
           <span>{selfCheckRunning ? 'Checking environment…' : 'Check environment'}</span>
         </Button>
       </div>
+      {#if issueUrl}
+        <p class="text-meta text-muted-foreground">
+          Found a problem? Copy diagnostics, then
+          <a class="text-primary underline underline-offset-2" href={issueUrl} target="_blank" rel="noreferrer noopener" title="Opens a new GitHub issue in your browser">open an issue</a>
+          and paste it. Diagnostics contain no file names from your cleanups; review them before posting.
+        </p>
+      {/if}
 
       <div class="space-y-2 border-t border-border/60 pt-3">
         <div class="text-meta font-medium text-foreground">Uncaught Frontend Errors</div>

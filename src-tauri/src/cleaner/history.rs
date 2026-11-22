@@ -9,14 +9,14 @@ use std::io;
 use std::path::PathBuf;
 
 use neati_platform::PlatformEnvironment;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-use crate::models::CleanResult;
+use crate::models::{CleanResult, CleanupHistoryEntry};
 
 const HISTORY_FILE_NAME: &str = "cleanup-history.jsonl";
 const MAX_HISTORY_ENTRIES: usize = 200;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct CleanupHistoryRecord {
     schema: u8,
     started_at: u64,
@@ -73,6 +73,40 @@ pub(crate) fn record(result: &CleanResult, environment: &PlatformEnvironment) ->
     contents.push_str(&record);
     contents.push('\n');
     neati_platform::file_ops::atomic_write(&path, contents.as_bytes())
+}
+
+/// The largest value the interface can show exactly; larger stored values
+/// saturate instead of failing the whole list.
+const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+
+/// Reads the stored history, newest first.
+///
+/// A missing file is an empty history. A line that does not parse (an older
+/// schema, a torn write) is skipped so one bad record cannot hide the rest.
+pub(crate) fn list(environment: &PlatformEnvironment) -> io::Result<Vec<CleanupHistoryEntry>> {
+    let contents = match fs::read_to_string(history_path(environment)) {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(error),
+    };
+    let mut entries: Vec<CleanupHistoryEntry> = contents
+        .lines()
+        .filter_map(|line| serde_json::from_str::<CleanupHistoryRecord>(line).ok())
+        .map(|record| CleanupHistoryEntry {
+            finished_at: record.finished_at.min(MAX_SAFE_INTEGER),
+            item_count: u64::try_from(record.target_count).unwrap_or(MAX_SAFE_INTEGER),
+            removed_bytes: record.reclaimed_bytes.min(MAX_SAFE_INTEGER),
+            partial_count: record.partial_count.min(MAX_SAFE_INTEGER),
+            failed_count: record.failed_count.min(MAX_SAFE_INTEGER),
+            skipped_count: record.skipped_count.min(MAX_SAFE_INTEGER),
+        })
+        .collect();
+    // An oversized file still returns only the newest window.
+    if entries.len() > MAX_HISTORY_ENTRIES {
+        entries.drain(..entries.len() - MAX_HISTORY_ENTRIES);
+    }
+    entries.reverse();
+    Ok(entries)
 }
 
 #[cfg(test)]
@@ -138,5 +172,35 @@ mod tests {
 
         let contents = fs::read_to_string(history_path(&environment)).unwrap();
         assert_eq!(contents.lines().count(), MAX_HISTORY_ENTRIES);
+    }
+
+    #[test]
+    fn list_returns_newest_first_and_skips_unreadable_lines() {
+        let fixture = tempdir().unwrap();
+        let environment = PlatformEnvironment::simulated(PathFlavor::Posix)
+            .with_home(fixture.path())
+            .with_temp_dir(fixture.path());
+        assert!(list(&environment).unwrap().is_empty());
+
+        let mut older = result_with_private_item_data();
+        older.finished_at = 100;
+        record(&older, &environment).unwrap();
+        let mut newer = result_with_private_item_data();
+        newer.finished_at = 200;
+        newer.failed_count = 2;
+        record(&newer, &environment).unwrap();
+
+        let path = history_path(&environment);
+        let mut contents = fs::read_to_string(&path).unwrap();
+        contents.push_str("{not json\n");
+        fs::write(&path, contents).unwrap();
+
+        let entries = list(&environment).unwrap();
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].finished_at, 200);
+        assert_eq!(entries[0].failed_count, 2);
+        assert_eq!(entries[1].finished_at, 100);
+        assert_eq!(entries[1].removed_bytes, 42);
+        assert_eq!(entries[1].item_count, 1);
     }
 }

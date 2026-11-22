@@ -35,6 +35,7 @@ import type {
   PlatformContext,
   UpdateCheck,
   LaunchAtLogin,
+  CleanupHistoryEntry,
   ProviderDescriptor,
   ProviderId,
   PublishedScan,
@@ -1930,6 +1931,14 @@ export const mockApi = {
 
   async openLogsFolder(): Promise<void> {
     // No-op in browser mock
+  },
+
+  async getCleanupHistory(): Promise<CleanupHistoryEntry[]> {
+    return [
+      { finished_at: 1795300000, item_count: 6, removed_bytes: 4_812_000_000, partial_count: 0, failed_count: 0, skipped_count: 0 },
+      { finished_at: 1794900000, item_count: 3, removed_bytes: 912_400_000, partial_count: 1, failed_count: 0, skipped_count: 1 },
+      { finished_at: 1794300000, item_count: 9, removed_bytes: 12_300_000_000, partial_count: 0, failed_count: 2, skipped_count: 0 },
+    ];
   },
 
   async getLaunchAtLogin(): Promise<LaunchAtLogin> {

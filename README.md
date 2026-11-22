@@ -201,6 +201,10 @@ still contact their providers for usage data; that is separate from updating.
   machine. neati sends no analytics or telemetry. Enabled AI integrations may
   contact their provider APIs or official tools for authentication and usage.
 - **Secret Redaction**: Subprocess errors and diagnostic messages automatically redact sensitive API keys (`sk-...`, tokens, passwords) before writing to disk.
+- **Cleanup history**: Settings lists completed cleanups as totals (time, item
+  count, removed data, and how many items were partly cleaned, failed or
+  skipped). The history file sits beside the log, stores no file names or
+  locations, and keeps the newest 200 cleanups.
 - **Local Logs**: Error logs are written under your own platform's application-data directory -- `~/Library/Logs/Neati/neati.log` on macOS, `%LOCALAPPDATA%\Neati\Logs\neati.log` on Windows -- and rotate to `neati.log.1` beside them once the live log exceeds 1 MB. The Settings diagnostics view shows the path this machine actually resolved, and Windows layout details are in [docs/WINDOWS.md](docs/WINDOWS.md).
 - **Diagnostics Export**: Inspect or export your local system snapshot anytime in **Dashboard -> Settings -> Diagnostics & Privacy Logs**.
 - **Doctor Self-Check**: run `Neati --doctor` (or `Neati --doctor --json`) to print a de-identified environment fingerprint and a self-check table; the command exits 1 when a self-check fails. It performs no network access, and nothing it prints contains a user name, machine name, drive letter, or profile path. Windows bug reports ask for this output because it is safe to paste.

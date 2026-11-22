@@ -39,6 +39,7 @@ import type {
   PlatformContext,
   UpdateCheck,
   LaunchAtLogin,
+  CleanupHistoryEntry,
   ProviderDescriptor,
   ProviderId_Deserialize,
   PublishedScan,
@@ -412,6 +413,10 @@ export const nativeApi = {
 
   async openLogsFolder(): Promise<void> {
     await unwrap(commands.openLogsFolder());
+  },
+
+  async getCleanupHistory(): Promise<CleanupHistoryEntry[]> {
+    return await unwrap(commands.getCleanupHistory());
   },
 
   async getLaunchAtLogin(): Promise<LaunchAtLogin> {

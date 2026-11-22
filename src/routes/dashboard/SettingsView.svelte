@@ -1,30 +1,14 @@
 <script lang="ts">
-  import { describeError } from '../../lib/utils/errors';
   import CleanupGuidanceList from '../../lib/components/CleanupGuidanceList.svelte';
   import { scanStore } from '../../lib/stores/scan.svelte';
   import type { CategoryResult } from '../../lib/models/types';
   let { onCategory, onNavigate }: { onCategory?: (category: CategoryResult) => void; onNavigate?: (tab: DashboardTab) => void } = $props();
   import { onMount } from 'svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
-  import { frontendErrorStore } from '../../lib/stores/frontendErrors.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { usageStore } from '../../lib/stores/usage.svelte';
-  import type {
-    AgentNotificationPreferences,
-    AiProviderId,
-    DashboardTab,
-    DiagnosticsSnapshot,
-    EnvironmentReport,
-    ProviderId,
-    QuickPanelSection,
-  } from '../../lib/models/types';
-  import {
-    tauriGetDiagnostics,
-    tauriOpenLogsFolder,
-    tauriRunEnvironmentSelfCheck,
-  } from '../../lib/utils/tauri';
-  import { LOG_DIRECTORY_FALLBACK, titleCaseLabel } from '../../lib/utils/platformCopy';
+  import type { DashboardTab } from '../../lib/models/types';
   import Card from '../../lib/components/Card.svelte';
   import Badge from '../../lib/components/Badge.svelte';
   import Button from '../../lib/components/Button.svelte';
@@ -37,74 +21,14 @@
   import LaunchAtLoginSetting from '../../lib/components/LaunchAtLoginSetting.svelte';
   import CleanupHistory from '../../lib/components/CleanupHistory.svelte';
   import AiToolProfiles from '../../lib/components/AiToolProfiles.svelte';
+  import SettingsDiagnostics from '../../lib/components/settings/SettingsDiagnostics.svelte';
+  import SettingsQuickPanel from '../../lib/components/settings/SettingsQuickPanel.svelte';
+  import SettingsAiAccounts from '../../lib/components/settings/SettingsAiAccounts.svelte';
+  import SettingsAgentNotifications from '../../lib/components/settings/SettingsAgentNotifications.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
-  import {
-    Settings,
-    Sparkles,
-    Moon,
-    Sun,
-    Monitor,
-    PanelTop,
-    LayoutList,
-    GripVertical,
-    FolderOpen,
-    FileText,
-    AlertTriangle,
-    ShieldCheck,
-    Bell,
-    Users,
-  } from '@lucide/svelte';
-
-  const sectionOptions: { id: QuickPanelSection; label: string; description: string }[] = [
-    { id: 'cleanup', label: 'Quick Clean', description: 'Safe reclaimable storage and clean action.' },
-    { id: 'cpu', label: 'CPU', description: 'Current measured system-wide usage.' },
-    { id: 'battery', label: 'Battery', description: 'Charge level and actual charging state.' },
-    { id: 'storage', label: 'Storage', description: 'Primary disk capacity and usage.' },
-    { id: 'memory', label: 'Memory', description: 'Memory pressure and current usage.' },
-    { id: 'categories', label: 'Storage Categories', description: 'AI, developer, container, model, and system totals.' },
-    { id: 'agent_activity', label: 'AI & Agents', description: 'Active AI agent sessions and account token limits.' },
-    { id: 'awake', label: 'Keep Awake', description: 'Current session and a one-hour control.' },
-  ];
-  const FALLBACK_QUICK_PANEL_OPTIONS: { id: ProviderId; label: string }[] = [
-    { id: 'codex', label: 'Codex' },
-    { id: 'claude', label: 'Claude Code' },
-    { id: 'opencode', label: 'OpenCode' },
-    { id: 'openrouter', label: 'OpenRouter' },
-    { id: 'antigravity', label: 'Antigravity' },
-  ];
-  const FALLBACK_ACCOUNT_PROVIDER_IDS: readonly ProviderId[] = [
-    'codex',
-    'claude',
-    'opencode',
-    'openrouter',
-    'antigravity',
-    'cursor',
-    'grok-build',
-    'xai-api',
-    'openai-api',
-    'anthropic-api',
-    'muse-code',
-    'meta-model-api',
-    'mistral-api',
-    'fireworks-api',
-  ];
-
-  let quickPanelProviderOptions = $derived(
-    usageStore.quickPanelProviderOptions.length > 0
-      ? usageStore.quickPanelProviderOptions
-      : FALLBACK_QUICK_PANEL_OPTIONS
-  );
-  let accountProviderOptions = $derived(
-    usageStore.accountProviderOptions.length > 0
-      ? usageStore.accountProviderOptions
-      : FALLBACK_ACCOUNT_PROVIDER_IDS.map((id) => ({
-          id,
-          label: id === 'grok-build' ? 'Grok Build' : id.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
-          description: '',
-        }))
-  );
+  import { Settings, Moon, Sun, Monitor, AlertTriangle } from '@lucide/svelte';
 
   let settings = $derived(settingsStore.settings);
 
@@ -125,13 +49,7 @@
   );
 
 
-  let draggedSection = $state<QuickPanelSection | null>(null);
-  let dragOverSection = $state<QuickPanelSection | null>(null);
 
-  let draggedProvider = $state<AiProviderId | null>(null);
-  let dragOverProvider = $state<AiProviderId | null>(null);
-  let draggedAccountProvider = $state<AiProviderId | null>(null);
-  let dragOverAccountProvider = $state<AiProviderId | null>(null);
 
   function handleToggle(key: keyof typeof settings) {
     if (typeof settings[key] === 'boolean') {
@@ -143,116 +61,11 @@
     settingsStore.save({ theme });
   }
 
-  function handleNotificationToggle(key: keyof AgentNotificationPreferences) {
-    const current = settings.agent_notifications ?? {
-      enabled: false,
-      notify_on_turn_completed: true,
-      notify_on_approval_or_input: true,
-      notify_on_possibly_inactive: true,
-      hide_project_basename: false,
-      inactivity_threshold_minutes: 15,
-    };
-    const updated = {
-      ...current,
-      [key]: !current[key],
-    };
-    settingsStore.save({ agent_notifications: updated });
-  }
-
-  function handleThresholdChange(minutes: number) {
-    const current = settings.agent_notifications ?? {
-      enabled: false,
-      notify_on_turn_completed: true,
-      notify_on_approval_or_input: true,
-      notify_on_possibly_inactive: true,
-      hide_project_basename: false,
-      inactivity_threshold_minutes: 15,
-    };
-    const updated = {
-      ...current,
-      inactivity_threshold_minutes: Math.max(5, Math.min(120, minutes)),
-    };
-    settingsStore.save({ agent_notifications: updated });
-  }
-
-  let diagnosticsData = $state<DiagnosticsSnapshot | null>(null);
-  let copiedDiagnostics = $state(false);
-  // The same self-check the `--doctor` command line runs, so a user who cannot
-  // open a terminal can still see which invariant failed on their machine.
-  let selfCheck = $state<EnvironmentReport | null>(null);
-  let selfCheckRunning = $state(false);
-  let selfCheckError = $state<string | null>(null);
-
   onMount(() => {
     void platformContextStore.load();
-    void loadDiagnostics();
     void usageStore.loadDescriptors();
   });
 
-  async function loadDiagnostics() {
-    try {
-      diagnosticsData = await tauriGetDiagnostics();
-    } catch {
-      // preview mode fallback
-    }
-  }
-
-  async function handleOpenLogs() {
-    try {
-      await tauriOpenLogsFolder();
-    } catch (e) {
-      settingsStore.error = describeError(e, 'Failed to open logs folder');
-    }
-  }
-
-  async function handleExportDiagnostics() {
-    try {
-      diagnosticsData = await tauriGetDiagnostics();
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(JSON.stringify(diagnosticsData, null, 2));
-        copiedDiagnostics = true;
-        setTimeout(() => {
-          copiedDiagnostics = false;
-        }, 2500);
-      }
-    } catch (e) {
-      settingsStore.error = describeError(e, 'Failed to export diagnostics');
-    }
-  }
-
-  async function handleRunSelfCheck() {
-    selfCheckRunning = true;
-    selfCheckError = null;
-    try {
-      selfCheck = await tauriRunEnvironmentSelfCheck();
-    } catch (e) {
-      selfCheck = null;
-      selfCheckError = describeError(e, 'Environment self-check did not complete');
-    } finally {
-      selfCheckRunning = false;
-    }
-  }
-
-  function orderedSections() {
-    const selected = settings.quick_panel_sections
-      .map((id) => sectionOptions.find((option) => option.id === id))
-      .filter((option): option is (typeof sectionOptions)[number] => Boolean(option));
-    return [...selected, ...sectionOptions.filter((option) => !settings.quick_panel_sections.includes(option.id))];
-  }
-
-  function orderedQuickPanelProviders() {
-    const selected = settings.quick_panel_ai_providers
-      .map((id) => quickPanelProviderOptions.find((option) => option.id === id))
-      .filter((option): option is (typeof quickPanelProviderOptions)[number] => Boolean(option));
-    return [...selected, ...quickPanelProviderOptions.filter((option) => !settings.quick_panel_ai_providers.includes(option.id))];
-  }
-
-  function orderedAccountProviders() {
-    const selected = settings.ai_accounts_quota_providers
-      .map((id) => accountProviderOptions.find((option) => option.id === id))
-      .filter((option): option is (typeof accountProviderOptions)[number] => Boolean(option));
-    return [...selected, ...accountProviderOptions.filter((option) => !settings.ai_accounts_quota_providers.includes(option.id))];
-  }
 </script>
 
 <div class="space-y-6 max-w-2xl">
@@ -357,206 +170,9 @@
     </Card>
   </div>
 
-  <!-- AI Accounts & Quota Customization -->
-  <div class="space-y-3">
-    <div>
-      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
-        AI accounts and usage
-      </h3>
-      <p class="text-meta text-muted-foreground mt-1">
-        Choose which account providers neati checks and displays. Disabled providers are not queried.
-      </p>
-    </div>
-    <Card class="p-4 bg-card space-y-3">
-      <div class="flex items-center gap-2 text-meta font-medium text-foreground pb-1">
-        <Users size={14} /> Provider order
-      </div>
-      {#each orderedAccountProviders() as provider (provider.id)}
-        {@const enabled = settings.ai_accounts_quota_providers.includes(provider.id)}
-        {@const enabledIndex = settings.ai_accounts_quota_providers.indexOf(provider.id)}
-        <div
-          role="listitem"
-          draggable={enabled}
-          ondragstart={() => {
-            if (enabled) draggedAccountProvider = provider.id;
-          }}
-          ondragover={(e) => {
-            if (enabled && draggedAccountProvider) {
-              e.preventDefault();
-              dragOverAccountProvider = provider.id;
-            }
-          }}
-          ondragleave={() => {
-            if (dragOverAccountProvider === provider.id) dragOverAccountProvider = null;
-          }}
-          ondrop={(e) => {
-            e.preventDefault();
-            if (draggedAccountProvider && draggedAccountProvider !== provider.id) {
-              settingsStore.reorderAccountsQuotaProviders(draggedAccountProvider, provider.id);
-            }
-            draggedAccountProvider = null;
-            dragOverAccountProvider = null;
-          }}
-          ondragend={() => {
-            draggedAccountProvider = null;
-            dragOverAccountProvider = null;
-          }}
-          class="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-[background-color,border-color,opacity,transform] {enabled ? 'cursor-grab active:cursor-grabbing bg-card' : 'opacity-60 bg-muted/20'} {dragOverAccountProvider === provider.id ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border/60'} {draggedAccountProvider === provider.id ? 'opacity-40' : ''}"
-        >
-          <GripVertical size={14} class="text-muted-foreground/60 shrink-0 select-none {enabled ? 'hover:text-foreground' : 'opacity-20'}" />
-          <Checkbox
-            checked={enabled}
-            disabled={enabled && settings.ai_accounts_quota_providers.length === 1}
-            onchange={() => settingsStore.toggleAccountsQuotaProvider(provider.id)}
-            ariaLabel={`Collect and show ${provider.label} account usage`}
-          />
-          <div class="min-w-0 flex-1 select-none">
-            <div class="text-meta font-medium text-foreground">{provider.label}</div>
-            <div class="text-caption text-muted-foreground">{provider.description}</div>
-          </div>
-          {#if enabled}
-            <ReorderControls
-              label={provider.label}
-              index={enabledIndex}
-              count={settings.ai_accounts_quota_providers.length}
-              onMove={(direction) => settingsStore.moveAccountsQuotaProvider(provider.id, direction)}
-            />
-          {/if}
-        </div>
-      {/each}
-    </Card>
-  </div>
+  <SettingsAiAccounts />
 
-  <!-- Quick Panel Customization -->
-  <div class="space-y-3">
-    <div>
-      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
-        {platformContextStore.quickPanelSurfaceLabel
-          ? `${titleCaseLabel(platformContextStore.quickPanelSurfaceLabel)} Quick Panel`
-          : 'Quick Panel'}
-      </h3>
-      <p class="text-meta text-muted-foreground mt-1">
-        Choose what appears below the {platformContextStore.quickPanelSurfaceLabel ?? 'quick panel'} icon. Drag or use the arrow buttons to set priority.
-      </p>
-    </div>
-    <Card class="p-4 bg-card space-y-5">
-      <div class="space-y-2">
-        <div class="flex items-center gap-2 text-meta font-medium text-foreground">
-          <PanelTop size={14} /> Sections
-        </div>
-        {#each orderedSections() as option (option.id)}
-          {@const enabled = settings.quick_panel_sections.includes(option.id)}
-          {@const enabledIndex = settings.quick_panel_sections.indexOf(option.id)}
-          <div
-            role="listitem"
-            draggable={enabled}
-            ondragstart={() => {
-              if (enabled) draggedSection = option.id;
-            }}
-            ondragover={(e) => {
-              if (enabled && draggedSection) {
-                e.preventDefault();
-                dragOverSection = option.id;
-              }
-            }}
-            ondragleave={() => {
-              if (dragOverSection === option.id) dragOverSection = null;
-            }}
-            ondrop={(e) => {
-              e.preventDefault();
-              if (draggedSection && draggedSection !== option.id) {
-                settingsStore.reorderQuickPanelSections(draggedSection, option.id);
-              }
-              draggedSection = null;
-              dragOverSection = null;
-            }}
-            ondragend={() => {
-              draggedSection = null;
-              dragOverSection = null;
-            }}
-            class="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-[background-color,border-color,opacity,transform] {enabled ? 'cursor-grab active:cursor-grabbing bg-card' : 'opacity-60 bg-muted/20'} {dragOverSection === option.id ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border/60'} {draggedSection === option.id ? 'opacity-40' : ''}"
-          >
-            <GripVertical size={14} class="text-muted-foreground/60 shrink-0 select-none {enabled ? 'hover:text-foreground' : 'opacity-20'}" />
-            <Checkbox
-              checked={enabled}
-              disabled={enabled && settings.quick_panel_sections.length === 1}
-              onchange={() => settingsStore.toggleQuickPanelSection(option.id)}
-              ariaLabel={`Show ${option.label} in quick panel`}
-            />
-            <div class="min-w-0 flex-1 select-none">
-              <div class="text-meta font-medium text-foreground">{option.label}</div>
-              <div class="text-caption text-muted-foreground">{option.description}</div>
-            </div>
-            {#if enabled}
-              <ReorderControls
-                label={option.label}
-                index={enabledIndex}
-                count={settings.quick_panel_sections.length}
-                onMove={(direction) => settingsStore.moveQuickPanelSection(option.id, direction)}
-              />
-            {/if}
-          </div>
-        {/each}
-      </div>
-
-      <div class="space-y-2 pt-4 border-t border-border/60">
-        <div class="flex items-center gap-2 text-meta font-medium text-foreground">
-          <Sparkles size={14} /> AI Provider Priority
-        </div>
-        <p class="text-caption text-muted-foreground">Show usage for accounts enabled under AI accounts and usage, in this order. Turning usage off hides its quota row; observed local sessions remain separate.</p>
-        {#each orderedQuickPanelProviders() as provider (provider.id)}
-          {@const enabled = settings.quick_panel_ai_providers.includes(provider.id)}
-          {@const enabledIndex = settings.quick_panel_ai_providers.indexOf(provider.id)}
-          <div
-            role="listitem"
-            draggable={enabled}
-            ondragstart={() => {
-              if (enabled) draggedProvider = provider.id;
-            }}
-            ondragover={(e) => {
-              if (enabled && draggedProvider) {
-                e.preventDefault();
-                dragOverProvider = provider.id;
-              }
-            }}
-            ondragleave={() => {
-              if (dragOverProvider === provider.id) dragOverProvider = null;
-            }}
-            ondrop={(e) => {
-              e.preventDefault();
-              if (draggedProvider && draggedProvider !== provider.id) {
-                settingsStore.reorderQuickPanelProviders(draggedProvider, provider.id);
-              }
-              draggedProvider = null;
-              dragOverProvider = null;
-            }}
-            ondragend={() => {
-              draggedProvider = null;
-              dragOverProvider = null;
-            }}
-            class="flex items-center gap-3 rounded-lg border px-3 py-2 transition-[background-color,border-color,opacity,transform] {enabled ? 'cursor-grab active:cursor-grabbing bg-card' : 'opacity-60 bg-muted/20'} {dragOverProvider === provider.id ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border/60'} {draggedProvider === provider.id ? 'opacity-40' : ''}"
-          >
-            <GripVertical size={14} class="text-muted-foreground/60 shrink-0 select-none {enabled ? 'hover:text-foreground' : 'opacity-20'}" />
-            <Checkbox
-              checked={enabled}
-              disabled={!settings.ai_accounts_quota_providers.includes(provider.id)}
-              onchange={() => settingsStore.toggleQuickPanelProvider(provider.id)}
-              ariaLabel={`Show ${provider.label} usage`}
-            />
-            <span class="flex-1 text-meta font-medium text-foreground select-none">{provider.label}</span>
-            {#if enabled}
-              <ReorderControls
-                label={provider.label}
-                index={enabledIndex}
-                count={settings.quick_panel_ai_providers.length}
-                onMove={(direction) => settingsStore.moveQuickPanelProvider(provider.id, direction)}
-              />
-            {/if}
-          </div>
-        {/each}
-      </div>
-    </Card>
-  </div>
+  <SettingsQuickPanel />
 
   <!-- Cleanup Scan Scope -->
   <div class="space-y-3">
@@ -661,100 +277,7 @@
     </Card>
   </div>
 
-  <!-- Agent Activity Notifications -->
-  <div class="space-y-3">
-    <div class="flex items-center justify-between">
-      <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
-        Agent notifications
-      </h3>
-      <Badge variant="outline">Privacy Safe</Badge>
-    </div>
-    <Card class="p-4 space-y-4 bg-card divide-y divide-border/60">
-      <!-- Master toggle -->
-      <div class="flex items-center justify-between text-meta pt-3 first:pt-0">
-        <div>
-          <div class="font-medium text-foreground">Enable Desktop Notifications</div>
-          <div class="text-meta text-muted-foreground">Opt-in notifications for agent lifecycle and user attention events.</div>
-        </div>
-        <Switch
-          checked={settings.agent_notifications?.enabled ?? false}
-          onchange={() => handleNotificationToggle('enabled')}
-          ariaLabel="Enable Desktop Notifications"
-        />
-      </div>
-
-      {#if settings.agent_notifications?.enabled}
-        <!-- Turn completed -->
-        <div class="flex items-center justify-between text-meta pt-3">
-          <div>
-            <div class="font-medium text-foreground">Turn Completed</div>
-            <div class="text-meta text-muted-foreground">Notify when an agent finishes its active response turn.</div>
-          </div>
-          <Switch
-            checked={settings.agent_notifications?.notify_on_turn_completed ?? true}
-            onchange={() => handleNotificationToggle('notify_on_turn_completed')}
-            ariaLabel="Notify on Turn Completed"
-          />
-        </div>
-
-        <!-- Approval or input needed -->
-        <div class="flex items-center justify-between text-meta pt-3">
-          <div>
-            <div class="font-medium text-foreground">Needs Approval or Input</div>
-            <div class="text-meta text-muted-foreground">Notify when an agent is waiting for confirmation, tool permission, or user input.</div>
-          </div>
-          <Switch
-            checked={settings.agent_notifications?.notify_on_approval_or_input ?? true}
-            onchange={() => handleNotificationToggle('notify_on_approval_or_input')}
-            ariaLabel="Notify on Approval or Input"
-          />
-        </div>
-
-        <!-- Possibly inactive -->
-        <div class="flex items-center justify-between text-meta pt-3">
-          <div>
-            <div class="font-medium text-foreground">Possibly Inactive</div>
-            <div class="text-meta text-muted-foreground">Notify if an agent has been running with no observable activity past the threshold.</div>
-          </div>
-          <Switch
-            checked={settings.agent_notifications?.notify_on_possibly_inactive ?? true}
-            onchange={() => handleNotificationToggle('notify_on_possibly_inactive')}
-            ariaLabel="Notify on Possibly Inactive"
-          />
-        </div>
-
-        <!-- Hide project basename -->
-        <div class="flex items-center justify-between text-meta pt-3">
-          <div>
-            <div class="font-medium text-foreground">Hide Project Name in Notifications</div>
-            <div class="text-meta text-muted-foreground">Replaces the project folder name with "an active project" in notification body text.</div>
-          </div>
-          <Switch
-            checked={settings.agent_notifications?.hide_project_basename ?? false}
-            onchange={() => handleNotificationToggle('hide_project_basename')}
-            ariaLabel="Hide Project Name in Notifications"
-          />
-        </div>
-
-        <!-- Inactivity threshold slider -->
-        <div class="text-meta pt-3 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="font-medium text-foreground">Inactivity Alert Threshold</span>
-            <span class="font-mono text-muted-foreground">{settings.agent_notifications?.inactivity_threshold_minutes ?? 15} minutes</span>
-          </div>
-          <input
-            type="range"
-            min="5"
-            max="60"
-            step="5"
-            value={settings.agent_notifications?.inactivity_threshold_minutes ?? 15}
-            oninput={(e) => handleThresholdChange(Number((e.target as HTMLInputElement).value))}
-            class="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-          />
-        </div>
-      {/if}
-    </Card>
-  </div>
+  <SettingsAgentNotifications />
 
   <!-- Cleanup history -->
   <div class="space-y-3">
@@ -766,183 +289,7 @@
     </Card>
   </div>
 
-  <!-- Diagnostics & Logs -->
-  <div class="space-y-3">
-    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
-      Diagnostics and logs
-    </h3>
-    <ToolDetectionDisclosure />
-    <Card class="p-4 bg-card space-y-4">
-      <div class="space-y-1">
-        <div class="text-meta font-medium text-foreground">Local System & Error Logs</div>
-        <p class="text-meta text-muted-foreground leading-relaxed">
-          neati keeps zero telemetry and never transmits analytics or secrets. Error and subprocess failure logs are stored locally on your machine at <code class="font-mono text-caption bg-secondary/80 px-1 py-0.5 rounded">{platformContextStore.logDirectory ?? LOG_DIRECTORY_FALLBACK}</code>.
-        </p>
-      </div>
-
-      {#if diagnosticsData?.settings_corrupt_recovered}
-        <div class="flex items-center gap-2 rounded-lg border status-chip-warning px-3 py-2 text-meta text-warning">
-          <AlertTriangle size={14} class="shrink-0" />
-          <span>A damaged configuration file was detected, safely backed up, and reset to defaults.</span>
-        </div>
-      {/if}
-
-      <div class="flex flex-wrap gap-2 pt-1">
-        <Button variant="secondary" size="sm" onclick={handleOpenLogs}>
-          <FolderOpen size={14} />
-          <span>Open logs</span>
-        </Button>
-        <Button variant="secondary" size="sm" onclick={handleExportDiagnostics}>
-          <FileText size={14} />
-          <span>{copiedDiagnostics ? 'Diagnostics copied' : 'Copy diagnostics'}</span>
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onclick={handleRunSelfCheck}
-          disabled={selfCheckRunning}
-        >
-          <ShieldCheck size={14} />
-          <span>{selfCheckRunning ? 'Checking environment…' : 'Check environment'}</span>
-        </Button>
-      </div>
-      {#if issueUrl}
-        <p class="text-meta text-muted-foreground">
-          Found a problem? Copy diagnostics, then
-          <a class="text-primary underline underline-offset-2" href={issueUrl} target="_blank" rel="noreferrer noopener" title="Opens a new GitHub issue in your browser">open an issue</a>
-          and paste it. Diagnostics contain no file names from your cleanups; review them before posting.
-        </p>
-      {/if}
-
-      <div class="space-y-2 border-t border-border/60 pt-3">
-        <div class="text-meta font-medium text-foreground">Uncaught Frontend Errors</div>
-        {#if frontendErrorStore.entries.length === 0}
-          <p class="text-meta text-muted-foreground">No uncaught frontend errors.</p>
-        {:else}
-          <ul class="space-y-1.5">
-            {#each frontendErrorStore.entries as entry (entry.id)}
-              <li
-                class="rounded-lg border status-panel-destructive px-3 py-2 text-meta"
-                role="alert"
-              >
-                <div class="flex items-center gap-2 text-destructive">
-                  <AlertTriangle size={14} class="shrink-0" />
-                  <span class="font-medium">
-                    {entry.kind === 'rejection' ? 'Unhandled rejection' : 'Uncaught error'}
-                  </span>
-                  <span class="font-mono text-caption text-muted-foreground">{entry.at}</span>
-                </div>
-                <p class="mt-1 break-words font-mono text-caption text-foreground/90">
-                  {entry.message}
-                </p>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      </div>
-
-      {#if selfCheckError}
-        <div
-          class="mt-3 flex items-start gap-2 rounded-lg border status-chip-destructive px-3 py-2 text-meta text-destructive"
-          role="alert"
-        >
-          <AlertTriangle size={14} class="mt-0.5 shrink-0" />
-          <span>{selfCheckError}</span>
-        </div>
-      {/if}
-
-      {#if selfCheck}
-        <div class="mt-3 space-y-2">
-          {#if selfCheck.failures > 0}
-            <div
-              class="flex items-center gap-2 rounded-lg border status-chip-destructive px-3 py-2 text-meta text-destructive"
-              role="alert"
-            >
-              <AlertTriangle size={14} class="shrink-0" />
-              <span>
-                {selfCheck.failures} self-check
-                {selfCheck.failures === 1 ? 'invariant failed' : 'invariants failed'} on this
-                machine. Report it with the Windows bug report template.
-              </span>
-            </div>
-          {:else}
-            <div
-              class="flex items-center gap-2 rounded-lg border status-chip-success px-3 py-2 text-meta text-success"
-            >
-              <ShieldCheck size={14} class="shrink-0" />
-              <span>All {selfCheck.checks.length} environment self-checks passed.</span>
-            </div>
-          {/if}
-
-          <div class="rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta font-mono text-muted-foreground space-y-1">
-            <div class="text-foreground font-semibold">Environment fingerprint</div>
-            {#each selfCheck.fingerprint as line}
-              <div class="truncate">{line}</div>
-            {/each}
-          </div>
-
-          <div
-            class="rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta space-y-1"
-            aria-label="Environment self-check results"
-          >
-            {#each selfCheck.checks as row}
-              <div class="flex items-start gap-2">
-                <span
-                  class={row.outcome === 'pass' ? 'text-success font-semibold' : 'text-destructive font-semibold'}
-                >
-                  {row.outcome === 'pass' ? 'PASS' : 'FAIL'}
-                </span>
-                <span class="font-mono text-foreground">{row.name}</span>
-                <span class="text-muted-foreground truncate">{row.detail}</span>
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
-
-      {#if diagnosticsData}
-        <!-- svelte-ignore a11y_no_noninteractive_tabindex (keyboard users must be able to scroll the diagnostics region) -->
-        <div
-          role="region"
-          aria-label="Application diagnostics"
-          tabindex="0"
-          class="mt-3 rounded-lg bg-secondary/40 border border-border/40 p-3 text-meta font-mono text-muted-foreground space-y-1 overflow-x-auto max-h-48 overflow-y-auto scroll-stable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <div>
-            <span class="text-foreground font-semibold">neati:</span>
-            {diagnosticsData.app_version} ({diagnosticsData.arch}{diagnosticsData.emulated ? ', emulated' : ''})
-          </div>
-          <div><span class="text-foreground font-semibold">OS:</span> {diagnosticsData.os_version}</div>
-          {#if diagnosticsData.native_arch}
-            <div><span class="text-foreground font-semibold">Native Arch:</span> {diagnosticsData.native_arch}</div>
-          {/if}
-          {#if diagnosticsData.webview_version}
-            <div><span class="text-foreground font-semibold">WebView:</span> {diagnosticsData.webview_version}</div>
-          {/if}
-          {#if diagnosticsData.elevated !== null}
-            <div><span class="text-foreground font-semibold">Elevated:</span> {diagnosticsData.elevated ? 'yes' : 'no'}</div>
-          {/if}
-          {#if diagnosticsData.locale}
-            <div><span class="text-foreground font-semibold">Locale:</span> {diagnosticsData.locale}</div>
-          {/if}
-          <div><span class="text-foreground font-semibold">Log:</span> {diagnosticsData.log_path}</div>
-          {#if diagnosticsData.log_failure}
-            <div class="pt-2 text-destructive font-semibold">Diagnostics encountered a write failure:</div>
-            <div class="text-destructive/80">{diagnosticsData.log_failure}</div>
-          {/if}
-          {#if diagnosticsData.recent_errors.length > 0}
-            <div class="pt-2 text-destructive font-semibold">Recent Errors ({diagnosticsData.recent_errors.length}):</div>
-            {#each diagnosticsData.recent_errors as err}
-              <div class="text-destructive/80 truncate">{err}</div>
-            {/each}
-          {:else}
-            <!-- An empty list is absence of data, not evidence of health. -->
-            <div class="pt-1 text-muted-foreground">No recent errors in the log file.</div>
-          {/if}
-        </div>
-      {/if}
-    </Card>
-  </div>
+  <SettingsDiagnostics {issueUrl} />
 
   <!-- About -->
   <div class="space-y-3 pt-2">

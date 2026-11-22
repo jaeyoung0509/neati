@@ -45,7 +45,7 @@ impl BrowserCacheKind {
     fn consequence(self) -> &'static str {
         match self {
             Self::ComponentDownloads => {
-                "Downloaded component update archives are permanently removed. Empty Trash to free disk space; the browser may download them again when an update needs them."
+                "Downloaded component update archives are permanently removed; the browser may download them again when an update needs them."
             }
             Self::RendererCaches => "Named HTTP, code and GPU caches are permanently removed and are downloaded or rebuilt again. Profile state, offline websites, extensions, credentials, settings and models remain intact.",
             Self::OfflineCacheStorage => {

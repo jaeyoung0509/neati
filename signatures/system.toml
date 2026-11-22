@@ -21,7 +21,7 @@ fail_if_running = [
 owner = "Chromium browsers"
 provider = "Chromium component updater"
 artifact_kind = "download_cache"
-consequence = "Downloaded component update archives move to Trash. Empty Trash to free disk space; a browser may download them again when an update needs them."
+consequence = "Downloaded component update archives are permanently removed; a browser may download them again when an update needs them."
 description = "The complete metadata-coupled component_crx_cache store for each supported browser. Installed components, extensions, browser models, credentials, and profile databases stay outside the unit; active or unknown browser process state blocks it."
 
 [[signatures]]
@@ -44,8 +44,8 @@ fail_if_running = [
 ]
 owner = "Chromium browsers"
 provider = "Chromium CacheStorage"
-consequence = "Offline website assets move to Trash and may need a network connection to download again. Cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
-description = "Each depth-two CacheStorage directory is a separate reviewed Trash unit. Origin indexes, neighboring profile databases and Service Worker registrations remain intact; macOS checks whether each selected unit is in use, while Windows requires the browser to be stopped."
+consequence = "Offline website assets are permanently removed and may need a network connection to download again. Cookies, passwords, history, local storage, IndexedDB, sessions, and Service Worker registrations stay intact."
+description = "Each depth-two CacheStorage directory is a separate reviewed removal unit. Origin indexes, neighboring profile databases and Service Worker registrations remain intact; macOS checks whether each selected unit is in use, while Windows requires the browser to be stopped."
 
 [[signatures]]
 id = "system.chromium.additional_renderer_caches"
@@ -65,7 +65,7 @@ fail_if_running = [
 owner = "Chromium browsers"
 provider = "Chromium renderer cache"
 artifact_kind = "renderer_cache"
-consequence = "Exact HTTP, code and GPU cache units move to Trash and are downloaded or rebuilt again. Profile data, offline websites, settings, credentials, extensions and models stay."
+consequence = "Exact HTTP, code and GPU cache units are permanently removed and are downloaded or rebuilt again. Profile data, offline websites, settings, credentials, extensions and models stay."
 description = "Bounded direct profiles for verified Arc 1.166.0 / ArcCore154, Chrome Beta/Dev/Canary and the source-verified Chrome DevTools MCP1.10.1 default/CLI channel roots. Arc needs its exact bundle metadata in platform-stated application roots. Every unit retains fresh exact handles and full entry/runtime identity at plan, execution and final mutation; unknown/custom roots, databases, credentials, configuration, models and executables are refused. Persistent or temporary whole automation profiles are never targets."
 
 [[signatures]]
@@ -207,7 +207,7 @@ min_age_days = 0
 owner = "Google Chrome"
 artifact_kind = "compiled_kernel"
 fail_if_running = ["Google Chrome", "Google Chrome Helper", "Google Chrome Helper (GPU)", "Google Chrome Helper (Renderer)", "Google Chrome Helper (Plugin)", "Google Chrome Helper (Utility)"]
-consequence = "Chrome recompiles GPU shaders on next launch; initial rendering may be slower. Selected caches move to Trash."
+consequence = "Selected caches are permanently removed. Chrome recompiles GPU shaders on next launch; initial rendering may be slower."
 description = "Named GPU cache subtrees only, while Chrome is closed. Cookies, passwords, history, extensions, models and offline Service Worker data remain outside this scope."
 
 [[signatures]]
@@ -227,7 +227,7 @@ min_age_days = 0
 owner = "Brave Browser"
 artifact_kind = "compiled_kernel"
 fail_if_running = ["Brave Browser", "Brave Browser Helper", "Brave Browser Helper (GPU)", "Brave Browser Helper (Renderer)", "Brave Browser Helper (Plugin)", "Brave Browser Helper (Utility)"]
-consequence = "Brave recompiles GPU shaders on next launch; initial rendering may be slower. Selected caches move to Trash."
+consequence = "Selected caches are permanently removed. Brave recompiles GPU shaders on next launch; initial rendering may be slower."
 description = "Named GPU cache subtrees only, while Brave is closed. Cookies, passwords, history, extensions, models and offline Service Worker data remain outside this scope."
 
 [[signatures]]
@@ -877,8 +877,8 @@ platforms = ["macos"]
 paths = []
 owner = "Mail"
 provider = "Mail"
-consequence = "Reviewed attachment copies inactive for thirty days move to Trash. Save edits first; messages and attachment stores remain intact."
-description = "Reviewed attachment copies inactive for thirty days move to Trash. Save edits first; messages and attachment stores remain intact."
+consequence = "Reviewed attachment copies inactive for thirty days are permanently removed. Save edits first; messages and attachment stores remain intact."
+description = "Reviewed attachment copies inactive for thirty days are permanently removed. Save edits first; messages and attachment stores remain intact."
 
 [[signatures]]
 id = "system.downloads.abandoned"
@@ -893,8 +893,8 @@ platforms = ["macos"]
 paths = []
 owner = "Download applications"
 provider = "Download applications"
-consequence = "Reviewed incomplete downloads inactive for seven days move to Trash. They cannot resume from the original location; completed downloads remain intact."
-description = "Reviewed incomplete downloads inactive for seven days move to Trash. They cannot resume from the original location; completed downloads remain intact."
+consequence = "Reviewed incomplete downloads inactive for seven days are permanently removed. They cannot resume from the original location; completed downloads remain intact."
+description = "Reviewed incomplete downloads inactive for seven days are permanently removed. They cannot resume from the original location; completed downloads remain intact."
 
 [[signatures]]
 id = "system.updater.unreferenced_staging"
@@ -909,7 +909,7 @@ platforms = ["macos"]
 paths = []
 owner = "Cursor / Notion updater"
 provider = "electron-updater"
-consequence = "Unreferenced update archives move to Trash and may need downloading again. The currently referenced installer remains intact."
+consequence = "Unreferenced update archives are permanently removed and may need downloading again. The currently referenced installer remains intact."
 description = "Only direct ZIP/DMG children of known pending directories, inactive for seven days, with stopped owners and verified idle handles. Malformed or unknown manifest formats block cleanup."
 
 
@@ -958,7 +958,7 @@ platforms = ["macos"]
 paths = []
 owner = "Google Updater"
 provider = "Google Updater"
-consequence = "Previous updater diagnostics move to Trash; updater preferences, installed versions and update metadata remain intact."
+consequence = "Previous updater diagnostics are permanently removed; updater preferences, installed versions and update metadata remain intact."
 description = "Only updater.log and updater.log.old in the user-level updater directory, with idle owner and exact open-handle checks. System installations remain outside scope."
 
 [[signatures]]
@@ -974,7 +974,7 @@ paths = []
 fail_if_running = ["GoogleUpdater", "GoogleUpdater Helper"]
 owner = "Google Updater"
 provider = "Google Updater"
-consequence = "Update archives and their download-cache index move together to Trash and may be downloaded again. Installed applications, updater versions and preferences remain."
+consequence = "Update archives and their download-cache index are permanently removed together and may be downloaded again. Installed applications, updater versions and preferences remain."
 description = "Only the exact current-user GoogleUpdater/crx_cache unit. Bounded flat CRX3 payloads must match their indexed SHA-256 names and known metadata schema, current-user ownership and fresh owner/handle checks. Unknown layouts remain visible and unavailable."
 
 [[signatures]]
@@ -1006,7 +1006,7 @@ paths = []
 fail_if_running = ["Messages", "imagent"]
 owner = "Messages"
 provider = "Messages preview cache"
-consequence = "Selected preview and sticker images move to Trash and may be generated again. Original message attachments and conversations remain intact."
+consequence = "Selected preview and sticker images are permanently removed and may be generated again. Original message attachments and conversations remain intact."
 description = "Reviewed image files inside three named preview/sticker cache scopes only. Databases and unsupported entries are never authorized; app ownership and exact handles are checked again before moving each file."
 
 [[signatures]]

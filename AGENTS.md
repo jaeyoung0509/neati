@@ -242,6 +242,12 @@ safety conventions below when changing neati.
 
 ## CI boundaries
 
+- Windows is paused by the owner (November 22, 2026, #445). The Windows Rust,
+  Windows-target MSRV and Windows packaging jobs, and the Windows release
+  build, run only when the repository variable `WINDOWS_SUPPORT` is `enabled`.
+  Keep the job definitions and Windows source intact, do not treat a skipped
+  Windows job as evidence, and do not claim Windows behaviour is verified while
+  the pause is in effect. The rules below about Windows apply once re-enabled.
 - Keep frontend typecheck, Vitest, binding drift, and Vite build in the shared
   frontend job. macOS and Windows Rust jobs run in parallel; packaging jobs may
   consume the verified frontend artifact only after their platform Rust job

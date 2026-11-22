@@ -257,6 +257,9 @@ jobs:
 
   release-windows:
     name: Build Unsigned Public Beta (Windows x64 NSIS)
+    # Windows is paused (#445). Set the repository variable WINDOWS_SUPPORT to
+    # `enabled` to run this job again; the job definition is kept intact.
+    if: ${{ vars.WINDOWS_SUPPORT == 'enabled' }}
     needs: verify-release
     runs-on: windows-latest
     steps:
@@ -383,7 +386,8 @@ jobs:
 
   attest-provenance:
     name: Attest Build Provenance
-    if: startsWith(github.ref, 'refs/tags/v')
+    # A paused (skipped) Windows build must not skip the macOS release.
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.release-mac.result == 'success' && (needs.release-windows.result == 'success' || needs.release-windows.result == 'skipped') }}
     needs: [release-mac, release-windows]
     runs-on: ubuntu-latest
     permissions:
@@ -404,13 +408,19 @@ jobs:
           subject-path: |
             artifacts/neati-macos-arm64.dmg
             artifacts/neati-macos-arm64.app.tar.gz
+            artifacts/SBOM-neati.spdx.json
+
+      - name: Attest build provenance for the Windows installers
+        if: needs.release-windows.result == 'success'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
             artifacts/neati-windows-x64-setup.exe
             artifacts/neati-windows-x64-setup-machine.exe
-            artifacts/SBOM-neati.spdx.json
 
   publish-release:
     name: Publish Combined GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.release-mac.result == 'success' && needs.attest-provenance.result == 'success' && (needs.release-windows.result == 'success' || needs.release-windows.result == 'skipped') }}
     needs: [release-mac, release-windows, attest-provenance]
     runs-on: ubuntu-latest
     # Manual approval gate. The maintainer submits the built installers to
@@ -433,6 +443,24 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      # Every later step names the published installers through this one list,
+      # so a paused Windows build never leaves a path that does not exist.
+      - name: Resolve the published installer set
+        run: |
+          set -euo pipefail
+          INSTALLERS="artifacts/neati-macos-arm64.dmg"
+          CHECKSUMS="artifacts/SHA256SUMS-macos-arm64.txt"
+          if [ "${{ needs.release-windows.result }}" = "success" ]; then
+            INSTALLERS="$INSTALLERS artifacts/neati-windows-x64-setup.exe artifacts/neati-windows-x64-setup-machine.exe"
+            CHECKSUMS="$CHECKSUMS artifacts/SHA256SUMS-windows-x64.txt"
+            echo "WINDOWS_PUBLISHED=true" >> "$GITHUB_ENV"
+          else
+            echo "WINDOWS_PUBLISHED=false" >> "$GITHUB_ENV"
+          fi
+          for file in $INSTALLERS $CHECKSUMS; do test -s "$file"; done
+          echo "RELEASE_INSTALLERS=$INSTALLERS" >> "$GITHUB_ENV"
+          echo "RELEASE_CHECKSUMS=$CHECKSUMS" >> "$GITHUB_ENV"
+
       - name: Record endpoint-protection submission result
         env:
           ENDPOINT_REVIEW_STATUS: ${{ vars.ENDPOINT_REVIEW_STATUS }}
@@ -448,9 +476,7 @@ jobs:
             --reference "${ENDPOINT_REVIEW_REFERENCE}" \
             --reviewer "${ENDPOINT_REVIEW_REVIEWER}" \
             --reviewed-at "${ENDPOINT_REVIEW_DATE}" \
-            artifacts/neati-macos-arm64.dmg \
-            artifacts/neati-windows-x64-setup.exe \
-            artifacts/neati-windows-x64-setup-machine.exe
+            ${RELEASE_INSTALLERS}
 
       - name: Combine platform checksums
         run: |
@@ -459,8 +485,7 @@ jobs:
             --output artifacts/SHA256SUMS-sbom.txt
           node scripts/release_checksums.cjs combine \
             --output artifacts/SHA256SUMS.txt \
-            artifacts/SHA256SUMS-macos-arm64.txt \
-            artifacts/SHA256SUMS-windows-x64.txt \
+            ${RELEASE_CHECKSUMS} \
             artifacts/SHA256SUMS-sbom.txt
           (cd artifacts && shasum -a 256 -c SHA256SUMS.txt)
 
@@ -470,9 +495,7 @@ jobs:
             --review artifacts/endpoint-review.json \
             --version "$(node -p "require('./package.json').version")" \
             --commit "${GITHUB_SHA}" \
-            artifacts/neati-macos-arm64.dmg \
-            artifacts/neati-windows-x64-setup.exe \
-            artifacts/neati-windows-x64-setup-machine.exe
+            ${RELEASE_INSTALLERS}
 
       - name: Write updater manifest
         run: |
@@ -482,7 +505,40 @@ jobs:
             --asset neati-macos-arm64.app.tar.gz \
             --output artifacts/latest.json
 
-      - name: Create one prerelease with macOS and Windows assets
+      # The notes state only what this run published (see AGENTS.md: no
+      # platform claim beyond what CI executed).
+      - name: Write release notes
+        run: |
+          set -euo pipefail
+          {
+            cat <<'NOTES'
+          ## Public beta trust notice
+
+          The macOS ARM64 build is not notarized with an Apple Developer ID. macOS Gatekeeper blocks the first launch until the user chooses **Open Anyway** in System Settings → Privacy & Security. Verify the published SHA256 checksum before overriding the warning.
+
+          Each installer was submitted to Microsoft's endpoint-protection analysis before publication. `endpoint-review.json` records the reviewed outcome for these exact bytes, and a detection blocks publication.
+
+          Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/neati`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
+
+          neati performs no background network activity for updates. On macOS, Settings → Updates can check this repository's signed release manifest when you press Check now, or once per launch if you turn that on; the update archive is verified against the minisign key built into neati before it replaces the app. Windows builds do not self-update: open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
+
+          NOTES
+            if [ "${WINDOWS_PUBLISHED}" = "true" ]; then
+              cat <<'NOTES'
+          The Windows x64 NSIS installers are not yet code signed. Windows users should expect Microsoft Defender SmartScreen to show an unknown-publisher warning; verify the published SHA256 checksum before running either installer.
+
+          SignPath Foundation issues organization-validated certificates. That establishes a verifiable publisher identity, but it does not transfer SmartScreen reputation, so the unknown-publisher warning is expected to persist after the first signed release until the certificate builds reputation on its own.
+
+          The per-user installer (`neati-windows-x64-setup.exe`) installs under `%LOCALAPPDATA%` without elevation. The machine-wide installer (`neati-windows-x64-setup-machine.exe`) installs under Program Files, requires elevation, and exists for managed machines whose application-control policy refuses to execute binaries from user-writable locations; it does not make the binary trusted. Both installers embed the WebView2 offline installer, so installation needs no network access.
+          NOTES
+            else
+              cat <<'NOTES'
+          Windows builds are paused: this release publishes the macOS ARM64 build only. The last published Windows installers remain on their own earlier release and receive no fixes.
+          NOTES
+            fi
+          } > artifacts/RELEASE_BODY.md
+
+      - name: Create one prerelease with the published assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -502,20 +558,7 @@ jobs:
             artifacts/winget/**/*.yaml
           prerelease: true
           generate_release_notes: true
-          body: |
-            ## Public beta trust notice
-
-            The macOS ARM64 build is not notarized with an Apple Developer ID, and the Windows x64 NSIS installers are not yet code signed. macOS Gatekeeper blocks the first launch until the user explicitly opens the app. Windows users should expect Microsoft Defender SmartScreen to show an unknown-publisher warning; verify the published SHA256 checksum before running either installer.
-
-            SignPath Foundation issues organization-validated certificates. That establishes a verifiable publisher identity, but it does not transfer SmartScreen reputation, so the unknown-publisher warning is expected to persist after the first signed release until the certificate builds reputation on its own.
-
-            Each installer was submitted to Microsoft's endpoint-protection analysis before publication. `endpoint-review.json` records the reviewed outcome for these exact bytes, and a detection blocks publication.
-
-            Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/neati`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
-
-            neati performs no background network activity for updates. On macOS, Settings → Updates can check this repository's signed release manifest when you press Check now, or once per launch if you turn that on; the update archive is verified against the minisign key built into neati before it replaces the app. Windows builds do not self-update: open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
-
-            The per-user installer (`neati-windows-x64-setup.exe`) installs under `%LOCALAPPDATA%` without elevation. The machine-wide installer (`neati-windows-x64-setup-machine.exe`) installs under Program Files, requires elevation, and exists for managed machines whose application-control policy refuses to execute binaries from user-writable locations; it does not make the binary trusted. Both installers embed the WebView2 offline installer, so installation needs no network access.
+          body_path: artifacts/RELEASE_BODY.md
 
       # Installed copies read a fixed URL. Prereleases are invisible to
       # /releases/latest, so the manifest also lives on one rolling prerelease

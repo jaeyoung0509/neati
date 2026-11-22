@@ -913,10 +913,7 @@ impl KeepAwakeManager {
                 return true;
             }
         }
-        if !cmd_lower.is_empty() && lower_patterns.iter().any(|pat| cmd_lower.contains(pat)) {
-            return true;
-        }
-        false
+        !cmd_lower.is_empty() && lower_patterns.iter().any(|pat| cmd_lower.contains(pat))
     }
 }
 

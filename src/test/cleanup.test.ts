@@ -89,6 +89,7 @@ const allCategoriesEnabledSettings: NeatiSettings = {
   onboarding_completed: true,
   check_updates_on_launch: false,
   ai_tool_profiles: [],
+  project_folders: [],
   clean_ai_tools: true,
   clean_developer_tools: true,
   clean_docker: true,

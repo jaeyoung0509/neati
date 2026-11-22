@@ -14,6 +14,7 @@ fn workspace_record(root: &Path) -> DeveloperWorkspaceRecord {
             id: Uuid::new_v4().to_string(),
             name: root.file_name().unwrap().to_string_lossy().into_owned(),
             display_path: root.to_string_lossy().into_owned(),
+            path: root.to_string_lossy().into_owned(),
         },
         path: root.to_path_buf(),
         identity,
@@ -1108,4 +1109,112 @@ fn terraform_folder_with_a_selected_workspace_is_observed_but_never_cleanable() 
     assert!(!selected.status.allows_manual_cleanup());
     assert!(!selected.selected_by_default);
     assert_eq!(selected.logical_bytes, 40 + "staging".len() as u64);
+}
+
+fn project(root: &Path, marker: &str) {
+    fs::create_dir_all(root).unwrap();
+    let marker_path = root.join(marker);
+    if marker == ".git" {
+        fs::create_dir_all(marker_path).unwrap();
+    } else {
+        fs::write(marker_path, "fixture\n").unwrap();
+    }
+}
+
+#[test]
+fn saved_project_folders_restore_and_report_refusals() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = fs::canonicalize(temp.path()).unwrap();
+    let environment = environment_with_home(&home);
+    project(&home.join("Myproject/app"), "Cargo.toml");
+    let saved = vec![
+        home.join("Myproject").to_string_lossy().into_owned(),
+        home.join("gone").to_string_lossy().into_owned(),
+        home.to_string_lossy().into_owned(),
+        home.join("Myproject").to_string_lossy().into_owned(),
+    ];
+    let store = Mutex::new(HashMap::new());
+    let restore = restore_workspaces(&environment, &saved, &store);
+
+    let names: Vec<&str> = restore
+        .workspaces
+        .iter()
+        .map(|workspace| workspace.name.as_str())
+        .collect();
+    assert_eq!(names, ["Myproject", "This Computer"]);
+    assert_eq!(
+        restore.workspaces[0].path,
+        home.join("Myproject").to_string_lossy()
+    );
+    assert_eq!(restore.refused.len(), 1);
+    assert!(restore.refused[0].path.ends_with("gone"));
+    assert!(!restore.refused[0].reason.is_empty());
+    let records = store.lock().unwrap();
+    assert_eq!(records.len(), 2, "a folder saved twice is registered once");
+    assert!(records.values().any(|record| record.whole_home));
+}
+
+#[test]
+fn suggestions_name_project_roots_only_and_skip_saved_folders() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = fs::canonicalize(temp.path()).unwrap();
+    let environment = environment_with_home(&home);
+    project(&home.join("Developer/one"), ".git");
+    project(&home.join("Developer/two"), "package.json");
+    project(&home.join("Myproject/app"), "Cargo.toml");
+    // An empty root, a root whose children are not projects, and a link to a
+    // real root are not suggested.
+    fs::create_dir_all(home.join("Projects")).unwrap();
+    fs::create_dir_all(home.join("repos/notes")).unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(home.join("Developer"), home.join("code")).unwrap();
+
+    let suggestions = suggest_workspaces(&environment, &[]);
+    let found: Vec<(String, u32)> = suggestions
+        .iter()
+        .map(|suggestion| (suggestion.path.clone(), suggestion.project_count))
+        .collect();
+    assert_eq!(
+        found,
+        [
+            (home.join("Developer").to_string_lossy().into_owned(), 2),
+            (home.join("Myproject").to_string_lossy().into_owned(), 1),
+        ]
+    );
+
+    let saved = [home.join("Myproject").to_string_lossy().into_owned()];
+    let remaining = suggest_workspaces(&environment, &saved);
+    assert_eq!(remaining.len(), 1);
+    assert!(remaining[0].path.ends_with("Developer"));
+}
+
+#[test]
+fn only_a_current_suggestion_can_be_added_by_path() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = fs::canonicalize(temp.path()).unwrap();
+    let environment = environment_with_home(&home);
+    project(&home.join("Myproject/app"), "Cargo.toml");
+    project(&home.join("elsewhere/app"), "Cargo.toml");
+    let store = Mutex::new(HashMap::new());
+
+    let elsewhere = home.join("elsewhere").to_string_lossy().into_owned();
+    assert!(register_suggested_workspace(&environment, &elsewhere, &[], &store).is_err());
+    assert!(store.lock().unwrap().is_empty());
+
+    let suggested = home.join("Myproject").to_string_lossy().into_owned();
+    let workspace = register_suggested_workspace(&environment, &suggested, &[], &store).unwrap();
+    assert_eq!(workspace.path, suggested);
+    assert_eq!(store.lock().unwrap().len(), 1);
+}
+
+#[test]
+fn saved_project_folder_list_is_bounded_and_absolute() {
+    assert!(validate_saved_project_folders(&[]).is_ok());
+    assert!(validate_saved_project_folders(&["/Users/someone/code".into()]).is_ok());
+    assert!(validate_saved_project_folders(&["code".into()]).is_err());
+    assert!(validate_saved_project_folders(&["/Users/someone/../other".into()]).is_err());
+    let too_many: Vec<String> = (0..=MAX_SAVED_PROJECT_FOLDERS)
+        .map(|index| format!("/Users/someone/p{index}"))
+        .collect();
+    assert!(validate_saved_project_folders(&too_many).is_err());
 }

@@ -182,6 +182,10 @@ pub struct NeatiSettings {
     /// Extra AI tool profile directories the person confirmed (#451). They
     /// are measured like the default profile and never grant removal.
     pub ai_tool_profiles: Vec<crate::models::AiToolProfile>,
+    /// Project folders the person added to Clean → Projects (#486). They are
+    /// remembered across launches and re-validated whenever they are used;
+    /// a saved folder only widens what is scanned, never what is removed.
+    pub project_folders: Vec<String>,
     pub clean_ai_tools: bool,
     pub clean_developer_tools: bool,
     pub clean_docker: bool,
@@ -219,6 +223,7 @@ impl Default for NeatiSettings {
             onboarding_completed: false,
             check_updates_on_launch: false,
             ai_tool_profiles: Vec::new(),
+            project_folders: Vec::new(),
             clean_ai_tools: true,
             clean_developer_tools: true,
             clean_docker: true,
@@ -332,6 +337,13 @@ impl Default for NeatiSettings {
 
 impl NeatiSettings {
     pub fn sanitize(mut self) -> Self {
+        let mut seen_folders = std::collections::HashSet::new();
+        self.project_folders = std::mem::take(&mut self.project_folders)
+            .into_iter()
+            .map(|folder| folder.trim().to_string())
+            .filter(|folder| !folder.is_empty() && seen_folders.insert(folder.clone()))
+            .take(crate::developer_artifacts::MAX_SAVED_PROJECT_FOLDERS)
+            .collect();
         // Broad verified cache discovery is now standard. Keep the serialized
         // field only to accept existing settings; it is no longer a preference.
         self.intensive_cleanup = true;
@@ -560,6 +572,40 @@ mod tests {
         assert!(settings.intensive_cleanup);
         assert!(settings.clone().sanitize().intensive_cleanup);
         assert!(NeatiSettings::default().intensive_cleanup);
+    }
+
+    #[test]
+    fn project_folders_default_empty_and_are_trimmed_deduplicated_and_bounded() {
+        let parsed: NeatiSettings = serde_json::from_str(r#"{"theme":"dark"}"#).unwrap();
+        assert!(
+            parsed.project_folders.is_empty(),
+            "older files keep loading"
+        );
+
+        let mut folders = vec![
+            " /Users/someone/code ".to_string(),
+            "/Users/someone/code".to_string(),
+            String::new(),
+        ];
+        folders.extend((0..40).map(|index| format!("/Users/someone/p{index}")));
+        let sanitized = NeatiSettings {
+            project_folders: folders,
+            ..NeatiSettings::default()
+        }
+        .sanitize();
+        assert_eq!(sanitized.project_folders[0], "/Users/someone/code");
+        assert_eq!(
+            sanitized.project_folders.len(),
+            crate::developer_artifacts::MAX_SAVED_PROJECT_FOLDERS
+        );
+        assert_eq!(
+            sanitized
+                .project_folders
+                .iter()
+                .filter(|folder| folder.as_str() == "/Users/someone/code")
+                .count(),
+            1
+        );
     }
 
     #[test]

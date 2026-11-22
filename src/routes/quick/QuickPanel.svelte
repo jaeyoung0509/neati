@@ -69,6 +69,11 @@
   let usageClock: ReturnType<typeof setInterval> | undefined;
   let agentSummary = $state<AgentQuickSummary | null>(null);
   let settings = $derived(settingsStore.settings);
+  // The cleanup total covers caches only; project build output needs a saved
+  // projects folder (#486).
+  let projectFoldersUnscanned = $derived(
+    settingsStore.hasLoaded && (settings.project_folders ?? []).length === 0
+  );
   let disk = $derived(memoryStore.disk);
   let memory = $derived(memoryStore.memory);
   let cpu = $derived(systemMetricsStore.cpu);
@@ -547,6 +552,14 @@
           </Button>
         {/if}
       </div>
+      {#if projectFoldersUnscanned && !cleanupBusy}
+        <!-- After the row's actions, so the summary's first control stays its action. -->
+        <button
+          type="button"
+          class="quick-project-folders-hint mt-1 block rounded text-left text-caption text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onclick={() => handleOpenRoute('developer_artifacts')}
+        >Project folders not scanned · Add one</button>
+      {/if}
       {#if scan && !cleanupBusy && quickSafeItems.length === 0 && (cleanupState === 'partial' || cleanupState === 'clean')}
         <div class="mt-2 flex items-center justify-between gap-2 text-caption text-muted-foreground">
           <p>{quickCleanupUnavailableReason(scan)}</p>

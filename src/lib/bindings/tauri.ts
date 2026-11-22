@@ -188,8 +188,16 @@ export const commands = {
 	id: string,
 	name: string,
 	display_path: string,
+	/**
+	 *  The canonical folder, so the interface can remember it in settings.
+	 *  A saved path grants nothing: it is validated again before every use.
+	 */
+	path: string,
 } | null, string>(__TAURI_INVOKE("pick_developer_workspace")),
 	registerDeveloperHomeWorkspace: () => typedError<DeveloperWorkspace, string>(__TAURI_INVOKE("register_developer_home_workspace")),
+	restoreDeveloperWorkspaces: () => typedError<DeveloperWorkspaceRestore, string>(__TAURI_INVOKE("restore_developer_workspaces")),
+	suggestDeveloperWorkspaces: () => typedError<DeveloperWorkspaceSuggestion[], string>(__TAURI_INVOKE("suggest_developer_workspaces")),
+	addSuggestedDeveloperWorkspace: (path: string) => typedError<DeveloperWorkspace, string>(__TAURI_INVOKE("add_suggested_developer_workspace", { path })),
 	startDeveloperArtifactScan: (workspaceIds: string[], onEvent: Channel<DeveloperArtifactScanEvent_Deserialize>) => typedError<DeveloperArtifactScanResult_Serialize, string>(__TAURI_INVOKE("start_developer_artifact_scan", { workspaceIds, onEvent })),
 	cancelDeveloperArtifactScan: (scanId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_developer_artifact_scan", { scanId })),
 	prepareDeveloperArtifactCleanup: (scanId: string, selectedItemIds: string[]) => typedError<RemovalPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_developer_artifact_cleanup", { scanId, selectedItemIds })),
@@ -1813,6 +1821,36 @@ export type DeveloperWorkspace = {
 	id: string,
 	name: string,
 	display_path: string,
+	/**
+	 *  The canonical folder, so the interface can remember it in settings.
+	 *  A saved path grants nothing: it is validated again before every use.
+	 */
+	path: string,
+};
+
+export type DeveloperWorkspaceRefusal = {
+	path: string,
+	reason: string,
+};
+
+/**
+ *  The saved project folders that were registered again at launch, and the
+ *  ones that no longer validate.
+ */
+export type DeveloperWorkspaceRestore = {
+	workspaces: DeveloperWorkspace[],
+	refused: DeveloperWorkspaceRefusal[],
+};
+
+/**
+ *  A likely project folder in the home directory (#486). A hint only:
+ *  nothing is scanned until the person adds it.
+ */
+export type DeveloperWorkspaceSuggestion = {
+	path: string,
+	display_path: string,
+	/**  Direct children that carry a project marker, capped by the probe. */
+	project_count: number,
 };
 
 export type DevelopmentListener = DevelopmentListener_Serialize | DevelopmentListener_Deserialize;
@@ -2534,6 +2572,12 @@ export type NeatiSettings_Deserialize = {
 	 *  are measured like the default profile and never grant removal.
 	 */
 	ai_tool_profiles?: AiToolProfile[],
+	/**
+	 *  Project folders the person added to Clean → Projects (#486). They are
+	 *  remembered across launches and re-validated whenever they are used;
+	 *  a saved folder only widens what is scanned, never what is removed.
+	 */
+	project_folders?: string[],
 	clean_ai_tools?: boolean,
 	clean_developer_tools?: boolean,
 	clean_docker?: boolean,
@@ -2573,6 +2617,12 @@ export type NeatiSettings_Serialize = {
 	 *  are measured like the default profile and never grant removal.
 	 */
 	ai_tool_profiles: AiToolProfile[],
+	/**
+	 *  Project folders the person added to Clean → Projects (#486). They are
+	 *  remembered across launches and re-validated whenever they are used;
+	 *  a saved folder only widens what is scanned, never what is removed.
+	 */
+	project_folders: string[],
 	clean_ai_tools: boolean,
 	clean_developer_tools: boolean,
 	clean_docker: boolean,

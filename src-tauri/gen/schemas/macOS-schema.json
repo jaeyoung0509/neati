@@ -177,6 +177,12 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Enables the add_suggested_developer_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-add-suggested-developer-workspace",
+          "markdownDescription": "Enables the add_suggested_developer_workspace command without any pre-configured scope."
+        },
+        {
           "description": "Enables the cancel_developer_artifact_scan command without any pre-configured scope.",
           "type": "string",
           "const": "allow-cancel-developer-artifact-scan",
@@ -591,6 +597,12 @@
           "markdownDescription": "Enables the request_stop_agent_session command without any pre-configured scope."
         },
         {
+          "description": "Enables the restore_developer_workspaces command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-restore-developer-workspaces",
+          "markdownDescription": "Enables the restore_developer_workspaces command without any pre-configured scope."
+        },
+        {
           "description": "Enables the resume_scan command without any pre-configured scope.",
           "type": "string",
           "const": "allow-resume-scan",
@@ -693,6 +705,12 @@
           "markdownDescription": "Enables the suggest_ai_tool_profiles command without any pre-configured scope."
         },
         {
+          "description": "Enables the suggest_developer_workspaces command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-suggest-developer-workspaces",
+          "markdownDescription": "Enables the suggest_developer_workspaces command without any pre-configured scope."
+        },
+        {
           "description": "Enables the take_pending_navigation command without any pre-configured scope.",
           "type": "string",
           "const": "allow-take-pending-navigation",
@@ -709,6 +727,12 @@
           "type": "string",
           "const": "allow-toggle-quick-panel",
           "markdownDescription": "Enables the toggle_quick_panel command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the add_suggested_developer_workspace command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-add-suggested-developer-workspace",
+          "markdownDescription": "Denies the add_suggested_developer_workspace command without any pre-configured scope."
         },
         {
           "description": "Denies the cancel_developer_artifact_scan command without any pre-configured scope.",
@@ -1125,6 +1149,12 @@
           "markdownDescription": "Denies the request_stop_agent_session command without any pre-configured scope."
         },
         {
+          "description": "Denies the restore_developer_workspaces command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-restore-developer-workspaces",
+          "markdownDescription": "Denies the restore_developer_workspaces command without any pre-configured scope."
+        },
+        {
           "description": "Denies the resume_scan command without any pre-configured scope.",
           "type": "string",
           "const": "deny-resume-scan",
@@ -1225,6 +1255,12 @@
           "type": "string",
           "const": "deny-suggest-ai-tool-profiles",
           "markdownDescription": "Denies the suggest_ai_tool_profiles command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the suggest_developer_workspaces command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-suggest-developer-workspaces",
+          "markdownDescription": "Denies the suggest_developer_workspaces command without any pre-configured scope."
         },
         {
           "description": "Denies the take_pending_navigation command without any pre-configured scope.",

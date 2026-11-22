@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-restore-developer-workspaces"
+description = "Enables the restore_developer_workspaces command without any pre-configured scope."
+commands.allow = ["restore_developer_workspaces"]
+
+[[permission]]
+identifier = "deny-restore-developer-workspaces"
+description = "Denies the restore_developer_workspaces command without any pre-configured scope."
+commands.deny = ["restore_developer_workspaces"]

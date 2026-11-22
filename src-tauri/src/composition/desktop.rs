@@ -97,7 +97,8 @@ pub fn desktop_state_with_catalog(
             Arc::new(neati_platform::NativeSystemActions::new()),
             platform_capabilities.clone(),
         )
-        .with_temporary_review(removal_backend.clone()),
+        .with_temporary_review(removal_backend.clone())
+        .with_settings(settings.clone()),
     );
 
     // The reviewed lifecycle providers are built once here and shared by the

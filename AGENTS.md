@@ -423,6 +423,19 @@ safety conventions below when changing neati.
 
 ## Reviewed cleanup additions
 
+- Owner direction #494 (November 22, 2026): one-button Clean includes verified
+  compiler build outputs from saved project folders — Cargo `target`, Gradle
+  `build` and project `.gradle`, Maven/sbt/Clojure `target`, CMake build,
+  Swift `.build`, Zig cache, Stack/Cabal work, Elixir/Erlang `_build`, .NET
+  `obj`. `developer_artifacts::preselection` preselects one only when its
+  measurement is `Complete`, its ownership is `VerifiedGenerated`, and an exact
+  open-file check proves the folder idle; `RemovalExecutor` repeats that check
+  immediately before removal and refuses `InUse` or `Unknown`. Dependency
+  stores (`node_modules`, Python environments, `vendor`, bundles, deps, Go
+  module cache, Flutter tooling), framework outputs, Terraform and .NET `bin`
+  are never preselected and stay reviewable. Do not widen `is_build_output`
+  without the same evidence.
+
 - Extra AI tool profiles (#451) are directories the person confirmed in
   Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They
   widen measurement only: `signatures::profiles` projects the ids listed in

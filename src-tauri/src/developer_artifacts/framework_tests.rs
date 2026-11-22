@@ -294,9 +294,12 @@ fn unverified_default_framework_outputs_preserve_nested_package_descent() {
         .records
         .values()
         .any(|r| r.artifact.kind == DeveloperArtifactKind::CargoTarget));
+    // Framework outputs are never preselected. A complete, verified build
+    // output may be (#494); that rule has its own deterministic tests.
     assert!(inventory
         .records
         .values()
+        .filter(|r| r.artifact.kind != DeveloperArtifactKind::CargoTarget)
         .all(|r| !r.artifact.selected_by_default));
 }
 

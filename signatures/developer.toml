@@ -16,7 +16,7 @@ provider = "DotSlash"
 artifact_kind = "download_cache"
 intensive_only = false
 discovery = "always"
-consequence = "The selected cached artifact moves to Trash. Empty Trash to free disk space. DotSlash may download and unpack it again on next use."
+consequence = "The selected cached artifact is permanently removed. DotSlash may download and unpack it again on next use."
 description = "Completed DotSlash artifacts are available for direct cleanup, including recently downloaded objects. Owner locks, active executables, links, and incomplete artifacts remain protected."
 
 [[signatures]]
@@ -804,8 +804,8 @@ platforms = ["macos"]
 paths = []
 owner = "JetBrains / Android Studio"
 provider = "JetBrains / Android Studio"
-consequence = "Selected indexes move to Trash. Indexing runs again; Local History, settings and plugins remain intact."
-description = "Selected indexes move to Trash. Indexing runs again; Local History, settings and plugins remain intact."
+consequence = "Selected indexes are permanently removed. Indexing runs again; Local History, settings and plugins remain intact."
+description = "Selected indexes are permanently removed. Indexing runs again; Local History, settings and plugins remain intact."
 
 
 [[signatures]]
@@ -837,8 +837,8 @@ platforms = ["macos"]
 paths = []
 owner = "node-gyp"
 provider = "node-gyp"
-consequence = "Complete versioned downloaded SDKs move to Trash while builds are idle; installed Node runtimes remain outside the scope."
-description = "Complete versioned downloaded SDKs move to Trash while builds are idle; installed Node runtimes remain outside the scope."
+consequence = "Complete versioned downloaded SDKs are permanently removed while builds are idle; installed Node runtimes remain outside the scope."
+description = "Complete versioned downloaded SDKs are permanently removed while builds are idle; installed Node runtimes remain outside the scope."
 
 [[signatures]]
 id = "dev.electron.download_archives"
@@ -886,7 +886,7 @@ paths = []
 fail_if_running = ["ChatGPT", "Codex", "Codex (Renderer)", "Codex (Service)", "codex", "node", "python", "python3", "tar", "unzip"]
 owner = "Codex runtime installer"
 provider = "Codex runtime installer"
-consequence = "Reviewed abandoned installation staging moves to Trash; an interrupted download may restart. The independently activated runtime stays intact."
+consequence = "Reviewed abandoned installation staging is permanently removed; an interrupted download may restart. The independently activated runtime stays intact."
 description = "Exact six-character installer staging directories only, with recognized layout, independently activated format-2 macOS runtime, seven-day whole-tree inactivity, stopped owners and idle handles. Installed runtimes remain observation-only."
 
 [[signatures]]

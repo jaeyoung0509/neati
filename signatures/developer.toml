@@ -1079,3 +1079,49 @@ owner = "PyInstaller"
 provider = "PyInstaller"
 artifact_kind = "build_artifact"
 description = "Observation only for named default namespaces. Cached binaries and executable dependencies remain protected; no installed-version lifecycle or complete owner mutation contract is validated. Custom PYINSTALLER_CONFIG_DIR is not inferred."
+
+[[signatures]]
+id = "dev.expo.user_caches"
+name = "Expo CLI Caches"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_stale_contents"
+platforms = ["macos", "linux"]
+paths = ["~/.expo/{versions-cache,schema-cache,template-cache}"]
+min_age_days = 0
+fail_if_running = ["node", "bun", "expo"]
+owner = "Expo"
+artifact_kind = "download_cache"
+description = "Downloaded SDK version indexes, config schemas and project templates in Expo CLI's literal cache folders. Expo accounts, state and native build outputs stay outside this scope."
+consequence = "Expo CLI downloads version data, schemas and templates again when it needs them."
+
+[[signatures]]
+id = "dev.xcode.documentation_cache"
+name = "Xcode Documentation Cache"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Developer/Xcode/DocumentationCache"]
+fail_if_running = ["Xcode"]
+provider = "Xcode"
+artifact_kind = "build_artifact"
+description = "Downloaded documentation indexes, one folder per Xcode version. neati reports the size only; folders for Xcode versions that are no longer installed are usually the ones worth removing."
+consequence = "Xcode downloads documentation again for a version whose cache is removed."
+
+[[signatures]]
+id = "dev.xcode.device_logs"
+name = "Xcode iOS Device Logs"
+category = "developer"
+family = "developer"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Developer/Xcode/iOS Device Logs"]
+fail_if_running = ["Xcode"]
+provider = "Xcode"
+artifact_kind = "build_artifact"
+description = "Device log and crash databases copied from connected devices. neati reports the size only; Xcode copies newer logs again from a connected device."
+consequence = "Removed device logs and crash reports are gone unless the device still holds them."

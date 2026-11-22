@@ -840,8 +840,8 @@ strategy = "delete_stale_contents"
 platforms = ["macos"]
 paths = ["~/Library/Application Support/BraveSoftware/Brave-Browser/Crashpad/completed"]
 min_age_days = 7
-fail_if_running = ["Brave Browser", "Brave Browser Helper", "chrome_crashpad_handler"]
-description = "Completed crash uploads older than seven days. Pending reports and browser profile state stay outside this scope."
+fail_if_running = ["Brave Browser", "Brave Browser Helper"]
+description = "Completed crash uploads older than seven days. Pending reports and browser profile state stay outside this scope. The shared crash handler is not a guard: every Chromium and Electron app runs one, and completed reports are no longer written."
 
 [[signatures]]
 id = "system.suggestions.observation"
@@ -1060,3 +1060,88 @@ owner = "Chrome DevTools MCP"
 provider = "Chrome DevTools MCP"
 # Observation does not inherit a verified renderer-cache removal policy.
 description = "Whole persistent profiles remain advisory because sign-ins and website state survive runs. The separate renderer provider owns only verified disposable HTTP/code/GPU leaves, with fresh exact handles and protected-state refusal. Custom and isolated profiles are unknown; no whole profile deletion, implicit quit or generic process termination is offered."
+
+[[signatures]]
+id = "system.arc.completed_crash_reports"
+name = "Arc Completed Crash Reports"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = [
+    "~/Library/Application Support/Arc/Crashpad/completed",
+    "~/Library/Application Support/Arc/User Data/Crashpad/completed",
+]
+min_age_days = 7
+fail_if_running = ["Arc", "Arc Helper"]
+description = "Completed crash uploads older than seven days. Pending reports and browser profile state stay outside this scope. The shared crash handler is not a guard: every Chromium and Electron app runs one, and completed reports are no longer written."
+
+[[signatures]]
+id = "system.vivaldi.completed_crash_reports"
+name = "Vivaldi Completed Crash Reports"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Vivaldi/Crashpad/completed"]
+min_age_days = 7
+fail_if_running = ["Vivaldi", "Vivaldi Helper"]
+description = "Completed crash uploads older than seven days. Pending reports and browser profile state stay outside this scope. The shared crash handler is not a guard: every Chromium and Electron app runs one, and completed reports are no longer written."
+
+[[signatures]]
+id = "system.vscode.session_logs"
+name = "VS Code Session Logs"
+category = "system"
+family = "applications"
+risk = "safe"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Code/logs"]
+min_age_days = 7
+description = "Per-session log folders from VS Code sessions that ended more than seven days ago. The current session's logs, settings, extensions and workspace state stay outside this scope."
+consequence = "Old VS Code session logs are permanently removed; new sessions write their own."
+
+[[signatures]]
+id = "system.steam.web_cache"
+name = "Steam Web Cache"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Steam/config/htmlcache/Default/{Cache,Code Cache,GPUCache}"]
+unit = "named_subtree"
+min_age_days = 0
+fail_if_running = ["steam_osx", "Steam Helper"]
+owner = "Steam"
+description = "HTTP, code and GPU caches of the default profile of Steam's embedded browser. Its cookies, saved sign-ins, local storage, the Steam client sign-in and installed games stay outside this scope."
+consequence = "Steam downloads store and community pages again when they are opened."
+
+[[signatures]]
+id = "system.adobe.media_cache_files"
+name = "Adobe Media Cache Files"
+category = "system"
+family = "applications"
+risk = "manual"
+strategy = "manual"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Adobe/Common/Media Cache Files"]
+owner = "Adobe"
+description = "Conformed audio and peak files from Premiere Pro, After Effects and Media Encoder. neati reports the size only: clear it from the application's Media Cache settings, which also updates the Media Cache database that indexes these files."
+
+[[signatures]]
+id = "system.steam.shader_cache"
+name = "Steam Shader Cache"
+category = "system"
+family = "applications"
+risk = "rebuild"
+strategy = "delete_stale_contents"
+platforms = ["macos"]
+paths = ["~/Library/Application Support/Steam/steamapps/shadercache"]
+min_age_days = 0
+fail_if_running = ["steam_osx", "Steam Helper"]
+owner = "Steam"
+description = "Per-game compiled shader caches. Installed games, saves and downloads stay outside this scope."
+consequence = "Games compile their shaders again; the first launch afterwards may stutter."

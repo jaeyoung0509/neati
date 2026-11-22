@@ -153,6 +153,9 @@ jobs:
 
   rust-windows:
     name: Rust Checks (Windows x64)
+    # Windows is paused (#445). Set the repository variable WINDOWS_SUPPORT to
+    # `enabled` to run this job again; the job definition is kept intact.
+    if: ${{ vars.WINDOWS_SUPPORT == 'enabled' }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -233,6 +236,9 @@ jobs:
 
   msrv-windows:
     name: Minimum Supported Rust Version (Windows target)
+    # Windows is paused (#445). Set the repository variable WINDOWS_SUPPORT to
+    # `enabled` to run this job again; the job definition is kept intact.
+    if: ${{ vars.WINDOWS_SUPPORT == 'enabled' }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -325,6 +331,9 @@ jobs:
 
   package-windows:
     name: Package Smoke (Windows x64 NSIS)
+    # Windows is paused (#445). Set the repository variable WINDOWS_SUPPORT to
+    # `enabled` to run this job again; the job definition is kept intact.
+    if: ${{ vars.WINDOWS_SUPPORT == 'enabled' }}
     needs: [frontend, rust-windows]
     runs-on: windows-latest
     steps:

@@ -366,6 +366,22 @@ impl DirectoryScanner {
         // every field is set: only an auto-cleanable unit with reclaimable
         // bytes may be pre-selected.
         let use_started = Instant::now();
+        // One batched open-file observation for the whole signature instead
+        // of one lsof per unit (#493); each unit still gets its own verdict.
+        let open_file_paths: Vec<std::path::PathBuf> = items
+            .iter()
+            .filter(|item| item.risk != crate::models::RiskTier::Manual)
+            .filter_map(|item| {
+                signature
+                    .process_guard_for(Path::new(&item.path), context.environment)
+                    .open_file_path()
+                    .map(Path::to_path_buf)
+            })
+            .collect();
+        if open_file_paths.len() > 1 {
+            running_apps
+                .prefetch_open_files(&open_file_paths, &|| context.cancellation.is_cancelled());
+        }
         for item in &mut items {
             if item.risk != crate::models::RiskTier::Manual {
                 let guard = signature.process_guard_for(Path::new(&item.path), context.environment);

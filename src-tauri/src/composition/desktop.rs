@@ -14,6 +14,7 @@ use crate::operation_gate::StorageOperationGate;
 use crate::power::KeepAwakeManager;
 use crate::services::{
     AiService, CleanupService, DockerStatusCache, SettingsAuthority, StorageService, SystemService,
+    UpdateService,
 };
 use crate::signatures::SignatureRegistry;
 
@@ -223,5 +224,6 @@ pub fn desktop_state_with_catalog(
         storage_service,
         ai_service,
         system_service,
+        Arc::new(UpdateService::new()),
     )
 }

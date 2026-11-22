@@ -37,6 +37,7 @@ import type {
   CleanupQuitPreview,
   PlatformCapabilities,
   PlatformContext,
+  UpdateCheck,
   ProviderDescriptor,
   ProviderId_Deserialize,
   PublishedScan,
@@ -410,6 +411,14 @@ export const nativeApi = {
 
   async openLogsFolder(): Promise<void> {
     await unwrap(commands.openLogsFolder());
+  },
+
+  async checkForUpdate(): Promise<UpdateCheck> {
+    return await unwrap(commands.checkForUpdate());
+  },
+
+  async installUpdate(version: string): Promise<void> {
+    await unwrap(commands.installUpdate(version));
   },
 
   async listDevelopmentListeners(): Promise<DevelopmentListener[]> {

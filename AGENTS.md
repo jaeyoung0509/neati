@@ -142,6 +142,12 @@ safety conventions below when changing neati.
 - The Cargo default feature must include `custom-protocol`; otherwise a binary
   built outside `tauri dev` opens a blank webview because the frontend is not
   embedded.
+- Self-update is macOS-only and person-initiated: **Check now**, or once per
+  launch when the opt-in `check_updates_on_launch` setting is on; never a
+  timer. The WebView receives only an `UpdateCheck` and sends back the version
+  it showed; URLs and signatures stay in `UpdateService`. Keep
+  `requireSignedVersion` on and keep the release job failing without the
+  updater key. See `docs/UPDATER.md`.
 - Create the tray icon once in Rust. The tray menu must include Open neati,
   Toggle Quick Panel, and Quit neati.
 - Position the quick panel from the tray click coordinates, clamp it to the

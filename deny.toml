@@ -121,6 +121,8 @@ skip = [
     { crate = "quick-xml", reason = "0.41 is pinned by wayland-scanner (rfd's Linux backend) while plist 1.10 uses 0.42." },
     { crate = "r-efi", reason = "5.x and 6.x serve different UEFI target generations." },
     { crate = "reqwest", reason = "0.12 is used directly by neati-desktop; 0.13 is pulled transitively by a newer dependency." },
+    { crate = "jni", reason = "0.21 (tao/wry) and 0.22 (rustls-platform-verifier) are Android-only; neither is built for the shipped macOS or Windows targets." },
+    { crate = "jni-sys", reason = "0.3/0.4 follow the two Android-only jni generations above." },
 ]
 
 [sources]
@@ -151,4 +153,9 @@ allow = [
     "Unlicense",
     "Zlib",
 ]
-exceptions = []
+# Data-only license on the Mozilla CA bundle, scoped to the one crate that
+# ships it. It is reached through rustls-platform-verifier's Linux/Android path
+# and is not built for the shipped macOS or Windows targets.
+exceptions = [
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-root-certs" },
+]

@@ -18,7 +18,7 @@ use crate::models::{
     DevelopmentListener, DiagnosticsSnapshot, DiskMetrics, DiskVolume, DockerStatus,
     LocalModelInventory, MemoryMetrics, MemoryTerminationMode, MemoryTerminationResult,
     NeatiSettings, PlatformCapabilities, PlatformContext, ReleaseDevelopmentListenerResult,
-    ReleaseMode, SelectedApplication,
+    ReleaseMode, SelectedApplication, UpdateCheck,
 };
 
 #[tauri::command]
@@ -238,6 +238,29 @@ fn open_dashboard_window_for_runtime<R: tauri::Runtime>(
 #[specta::specta]
 pub fn take_pending_navigation(state: State<'_, DesktopState>) -> Option<DashboardRoute> {
     state.take_pending_navigation()
+}
+
+/// Reads the signed release manifest. Started by the person, or once at launch
+/// when they opted in; never on a timer.
+#[tauri::command]
+#[specta::specta]
+pub async fn check_for_update(
+    app_handle: AppHandle,
+    state: State<'_, DesktopState>,
+) -> Result<UpdateCheck, String> {
+    Ok(state.updates.check(&app_handle).await)
+}
+
+/// Installs the update the last check found and restarts neati. The webview
+/// names only the version it showed; the URL and signature never leave Rust.
+#[tauri::command]
+#[specta::specta]
+pub async fn install_update(
+    app_handle: AppHandle,
+    state: State<'_, DesktopState>,
+    version: String,
+) -> Result<(), String> {
+    state.updates.install(&app_handle, &version).await
 }
 
 #[tauri::command]

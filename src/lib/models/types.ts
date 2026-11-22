@@ -123,6 +123,7 @@ export type {
   ProcessOwnership,
   PlatformCapabilities,
   PlatformContext,
+  UpdateCheck,
   PlatformFeatureCapability,
   PlatformFeatureStatus,
   PlatformKind,

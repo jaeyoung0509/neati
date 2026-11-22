@@ -102,6 +102,43 @@ The notarized release must also delete the Gatekeeper workaround instructions
 README.md and any other user-facing document, replacing them with the normal
 install steps.
 
+## Update archive signing (macOS)
+
+Self-update uses Tauri's updater with a minisign key pair that is independent
+of Apple and Microsoft code signing and costs nothing:
+
+- The public key is committed in `src-tauri/tauri.conf.json`
+  (`plugins.updater.pubkey`). The private key and its password exist only as
+  the GitHub Actions secrets `TAURI_SIGNING_PRIVATE_KEY` and
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` and on the maintainer's offline backup.
+- The macOS release job fails when either the secret or the committed public
+  key is missing, so no release publishes an archive installed copies cannot
+  verify.
+- `requireSignedVersion` is on: the signature's trusted comment must name the
+  version the manifest announces, which prevents a manifest from pairing an
+  older signed archive with a newer version number.
+- `latest.json` is written by `scripts/updater_manifest.cjs` and published both
+  on the versioned release and on the rolling `updater-manifest` prerelease
+  that installed copies read.
+- Losing the private key means installed copies can no longer be updated in
+  place; rotating it requires a manual download of a build that carries the new
+  public key. Never commit the private key or print it in a log.
+
+An update signature is not a code signature. Release notes and documentation
+must not describe a minisign-signed archive as "signed" without saying which
+signature is meant.
+
+### Optional stable self-signed code identity
+
+When the secrets `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` and
+`APPLE_SIGNING_IDENTITY` are present, the macOS job signs every release with
+that one self-signed certificate. A constant signing identity keeps the code
+signature's designated requirement stable, so macOS keeps Full Disk Access
+across updates. It is not an Apple Developer ID: Gatekeeper still blocks the
+first launch and the build is not notarized. `BUILD_INFO-macos-arm64.txt`
+records `Code signature: self-signed identity (not Apple Developer ID)` or
+`ad-hoc` accordingly.
+
 ## Release artifact verification
 
 Every published artifact is accompanied by:

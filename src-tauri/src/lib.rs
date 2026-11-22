@@ -445,7 +445,11 @@ pub fn run() {
             // starting a competing process that could corrupt settings.
             show_main_window_or_report(app);
         }))
-        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_notification::init());
+    // Self-update is built and exercised on macOS only (see UpdateService).
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    let builder = builder
         .manage(app_state)
         .manage(QuickPanelVisibility::default())
         .on_window_event(|window, event| {
@@ -680,6 +684,8 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::open_dashboard_window,
             commands::take_pending_navigation,
             commands::get_app_version,
+            commands::check_for_update,
+            commands::install_update,
             commands::get_platform_capabilities,
             commands::get_platform_context,
             commands::run_environment_self_check,

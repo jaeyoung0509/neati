@@ -33,6 +33,7 @@
   import ReorderControls from '../../lib/components/ReorderControls.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
+  import UpdateSettings from '../../lib/components/UpdateSettings.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
@@ -349,6 +350,16 @@
           ariaLabel="Launch neati at login"
         />
       </div>
+    </Card>
+  </div>
+
+  <!-- Updates -->
+  <div class="space-y-3">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
+      Updates
+    </h3>
+    <Card class="p-4 bg-card">
+      <UpdateSettings {releasesUrl} />
     </Card>
   </div>
 

@@ -149,16 +149,25 @@ Do not disable Gatekeeper or clear quarantine attributes. A public neati
 release remains gated on the signing/notarization review in issue #334; a
 locally built app is not evidence of a signed release.
 
-### Knowing when a corrected version exists
+### Updating neati
 
-neati has no automatic updater and does not check for new releases in the
-background. Enabled AI integrations can still contact their providers for usage
-data; this is separate from update checking. To find
-out, open the [GitHub Releases](https://github.com/jaeyoung0509/neati/releases)
-page and compare the newest tag with the version shown in neati. The
-application exposes that release URL (`PlatformContext.releases_url`) and links
-to it from the interface, so the check is one click away, but every check is
-user-initiated.
+On macOS, **Settings → Updates** checks this repository's release manifest
+when you press **Check now**. You can also turn on **Check for updates when
+neati opens**, which reads the manifest once per launch; it is off by default,
+and neati never checks on a timer. Nothing is downloaded until you choose
+**Install and restart**. neati then downloads the update archive, verifies its
+minisign signature against the public key built into the app (including the
+version the archive was signed for, so an older release cannot be served as a
+newer one), replaces the installed copy and restarts.
+
+The update signature is independent of Apple code signing: it proves the
+archive came from this repository's release workflow, but the app is still not
+notarized and Gatekeeper treats a fresh download as before.
+
+Windows builds do not update themselves. Open
+[GitHub Releases](https://github.com/jaeyoung0509/neati/releases) and compare
+the newest tag with the version shown in neati. Enabled AI integrations can
+still contact their providers for usage data; that is separate from updating.
 
 ## Privacy & Local Diagnostics
 

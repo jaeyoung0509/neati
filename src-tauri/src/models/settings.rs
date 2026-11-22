@@ -171,6 +171,9 @@ where
 #[serde(default)]
 pub struct NeatiSettings {
     pub launch_at_login: bool,
+    /// Read the signed release manifest once when neati opens. Off by default:
+    /// neati makes no network request for updates unless the person opts in.
+    pub check_updates_on_launch: bool,
     pub clean_ai_tools: bool,
     pub clean_developer_tools: bool,
     pub clean_docker: bool,
@@ -205,6 +208,7 @@ impl Default for NeatiSettings {
     fn default() -> Self {
         Self {
             launch_at_login: false,
+            check_updates_on_launch: false,
             clean_ai_tools: true,
             clean_developer_tools: true,
             clean_docker: true,

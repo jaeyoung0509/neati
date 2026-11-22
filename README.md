@@ -11,7 +11,7 @@ data is left untouched; settings and authentication may need to be set up again.
 <p align="center">A cross-platform utility for developer storage, processes, local services, AI usage, and sleep control.</p>
 
 <p align="center">
-  <img src="docs/media/neati-intro.gif" width="800" alt="Animation: cache trails from Xcode, Docker, npm, Homebrew and other tools tangle together, then resolve into the single line of the neati logo. Caption: Developer storage, untangled." />
+  <img src="docs/media/neati-intro.gif" width="800" alt="Animation: cache trails from Xcode, Docker, npm, Homebrew and other tools tangle together, then resolve into the single line of the neati logo, followed by the Clean, Home and AI screens of the app with sample data. Caption: Developer storage, untangled." />
 </p>
 
 neati helps identify reclaimable caches created by AI tools, compilers, package

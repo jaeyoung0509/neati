@@ -2,9 +2,10 @@
 <html><head><meta charset="utf-8"><style>
 html,body{margin:0;background:#0b0d12}canvas{display:block}
 </style></head><body><canvas id="c" width="1280" height="720"></canvas>
+<img id="s0" src="clean.png" hidden><img id="s1" src="home.png" hidden><img id="s2" src="ai.png" hidden>
 <svg width="0" height="0"><path id="m" d="M12 44Q17 31 21 19L15 45C24 19 41 15 42 28C43 35 36 43 43 46Q48 49 54 41"/></svg>
 <script>
-const W=1280,H=720,DUR=13;
+const W=1280,H=720,DUR=23;
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const MARK="M12 44Q17 31 21 19L15 45C24 19 41 15 42 28C43 35 36 43 43 46Q48 49 54 41";
 const markPath=new Path2D(MARK), markLen=document.getElementById('m').getTotalLength();
@@ -49,7 +50,7 @@ window.render=function(t){
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.shadowBlur=0;
   ctx.fillStyle='#0b0d12';ctx.fillRect(0,0,W,H);
   const g=ctx.createRadialGradient(640,318,0,640,318,620);g.addColorStop(0,'rgba(82,119,237,.13)');g.addColorStop(1,'rgba(82,119,237,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  const endFade=1-seg(t,12.5,13);                    // dip to black so the loop is seamless
+  const endFade=1-seg(t,22.4,23);                    // dip to black so the loop is seamless
   const m=ease(seg(t,4.6,7.3));                      // untangle
   const wob=1-seg(t,4.6,6.4);
   const retract=ease(seg(t,7.5,9.0));                // threads flow into the pen
@@ -80,38 +81,60 @@ window.render=function(t){
   }
   ctx.globalAlpha=1;
   // the mark: one line
-  const draw=ease(seg(t,7.9,9.7)), tile=out(seg(t,9.6,10.5)), lift=ease(seg(t,10.1,11.0));
-  if(draw>0){
+  function mark(draw,tile,lift,grow,alpha){
+    if(draw<=0||alpha<=0)return;
     ctx.save();
     const sc=lerp(1,.78,lift), cy=lerp(CY,268,lift);
-    ctx.translate(CX,cy);ctx.scale(K*sc,K*sc);ctx.translate(-32,-32-.846/2*0);
+    ctx.translate(CX,cy);ctx.scale(K*sc,K*sc);ctx.translate(-32,-32);
     if(tile>0){
-      ctx.globalAlpha=tile*endFade;
+      ctx.globalAlpha=tile*alpha;
       const tg=ctx.createLinearGradient(5,0,54,64);tg.addColorStop(0,'#5277ED');tg.addColorStop(1,'#2865C8');
       ctx.shadowColor='rgba(40,101,200,.55)';ctx.shadowBlur=60*tile;
       rr(0,.846,64,64,14.46);ctx.fillStyle=tg;ctx.fill();ctx.shadowBlur=0;
     }
-    ctx.globalAlpha=endFade;ctx.strokeStyle='#fff';ctx.lineCap='round';ctx.lineJoin='round';
-    ctx.lineWidth=lerp(2.2,10,ease(seg(t,8.6,10.0)));
+    ctx.globalAlpha=alpha;ctx.strokeStyle='#fff';ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.lineWidth=lerp(2.2,10,grow);
     ctx.setLineDash([markLen*draw,markLen]);ctx.stroke(markPath);
     ctx.restore();
+  }
+  mark(ease(seg(t,7.9,9.7)),out(seg(t,9.6,10.5)),0,ease(seg(t,8.6,10.0)),1-seg(t,11.1,11.7));
+  // the app itself: three real screens in one window
+  const win=out(seg(t,11.5,12.4))*(1-seg(t,19.3,19.9))*endFade;
+  if(win>0){
+    const ww=900,wh=ww*760/1180,wx=(W-ww)/2,wy=30+(1-out(seg(t,11.5,12.4)))*36;
+    const shots=[[s0,11.5,14.6],[s1,14.1,17.0],[s2,16.5,20]];
+    ctx.save();ctx.globalAlpha=win;
+    ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=50;ctx.shadowOffsetY=18;rr(wx,wy,ww,wh,14);ctx.fillStyle='#f6f6fb';ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowOffsetY=0;rr(wx,wy,ww,wh,14);ctx.clip();
+    ctx.imageSmoothingQuality='high';
+    for(const[img,a,b]of shots){const al=seg(t,a,a+.5);if(al<=0||t>b)continue;ctx.globalAlpha=win*al;ctx.drawImage(img,wx,wy,ww,wh)}
+    ctx.globalAlpha=win;
+    [['#ff5f57'],['#febc2e'],['#28c840']].forEach(([c],i)=>{ctx.beginPath();ctx.arc(wx+20+i*18,wy+18,5.5,0,6.3);ctx.fillStyle=c;ctx.fill()});
+    ctx.restore();
+    ctx.save();ctx.globalAlpha=win;rr(wx,wy,ww,wh,14);ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
   }
   // copy
   const c1=seg(t,1.4,2.2)*(1-seg(t,4.3,4.9));
   const c2=seg(t,5.2,6.0)*(1-seg(t,7.3,7.9));
   const c3=seg(t,8.1,8.8)*(1-seg(t,9.7,10.3));
-  caption('Every tool leaves its own trail of caches.',c1*endFade);
-  caption('neati follows each one back',c2*endFade);
-  caption('into a single, tidy line.',c3*endFade);
-  const w=out(seg(t,10.6,11.3))*endFade;
-  if(w>0){
-    ctx.save();ctx.globalAlpha=w;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.font='650 64px -apple-system,"SF Pro Display","Helvetica Neue",sans-serif';ctx.fillText('neati',640,lerp(452,440,w));
+  caption('Every tool leaves its own trail of caches.',c1);
+  caption('neati follows each one back',c2);
+  caption('into a single, tidy line.',c3);
+  const cy2=672;
+  caption('See what is ready to clear, and how much.',seg(t,12.2,12.8)*(1-seg(t,14.0,14.4)),cy2,24);
+  caption('One overview of this Mac.',seg(t,14.5,15.0)*(1-seg(t,16.4,16.8)),cy2,24);
+  caption('AI tool usage, in the same place.',seg(t,16.9,17.4)*(1-seg(t,19.2,19.7)),cy2,24);
+  // end card
+  const end=out(seg(t,19.8,20.6))*endFade;
+  mark(1,1,1,1,end);
+  if(end>0){
+    ctx.save();ctx.globalAlpha=end;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='650 64px -apple-system,"SF Pro Display","Helvetica Neue",sans-serif';ctx.fillText('neati',640,lerp(452,440,end));
     ctx.restore();
-    caption('Developer storage, untangled.',out(seg(t,11.0,11.7))*endFade,502,26,400,'#aeb6c5');
+    caption('Developer storage, untangled.',out(seg(t,20.2,20.9))*endFade,502,26,400,'#aeb6c5');
   }
 };
 window.DUR=DUR;
 const q=new URLSearchParams(location.search);
-if(q.has('t'))render(+q.get('t'));else{const st=performance.now();(function f(){render(((performance.now()-st)/1000)%DUR);requestAnimationFrame(f)})()}
+if(q.has('t'))addEventListener('load',()=>render(+q.get('t')));else addEventListener('load',()=>{const st=performance.now();(function f(){render(((performance.now()-st)/1000)%DUR);requestAnimationFrame(f)})()});
 </script></body></html>

@@ -591,6 +591,20 @@ impl CleanupService {
     }
 
     /// Internal execution core ensuring identical security and lifecycle semantics for all clean intents.
+    /// Completed cleanups as counts, newest first. The file holds no paths or
+    /// names, so this is safe to show and to copy into a report.
+    pub async fn cleanup_history(&self) -> Result<Vec<crate::models::CleanupHistoryEntry>, String> {
+        let environment = self.environment.clone();
+        crate::blocking::run_blocking(
+            move || {
+                crate::cleaner::history::list(&environment)
+                    .map_err(|error| format!("Cleanup history could not be read: {error}"))
+            },
+            "cleanup history",
+        )
+        .await
+    }
+
     async fn execute_intent(
         &self,
         intent: CleanupIntent,

@@ -125,6 +125,7 @@ export type {
   PlatformContext,
   UpdateCheck,
   LaunchAtLogin,
+  CleanupHistoryEntry,
   PlatformFeatureCapability,
   PlatformFeatureStatus,
   PlatformKind,

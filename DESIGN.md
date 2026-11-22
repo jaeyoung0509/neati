@@ -399,6 +399,10 @@ inventory is still valid.
   `shadow-xl`, `backdrop:bg-foreground/30`; sizes `sm`…`xl`, `compact` density
   for the Quick Panel, `flex` layout for a fixed header and footer, and a
   `destructive` tone border. A raw `<dialog>` elsewhere fails the design test.
+- **Cleanup history**: a flat list inside one surface, newest first, five rows
+  before a disclosure. Each row is a date, an item count and a monospace byte
+  total; outcomes that did not fully succeed are named in `--warning` text.
+  The summary line repeats that removed data is not a free-space measurement.
 - **First-run guide**: one `Dialog` with three steps (what neati cleans,
   permanent removal, optional setup), a visible step count, Skip always
   available, and focus moved to the step heading on each change. It appears

@@ -61,6 +61,7 @@ fn main() {
         "get_app_version",
         "check_for_update",
         "get_launch_at_login",
+        "get_cleanup_history",
         "set_launch_at_login",
         "install_update",
         "get_platform_capabilities",

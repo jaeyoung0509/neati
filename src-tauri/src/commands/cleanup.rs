@@ -11,8 +11,9 @@ use super::state::DesktopState;
 use crate::events::cleanup::TauriCleanupProgress;
 use crate::events::scan::TauriScanProgress;
 use crate::models::{
-    Category, CleanEvent, CleanResult, CleanupFailure, CleanupProgressSink, PlanPreview,
-    PublishedScan, ResumeScanRequest, ScanDiscovery, ScanEvent, ScanProgressSink, ScanRequest,
+    Category, CleanEvent, CleanResult, CleanupFailure, CleanupHistoryEntry, CleanupProgressSink,
+    PlanPreview, PublishedScan, ResumeScanRequest, ScanDiscovery, ScanEvent, ScanProgressSink,
+    ScanRequest,
 };
 
 pub use crate::services::select_quick_clean_safe_candidates;
@@ -143,6 +144,15 @@ pub async fn reviewed_quick_clean_safe(
         .cleanup
         .reviewed_quick_clean_safe(scan_id, selected_item_ids, &settings, progress)
         .await
+}
+
+/// Completed cleanups as de-identified counts, newest first.
+#[tauri::command]
+#[specta::specta]
+pub async fn get_cleanup_history(
+    state: State<'_, DesktopState>,
+) -> Result<Vec<CleanupHistoryEntry>, String> {
+    state.cleanup.cleanup_history().await
 }
 
 #[tauri::command]

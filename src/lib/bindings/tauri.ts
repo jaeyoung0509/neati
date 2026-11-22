@@ -143,6 +143,8 @@ export const commands = {
 	checkForUpdate: () => typedError<UpdateCheck, string>(__TAURI_INVOKE("check_for_update")),
 	/**  Whether this installed copy starts at login, read from the system. */
 	getLaunchAtLogin: () => typedError<LaunchAtLogin, string>(__TAURI_INVOKE("get_launch_at_login")),
+	/**  Completed cleanups as de-identified counts, newest first. */
+	getCleanupHistory: () => typedError<CleanupHistoryEntry_Serialize[], string>(__TAURI_INVOKE("get_cleanup_history")),
 	/**  Registers or removes the login item and returns what the system now holds. */
 	setLaunchAtLogin: (enabled: boolean) => typedError<LaunchAtLogin, string>(__TAURI_INVOKE("set_launch_at_login", { enabled })),
 	/**
@@ -1267,6 +1269,49 @@ export type CleanupFailureScope =
 "cancelled" |
 /**  An unexpected backend failure. */
 "internal";
+
+/**
+ *  One completed cleanup, as counts only.
+ *
+ *  Projected from the de-identified operation history: no path, item name or
+ *  identifier exists in the file, so none can appear here. `removed_bytes` is
+ *  file data removed, not a measured change in free space.
+ */
+export type CleanupHistoryEntry = CleanupHistoryEntry_Serialize | CleanupHistoryEntry_Deserialize;
+
+/**
+ *  One completed cleanup, as counts only.
+ *
+ *  Projected from the de-identified operation history: no path, item name or
+ *  identifier exists in the file, so none can appear here. `removed_bytes` is
+ *  file data removed, not a measured change in free space.
+ */
+export type CleanupHistoryEntry_Deserialize = {
+	/**  Seconds since the Unix epoch. */
+	finished_at: number,
+	item_count: number,
+	removed_bytes: number,
+	partial_count: number,
+	failed_count: number,
+	skipped_count: number,
+};
+
+/**
+ *  One completed cleanup, as counts only.
+ *
+ *  Projected from the de-identified operation history: no path, item name or
+ *  identifier exists in the file, so none can appear here. `removed_bytes` is
+ *  file data removed, not a measured change in free space.
+ */
+export type CleanupHistoryEntry_Serialize = {
+	/**  Seconds since the Unix epoch. */
+	finished_at: number,
+	item_count: number,
+	removed_bytes: number,
+	partial_count: number,
+	failed_count: number,
+	skipped_count: number,
+};
 
 /**
  *  What a plan authorizes doing to its targets.

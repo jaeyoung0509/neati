@@ -48,6 +48,7 @@ import type {
   PlatformContext,
   UpdateCheck,
   LaunchAtLogin,
+  CleanupHistoryEntry,
   ProviderDescriptor,
   ProviderId,
   RecommendationPreview,
@@ -383,6 +384,10 @@ export function tauriRunEnvironmentSelfCheck(): Promise<EnvironmentReport> {
 
 export function tauriOpenLogsFolder(): Promise<void> {
   return api.openLogsFolder();
+}
+
+export function tauriGetCleanupHistory(): Promise<CleanupHistoryEntry[]> {
+  return api.getCleanupHistory();
 }
 
 export function tauriGetLaunchAtLogin(): Promise<LaunchAtLogin> {

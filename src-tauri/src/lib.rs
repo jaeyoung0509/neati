@@ -695,6 +695,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::get_app_version,
             commands::check_for_update,
             commands::get_launch_at_login,
+            commands::get_cleanup_history,
             commands::set_launch_at_login,
             commands::install_update,
             commands::get_platform_capabilities,

@@ -27,12 +27,44 @@ pub struct ManifestLintFinding {
 #[derive(Debug, Clone)]
 pub struct SignatureRegistry {
     signatures: HashMap<String, Signature>,
+    /// Observation-only entries projected onto extra AI tool profiles (#451).
+    /// They are not in `signatures`, so `get` never finds them and no plan can
+    /// name them. Replaced as a whole when the person's profile list changes.
+    profile_overlay: ProfileOverlay,
+}
+
+/// Interior-mutable list of projected profile entries. A cloned registry gets
+/// its own copy of the current snapshot, so clones never share later changes.
+#[derive(Debug, Default)]
+struct ProfileOverlay(std::sync::RwLock<std::sync::Arc<Vec<Signature>>>);
+
+impl ProfileOverlay {
+    fn snapshot(&self) -> std::sync::Arc<Vec<Signature>> {
+        self.0
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    fn replace(&self, signatures: Vec<Signature>) {
+        *self
+            .0
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = std::sync::Arc::new(signatures);
+    }
+}
+
+impl Clone for ProfileOverlay {
+    fn clone(&self) -> Self {
+        Self(std::sync::RwLock::new(self.snapshot()))
+    }
 }
 
 impl Default for SignatureRegistry {
     fn default() -> Self {
         Self::load_embedded().unwrap_or_else(|_| Self {
             signatures: HashMap::new(),
+            profile_overlay: Default::default(),
         })
     }
 }
@@ -41,6 +73,7 @@ impl SignatureRegistry {
     pub fn new() -> Self {
         Self {
             signatures: HashMap::new(),
+            profile_overlay: Default::default(),
         }
     }
 
@@ -143,6 +176,18 @@ impl SignatureRegistry {
     }
 
     /// Gets a signature by ID.
+    /// Replaces the projected AI tool profile entries. Poisoning is recovered:
+    /// the overlay is disposable and rebuilt from settings.
+    pub fn set_profile_overlay(&self, signatures: Vec<Signature>) {
+        self.profile_overlay.replace(signatures);
+    }
+
+    /// A snapshot of the projected entries, held for the length of one scan so
+    /// a settings change mid-scan cannot alter what that scan looks at.
+    pub fn profile_overlay(&self) -> std::sync::Arc<Vec<Signature>> {
+        self.profile_overlay.snapshot()
+    }
+
     pub fn get(&self, id: &str) -> Option<&Signature> {
         self.signatures.get(id)
     }

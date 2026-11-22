@@ -39,6 +39,7 @@ import type {
   PlatformContext,
   UpdateCheck,
   LaunchAtLogin,
+  AiToolProfileSuggestion,
   CleanupHistoryEntry,
   ProviderDescriptor,
   ProviderId_Deserialize,
@@ -417,6 +418,10 @@ export const nativeApi = {
 
   async getCleanupHistory(): Promise<CleanupHistoryEntry[]> {
     return await unwrap(commands.getCleanupHistory());
+  },
+
+  async suggestAiToolProfiles(): Promise<AiToolProfileSuggestion[]> {
+    return await unwrap(commands.suggestAiToolProfiles());
   },
 
   async getLaunchAtLogin(): Promise<LaunchAtLogin> {

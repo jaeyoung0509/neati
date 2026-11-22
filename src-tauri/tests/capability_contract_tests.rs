@@ -54,7 +54,7 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 20] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 50] = [
+const READ_ONLY_PERMISSIONS: [&str; 51] = [
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
     "allow-cancel-temporary-storage-scan",
@@ -107,6 +107,8 @@ const READ_ONLY_PERMISSIONS: [&str; 50] = [
     // Reads the signed release manifest; nothing is downloaded or changed (#434).
     "allow-check-for-update",
     "allow-get-launch-at-login",
+    // Lists lookalike folder names in the home directory; reads nothing inside (#451).
+    "allow-suggest-ai-tool-profiles",
     "allow-get-cleanup-history",
 ];
 

@@ -143,6 +143,8 @@ export const commands = {
 	checkForUpdate: () => typedError<UpdateCheck, string>(__TAURI_INVOKE("check_for_update")),
 	/**  Whether this installed copy starts at login, read from the system. */
 	getLaunchAtLogin: () => typedError<LaunchAtLogin, string>(__TAURI_INVOKE("get_launch_at_login")),
+	/**  Home folders that look like another AI tool profile. Suggestions only. */
+	suggestAiToolProfiles: () => typedError<AiToolProfileSuggestion[], string>(__TAURI_INVOKE("suggest_ai_tool_profiles")),
 	/**  Completed cleanups as de-identified counts, newest first. */
 	getCleanupHistory: () => typedError<CleanupHistoryEntry_Serialize[], string>(__TAURI_INVOKE("get_cleanup_history")),
 	/**  Registers or removes the login item and returns what the system now holds. */
@@ -462,6 +464,12 @@ export type AiControlPreferences_Serialize = {
 	audit_retention_days: number,
 };
 
+/**
+ *  A CLI tool whose configuration lives in one home dot-directory and can be
+ *  duplicated per account (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, and equivalents).
+ */
+export type AiProfileTool = "claude" | "codex" | "gemini" | "opencode" | "cursor";
+
 export type AiProviderUsage = AiProviderUsage_Serialize | AiProviderUsage_Deserialize;
 
 export type AiProviderUsage_Deserialize = {
@@ -494,6 +502,27 @@ export type AiProviderUsage_Serialize = {
 	action_url: string | null,
 	model_vendor?: string | null,
 	model_identity?: string | null,
+};
+
+/**
+ *  An extra profile directory the person confirmed for one tool.
+ *
+ *  It widens what neati *measures*, never what it may remove: only
+ *  observation-only catalog entries are projected onto it.
+ */
+export type AiToolProfile = {
+	tool: AiProfileTool,
+	/**  Absolute path of the profile directory. */
+	path: string,
+};
+
+/**
+ *  A directory that looks like another profile. A suggestion is only a hint
+ *  for Settings; it is measured only after the person adds it.
+ */
+export type AiToolProfileSuggestion = {
+	tool: AiProfileTool,
+	path: string,
 };
 
 export type AiUsageSnapshot = AiUsageSnapshot_Serialize | AiUsageSnapshot_Deserialize;
@@ -2495,6 +2524,11 @@ export type NeatiSettings_Deserialize = {
 	 *  neati makes no network request for updates unless the person opts in.
 	 */
 	check_updates_on_launch?: boolean,
+	/**
+	 *  Extra AI tool profile directories the person confirmed (#451). They
+	 *  are measured like the default profile and never grant removal.
+	 */
+	ai_tool_profiles?: AiToolProfile[],
 	clean_ai_tools?: boolean,
 	clean_developer_tools?: boolean,
 	clean_docker?: boolean,
@@ -2529,6 +2563,11 @@ export type NeatiSettings_Serialize = {
 	 *  neati makes no network request for updates unless the person opts in.
 	 */
 	check_updates_on_launch: boolean,
+	/**
+	 *  Extra AI tool profile directories the person confirmed (#451). They
+	 *  are measured like the default profile and never grant removal.
+	 */
+	ai_tool_profiles: AiToolProfile[],
 	clean_ai_tools: boolean,
 	clean_developer_tools: boolean,
 	clean_docker: boolean,

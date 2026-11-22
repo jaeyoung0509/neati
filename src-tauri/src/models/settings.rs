@@ -179,6 +179,9 @@ pub struct NeatiSettings {
     /// Read the signed release manifest once when neati opens. Off by default:
     /// neati makes no network request for updates unless the person opts in.
     pub check_updates_on_launch: bool,
+    /// Extra AI tool profile directories the person confirmed (#451). They
+    /// are measured like the default profile and never grant removal.
+    pub ai_tool_profiles: Vec<crate::models::AiToolProfile>,
     pub clean_ai_tools: bool,
     pub clean_developer_tools: bool,
     pub clean_docker: bool,
@@ -215,6 +218,7 @@ impl Default for NeatiSettings {
             launch_at_login: false,
             onboarding_completed: false,
             check_updates_on_launch: false,
+            ai_tool_profiles: Vec::new(),
             clean_ai_tools: true,
             clean_developer_tools: true,
             clean_docker: true,

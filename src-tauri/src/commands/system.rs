@@ -14,11 +14,11 @@ use super::state::DesktopState;
 use crate::blocking::run_blocking;
 use crate::events::notifications::TauriNotifications;
 use crate::models::{
-    AwakeBehavior, AwakeRule, AwakeState, BatteryMetrics, CpuMetrics, DashboardRoute,
-    DevelopmentListener, DiagnosticsSnapshot, DiskMetrics, DiskVolume, DockerStatus, LaunchAtLogin,
-    LocalModelInventory, MemoryMetrics, MemoryTerminationMode, MemoryTerminationResult,
-    NeatiSettings, PlatformCapabilities, PlatformContext, ReleaseDevelopmentListenerResult,
-    ReleaseMode, SelectedApplication, UpdateCheck,
+    AiToolProfileSuggestion, AwakeBehavior, AwakeRule, AwakeState, BatteryMetrics, CpuMetrics,
+    DashboardRoute, DevelopmentListener, DiagnosticsSnapshot, DiskMetrics, DiskVolume,
+    DockerStatus, LaunchAtLogin, LocalModelInventory, MemoryMetrics, MemoryTerminationMode,
+    MemoryTerminationResult, NeatiSettings, PlatformCapabilities, PlatformContext,
+    ReleaseDevelopmentListenerResult, ReleaseMode, SelectedApplication, UpdateCheck,
 };
 
 #[tauri::command]
@@ -238,6 +238,15 @@ fn open_dashboard_window_for_runtime<R: tauri::Runtime>(
 #[specta::specta]
 pub fn take_pending_navigation(state: State<'_, DesktopState>) -> Option<DashboardRoute> {
     state.take_pending_navigation()
+}
+
+/// Home folders that look like another AI tool profile. Suggestions only.
+#[tauri::command]
+#[specta::specta]
+pub async fn suggest_ai_tool_profiles(
+    state: State<'_, DesktopState>,
+) -> Result<Vec<AiToolProfileSuggestion>, String> {
+    state.system.suggest_ai_tool_profiles().await
 }
 
 /// Whether this installed copy starts at login, read from the system.

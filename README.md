@@ -214,6 +214,12 @@ still contact their providers for usage data; that is separate from updating.
   machine. neati sends no analytics or telemetry. Enabled AI integrations may
   contact their provider APIs or official tools for authentication and usage.
 - **Secret Redaction**: Subprocess errors and diagnostic messages automatically redact sensitive API keys (`sk-...`, tokens, passwords) before writing to disk.
+- **Several accounts**: if you keep one configuration folder per account (for
+  example `~/.claude-work` set through `CLAUDE_CONFIG_DIR`, or a second
+  `CODEX_HOME`), add each extra folder in **Settings → AI tool profiles** for
+  Claude Code, Codex, Gemini/Antigravity, OpenCode or Cursor. neati measures
+  the same cache, temporary and log folders there as in the default profile.
+  Extra profiles are reported for review and are never cleaned automatically.
 - **Cleanup history**: Settings lists completed cleanups as totals (time, item
   count, removed data, and how many items were partly cleaned, failed or
   skipped). The history file sits beside the log, stores no file names or

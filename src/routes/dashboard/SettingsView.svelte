@@ -35,6 +35,7 @@
   import UpdateSettings from '../../lib/components/UpdateSettings.svelte';
   import LaunchAtLoginSetting from '../../lib/components/LaunchAtLoginSetting.svelte';
   import CleanupHistory from '../../lib/components/CleanupHistory.svelte';
+  import AiToolProfiles from '../../lib/components/AiToolProfiles.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
@@ -342,6 +343,16 @@
     </h3>
     <Card class="p-4 bg-card">
       <UpdateSettings {releasesUrl} />
+    </Card>
+  </div>
+
+  <!-- AI tool profiles -->
+  <div class="space-y-3">
+    <h3 class="text-meta font-semibold text-muted-foreground tracking-normal">
+      AI tool profiles
+    </h3>
+    <Card class="p-4 bg-card">
+      <AiToolProfiles />
     </Card>
   </div>
 

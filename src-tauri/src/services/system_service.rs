@@ -106,6 +106,8 @@ pub struct SystemService {
     dev_ports: Arc<Mutex<crate::dev_ports::DevelopmentPortStore>>,
     settings: Arc<SettingsAuthority>,
     settings_reaction: Arc<dyn SettingsChangeReaction>,
+    /// The catalog whose AI tool profile overlay follows the saved settings.
+    registry: Option<Arc<crate::signatures::SignatureRegistry>>,
 }
 
 impl SystemService {
@@ -141,7 +143,70 @@ impl SystemService {
             dev_ports,
             settings,
             settings_reaction,
+            registry: None,
         }
+    }
+
+    /// Lets saved AI tool profiles reach the catalog this process scans with.
+    pub(crate) fn with_signature_registry(
+        mut self,
+        registry: Arc<crate::signatures::SignatureRegistry>,
+    ) -> Self {
+        self.registry = Some(registry);
+        self
+    }
+
+    /// Projects the confirmed profiles onto the catalog. A profile that no
+    /// longer validates (the folder was removed) is simply not measured.
+    fn apply_ai_tool_profiles(&self, profiles: &[crate::models::AiToolProfile]) {
+        let Some(registry) = &self.registry else {
+            return;
+        };
+        let valid = crate::signatures::profiles::valid_profiles(profiles, &self.environment);
+        registry.set_profile_overlay(crate::signatures::profiles::derive_profile_signatures(
+            registry, &valid,
+        ));
+    }
+
+    /// Refuses a save that names a profile neati would not measure, so the
+    /// list in Settings is always the list in effect.
+    fn validate_ai_tool_profiles(
+        &self,
+        profiles: &[crate::models::AiToolProfile],
+    ) -> Result<(), String> {
+        use crate::signatures::profiles::{validate_profile, MAX_AI_TOOL_PROFILES};
+        if profiles.len() > MAX_AI_TOOL_PROFILES {
+            return Err(format!(
+                "At most {MAX_AI_TOOL_PROFILES} extra profiles can be added."
+            ));
+        }
+        for (index, profile) in profiles.iter().enumerate() {
+            validate_profile(profile, &self.environment)
+                .map_err(|refusal| format!("{}: {refusal}", profile.path))?;
+            if profiles[..index].contains(profile) {
+                return Err(format!("{} is already added.", profile.path));
+            }
+        }
+        Ok(())
+    }
+
+    /// Folders in the home directory that look like another profile. Hints
+    /// only: nothing is measured until the person adds one.
+    pub async fn suggest_ai_tool_profiles(
+        &self,
+    ) -> Result<Vec<crate::models::AiToolProfileSuggestion>, String> {
+        let environment = self.environment.clone();
+        let existing = self.settings.snapshot()?.ai_tool_profiles;
+        crate::blocking::run_blocking(
+            move || {
+                Ok(crate::signatures::profiles::suggest_profiles(
+                    &environment,
+                    &existing,
+                ))
+            },
+            "AI tool profile suggestions",
+        )
+        .await
     }
 
     /// The platform capability snapshot the interface renders from.
@@ -351,6 +416,7 @@ impl SystemService {
     /// reported here so the desktop shell can log that the stored rules were
     /// not applied.
     pub fn apply_startup_policy(&self, settings: &NeatiSettings) -> Result<(), String> {
+        self.apply_ai_tool_profiles(&settings.ai_tool_profiles);
         self.awake.set_rules(settings.awake_rules.clone())?;
         self.awake.set_control_center_awake_policy(
             settings
@@ -429,7 +495,9 @@ impl SystemService {
         // runtime refuses is a split brain, so validation happens while the
         // only thing that can refuse is still the save itself.
         KeepAwakeManager::validate_rules(&next.awake_rules)?;
+        self.validate_ai_tool_profiles(&next.ai_tool_profiles)?;
         self.settings_reaction.before_save(&next, notifications)?;
+        let ai_tool_profiles = next.ai_tool_profiles.clone();
 
         let config_dir = config_dir.to_path_buf();
         let authority = self.settings.clone();
@@ -464,6 +532,7 @@ impl SystemService {
             "Settings save worker panicked",
         )
         .await?;
+        self.apply_ai_tool_profiles(&ai_tool_profiles);
         self.settings_reaction.saved(&change);
         Ok(())
     }
@@ -840,6 +909,102 @@ mod tests {
             ["before_save"],
             "a refused save must not report completion"
         );
+    }
+
+    fn profile_service(
+        home: &std::path::Path,
+    ) -> (SystemService, Arc<crate::signatures::SignatureRegistry>) {
+        let environment = Arc::new(
+            PlatformEnvironment::simulated(neati_platform::PathFlavor::Posix)
+                .with_platform(neati_core::domain::platform::PlatformKind::Macos)
+                .with_home(home),
+        );
+        let registry = Arc::new(
+            crate::signatures::SignatureRegistry::load_embedded_with(&environment).unwrap(),
+        );
+        let service = SystemService::new(
+            environment,
+            ContainerHost::unstated(),
+            Arc::new(TestCapabilitiesProvider(PlatformCapabilities::current())),
+            StorageOperationGate::default(),
+            Arc::new(ExecutionBudgets::new()),
+            Arc::new(MemorySampler::new()),
+            Arc::new(Mutex::new(MemoryTerminationStore::default())),
+            Arc::new(CpuSampler::new()),
+            Arc::new(crate::power::SystemBatteryProvider::new()),
+            Arc::new(KeepAwakeManager::new()),
+            Arc::new(DockerStatusCache::new()),
+            Arc::new(Mutex::new(crate::dev_ports::DevelopmentPortStore::default())),
+            Arc::new(SettingsAuthority::new(NeatiSettings::default())),
+            Arc::new(RecordingReaction::default()),
+        )
+        .with_signature_registry(registry.clone());
+        (service, registry)
+    }
+
+    /// Saving a confirmed profile is what makes the catalog measure it, and
+    /// removing it from the list stops that with the same save.
+    #[test]
+    fn saving_ai_tool_profiles_updates_what_the_catalog_measures() {
+        let home = tempfile::tempdir().unwrap();
+        let config_dir = tempfile::tempdir().unwrap();
+        let work = home.path().join(".codex-work");
+        std::fs::create_dir(&work).unwrap();
+        let (service, registry) = profile_service(home.path());
+        assert!(registry.profile_overlay().is_empty());
+
+        let mut settings = service.settings().unwrap();
+        settings.ai_tool_profiles = vec![crate::models::AiToolProfile {
+            tool: crate::models::AiProfileTool::Codex,
+            path: work.to_string_lossy().into_owned(),
+        }];
+        tauri::async_runtime::block_on(service.save_settings(
+            config_dir.path(),
+            settings.clone(),
+            &TestNotifications { grant: true },
+        ))
+        .expect("a real folder in home is accepted");
+        assert_eq!(registry.profile_overlay().len(), 1);
+        assert_eq!(
+            crate::settings_store::load(config_dir.path())
+                .ai_tool_profiles
+                .len(),
+            1
+        );
+
+        settings.ai_tool_profiles.clear();
+        tauri::async_runtime::block_on(service.save_settings(
+            config_dir.path(),
+            settings,
+            &TestNotifications { grant: true },
+        ))
+        .unwrap();
+        assert!(registry.profile_overlay().is_empty());
+    }
+
+    /// A profile neati would not measure is refused before anything persists.
+    #[test]
+    fn a_save_with_an_invalid_ai_tool_profile_persists_nothing() {
+        let home = tempfile::tempdir().unwrap();
+        let config_dir = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let (service, registry) = profile_service(home.path());
+
+        let mut settings = service.settings().unwrap();
+        settings.ai_tool_profiles = vec![crate::models::AiToolProfile {
+            tool: crate::models::AiProfileTool::Claude,
+            path: outside.path().to_string_lossy().into_owned(),
+        }];
+        let refused = tauri::async_runtime::block_on(service.save_settings(
+            config_dir.path(),
+            settings,
+            &TestNotifications { grant: true },
+        ))
+        .expect_err("a folder outside home is refused");
+        assert!(refused.contains("inside your home folder"), "{refused}");
+        assert!(registry.profile_overlay().is_empty());
+        assert!(service.settings().unwrap().ai_tool_profiles.is_empty());
+        assert!(!crate::settings_store::settings_path(config_dir.path()).exists());
     }
 
     /// A save whose rule list the runtime refuses must leave everything on

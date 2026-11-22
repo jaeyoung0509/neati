@@ -19,6 +19,7 @@ mod cleanup_quit;
 pub use cleanup_quit::*;
 pub mod agent_activity;
 pub mod ai_control_center;
+pub mod ai_profiles;
 pub mod ai_usage;
 pub mod awake;
 pub mod dev_ports;
@@ -35,6 +36,7 @@ pub mod update;
 
 pub use agent_activity::*;
 pub use ai_control_center::*;
+pub use ai_profiles::*;
 pub use ai_usage::*;
 pub use awake::*;
 pub use dev_ports::*;

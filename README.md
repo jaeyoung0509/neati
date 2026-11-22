@@ -144,6 +144,20 @@ build provenance attestation.
 
 ### macOS ARM64
 
+#### Install with Homebrew
+
+```bash
+brew install --cask jaeyoung0509/neati/neati
+```
+
+The cask in [jaeyoung0509/homebrew-neati](https://github.com/jaeyoung0509/homebrew-neati)
+installs the `.dmg` of the matching GitHub release and checks its SHA256.
+Homebrew asks before loading a cask from a third-party tap; if it refuses with
+"untrusted tap", review the cask and run `brew trust jaeyoung0509/neati`.
+The build is not notarized, so the first launch still needs the **Open Anyway**
+step described below. Once installed, **Settings → Updates** can check for and
+install newer releases.
+
 #### Local release recipes
 
 - `just distribute` only creates fresh `.app` and `.dmg` package artifacts under `target/release`; it never changes `/Applications`.

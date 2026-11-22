@@ -46,6 +46,7 @@ import type {
   CleanupQuitPreview,
   PlatformCapabilities,
   PlatformContext,
+  UpdateCheck,
   ProviderDescriptor,
   ProviderId,
   RecommendationPreview,
@@ -381,6 +382,14 @@ export function tauriRunEnvironmentSelfCheck(): Promise<EnvironmentReport> {
 
 export function tauriOpenLogsFolder(): Promise<void> {
   return api.openLogsFolder();
+}
+
+export function tauriCheckForUpdate(): Promise<UpdateCheck> {
+  return api.checkForUpdate();
+}
+
+export function tauriInstallUpdate(version: string): Promise<void> {
+  return api.installUpdate(version);
 }
 
 export function tauriHideCurrentWindow(): Promise<void> {

@@ -9,6 +9,7 @@
   import { scanStore } from '../../lib/stores/scan.svelte';
   import { awakeStore } from '../../lib/stores/awake.svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
+  import { updateStore } from '../../lib/stores/updates.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import PreviewModeIndicator from '../../lib/components/PreviewModeIndicator.svelte';
@@ -196,6 +197,9 @@
         stopNavigation = stop;
       }
       await refreshCapabilities(false);
+      // The opt-in launch update check runs once per main-window lifetime.
+      await settingsStore.load();
+      if (!disposed) void updateStore.checkOnLaunch(settingsStore.settings.check_updates_on_launch);
       // Subscribe before the initial drain: no mount/listen race, and warm
       // windows consume later requests even when already focused.
       if (isTauri()) await navigation.activate();

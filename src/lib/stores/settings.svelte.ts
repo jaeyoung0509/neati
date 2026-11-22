@@ -7,6 +7,7 @@ import { DEFAULT_DASHBOARD_TABS, dashboardGroup, normalizeDashboardTab } from '.
 export class SettingsStore {
   settings = $state<NeatiSettings>({
     launch_at_login: false,
+    check_updates_on_launch: false,
     clean_ai_tools: true,
     clean_developer_tools: true,
     clean_docker: true,

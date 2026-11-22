@@ -54,7 +54,7 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 20] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 47] = [
+const READ_ONLY_PERMISSIONS: [&str; 48] = [
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
     "allow-cancel-temporary-storage-scan",
@@ -104,6 +104,8 @@ const READ_ONLY_PERMISSIONS: [&str; 47] = [
     "allow-take-pending-navigation",
     "allow-toggle-quick-panel",
     "allow-run-ai-safety-scan",
+    // Reads the signed release manifest; nothing is downloaded or changed (#434).
+    "allow-check-for-update",
 ];
 
 /// Command permissions that change machine or persistent state, spawn a
@@ -116,7 +118,7 @@ const READ_ONLY_PERMISSIONS: [&str; 47] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 36] = [
+const MUTATING_PERMISSIONS: [&str; 37] = [
     "allow-connect-openrouter-oauth",
     "allow-consume-ai-recommendation-preview",
     "allow-create-delete-plan",
@@ -153,6 +155,8 @@ const MUTATING_PERMISSIONS: [&str; 36] = [
     "allow-setup-agent-integration",
     "allow-start-large-file-scan",
     "allow-terminate-memory-group",
+    // Replaces the installed app with the checked, signature-verified update (#434).
+    "allow-install-update",
 ];
 
 /// The quick panel's deliberately narrow mutating use case. The backend

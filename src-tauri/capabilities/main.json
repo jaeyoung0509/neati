@@ -68,6 +68,8 @@
     "allow-take-pending-navigation",
     "allow-toggle-quick-panel",
     "allow-get-app-version",
+    "allow-check-for-update",
+    "allow-install-update",
     "allow-get-diagnostics",
     "allow-open-logs-folder",
     "allow-list-development-listeners",

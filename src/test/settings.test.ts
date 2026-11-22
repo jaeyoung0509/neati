@@ -27,6 +27,7 @@ describe('sidebar task groups', () => {
 describe('serializeSettingsSnapshot', () => {
   const sampleSettings: NeatiSettings = {
     launch_at_login: false,
+    check_updates_on_launch: false,
     clean_ai_tools: true,
     clean_developer_tools: true,
     clean_docker: true,
@@ -164,6 +165,7 @@ describe('SettingsStore persistence and lifecycle', () => {
     mockSaveSettings = vi.fn().mockResolvedValue(null);
     mockGetSettings = vi.fn().mockResolvedValue({
       launch_at_login: false,
+      check_updates_on_launch: false,
       clean_ai_tools: true,
       clean_developer_tools: true,
       clean_docker: true,
@@ -458,6 +460,7 @@ describe('quick panel AI provider toggling and order preservation', () => {
     const mockSave = vi.fn().mockResolvedValue(null);
     const mockGet = vi.fn().mockResolvedValue({
       launch_at_login: false,
+      check_updates_on_launch: false,
       clean_ai_tools: true,
       clean_developer_tools: true,
       clean_docker: true,

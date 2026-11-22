@@ -59,6 +59,8 @@ fn main() {
         "take_pending_navigation",
         "toggle_quick_panel",
         "get_app_version",
+        "check_for_update",
+        "install_update",
         "get_platform_capabilities",
         "get_platform_context",
         "run_environment_self_check",

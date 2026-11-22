@@ -136,6 +136,16 @@ export const commands = {
  */
 "cpu" | "battery" | "docker" | "models" | "projects" | "development_servers" | "usage" | "ai_control" | "awake" | "developer_artifacts" | "large_files" | "applications" | "settings" | null>("take_pending_navigation"),
 	getAppVersion: () => __TAURI_INVOKE<string>("get_app_version"),
+	/**
+	 *  Reads the signed release manifest. Started by the person, or once at launch
+	 *  when they opted in; never on a timer.
+	 */
+	checkForUpdate: () => typedError<UpdateCheck, string>(__TAURI_INVOKE("check_for_update")),
+	/**
+	 *  Installs the update the last check found and restarts neati. The webview
+	 *  names only the version it showed; the URL and signature never leave Rust.
+	 */
+	installUpdate: (version: string) => typedError<null, string>(__TAURI_INVOKE("install_update", { version })),
 	getPlatformCapabilities: () => __TAURI_INVOKE<PlatformCapabilities_Serialize>("get_platform_capabilities"),
 	getPlatformContext: () => __TAURI_INVOKE<PlatformContext>("get_platform_context"),
 	/**
@@ -2412,6 +2422,11 @@ export type NeatiSettings = NeatiSettings_Serialize | NeatiSettings_Deserialize;
 
 export type NeatiSettings_Deserialize = {
 	launch_at_login?: boolean,
+	/**
+	 *  Read the signed release manifest once when neati opens. Off by default:
+	 *  neati makes no network request for updates unless the person opts in.
+	 */
+	check_updates_on_launch?: boolean,
 	clean_ai_tools?: boolean,
 	clean_developer_tools?: boolean,
 	clean_docker?: boolean,
@@ -2432,6 +2447,11 @@ export type NeatiSettings_Deserialize = {
 
 export type NeatiSettings_Serialize = {
 	launch_at_login: boolean,
+	/**
+	 *  Read the signed release manifest once when neati opens. Off by default:
+	 *  neati makes no network request for updates unless the person opts in.
+	 */
+	check_updates_on_launch: boolean,
 	clean_ai_tools: boolean,
 	clean_developer_tools: boolean,
 	clean_docker: boolean,
@@ -3884,6 +3904,18 @@ export type TemporaryUsageObservation_Serialize = {
 };
 
 export type TemporaryUsageState = "in_use" | "no_use_detected" | "unable_to_determine";
+
+/**
+ *  The outcome of one user-initiated (or opted-in launch) update check.
+ *
+ *  `Unavailable` means this build cannot update itself at all (no adapter on
+ *  this platform, or no signing key configured); `Failed` means the check ran
+ *  and could not complete. The interface words each differently: one is a
+ *  standing fact about the build, the other is retryable.
+ */
+export type UpdateCheck = { status: "up_to_date"; current_version: string } | { status: "available"; current_version: string; version: string; notes: string | null;
+/**  RFC 3339 publication time from the signed manifest, when present. */
+published_at: string | null } | { status: "unavailable"; reason: string } | { status: "failed"; message: string };
 
 export type UsageCollectionStatus = "fresh" | "signed_out" | "unavailable" | "timeout" | "protocol_error" | "not_installed" | "unsupported_account";
 

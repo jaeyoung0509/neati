@@ -29,6 +29,7 @@ pub mod local_model;
 pub mod metrics;
 pub mod settings;
 pub mod signature;
+pub mod update;
 
 pub use agent_activity::*;
 pub use ai_control_center::*;
@@ -43,6 +44,7 @@ pub use metrics::*;
 pub use neati_platform::PlatformCapabilitiesProvider;
 pub use settings::*;
 pub use signature::*;
+pub use update::*;
 
 // ---------------------------------------------------------------------------
 // neati domain semantics, re-exported from `neati_core`.

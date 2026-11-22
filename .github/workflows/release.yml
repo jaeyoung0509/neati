@@ -158,8 +158,51 @@ jobs:
           just check-rust
           just check-architecture
 
-      - name: Build macOS DMG bundle (ARM64)
-        run: pnpm tauri build --target aarch64-apple-darwin --bundles dmg --config .github/tauri.package-ci.json
+      # Self-update trusts only archives signed by the minisign key whose public
+      # half is committed in tauri.conf.json. A release without that key would
+      # publish an archive no installed copy can verify, so it fails closed.
+      - name: Require updater signing key
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is not set; the release cannot produce a verifiable update archive."
+            exit 1
+          fi
+          PUBKEY=$(node -p "require('./src-tauri/tauri.conf.json').plugins.updater.pubkey")
+          if [ -z "${PUBKEY}" ]; then
+            echo "::error::plugins.updater.pubkey is empty in tauri.conf.json."
+            exit 1
+          fi
+
+      # Optional stable self-signed identity. When the three secrets are present
+      # every release is signed by the same certificate, so the code-signing
+      # designated requirement stays constant and macOS keeps Full Disk Access
+      # across updates. It is NOT a Developer ID and is not notarized.
+      - name: Select macOS code-signing identity
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${APPLE_CERTIFICATE}" ] && [ -n "${APPLE_CERTIFICATE_PASSWORD}" ] && [ -n "${APPLE_SIGNING_IDENTITY}" ]; then
+            {
+              echo "APPLE_CERTIFICATE=${APPLE_CERTIFICATE}"
+              echo "APPLE_CERTIFICATE_PASSWORD=${APPLE_CERTIFICATE_PASSWORD}"
+              echo "APPLE_SIGNING_IDENTITY=${APPLE_SIGNING_IDENTITY}"
+              echo "NEATI_CODESIGN=self-signed identity (not Apple Developer ID)"
+            } >> "$GITHUB_ENV"
+          else
+            echo "NEATI_CODESIGN=ad-hoc" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build macOS DMG and update archive (ARM64)
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config .github/tauri.package-ci.json --config .github/tauri.updater-ci.json
 
       - name: Prepare macOS release artifacts
         run: |
@@ -175,19 +218,30 @@ jobs:
           DMG_PATH="$DMG_PATHS"
 
           cp "$DMG_PATH" artifacts/neati-macos-arm64.dmg
+
+          UPDATE_PATHS=$(find target src-tauri/target -path '*/release/bundle/macos/*.app.tar.gz' -type f 2>/dev/null || true)
+          UPDATE_COUNT=$(printf '%s\n' "$UPDATE_PATHS" | sed '/^$/d' | wc -l | tr -d ' ')
+          if [ "$UPDATE_COUNT" -ne 1 ] || [ ! -s "${UPDATE_PATHS}.sig" ]; then
+            echo "Expected exactly one signed macOS update archive, found $UPDATE_COUNT"
+            exit 1
+          fi
+          cp "$UPDATE_PATHS" artifacts/neati-macos-arm64.app.tar.gz
+          cp "${UPDATE_PATHS}.sig" artifacts/neati-macos-arm64.app.tar.gz.sig
           cat > artifacts/BUILD_INFO-macos-arm64.txt <<EOF
           neati macOS Public Beta
           Target: aarch64-apple-darwin (Apple Silicon)
           Version: $(node -p "require('./package.json').version")
           Commit: ${GITHUB_SHA}
           Ref: ${GITHUB_REF_NAME}
-          Signed: no
+          Code signature: ${NEATI_CODESIGN}
           Notarized: no
+          Update archive: minisign-signed (neati-macos-arm64.app.tar.gz.sig)
           Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           EOF
-          node scripts/release_checksums.cjs write \
-            --file artifacts/neati-macos-arm64.dmg \
-            --output artifacts/SHA256SUMS-macos-arm64.txt
+          node scripts/release_checksums.cjs write-many \
+            --output artifacts/SHA256SUMS-macos-arm64.txt \
+            artifacts/neati-macos-arm64.dmg \
+            artifacts/neati-macos-arm64.app.tar.gz
 
       - name: Upload macOS release artifacts
         uses: actions/upload-artifact@v7
@@ -195,6 +249,8 @@ jobs:
           name: neati-release-macos-arm64
           path: |
             artifacts/neati-macos-arm64.dmg
+            artifacts/neati-macos-arm64.app.tar.gz
+            artifacts/neati-macos-arm64.app.tar.gz.sig
             artifacts/SHA256SUMS-macos-arm64.txt
             artifacts/BUILD_INFO-macos-arm64.txt
           if-no-files-found: error
@@ -351,6 +407,7 @@ jobs:
         with:
           subject-path: |
             artifacts/neati-macos-arm64.dmg
+            artifacts/neati-macos-arm64.app.tar.gz
             artifacts/SBOM-neati.spdx.json
 
       - name: Attest build provenance for the Windows installers
@@ -440,6 +497,14 @@ jobs:
             --commit "${GITHUB_SHA}" \
             ${RELEASE_INSTALLERS}
 
+      - name: Write updater manifest
+        run: |
+          node scripts/updater_manifest.cjs \
+            --version "$(node -p "require('./package.json').version")" \
+            --signature artifacts/neati-macos-arm64.app.tar.gz.sig \
+            --asset neati-macos-arm64.app.tar.gz \
+            --output artifacts/latest.json
+
       # The notes state only what this run published (see AGENTS.md: no
       # platform claim beyond what CI executed).
       - name: Write release notes
@@ -455,7 +520,7 @@ jobs:
 
           Release artifacts carry GitHub build provenance attestation (`gh attestation verify <file> --repo jaeyoung0509/neati`) binding them to this repository, workflow, and commit, alongside SHA256SUMS.txt and an SPDX SBOM for each platform.
 
-          neati has no updater and performs no background network activity. Open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
+          neati performs no background network activity for updates. On macOS, Settings → Updates can check this repository's signed release manifest when you press Check now, or once per launch if you turn that on; the update archive is verified against the minisign key built into neati before it replaces the app. Windows builds do not self-update: open https://github.com/jaeyoung0509/neati/releases to check whether a corrected release exists.
 
           NOTES
             if [ "${WINDOWS_PUBLISHED}" = "true" ]; then
@@ -478,6 +543,9 @@ jobs:
         with:
           files: |
             artifacts/neati-macos-arm64.dmg
+            artifacts/neati-macos-arm64.app.tar.gz
+            artifacts/neati-macos-arm64.app.tar.gz.sig
+            artifacts/latest.json
             artifacts/neati-windows-x64-setup.exe
             artifacts/neati-windows-x64-setup-machine.exe
             artifacts/SHA256SUMS.txt
@@ -491,3 +559,19 @@ jobs:
           prerelease: true
           generate_release_notes: true
           body_path: artifacts/RELEASE_BODY.md
+
+      # Installed copies read a fixed URL. Prereleases are invisible to
+      # /releases/latest, so the manifest also lives on one rolling prerelease
+      # tagged `updater-manifest`, replaced only after the versioned release
+      # above (which holds the archive it points to) was created.
+      - name: Point installed copies at this release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view updater-manifest --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create updater-manifest --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" --prerelease \
+              --title "Updater manifest" \
+              --notes "Machine-readable pointer used by neati's in-app update check. Download releases from their own version tags."
+          fi
+          gh release upload updater-manifest artifacts/latest.json --repo "${GITHUB_REPOSITORY}" --clobber

@@ -33,6 +33,7 @@ import type {
   CleanupQuitPreview,
   PlatformCapabilities,
   PlatformContext,
+  UpdateCheck,
   ProviderDescriptor,
   ProviderId,
   PublishedScan,
@@ -1782,6 +1783,7 @@ export const mockApi = {
     }
     return {
       launch_at_login: false,
+      check_updates_on_launch: false,
       clean_ai_tools: true,
       clean_developer_tools: true,
       clean_docker: true,
@@ -1926,6 +1928,18 @@ export const mockApi = {
 
   async openLogsFolder(): Promise<void> {
     // No-op in browser mock
+  },
+
+  async checkForUpdate(): Promise<UpdateCheck> {
+    // The preview never contacts the release manifest.
+    return {
+      status: 'unavailable',
+      reason: 'The browser preview does not check for updates. Use the desktop app.',
+    };
+  },
+
+  async installUpdate(): Promise<void> {
+    throw new Error('The browser preview cannot install updates.');
   },
 
   async listDevelopmentListeners() {

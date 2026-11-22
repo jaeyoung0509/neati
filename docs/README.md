@@ -15,6 +15,7 @@ because `AGENTS.md`, tests and other documents link to them.
 | [Project Cockpit](PROJECT_COCKPIT.md) | How AI CLI processes are grouped by project |
 | [Identity contract](NEATI_MIGRATION.md) | Settings, credential and permission identities after the rename |
 | [Windows development](WINDOWS.md) | Windows install modes and layout |
+| [In-app updater setup](UPDATER.md) | Update key setup and how a release reaches installed copies |
 | [Code signing policy](../CODE_SIGNING_POLICY.md) | Signing and notarization status and how to verify a release |
 
 ## Architecture and contributor guides

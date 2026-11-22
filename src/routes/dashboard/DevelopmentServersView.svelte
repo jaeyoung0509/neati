@@ -118,7 +118,7 @@
 <div class="space-y-6">
   <!-- Page Header -->
   <PageHeader
-    title="Dev Servers"
+    title="Ports"
     subtitle="Inspect local development and testing ports, then release one verified listener at a time."
     icon={Server}
     badge="TCP Listeners"

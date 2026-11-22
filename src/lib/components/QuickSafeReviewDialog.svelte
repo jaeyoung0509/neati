@@ -45,7 +45,7 @@
   <p id={id + '-description'} class="mt-1 text-meta leading-snug text-muted-foreground">
     {partial
       ? 'This scan missed some locations. Only the measured Safe items below can be cleaned.'
-      : 'Only verified Safe items are included. Other cleanup stays in Storage.'}
+      : 'Only verified Safe items are included. Other cleanup stays in Clean.'}
   </p>
   <div class="mt-3 flex items-baseline justify-between gap-2 border-b border-border pb-2 text-meta">
     <span class="text-muted-foreground">{selectedItems.length} of {items.length} selected</span>

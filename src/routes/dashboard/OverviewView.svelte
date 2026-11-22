@@ -103,7 +103,7 @@
         ? 'View scan'
         : cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)
           ? 'Review'
-          : 'Open Storage'
+          : 'Open Clean'
   );
 
   let cleanupValue = $derived.by(() => {
@@ -126,7 +126,7 @@
       case 'unavailable': return platformCapabilitiesStore.feature('cleanup')?.reason ?? 'Cleanup is not available here.';
       case 'unknown': return 'No storage inventory has been measured yet.';
       case 'stale': return 'Scan again before reviewing cleanup.';
-      case 'failed': return 'Scan could not finish. Open Storage for details.';
+      case 'failed': return 'Scan could not finish. Open Clean for details.';
       case 'paused':
       case 'stopped': return scanCompletionNotice(scanStore.discovery) ?? '';
       case 'partial': return 'Some locations were not checked. Review measured items.';
@@ -212,7 +212,7 @@
 
 <div class="overview-stage space-y-5">
   <PageHeader
-    title="Overview"
+    title="Home"
     subtitle="Storage, running apps, and system activity in one place."
     icon={Gauge}
   >
@@ -263,11 +263,11 @@
         </span>
       {/if}
       <Button
-        variant="secondary"
+        variant="ghost"
         size="md"
         disabled={!cleanupAvailable}
         onclick={() => onNavigateTab?.('storage')}
-        aria-label={cleanupActionLabel === 'Open Storage' ? cleanupActionLabel : `${cleanupActionLabel} in Storage`}
+        aria-label={cleanupActionLabel === 'Open Clean' ? cleanupActionLabel : `${cleanupActionLabel} in Clean`}
         class="gap-1.5"
       >
         <span>{cleanupActionLabel}</span>
@@ -335,7 +335,7 @@
       label="Disk"
       value={disk ? `${Math.round(disk.percent_used ?? 0)}%` : '—'}
       detail={disk ? `${formatBytes(disk.available_bytes)} free of ${formatBytes(disk.total_bytes)}` : memoryStore.error ?? 'No disk reading yet.'}
-      actionLabel="Open Storage disk details"
+      actionLabel="Open disk details"
       onclick={() => onNavigateTab?.('disks')}
     >
       {#snippet visual()}
@@ -440,7 +440,7 @@
       </ResourceRow>
 
       <ResourceRow
-        label="Local Models"
+        label="Models"
         value={modelsAvailable ? `${localModelsStore.models.length} installed` : 'Unavailable'}
         tone={modelsAvailable ? 'default' : 'muted'}
         detail={modelsAvailable
@@ -449,13 +449,13 @@
             : `${formatBytes(localModelsStore.totalBytes)} on disk`
           : platformCapabilitiesStore.feature('local_models')?.reason ?? null}
         onclick={() => onNavigateTab?.('models')}
-        actionLabel="Open Local Models"
+        actionLabel="Open Models"
       >
         {#snippet icon()}<Boxes size={16} class="text-muted-foreground" aria-hidden="true" />{/snippet}
       </ResourceRow>
 
       <ResourceRow
-        label="Dev Servers"
+        label="Ports"
         value={portsAvailable ? `${developmentPortsStore.listeners.length} listening` : 'Unavailable'}
         tone={portsAvailable && developmentPortsStore.listeners.length > 0 ? 'success' : 'muted'}
         detail={portsAvailable
@@ -467,7 +467,7 @@
             : 'Nothing is listening on a development port.'
           : platformCapabilitiesStore.feature('development_ports')?.reason ?? null}
         onclick={() => onNavigateTab?.('development_servers')}
-        actionLabel="Open Dev Servers"
+        actionLabel="Open Ports"
       >
         {#snippet icon()}<Server size={16} class="text-muted-foreground" aria-hidden="true" />{/snippet}
       </ResourceRow>

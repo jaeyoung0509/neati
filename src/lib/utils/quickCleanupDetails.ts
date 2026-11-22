@@ -23,7 +23,7 @@ export function quickCleanupDetails(scan: ScanResult, quickEligibleCount: number
 /** The primary reason a current inventory cannot offer direct cleanup. */
 export function quickCleanupUnavailableReason(scan: ScanResult): string {
   const details = quickCleanupDetails(scan, 0);
-  if (details.reviewCount > 0) return `${details.reviewCount} ${details.reviewCount === 1 ? 'item needs' : 'items need'} review in Storage`;
+  if (details.reviewCount > 0) return `${details.reviewCount} ${details.reviewCount === 1 ? 'item needs' : 'items need'} review in Clean`;
   if (details.excludedAutomaticCount > 0) return 'Caches excluded by cleanup settings';
   if (details.recentCount > 0) return 'Remaining caches are too recent';
   if (details.blockedCount > 0) return 'Remaining items are protected or inaccessible';

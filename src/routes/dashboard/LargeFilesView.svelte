@@ -33,7 +33,6 @@
   import { canReveal, revealUnavailableReason, runReveal } from '../../lib/utils/reveal';
   import {
     AlertCircle,
-    ArrowLeft,
     CheckSquare,
     FileSearch,
     FolderOpen,
@@ -294,9 +293,6 @@
 
 <div class="space-y-5">
   <div class="flex items-start gap-3">
-    <Button variant="ghost" size="icon" onclick={onBack} aria-label="Back to Storage">
-      <ArrowLeft size={16} />
-    </Button>
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h1 class="text-title font-semibold tracking-tight">Large Files</h1>

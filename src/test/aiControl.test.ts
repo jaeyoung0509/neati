@@ -293,7 +293,7 @@ describe('AI Control Center Svelte component rendering', () => {
 
   it('renders all four section tabs and headers with provenance notice', () => {
     const rendered = render(AiControlCenterView);
-    expect(rendered.body).toContain('AI Control Center');
+    expect(rendered.body).toContain('>Controls<');
     expect(rendered.body).toContain('Verified sessions, account usage, and advisory controls.');
     expect(rendered.body).toContain('role="tablist"');
     expect(rendered.body).toContain('role="tabpanel"');

@@ -199,11 +199,17 @@
 .neati-action {
   background-color: hsl(var(--action));
   background-image: linear-gradient(115deg, hsl(var(--action)), hsl(var(--action-end)));
-  box-shadow: inset 0 1px 0 hsl(var(--glass-edge) / 0.48), 0 1px 3px hsl(var(--primary) / 0.08);
+  /* A hairline in the brand cobalt separates the primary action from the
+     pale surfaces around it without changing the action tokens. */
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--primary) / 0.22),
+    inset 0 1px 0 hsl(var(--glass-edge) / 0.48),
+    0 1px 3px hsl(var(--primary) / 0.14);
+  font-weight: 600;
 }
 
 .neati-action:hover:not(:disabled) {
-  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.2), 0 2px 5px hsl(var(--primary) / 0.12);
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.36), 0 2px 6px hsl(var(--primary) / 0.18);
 }
 
 .metric-icon-surface {

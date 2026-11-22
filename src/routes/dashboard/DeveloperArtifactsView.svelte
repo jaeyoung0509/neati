@@ -32,7 +32,6 @@
   import { canReveal, revealUnavailableReason, runReveal } from '../../lib/utils/reveal';
   import {
     AlertCircle,
-    ArrowLeft,
     CheckSquare,
     FolderOpen,
     HardDrive,
@@ -441,12 +440,9 @@
 {:else}
 <div class="space-y-5">
   <div class="flex items-start gap-3">
-    <Button variant="ghost" size="icon" onclick={onBack} aria-label="Back to Storage">
-      <ArrowLeft size={16} />
-    </Button>
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h1 class="text-title font-semibold tracking-tight">Developer Artifacts</h1>
+        <h1 class="text-title font-semibold tracking-tight">Projects</h1>
         <div class="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
           <ShieldCheck size={14} class="text-success" />
           <span>Review only · nothing selected by default</span>

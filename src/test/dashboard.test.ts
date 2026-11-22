@@ -97,6 +97,31 @@ describe('Dashboard sidebar affordances', () => {
     expect(rendered.body).not.toContain('>Tools</div>');
   });
 
+  it('titles the open view with the name its section tab uses', () => {
+    const rendered = render(Dashboard);
+    // The app opens on Clean → Caches.
+    expect(rendered.body).toMatch(/<h1[^>]*>Caches<\/h1>/);
+    expect(rendered.body).not.toMatch(/<h1[^>]*>Cleanup<\/h1>/);
+  });
+
+  it('keeps one name per view across tabs and page titles', () => {
+    const titles: Record<string, [string, RegExp]> = {
+      Projects: ['DeveloperArtifactsView', />Projects<\/h1>/],
+      Apps: ['ApplicationsView', />Apps<\/h1>/],
+      Models: ['ModelsView', /title="Models"/],
+      Disks: ['DiskView', /title="Disks"/],
+      Ports: ['DevelopmentServersView', /title="Ports"/],
+      Activity: ['ProjectCockpitView', /title="Activity"/],
+      Controls: ['AiControlCenterView', /title="Controls"/],
+    };
+    const tabLabels = SECTIONS.flatMap((section) => section.routes.map((entry) => entry.label));
+    for (const [label, [view, pattern]] of Object.entries(titles)) {
+      expect(tabLabels, label).toContain(label);
+      const source = readFileSync(new URL(`../routes/dashboard/${view}.svelte`, import.meta.url), 'utf8');
+      expect(source, view).toMatch(pattern);
+    }
+  });
+
   it('carries the reclaimable total on the Clean section', () => {
     const rendered = render(Dashboard);
     expect(rendered.body).toMatch(/aria-label="Clean, 14 MB reclaimable"/);

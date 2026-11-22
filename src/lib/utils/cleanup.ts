@@ -461,7 +461,7 @@ export function cleanupGuidance(item: ScanItem): CleanupGuidance {
     : cause === 'managed' && item.category === 'container' ? 'containers'
     : cause === 'managed' && item.category === 'model' ? 'models' : 'unavailable';
   const actions: Record<CleanupNextAction, string> = {
-    review: 'Review item', quit: 'Review owner', rescan: 'Check in Storage',
+    review: 'Review item', quit: 'Review owner', rescan: 'Check in Clean',
     containers: 'Open Containers', models: 'Open Local Models', unavailable: 'No cleanup action',
   };
   const observed = observedBytes(item);

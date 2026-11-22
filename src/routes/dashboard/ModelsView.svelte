@@ -80,7 +80,7 @@
 <div class="space-y-6">
   <!-- Page Header -->
   <PageHeader
-    title="Local Models"
+    title="Models"
     subtitle="Ollama, HuggingFace Hub, LM Studio, and Apple MLX downloaded model weights."
     icon={Boxes}
   >

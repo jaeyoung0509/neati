@@ -245,7 +245,7 @@
 
 <div class="storage-workspace space-y-4">
   {#if activeSecondaryTab === 'cleanup'}
-  <PageHeader title="Cleanup" icon={HardDrive} class="storage-header">
+  <PageHeader title="Caches" icon={HardDrive} class="storage-header">
     {#snippet actions()}
       {#if platformContextStore.context?.platform === "macos"}
         <EmptyTrashAction disabled={scanStore.isScanning || scanStore.isCleaning} />

@@ -8,7 +8,7 @@
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { formatProcessAge } from '../../lib/utils/format';
   import { withMinimumDuration } from '../../lib/utils/async';
-  import { modalDialog } from '../../lib/utils/modalDialog';
+  import Dialog from '../../lib/components/Dialog.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
@@ -129,7 +129,7 @@
         size="sm"
         disabled={isRefreshing || developmentPortsStore.isLoading}
         onclick={handleRefresh}
-        class="gap-1.5 text-xs"
+        class="gap-1.5 text-meta"
         title="Refresh development server listeners"
       >
         <LoadingActionContent busy={isRefreshing || developmentPortsStore.isLoading} busyLabel="Refreshing…">
@@ -147,7 +147,7 @@
         bind:value={searchQuery}
         placeholder="Search port, server, project…"
         aria-label="Search development server ports"
-        class="h-8 w-full rounded-lg border border-border bg-card pl-8 pr-7 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        class="h-8 w-full rounded-lg border border-border bg-card pl-8 pr-7 text-meta text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       />
       {#if searchQuery}
         <button
@@ -181,7 +181,7 @@
   {#if filteredListeners.length > 0}
     <div class="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/80 bg-card/70">
       {#each filteredListeners as listener (listener.id)}
-        <div class="group flex flex-col justify-between gap-2.5 p-3 text-xs transition-colors hover:bg-secondary/30 @2xl:flex-row @2xl:items-center">
+        <div class="group flex flex-col justify-between gap-2.5 p-3 text-meta transition-colors hover:bg-secondary/30 @2xl:flex-row @2xl:items-center">
           <div class="flex min-w-0 items-center gap-3">
             <div class="w-20 shrink-0 font-mono text-sm font-bold text-foreground">
               {listener.port}<span class="ml-0.5 text-caption font-normal text-muted-foreground">/TCP</span>
@@ -204,7 +204,7 @@
             <div class="flex min-w-0 items-center gap-1.5 font-mono text-meta">
               <span class="truncate text-muted-foreground" title={listener.bind_address}>{listener.bind_address}</span>
               {#if listener.exposure === 'all_interfaces'}
-                <span class="inline-flex items-center gap-1 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 text-meta font-medium text-warning" title="Exposed to all local and external network interfaces">
+                <span class="inline-flex items-center gap-1 rounded border status-chip-warning px-1.5 py-0.5 text-meta font-medium text-warning" title="Exposed to all local and external network interfaces">
                   <TriangleAlert size={10} /> All interfaces
                 </span>
               {:else if listener.exposure === 'network'}
@@ -222,7 +222,7 @@
                   id={releaseButtonId(listener)}
                   variant="outline"
                   size="sm"
-                  class="gap-1 text-xs opacity-80 hover:border-destructive/40 hover:text-destructive group-hover:opacity-100"
+                  class="gap-1 text-meta opacity-80 hover:border-destructive/40 hover:text-destructive group-hover:opacity-100"
                   disabled={developmentPortsStore.releasingId !== null}
                   onclick={() => openReleaseDialog(listener)}
                   title={isWindows ? `Force release port ${listener.port}` : `Request graceful release of port ${listener.port}`}
@@ -241,8 +241,8 @@
     </div>
   {:else if searchQuery.trim()}
     <div class="space-y-2 rounded-xl border border-border/80 bg-card/70 p-8 text-center">
-      <p class="text-xs text-muted-foreground">No development servers matching "{searchQuery}"</p>
-      <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')} class="text-xs">Clear Search</Button>
+      <p class="text-meta text-muted-foreground">No development servers matching "{searchQuery}"</p>
+      <Button variant="ghost" size="sm" onclick={() => (searchQuery = '')} class="text-meta">Clear Search</Button>
     </div>
   {:else}
     <EmptyState
@@ -253,16 +253,16 @@
   {/if}
 
   {#if pendingReleaseListener}
-    <dialog
-      use:modalDialog={{ onCancel: closeDialogs, initialFocus: '#release-cancel', returnFocusTarget: releaseFocusTarget }}
+    <Dialog
+      onCancel={closeDialogs} initialFocus="#release-cancel" returnFocusTarget={releaseFocusTarget}
       aria-labelledby="release-title"
-      class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable space-y-4 rounded-xl border border-border bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
-    >
+      size="md" class="space-y-4"
+      >
         <div class="flex items-start gap-3">
           <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning"><Radio size={17} /></div>
           <div>
             <h3 id="release-title" class="text-sm font-semibold">Release {pendingReleaseListener.server_name} on {pendingReleaseListener.bind_address}:{pendingReleaseListener.port}?</h3>
-            <p class="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p class="mt-1 text-meta leading-relaxed text-muted-foreground">
               This will request graceful termination (SIGTERM) for PID {pendingReleaseListener.pid}{#if pendingReleaseListener.project_name} belonging to project <span class="font-semibold text-foreground">{pendingReleaseListener.project_name}</span>{/if}.
             </p>
           </div>
@@ -272,30 +272,30 @@
           <Button id="release-cancel" variant="ghost" size="sm" onclick={closeDialogs}>Cancel</Button>
           <Button variant="outline" size="sm" disabled={developmentPortsStore.releasingId !== null} onclick={handleReleaseNormally}>Release Normally</Button>
         </div>
-    </dialog>
+    </Dialog>
   {/if}
 
   {#if pendingForceListener}
-    <dialog
-      use:modalDialog={{ onCancel: closeDialogs, initialFocus: '#force-release-cancel', returnFocusTarget: releaseFocusTarget }}
+    <Dialog
+      onCancel={closeDialogs} initialFocus="#force-release-cancel" returnFocusTarget={releaseFocusTarget}
       aria-labelledby="force-release-title"
-      class="m-auto w-[calc(100%-2rem)] max-w-md max-h-[calc(100%-2rem)] overflow-y-auto scroll-stable space-y-4 rounded-xl border border-destructive/40 bg-card p-5 text-foreground shadow-2xl backdrop:bg-background/80 backdrop:backdrop-blur-sm [overflow-wrap:anywhere]"
-    >
+      size="md" tone="destructive" class="space-y-4"
+      >
         <div class="flex items-start gap-3">
           <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive"><TriangleAlert size={17} /></div>
           <div>
             <h3 id="force-release-title" class="text-sm font-semibold text-destructive">Force Release Port {pendingForceListener.port}?</h3>
-            <p class="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <p class="mt-1 text-meta leading-relaxed text-muted-foreground">
               <span class="font-semibold text-foreground">{pendingForceListener.server_name}</span> (PID {pendingForceListener.pid})
               {isWindows ? ' can only be forcefully terminated on Windows.' : ' did not exit after the graceful stop request.'}
             </p>
           </div>
         </div>
-        <div class="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-meta leading-relaxed text-destructive/90">Force release {isWindows ? 'terminates the process immediately' : 'sends SIGKILL immediately'}. Unsaved work or open database transactions in this server process may not shut down cleanly.</div>
+        <div class="rounded-lg border status-panel-destructive px-3 py-2.5 text-meta leading-relaxed text-destructive/90">Force release {isWindows ? 'terminates the process immediately' : 'sends SIGKILL immediately'}. Unsaved work or open database transactions in this server process may not shut down cleanly.</div>
         <div class="flex justify-end gap-2 pt-1">
           <Button id="force-release-cancel" variant="ghost" size="sm" onclick={closeDialogs}>Cancel</Button>
           <Button variant="destructive" size="sm" disabled={developmentPortsStore.releasingId !== null} onclick={handleForceRelease}>Force Release</Button>
         </div>
-    </dialog>
+    </Dialog>
   {/if}
 </div>

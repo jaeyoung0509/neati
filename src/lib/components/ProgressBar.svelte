@@ -31,7 +31,7 @@
   {/if}
   <div class="w-full {height} meter-track rounded-full overflow-hidden" role="presentation">
     <div
-      class="{height} {color === 'bg-primary' || color === 'bg-ai' ? 'meter-fill' : color} rounded-full transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      class="{height} {color === 'bg-primary' || color === 'bg-ai' ? 'meter-fill' : color} rounded-full transition-[width] duration-overlay ease-standard"
       style="width: {percent}%;"
     ></div>
   </div>

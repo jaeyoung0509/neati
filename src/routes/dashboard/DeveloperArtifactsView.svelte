@@ -441,18 +441,18 @@
 {:else}
 <div class="space-y-5">
   <div class="flex items-start gap-3">
-    <Button variant="ghost" size="icon" onclick={onBack} ariaLabel="Back to Storage">
+    <Button variant="ghost" size="icon" onclick={onBack} aria-label="Back to Storage">
       <ArrowLeft size={16} />
     </Button>
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h1 class="text-xl font-semibold tracking-tight">Developer Artifacts</h1>
+        <h1 class="text-title font-semibold tracking-tight">Developer Artifacts</h1>
         <div class="flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
           <ShieldCheck size={14} class="text-success" />
           <span>Review only · nothing selected by default</span>
         </div>
       </div>
-      <p class="mt-1 text-xs text-muted-foreground">
+      <p class="mt-1 text-meta text-muted-foreground">
         Inspect rebuildable project environments across common ecosystems. Project source, manifests, lockfiles, and project roots are never cleanup targets.
         Verified framework sync/cache-only defaults can be permanently deleted as whole units; deployment, offline, dynamic/custom and unknown output stays observed. Choose one whole folder or generated child per directory.
       </p>
@@ -464,7 +464,7 @@
   <Card class="p-5 space-y-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <div class="text-xs font-medium">Scan scope</div>
+        <div class="text-meta font-medium">Scan scope</div>
         <p class="mt-1 text-meta text-muted-foreground">Scan your user-owned files in one pass. System, credential, media, and installed-application paths are bypassed.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -492,7 +492,7 @@
     </div>
 
     {#if workspaces.length === 0}
-      <div class="rounded-lg border border-dashed border-border/80 p-4 text-xs text-muted-foreground">
+      <div class="rounded-lg border border-dashed border-border/80 p-4 text-meta text-muted-foreground">
         <span class="font-medium text-foreground">Scan this computer</span> searches your user-owned files automatically. Add a folder only when you want a narrower scan.
       </div>
     {:else}
@@ -512,10 +512,10 @@
               class="accent-success"
             />
             <div class="min-w-0 flex-1">
-              <div class="truncate text-xs font-medium">{workspace.name}</div>
+              <div class="truncate text-meta font-medium">{workspace.name}</div>
               <div class="truncate font-mono text-caption text-muted-foreground">{workspace.display_path}</div>
             </div>
-            <Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => removeWorkspace(workspace.id)} disabled={isScanning} ariaLabel={`Remove ${workspace.name}`} title="Remove workspace">
+            <Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => removeWorkspace(workspace.id)} disabled={isScanning} aria-label={`Remove ${workspace.name}`} title="Remove workspace">
               <X size={13} />
             </Button>
           </div>
@@ -532,14 +532,14 @@
   </Card>
 
   {#if error}
-    <div class="flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/15 p-3.5 text-xs text-destructive">
+    <div class="flex items-center gap-2.5 rounded-xl border status-chip-destructive p-3.5 text-meta text-destructive">
       <AlertCircle size={16} class="shrink-0" />
       <span>{error}</span>
     </div>
   {/if}
 
   {#if revealError}
-    <div role="alert" class="flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/15 p-3.5 text-xs text-destructive">
+    <div role="alert" class="flex items-center gap-2.5 rounded-xl border status-chip-destructive p-3.5 text-meta text-destructive">
       <AlertCircle size={16} class="shrink-0" />
       <span>{revealError}</span>
     </div>
@@ -547,12 +547,12 @@
 
   {#if uninspected.length > 0}
     <div role="status" data-testid="developer-artifact-uninspected-notice">
-      <Card class="space-y-3 border-warning/30 bg-warning/5 p-4">
+      <Card class="space-y-3 status-panel-warning p-4">
         <div class="flex items-start gap-2.5">
           <AlertCircle size={16} class="mt-0.5 shrink-0 text-warning" />
           <div class="min-w-0 flex-1 space-y-2">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <span class="text-xs font-medium text-warning">
+              <span class="text-meta font-medium text-warning">
                 {uninspected.length} folder{uninspected.length === 1 ? '' : 's'} could not be inspected
               </span>
               <span class="text-meta text-warning/90">Result is partial</span>
@@ -565,7 +565,7 @@
                 <div class="rounded-lg border border-border/70 bg-background/60 p-2.5 text-caption">
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="font-medium text-foreground">{entry.name}</span>
-                    <span class={`rounded border px-1.5 py-0.5 ${entry.retryable ? 'border-warning/30 bg-warning/10 text-warning' : 'border-border bg-secondary text-muted-foreground'}`}>
+                    <span class={`rounded border px-1.5 py-0.5 ${entry.retryable ? 'status-chip-warning text-warning' : 'border-border bg-secondary text-muted-foreground'}`}>
                       {uninspectedStatusLabel(entry)}
                     </span>
                   </div>
@@ -600,8 +600,8 @@
   {/if}
 
   {#if removalResult}
-    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'border-warning/30 bg-warning/5' : 'border-success/30 bg-success/5'}`}>
-      <div class="flex items-center justify-between gap-3 text-xs">
+    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'status-panel-warning' : 'status-panel-success'}`}>
+      <div class="flex items-center justify-between gap-3 text-meta">
         <span class={`font-medium ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
           Permanently removed {removalResult.removed_count} artifact{removalResult.removed_count === 1 ? '' : 's'}
         </span>
@@ -618,14 +618,14 @@
   {/if}
 
   {#if plan}
-    <Card class={`space-y-3 p-5 ${isExpired ? 'border-destructive/40 bg-destructive/5' : 'border-warning/30 bg-warning/5'}`}>
+    <Card class={`space-y-3 p-5 ${isExpired ? 'status-panel-destructive' : 'status-panel-warning'}`}>
       <div class="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
         <div>
           <div class="flex items-center gap-2 text-sm font-semibold">
             Generated-folder review ready
             <span class="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-caption text-muted-foreground">{formatCountdown(remainingSecs)}</span>
           </div>
-          <p class="mt-1 text-xs text-muted-foreground">{plan.item_count} selected artifact{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated</p>
+          <p class="mt-1 text-meta text-muted-foreground">{plan.item_count} selected artifact{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" onclick={() => { plan = null; partialCleanupConfirmed = false; }}>Cancel</Button>
@@ -649,14 +649,14 @@
         </div>
       </div>
       {#if isExpired}
-        <div role="alert" class="flex items-center justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-2.5 text-xs text-destructive">
+        <div role="alert" class="flex items-center justify-between gap-2 rounded-lg border status-chip-destructive p-2.5 text-meta text-destructive">
           <span>Plan expired. Scan again to refresh the inventory.</span>
           <Button id="developer-artifact-expiry-action" variant="ghost" size="sm" onclick={() => { plan = null; void scanArtifacts(); }}>Scan again</Button>
         </div>
       {:else}
         <p class="text-meta text-muted-foreground">One-shot plan. neati rechecks workspace identity, markers, exact artifact type, symlinks, and filesystem identity before each permanent deletion.</p>
         {#if hasMeasurementIncompleteSelected}
-          <div class="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+          <div class="space-y-2 rounded-lg border status-chip-warning p-3 text-meta text-warning">
             <p class="font-medium">Some selected measurements are partial.</p>
             <p class="text-warning/90">The generated-folder scope and project evidence were verified, but one or more entries could not be measured. The displayed size and file count may be lower than the actual contents. Nested links are not followed.</p>
             <label class="flex items-start gap-2 text-warning">
@@ -682,7 +682,7 @@
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <label for="developer-artifact-sort" class="text-meta text-muted-foreground">Sort</label>
-      <select id="developer-artifact-sort" bind:value={sortBy} class="h-8 rounded-lg border border-border bg-background px-2.5 text-xs">
+      <select id="developer-artifact-sort" bind:value={sortBy} class="h-8 rounded-lg border border-border bg-background px-2.5 text-meta">
         <option value="size">Largest first</option>
         <option value="activity">Most recently changed</option>
         <option value="project">Project name</option>
@@ -701,7 +701,7 @@
   </div>
 
   {#if sortedItems.length === 0}
-    <Card class="p-8 text-center text-xs text-muted-foreground">No recognized developer artifacts yet. Add a workspace and run a scan.</Card>
+    <Card class="p-8 text-center text-meta text-muted-foreground">No recognized developer artifacts yet. Add a workspace and run a scan.</Card>
   {:else}
     <div class="developer-artifact-list overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
       {#each sortedItems as item (item.id)}
@@ -718,10 +718,10 @@
           />
           <div class="min-w-0 flex-1 space-y-1">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-semibold">{item.project_name}</span>
+              <span class="text-meta font-semibold">{item.project_name}</span>
               <span class="text-caption text-muted-foreground">{ecosystemLabel(item)} · {kindLabel(item)}</span>
               {#if item.status !== 'complete'}
-                <span class={`rounded border px-1.5 py-0.5 text-caption ${item.status === 'measurement_incomplete' || item.status === 'observation_only' ? 'border-border bg-secondary/60 text-muted-foreground' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>{statusLabel(item.status)}</span>
+                <span class={`rounded border px-1.5 py-0.5 text-caption ${item.status === 'measurement_incomplete' || item.status === 'observation_only' ? 'border-border bg-secondary/60 text-muted-foreground' : 'status-chip-destructive text-destructive'}`}>{statusLabel(item.status)}</span>
               {/if}
             </div>
             <div class="truncate font-mono text-caption text-muted-foreground" title={item.path}>{item.path}</div>
@@ -755,7 +755,7 @@
             class="h-7 w-7 shrink-0"
             disabled={!canReveal()}
             onclick={() => void runReveal(() => tauriShowInFileManager(item.path), (message) => (revealError = message))}
-            ariaLabel={`Show ${item.path} in file manager`}
+            aria-label={`Show ${item.path} in file manager`}
             title={canReveal() ? platformContextStore.revealLabel : revealUnavailableReason()}
           >
             <FolderOpen size={13} />

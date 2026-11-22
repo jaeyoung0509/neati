@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { trapDialogFocus } from '../utils/modalDialog';
   import type { ScanItem } from '../models/types';
   import { cleanableBytes } from '../utils/cleanup';
   import { formatBytes } from '../utils/format';
   import Button from './Button.svelte';
+  import Dialog from './Dialog.svelte';
 
   interface Props {
     items: ScanItem[];
@@ -16,7 +16,6 @@
 
   let { items, partial, disabled = false, onCancel, onConfirm }: Props = $props();
   const id = $props.id();
-  let dialog: HTMLDialogElement;
   let confirmed = false;
   let selected = $state<Record<string, boolean>>({});
   let selectedItems = $derived(items.filter((item) => selected[item.id]));
@@ -24,12 +23,6 @@
 
   onMount(() => {
     selected = Object.fromEntries(items.map((item) => [item.id, true]));
-    const previousFocus = document.activeElement as HTMLElement | null;
-    dialog.showModal();
-    return () => {
-      if (dialog.open) dialog.close();
-      if (!confirmed && previousFocus?.isConnected) previousFocus.focus();
-    };
   });
 
   function confirm() {
@@ -39,15 +32,14 @@
   }
 </script>
 
-<dialog
-  use:trapDialogFocus
-  bind:this={dialog}
+<Dialog
+  {onCancel}
+  restoreFocusOnClose={() => !confirmed}
+  size="sm"
+  density="compact"
   id={id + '-dialog'}
-  aria-modal="true"
   aria-labelledby={id + '-title'}
   aria-describedby={id + '-description'}
-  oncancel={(event) => { event.preventDefault(); onCancel(); }}
-  class="m-auto w-[calc(100%-1.5rem)] max-w-sm max-h-[calc(100%-1.5rem)] overflow-y-auto scroll-stable rounded-2xl border border-border bg-card p-4 text-foreground shadow-xl backdrop:bg-foreground/30 focus:outline-none"
 >
   <h2 id={id + '-title'} class="text-body font-semibold tracking-tight">Review Safe cleanup</h2>
   <p id={id + '-description'} class="mt-1 text-meta leading-snug text-muted-foreground">
@@ -88,4 +80,4 @@
       Clean selected
     </Button>
   </div>
-</dialog>
+</Dialog>

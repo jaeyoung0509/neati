@@ -49,7 +49,7 @@
     if (!reason) return null;
     switch (reason) {
       case 'approval':
-        return { label: 'Approval Needed', variant: 'danger' as const };
+        return { label: 'Approval Needed', variant: 'destructive' as const };
       case 'input':
         return { label: 'Input Needed', variant: 'warning' as const };
       case 'turn_complete':
@@ -98,7 +98,7 @@
   class="space-y-5 outline-none focus-visible:ring-1 focus-visible:ring-ring"
 >
   {#if agentActivityStore.error}
-    <div role="alert" class="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+    <div role="alert" class="rounded-xl border status-panel-destructive px-4 py-3 text-meta text-destructive">
       Project refresh failed. The last successful local snapshot remains visible. {agentActivityStore.error}
     </div>
   {/if}
@@ -111,7 +111,7 @@
     </div>
   {:else if snapshot}
     {#if snapshot.partial_errors.length > 0}
-      <div role="status" class="rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-xs text-warning">
+      <div role="status" class="rounded-xl border status-panel-warning px-4 py-3 text-meta text-warning">
         Partial project snapshot: {snapshot.partial_errors.join(' · ')}
       </div>
     {/if}
@@ -119,15 +119,15 @@
     <section aria-label="Project activity summary" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <Card class="p-4 bg-card/70">
         <div class="text-caption text-muted-foreground font-medium tracking-normal">Verified projects</div>
-        <div class="mt-1 text-2xl font-bold tabular-nums">{snapshot.projects.length}</div>
+        <div class="mt-1 text-metric font-bold tabular-nums">{snapshot.projects.length}</div>
       </Card>
       <Card class="p-4 bg-card/70">
         <div class="text-caption text-muted-foreground font-medium tracking-normal">Active sessions</div>
-        <div class="mt-1 text-2xl font-bold tabular-nums text-foreground">{agentActivityStore.activeSessionCount}</div>
+        <div class="mt-1 text-metric font-bold tabular-nums text-foreground">{agentActivityStore.activeSessionCount}</div>
       </Card>
       <Card class="p-4 bg-card/70">
         <div class="text-caption text-muted-foreground font-medium tracking-normal">Attention needed</div>
-        <div class="mt-1 text-2xl font-bold tabular-nums {agentActivityStore.attentionSessionCount > 0 ? 'text-destructive' : 'text-foreground'}">
+        <div class="mt-1 text-metric font-bold tabular-nums {agentActivityStore.attentionSessionCount > 0 ? 'text-destructive' : 'text-foreground'}">
           {agentActivityStore.attentionSessionCount}
         </div>
       </Card>
@@ -143,7 +143,7 @@
       <Card class="py-12 px-6 text-center bg-card/60">
         <Bot size={28} class="mx-auto text-muted-foreground" />
         <h3 class="mt-3 text-sm font-semibold">No active agent sessions</h3>
-        <p class="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">
+        <p class="mx-auto mt-1.5 max-w-md text-meta leading-relaxed text-muted-foreground">
           Start a supported CLI (Antigravity, Claude Code, Cursor, Grok, Copilot, Codex, OpenCode) inside a project.
           neati observes local processes only and never reads prompts, transcripts, or credentials.
         </p>
@@ -161,7 +161,7 @@
                 onclick={() => selectProject(project.identity.id)}
               >
                 <div class="flex items-center gap-2.5 min-w-0 flex-wrap">
-                  <h3 class="truncate text-base font-bold tracking-tight">{project.identity.display_name}</h3>
+                  <h3 class="truncate text-sm font-bold tracking-tight">{project.identity.display_name}</h3>
                   {#if project.identity.is_worktree}
                     <Badge variant="outline">Worktree</Badge>
                   {/if}
@@ -175,7 +175,7 @@
                     <Badge variant="warning">Modified</Badge>
                   {/if}
                   {#if hasAttention}
-                    <Badge variant="danger">Needs Attention</Badge>
+                    <Badge variant="destructive">Needs Attention</Badge>
                   {/if}
                 </div>
                 <p class="mt-1 font-mono text-caption text-muted-foreground truncate">
@@ -214,7 +214,7 @@
                   <div class="flex items-center justify-between gap-3 px-3.5 py-2.5">
                     <div class="flex items-center gap-2.5 min-w-0">
                       <Bot size={14} class="text-muted-foreground shrink-0" />
-                      <span class="text-xs font-semibold truncate">{session.tool_name}</span>
+                      <span class="text-meta font-semibold truncate">{session.tool_name}</span>
                       <Badge variant={status.variant}>{status.label}</Badge>
                       <Badge variant={evidence.variant}>{evidence.label}</Badge>
                       {#if attention}
@@ -249,7 +249,7 @@
             <div class="flex items-center justify-between gap-3 px-4 py-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold">{session.tool_name}</span>
+                  <span class="text-meta font-semibold">{session.tool_name}</span>
                   <Badge variant={status.variant}>{status.label}</Badge>
                   <Badge variant={evidence.variant}>{evidence.label}</Badge>
                 </div>
@@ -276,14 +276,14 @@
     <Card class="py-12 px-6 text-center bg-card/60">
       <Bot size={28} class="mx-auto text-muted-foreground" />
       <h3 class="mt-3 text-sm font-semibold">No project activity snapshot</h3>
-      <p class="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">
+      <p class="mx-auto mt-1.5 max-w-md text-meta leading-relaxed text-muted-foreground">
         neati will show verified local project and agent activity after the first refresh.
       </p>
     </Card>
   {/if}
 
   {#if actionFeedback}
-    <div role="status" class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs text-primary">
+    <div role="status" class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-meta text-primary">
       {actionFeedback}
     </div>
   {/if}

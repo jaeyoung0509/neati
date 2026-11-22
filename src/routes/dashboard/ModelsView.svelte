@@ -102,7 +102,7 @@
         size="sm"
         disabled={isRefreshing || localModelsStore.isLoading}
         onclick={handleRefresh}
-        class="gap-1.5 text-xs"
+        class="gap-1.5 text-meta"
       >
         <LoadingActionContent busy={isRefreshing || localModelsStore.isLoading} busyLabel="Discovering…" word="scanning">
           <RotateCw size={13} aria-hidden="true" /><span>Rescan Models</span>
@@ -144,7 +144,7 @@
       type="text"
       bind:value={searchQuery}
       placeholder="Search local models..."
-      class="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+      class="w-full h-8 pl-8 pr-3 text-meta rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
     />
   </div>
 
@@ -157,7 +157,7 @@
   {:else if filteredModels.length > 0}
     {#if revealError}
       <InlineNotice
-        variant="error"
+        variant="destructive"
         title="Reveal failed"
         message={revealError}
         onDismiss={() => (revealError = null)}
@@ -170,7 +170,7 @@
         >
           <div class="min-w-0 flex-1 space-y-1">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="min-w-0 break-words text-xs font-semibold text-foreground">{model.name}</span>
+              <span class="min-w-0 break-words text-meta font-semibold text-foreground">{model.name}</span>
               <Badge variant={sourceBadges[model.source]?.variant || 'secondary'}>
                 {sourceBadges[model.source]?.label || model.source}
               </Badge>
@@ -190,7 +190,7 @@
           </div>
 
           <div class="flex shrink-0 items-center justify-end gap-3">
-            <span class="text-xs font-mono font-bold text-foreground">
+            <span class="text-meta font-mono font-bold text-foreground">
               {#if model.quality === 'partial'}
                 ≥ {formatBytes(model.size_bytes)}
               {:else if model.quality === 'unavailable'}
@@ -210,7 +210,7 @@
                   () => tauriShowInFileManager(model.path),
                   (message) => (revealError = message)
                 )}
-              ariaLabel={`Show ${model.name} in file manager`}
+              aria-label={`Show ${model.name} in file manager`}
               title={canReveal() ? platformContextStore.revealLabel : revealUnavailableReason()}
             >
               <FolderOpen size={13} />
@@ -219,7 +219,7 @@
             <Button
               variant="outline"
               size="sm"
-              class="h-7 px-2 text-xs text-destructive hover:text-destructive hover:border-destructive/30 gap-1"
+              class="h-7 px-2 text-meta text-destructive hover:text-destructive hover:border-destructive/30 gap-1"
               onclick={() => confirmDelete(model)}
             >
               <Trash2 size={12} />
@@ -266,7 +266,7 @@
           <h3 class="text-sm font-semibold text-foreground">Delete Model Weights?</h3>
         </div>
 
-        <p class="text-xs text-muted-foreground leading-relaxed">
+        <p class="text-meta text-muted-foreground leading-relaxed">
           Are you sure you want to delete <span class="font-semibold text-foreground">{modelToDelete.name}</span> ({formatBytes(modelToDelete.size_bytes)})? You will need to re-download this model if you want to use it again.
         </p>
 

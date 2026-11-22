@@ -123,7 +123,7 @@
           variant="outline"
           size="sm"
           onclick={() => onNavigateTab('ai_control')}
-          class="gap-1.5 text-xs"
+          class="gap-1.5 text-meta"
         >
           <Sparkles size={13} class="text-primary" />
           <span>Control Center</span>
@@ -133,7 +133,7 @@
         variant="outline"
         size="sm"
         disabled={activeTabLoading}
-        ariaLabel={`Refresh ${activeTabLabel.toLowerCase()}`}
+        aria-label={`Refresh ${activeTabLabel.toLowerCase()}`}
         title={`Refresh ${activeTabLabel.toLowerCase()}`}
         onclick={handleRefreshActive}
       >
@@ -159,7 +159,7 @@
         aria-selected={isSelected}
         aria-controls={panelId(tab)}
         tabindex={isSelected ? 0 : -1}
-        class="relative shrink-0 px-3 py-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {isSelected
+        class="relative shrink-0 px-3 py-2.5 text-meta transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring {isSelected
           ? 'font-semibold text-foreground after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-primary'
           : 'text-muted-foreground hover:text-foreground'}"
         onclick={() => selectSubTab(tab)}

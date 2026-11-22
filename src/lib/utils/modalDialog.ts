@@ -1,9 +1,14 @@
 import { isFocusable, restoreFocus } from './focus';
 
-interface ModalOptions {
+export interface ModalOptions {
   onCancel: () => void;
   initialFocus?: string;
   returnFocusTarget?: () => HTMLElement | null;
+  /**
+   * Return `false` when the workflow that closed the dialog moves focus itself,
+   * for example a confirmation that opens the next step. Defaults to restoring.
+   */
+  restoreFocusOnClose?: () => boolean;
 }
 
 /** Keep native modal Tab cycling in visible controls instead of the document. */
@@ -62,6 +67,7 @@ export function modalDialog(dialog: HTMLDialogElement, initialOptions: ModalOpti
       dialog.removeEventListener('cancel', handleCancel);
       focusTrap.destroy();
       if (dialog.open) dialog.close();
+      if (options.restoreFocusOnClose?.() === false) return;
       restoreFocus(options.returnFocusTarget?.() ?? previousFocus, fallbackContainer);
     },
   };

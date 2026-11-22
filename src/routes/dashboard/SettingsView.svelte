@@ -207,7 +207,7 @@
               {:else}
                 Scans include regenerable Apple and third-party cache payloads without an age delay, plus stale logs. DotSlash artifacts unchanged for 30 days
                 become available for individual review; their modification time does not show when they were last used.
-                Selected artifacts move to Trash; empty it to free disk space. DotSlash may download them again.
+                Selected artifacts are permanently removed. DotSlash may download them again.
                 Personal files,
                 settings, credentials, databases, and compiled model stores remain protected.
                 Scanning never deletes anything automatically.

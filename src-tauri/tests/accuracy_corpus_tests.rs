@@ -164,6 +164,68 @@ const CORPUS: &[Entry] = &[
         "Library/Developer/Xcode/UserData/FontAndColorThemes/Mine.xccolortheme",
         "Xcode user data beside DerivedData",
     ),
+    // --- Found by comparing with Mole 1.55 (#473) ---------------------------
+    // State another cleaner removes. Each would be a false positive here.
+    keep(
+        ".aws/cli/cache/0123abcd.json",
+        "temporary STS/SSO credentials",
+    ),
+    keep(".prometheus/data/wal/00000001", "database write-ahead log"),
+    keep(".gitconfig.lock", "lock held by a running git"),
+    keep(
+        ".jupyter/runtime/kernel-1234.json",
+        "live kernel connection file with its signing key",
+    ),
+    keep(".zsh_history.bak", "shell history backup"),
+    keep(
+        "Library/Preferences/com.apple.recentitems.plist",
+        "preferences",
+    ),
+    keep(
+        "Library/Caches/org.R-project.R/R/renv/cache/v5/R-4.4/aarch64-apple-darwin20/dplyr/1.1.4/0a1b2c/dplyr/R/dplyr",
+        "package store that project libraries link into",
+    ),
+    // Regenerable data another cleaner reclaims.
+    regen(
+        "Library/Application Support/Code/logs/20261101T101010/main.log",
+        16 * KB,
+        "editor session log",
+    ),
+    regen(
+        "Library/Application Support/Steam/htmlcache/Cache/Cache_Data/f_000001",
+        128 * KB,
+        "embedded browser cache",
+    ),
+    regen(
+        "Library/Application Support/Adobe/Common/Media Cache Files/clip 48000.cfa",
+        256 * KB,
+        "media conform cache, rebuilt on import",
+    ),
+    regen(
+        ".expo/versions-cache/versions.json",
+        16 * KB,
+        "downloaded SDK version index",
+    ),
+    regen(
+        ".cache/terraform/registry.terraform.io/hashicorp/null/3.2.2/darwin_arm64/terraform-provider-null_v3.2.2_x5",
+        128 * KB,
+        "plugin cache, re-downloaded by terraform init",
+    ),
+    regen(
+        "Library/Application Support/Arc/User Data/Crashpad/completed/a1b2.dmp",
+        64 * KB,
+        "submitted crash report",
+    ),
+    regen(
+        "Library/Caches/tealdeer/tldr-pages/pages/common/tar.md",
+        8 * KB,
+        "offline pages, refreshed by tldr --update",
+    ),
+    regen(
+        "Library/Caches/ms-playwright/chromium-1140/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+        256 * KB,
+        "test browser, reinstalled by playwright install",
+    ),
 ];
 
 struct Fixture {
@@ -415,6 +477,14 @@ fn accuracy_matches_the_recorded_baseline() {
 ///   offered it and the planner refused it (512 KB offered but refused).
 /// - 2026-11-22, #350: an Xcode DeviceSupport symbol set (`.dylib` files) is
 ///   reclaimed too. Nothing the scan offers is refused by the planner.
+/// - 2026-11-22, #473: rows found by comparing with Mole 1.55. The renv
+///   package store was preselected and removed by the generic cache sweep; it
+///   is now excluded, so no state row is removed. Credentials, a WAL, a lock,
+///   kernel connection files, a history backup and preferences were already
+///   kept. tealdeer's offline pages are reclaimed (8 KB). Playwright's browser
+///   is observed only (256 KB). VS Code logs, Steam's web cache, Adobe's media
+///   cache, Expo's version index, Terraform's plugin cache and Arc's crash
+///   reports have no catalog entry yet (608 KB).
 fn baseline() -> Accuracy {
     Accuracy {
         preselected_false_positives: Vec::new(),
@@ -422,8 +492,16 @@ fn baseline() -> Accuracy {
         false_negative_bytes: BTreeMap::from([
             ("ai.claude.cache · Advisory".to_string(), 64 * KB),
             ("ai.codex.cache · Advisory".to_string(), 64 * KB),
+            (
+                "coverage:system.intensive.user_app_caches · Advisory".to_string(),
+                256 * KB,
+            ),
+            (
+                "no catalog entry".to_string(),
+                (16 + 128 + 256 + 16 + 128 + 64) * KB,
+            ),
         ]),
         offered_but_refused_bytes: 0,
-        reclaimed_regenerable_bytes: (256 + 128 + 32 + 512 + 128 + 64 + 256) * KB,
+        reclaimed_regenerable_bytes: (256 + 128 + 32 + 512 + 128 + 64 + 256 + 8) * KB,
     }
 }

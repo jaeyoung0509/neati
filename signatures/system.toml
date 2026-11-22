@@ -149,6 +149,9 @@ exclusions = [
     "~/Library/Caches/pypoetry",
     "~/Library/Caches/Yarn",
     "~/Library/Caches/llama.cpp",
+    # renv links project libraries into this package store; removing it
+    # breaks every renv project until each is restored (#473).
+    "~/Library/Caches/org.R-project.R/R/renv",
 ]
 intensive_only = false
 discovery = "always"

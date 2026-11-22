@@ -1,10 +1,11 @@
 <script lang="ts">
+  import type { IconComponent } from '../models/icons';
   import { handleSegmentedTabKeydown } from '../utils/segmentedTabs';
 
   interface TabItem {
     id: string;
     label: string;
-    icon?: any;
+    icon?: IconComponent;
     badge?: string | number;
     /** A closed tab stays visible and names why in `title`. */
     disabled?: boolean;

@@ -1,3 +1,4 @@
+import { describeError } from '../utils/errors';
 import type {
   Category,
   CleanEvent,
@@ -573,8 +574,8 @@ export class ScanStore {
 
       this.acceptScan(result);
       return result;
-    } catch (e: any) {
-      this.error = e?.toString() || 'Scan failed';
+    } catch (e) {
+      this.error = describeError(e, 'Scan failed');
       return null;
     } finally {
       this.isScanning = false;

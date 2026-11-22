@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { describeError } from '../../lib/utils/errors';
   import { onMount } from 'svelte';
   import type { CategoryResult, DiskVolume } from '../../lib/models/types';
   import { scanStore } from '../../lib/stores/scan.svelte';
@@ -59,8 +60,8 @@
     try {
       volumes = await tauriGetDiskVolumes();
       if (!scanStore.lastScan) await scanStore.runScan();
-    } catch (cause: any) {
-      error = cause?.toString() || 'Could not inspect disks';
+    } catch (cause) {
+      error = describeError(cause, 'Could not inspect disks');
     } finally {
       isLoading = false;
     }

@@ -139,7 +139,7 @@ export const nativeApi = {
   },
 
   async postAgentEvent(event: IngestedAgentEvent): Promise<void> {
-    await unwrap(commands.postAgentEvent(event as any));
+    await unwrap(commands.postAgentEvent(event));
   },
 
   async openProjectInTerminal(projectId: string): Promise<void> {
@@ -150,7 +150,9 @@ export const nativeApi = {
     force = false,
     onProvider?: (provider: AiProviderUsage) => void
   ): Promise<AiUsageSnapshot> {
-    const channel = new Channel<any>();
+    // The generated command types its channel with the wire-side shape, so the
+    // channel takes that type and each message is read as the model type.
+    const channel: Parameters<typeof commands.getAiUsage>[0] = new Channel();
     channel.onmessage = (provider) => {
       onProvider?.(provider as AiProviderUsage);
     };

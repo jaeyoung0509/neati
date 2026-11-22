@@ -1,3 +1,4 @@
+import { describeError } from '../utils/errors';
 import type { AwakeBehavior, AwakeRule, AwakeState } from '../models/types';
 import {
   tauriDisableManualAwake,
@@ -31,8 +32,8 @@ class AwakeStore {
   async refresh() {
     try {
       this.state = await tauriGetAwakeState();
-    } catch (e: any) {
-      this.error = e?.toString();
+    } catch (e) {
+      this.error = describeError(e) || null;
     }
   }
 
@@ -74,8 +75,8 @@ class AwakeStore {
     try {
       await tauriSetManualAwake(durationSecs, behavior);
       await this.refresh();
-    } catch (e: any) {
-      this.error = e?.toString();
+    } catch (e) {
+      this.error = describeError(e) || null;
       throw e;
     } finally {
       this.isLoading = false;
@@ -88,8 +89,8 @@ class AwakeStore {
     try {
       await tauriDisableManualAwake();
       await this.refresh();
-    } catch (e: any) {
-      this.error = e?.toString();
+    } catch (e) {
+      this.error = describeError(e) || null;
     } finally {
       this.isLoading = false;
     }

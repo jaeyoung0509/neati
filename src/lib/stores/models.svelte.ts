@@ -1,3 +1,4 @@
+import { describeError } from '../utils/errors';
 import type { LocalModelItem, ObservationQuality } from '../models/types';
 import { refusalForPreview, tauriDeleteLocalModel, tauriGetLocalModels } from '../utils/tauri';
 
@@ -47,8 +48,8 @@ export class LocalModelsStore {
       this.quality = inventory.quality;
       this.skippedEntryCount = inventory.skipped_entry_count;
       this.incompleteReasons = inventory.incomplete_reasons;
-    } catch (e: any) {
-      this.error = e?.toString() || 'Failed to scan local models';
+    } catch (e) {
+      this.error = describeError(e, 'Failed to scan local models');
     } finally {
       this.isLoading = false;
     }
@@ -66,8 +67,8 @@ export class LocalModelsStore {
       await tauriDeleteLocalModel(model.id);
       await this.refresh(true);
       return true;
-    } catch (e: any) {
-      const deletionError = e?.toString() || `Failed to delete model ${model.name}`;
+    } catch (e) {
+      const deletionError = describeError(e, `Failed to delete model ${model.name}`);
       // A native tree deletion can make partial progress before reporting an
       // error. Re-read the inventory so the row does not keep showing files
       // that were already removed, while preserving the mutation failure.

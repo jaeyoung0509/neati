@@ -1,3 +1,4 @@
+import { describeError } from '../utils/errors';
 import type { DockerStatus } from '../models/types';
 import { refusalForPreview, tauriGetDockerStatus, tauriPruneDocker } from '../utils/tauri';
 
@@ -28,8 +29,8 @@ export class DockerStore {
     this.error = null;
     try {
       this.status = await tauriGetDockerStatus();
-    } catch (e: any) {
-      this.error = e?.toString() || 'Failed to fetch Docker status';
+    } catch (e) {
+      this.error = describeError(e, 'Failed to fetch Docker status');
     } finally {
       this.isLoading = false;
     }
@@ -47,8 +48,8 @@ export class DockerStore {
       const reclaimed = await tauriPruneDocker(signatureId);
       await this.refresh(true);
       return reclaimed;
-    } catch (e: any) {
-      this.error = e?.toString() || 'Failed to prune Docker target';
+    } catch (e) {
+      this.error = describeError(e, 'Failed to prune Docker target');
       return 0;
     } finally {
       this.isPruning = false;

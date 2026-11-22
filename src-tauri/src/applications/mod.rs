@@ -138,6 +138,13 @@ pub struct RunningApplications {
     gradle_state_known: bool,
     python_commands_known: bool,
     open_files: Option<std::sync::Arc<dyn neati_platform::open_files::OpenFileProbe>>,
+    /// Verdicts one scan observed in batches (#493). A fresh `probe()` starts
+    /// empty, so planning and execution keep their own single-unit checks.
+    prefetched_open_files: std::sync::Arc<
+        std::sync::Mutex<
+            std::collections::HashMap<PathBuf, neati_platform::open_files::OpenFileState>,
+        >,
+    >,
 }
 
 impl RunningApplications {
@@ -149,11 +156,63 @@ impl RunningApplications {
         self
     }
 
+    /// Observes the open-file state of many units at once and keeps the
+    /// verdicts for this scan, so each unit's later check reads its own
+    /// verdict instead of starting another lsof (#493).
+    pub fn prefetch_open_files(&self, paths: &[PathBuf], is_cancelled: &dyn Fn() -> bool) {
+        let mut missing: Vec<PathBuf> = {
+            let known = self
+                .prefetched_open_files
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            paths
+                .iter()
+                .filter(|path| !known.contains_key(*path))
+                .cloned()
+                .collect()
+        };
+        missing.sort();
+        missing.dedup();
+        if missing.is_empty() {
+            return;
+        }
+        let states: Vec<_> = match &self.open_files {
+            Some(probe) => {
+                // Stop is honoured between units: no later probe starts.
+                let mut states = Vec::new();
+                for path in &missing {
+                    if is_cancelled() {
+                        break;
+                    }
+                    states.push(probe.observe(path));
+                }
+                states
+            }
+            None => neati_platform::open_files::observe_open_files_batch(&missing, is_cancelled),
+        };
+        if is_cancelled() {
+            // A cancelled batch proves nothing worth keeping.
+            return;
+        }
+        self.prefetched_open_files
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .extend(missing.into_iter().zip(states));
+    }
+
     fn open_file_state(
         &self,
         path: &Path,
         is_cancelled: &dyn Fn() -> bool,
     ) -> neati_platform::open_files::OpenFileState {
+        if let Some(state) = self
+            .prefetched_open_files
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(path)
+        {
+            return *state;
+        }
         self.open_files.as_ref().map_or_else(
             || neati_platform::open_files::observe_open_files_with_cancellation(path, is_cancelled),
             |probe| probe.observe(path),
@@ -271,6 +330,7 @@ impl RunningApplications {
         Self {
             gradle_state_known: !process_names.iter().any(|name| is_java(name)),
             open_files: None,
+            prefetched_open_files: Default::default(),
             gradle_running: false,
             python_commands_known: !process_names.iter().any(|name| name.starts_with("python")),
             process_state_known: !process_names.is_empty(),
@@ -298,6 +358,7 @@ impl RunningApplications {
             process_names: Vec::new(),
             process_state_known: false,
             open_files: None,
+            prefetched_open_files: Default::default(),
             gradle_running: false,
             gradle_state_known: false,
             python_commands_known: false,

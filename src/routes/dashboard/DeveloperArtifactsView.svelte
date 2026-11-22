@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingState from '../../lib/components/LoadingState.svelte';
   import { onMount, tick, untrack } from 'svelte';
   import TemporaryStorageView from './TemporaryStorageView.svelte';
   import type {
@@ -75,6 +76,8 @@
   let suggestions = $state<DeveloperWorkspaceSuggestion[]>([]);
   // Saved folders that no longer validate; they stay saved until removed.
   let restoreRefusals = $state<DeveloperWorkspaceRefusal[]>([]);
+  // Saved folders are being registered again; the empty hint would mislead.
+  let isRestoring = $state(true);
   let selectedWorkspaceIds = $state<string[]>([]);
   // The last result seeds this view once; every scan after that owns the state,
   // so the prop read is intentionally untracked.
@@ -255,17 +258,21 @@
    * added once is found on every visit without another choice (#486).
    */
   async function restoreSavedFolders() {
+    let restored = false;
     try {
       const restore = await tauriRestoreDeveloperWorkspaces();
       restoreRefusals = restore.refused;
       if (restore.workspaces.length > 0) {
         includeWorkspaces(restore.workspaces);
-        if (!scanResult && !isScanning) await runScan(selectedWorkspaceIds);
+        restored = true;
       }
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
+    } finally {
+      isRestoring = false;
     }
     await refreshSuggestions();
+    if (restored && !scanResult && !isScanning) await runScan(selectedWorkspaceIds);
   }
 
   async function addWorkspace() {
@@ -581,7 +588,12 @@
       </div>
     {/if}
 
-    {#if workspaces.length === 0}
+    {#if isRestoring && workspaces.length === 0}
+      <div class="flex items-center gap-2 rounded-lg border border-dashed border-border/80 p-4 text-meta text-muted-foreground" role="status">
+        <LoadingIndicator size="xs" class="text-primary" />
+        Restoring saved project folders…
+      </div>
+    {:else if workspaces.length === 0}
       <div class="rounded-lg border border-dashed border-border/80 p-4 text-meta text-muted-foreground">
         <span class="font-medium text-foreground">Add folder</span> once and neati remembers it, scanning it whenever you open Projects. <span class="font-medium text-foreground">Scan this computer</span> searches all of your user-owned files in one pass.
       </div>
@@ -794,7 +806,11 @@
   </div>
 
   {#if sortedItems.length === 0}
-    <Card class="p-8 text-center text-meta text-muted-foreground">No recognized developer artifacts yet. Add a workspace and run a scan.</Card>
+    {#if isScanning}
+      <LoadingState message={scanActivity || 'Scanning project folders…'} word="scanning" detail="Build output and dependencies appear here as each project is measured." />
+    {:else}
+      <Card class="p-8 text-center text-meta text-muted-foreground">No recognized developer artifacts yet. Add a workspace and run a scan.</Card>
+    {/if}
   {:else}
     <div class="developer-artifact-list overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
       {#each sortedItems as item (item.id)}

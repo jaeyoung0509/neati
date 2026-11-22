@@ -332,6 +332,8 @@ impl<'a> ApprovedRemovalTarget<'a> {
 /// immediately before removal.
 pub struct RemovalExecutor {
     backend: Arc<dyn neati_platform::RemovalBackend>,
+    /// Replaces the native final use probe in tests only (#489).
+    final_use_probe: Option<Arc<neati_platform::temporary_storage::FinalUseProbe>>,
 }
 
 impl RemovalExecutor {
@@ -341,12 +343,36 @@ impl RemovalExecutor {
     /// production, a recording one in a test — and every reviewed-storage
     /// workflow goes through that decision.
     pub fn new(backend: Arc<dyn neati_platform::RemovalBackend>) -> Self {
-        Self { backend }
+        Self {
+            backend,
+            final_use_probe: None,
+        }
+    }
+
+    /// Supplies the final use probe, so a test's verdict does not depend on
+    /// how fast `lsof` answers on a loaded runner (#489). Production always
+    /// uses the native probe; this does not exist outside tests.
+    #[cfg(test)]
+    pub(crate) fn with_final_use_probe(
+        mut self,
+        probe: Arc<neati_platform::temporary_storage::FinalUseProbe>,
+    ) -> Self {
+        self.final_use_probe = Some(probe);
+        self
     }
 
     /// Removes every target of `plan`, validating each immediately before removal.
     pub fn execute(&self, environment: &PlatformEnvironment, plan: RemovalPlan) -> RemovalResult {
         let backend = self.backend.as_ref();
+        let final_use_probe: &dyn Fn(
+            &PlatformEnvironment,
+            &std::path::Path,
+            &[i32],
+        ) -> neati_core::application::dto::temporary_storage::TemporaryUsageObservation =
+            match &self.final_use_probe {
+                Some(probe) => probe.as_ref(),
+                None => &neati_platform::temporary_storage::native_final_use_probe,
+            };
         Self::execute_with(environment, plan, |approved| {
             if let RemovalScope::DeveloperArtifact {
                 project_root,
@@ -356,10 +382,11 @@ impl RemovalExecutor {
                 ..
             } = &approved.target.scope
             {
-                return neati_platform::temporary_storage::remove_reviewed_framework_unit(
+                return neati_platform::temporary_storage::remove_reviewed_framework_unit_with_probe(
                     environment,
                     snapshot,
                     backend,
+                    final_use_probe,
                     &|staged| {
                         let ownership =
                             neati_platform::artifact_ownership::probe_staged_artifact_ownership(

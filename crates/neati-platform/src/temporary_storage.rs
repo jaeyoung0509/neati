@@ -399,10 +399,44 @@ pub fn snapshot_framework_unit(
     }
 }
 
+/// The use probe that runs immediately before a reviewed unit is removed.
+pub type FinalUseProbe =
+    dyn Fn(&PlatformEnvironment, &Path, &[i32]) -> TemporaryUsageObservation + Send + Sync;
+
+/// The native final use probe: a bounded `lsof` over the unit that ignores
+/// only the caller's exact inspection handles.
+pub fn native_final_use_probe(
+    environment: &PlatformEnvironment,
+    path: &Path,
+    inspection_fds: &[i32],
+) -> TemporaryUsageObservation {
+    observe_with_inspection_handles(environment, path, inspection_fds)
+}
+
 pub fn remove_reviewed_framework_unit(
     environment: &PlatformEnvironment,
     reviewed: &TemporaryUnitSnapshot,
     backend: &dyn crate::removal::RemovalBackend,
+    final_provenance: &dyn Fn(&Path) -> Result<(), String>,
+    final_metadata: &dyn Fn() -> Result<(), String>,
+) -> Result<(), String> {
+    remove_reviewed_framework_unit_with_probe(
+        environment,
+        reviewed,
+        backend,
+        &native_final_use_probe,
+        final_provenance,
+        final_metadata,
+    )
+}
+
+/// As [`remove_reviewed_framework_unit`], with the final use probe supplied by
+/// the caller. Production passes [`native_final_use_probe`].
+pub fn remove_reviewed_framework_unit_with_probe(
+    environment: &PlatformEnvironment,
+    reviewed: &TemporaryUnitSnapshot,
+    backend: &dyn crate::removal::RemovalBackend,
+    final_probe: &dyn Fn(&PlatformEnvironment, &Path, &[i32]) -> TemporaryUsageObservation,
     final_provenance: &dyn Fn(&Path) -> Result<(), String>,
     final_metadata: &dyn Fn() -> Result<(), String>,
 ) -> Result<(), String> {
@@ -417,13 +451,19 @@ pub fn remove_reviewed_framework_unit(
             false,
             Some(&reviewed.root),
             backend,
-            &observe_with_inspection_handles,
+            final_probe,
             Some((final_provenance, final_metadata)),
         )
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (environment, backend, final_provenance, final_metadata);
+        let _ = (
+            environment,
+            backend,
+            final_probe,
+            final_provenance,
+            final_metadata,
+        );
         Err("Framework removal is unavailable on this host.".into())
     }
 }

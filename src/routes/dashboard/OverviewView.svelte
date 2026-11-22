@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { projectCleanupStore } from '../../lib/stores/projectCleanup.svelte';
   import { onMount } from 'svelte';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { scanStore } from '../../lib/stores/scan.svelte';
@@ -170,6 +171,10 @@
   onMount(() => {
     let stopFreshness: (() => void) | undefined;
     let polling = false;
+    // Saved project folders feed one-button Clean (#494); scan them once.
+    if (projectCleanupStore.phase === 'idle' && projectCleanupStore.hasSavedFolders) {
+      void projectCleanupStore.refresh();
+    }
 
     if (cleanupAvailable) {
       stopFreshness = scanStore.observeFreshness();
@@ -278,6 +283,17 @@
         <span>{cleanupActionLabel}</span>
       </Button>
     </div>
+    {#if !projectFoldersUnscanned && projectCleanupStore.phase === 'ready' && projectCleanupStore.selectedBytes > 0}
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted-foreground">
+        <span>Project build output · <span class="font-medium tabular-nums text-foreground">{formatBytes(projectCleanupStore.selectedBytes)}</span> ready, cleaned with the caches.</span>
+        <Button variant="ghost" size="sm" onclick={() => onNavigateTab?.('storage')}>Review in Clean</Button>
+      </div>
+    {:else if !projectFoldersUnscanned && projectCleanupStore.phase === 'scanning'}
+      <p class="flex items-center gap-1.5 text-meta text-muted-foreground" role="status">
+        <LoadingIndicator size="xs" word="scanning" class="text-primary" />
+        Checking project build output…
+      </p>
+    {/if}
     {#if projectFoldersUnscanned && !cleanupBusy}
       <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted-foreground">
         <span>Project build folders are not scanned yet.</span>

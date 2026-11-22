@@ -1218,3 +1218,78 @@ fn saved_project_folder_list_is_bounded_and_absolute() {
         .collect();
     assert!(validate_saved_project_folders(&too_many).is_err());
 }
+
+#[test]
+fn only_idle_verified_build_output_is_preselected() {
+    use neati_platform::open_files::OpenFileState;
+    use std::sync::Mutex as StdMutex;
+    let temp = tempfile::tempdir().unwrap();
+    let root = fs::canonicalize(temp.path()).unwrap().join("workspace");
+    let rust = root.join("rust-app");
+    fs::create_dir_all(rust.join("target/debug")).unwrap();
+    fs::write(rust.join("Cargo.toml"), "[package]\nname='fixture'\n").unwrap();
+    fs::write(rust.join("target/debug/app"), [7u8; 64]).unwrap();
+    let node = root.join("web-app");
+    fs::create_dir_all(node.join("node_modules/pkg")).unwrap();
+    fs::write(node.join("package.json"), "{}").unwrap();
+    fs::write(node.join("node_modules/pkg/index.js"), [8u8; 64]).unwrap();
+
+    for (state, expected) in [
+        (OpenFileState::Idle, true),
+        (OpenFileState::InUse, false),
+        (OpenFileState::Unknown, false),
+    ] {
+        let asked = StdMutex::new(Vec::new());
+        let probe = |paths: &[PathBuf], _: &dyn Fn() -> bool| {
+            asked.lock().unwrap().extend(paths.iter().cloned());
+            vec![state; paths.len()]
+        };
+        let inventory = DeveloperArtifactScanner::scan_workspaces_with_use_probe(
+            &environment_with_home(temp.path()),
+            &[workspace_record(&root)],
+            FolderAccess::NotGated,
+            Arc::new(AtomicBool::new(false)),
+            |_| {},
+            &probe,
+        )
+        .unwrap();
+        let find = |kind: DeveloperArtifactKind| {
+            inventory
+                .records
+                .values()
+                .find(|record| record.artifact.kind == kind)
+                .unwrap_or_else(|| panic!("{kind:?} is reported"))
+                .artifact
+                .clone()
+        };
+        let target = find(DeveloperArtifactKind::CargoTarget);
+        assert_eq!(target.status, DeveloperArtifactStatus::Complete);
+        assert_eq!(target.selected_by_default, expected, "{state:?}");
+        // A dependency store is never preselected and never even asked about.
+        assert!(!find(DeveloperArtifactKind::NodeModules).selected_by_default);
+        let asked = asked.lock().unwrap();
+        assert_eq!(asked.as_slice(), [rust.join("target")], "{state:?}");
+    }
+}
+
+#[test]
+fn only_compiler_build_outputs_qualify_for_preselection() {
+    use preselection::is_build_output;
+    assert!(is_build_output(DeveloperArtifactKind::CargoTarget));
+    assert!(is_build_output(DeveloperArtifactKind::GradleBuild));
+    for kind in [
+        DeveloperArtifactKind::NodeModules,
+        DeveloperArtifactKind::PythonVenv,
+        DeveloperArtifactKind::ComposerVendor,
+        DeveloperArtifactKind::RubyBundle,
+        DeveloperArtifactKind::ElixirDeps,
+        DeveloperArtifactKind::GoModuleCache,
+        DeveloperArtifactKind::FlutterTooling,
+        DeveloperArtifactKind::NextOutput,
+        DeveloperArtifactKind::SvelteKitOutput,
+        DeveloperArtifactKind::TerraformCache,
+        DeveloperArtifactKind::DotnetBin,
+    ] {
+        assert!(!is_build_output(kind), "{kind:?}");
+    }
+}

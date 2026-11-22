@@ -59,7 +59,16 @@ describe('developer artifact review workflow', () => {
 
     expect(events).toContain('artifact_found');
     expect(result.items.length).toBeGreaterThan(0);
-    expect(result.items.every((item) => item.selected_by_default === false)).toBe(true);
+    // Only complete, verified compiler build output is preselected (#494).
+    const buildOutputs = new Set(['cargo_target', 'gradle_build']);
+    expect(
+      result.items.every(
+        (item) =>
+          item.selected_by_default ===
+          (buildOutputs.has(item.kind) && item.status === 'complete' && item.ownership.state === 'verified_generated')
+      )
+    ).toBe(true);
+    expect(result.items.some((item) => item.selected_by_default)).toBe(true);
     expect(result.items.some((item) => item.ecosystem === 'rust')).toBe(true);
   });
 

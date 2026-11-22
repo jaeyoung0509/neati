@@ -358,6 +358,11 @@
       case 'finished':
         scanResult = event.result;
         items = event.result.items;
+        // Idle, verified build output is preselected by the backend (#494);
+        // dependency stores and anything uncertain stay unselected.
+        selectedIds = nonOverlappingArtifactIds(
+          event.result.items.filter((item) => item.selected_by_default && canManuallyClean(item))
+        );
         uninspected = event.result.uninspected ?? [];
         discoveredCount = event.result.discovered_count;
         measuredCount = event.result.measured_count;

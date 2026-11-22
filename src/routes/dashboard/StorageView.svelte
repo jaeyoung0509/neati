@@ -29,6 +29,9 @@
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import SelectionToolbar from '../../lib/components/SelectionToolbar.svelte';
+  import ProjectBuildOutputCard from '../../lib/components/ProjectBuildOutputCard.svelte';
+  import { projectCleanupStore } from '../../lib/stores/projectCleanup.svelte';
+  import { formatBytes } from '../../lib/utils/format';
   import DeveloperArtifactsView from './DeveloperArtifactsView.svelte';
   import LargeFilesView from './LargeFilesView.svelte';
   import ApplicationsView from './ApplicationsView.svelte';
@@ -68,6 +71,8 @@
   onMount(() => {
     void platformCapabilitiesStore.load();
     void platformContextStore.load();
+    // Project build output is part of Clean (#494); scan saved folders once.
+    if (projectCleanupStore.phase === 'idle') void projectCleanupStore.refresh();
     return () => { quitCancelled = true; };
   });
 
@@ -94,6 +99,26 @@
       item => scanStore.selectedMap[item.id] && isActionable(item)
     )) ?? false
   );
+  let projectSelection = $derived(projectCleanupStore.selectedItems);
+  let projectNotice = $state<string | null>(null);
+
+  function rescanAll() {
+    void scanStore.runScan();
+    void projectCleanupStore.refresh();
+  }
+
+  /** The one Clean action also removes the selected project build output (#494). */
+  async function cleanProjectBuildOutput() {
+    if (projectCleanupStore.selectedIds.length === 0) return;
+    const removal = await projectCleanupStore.clean();
+    if (!removal) {
+      projectNotice = projectCleanupStore.error;
+      return;
+    }
+    const kept = removal.failed_count + removal.skipped_count;
+    projectNotice = `Removed ${formatBytes(removal.removed_allocated_size)} of project build output`
+      + (kept > 0 ? ` · ${kept} kept (in use or changed)` : '') + '.';
+  }
   let showResultModal = $state(false);
   let review = $state<{ scanId: string; plan: PlanPreview } | null>(null);
   let isPreparingReview = $state(false);
@@ -178,6 +203,11 @@
 
   async function handleCleanSelected() {
     if (!scan || !scanStore.canClean) return;
+    projectNotice = null;
+    if (!hasSelectedAction) {
+      await cleanProjectBuildOutput();
+      return;
+    }
     const scanId = scan.scan_id;
     const items = scan.categories.flatMap(category => category.items)
       .filter(item => scanStore.selectedMap[item.id] && isActionable(item));
@@ -190,6 +220,7 @@
         } else {
           const result = await scanStore.executePreparedPlan(plan, false);
           if (result) showResultModal = true;
+          await cleanProjectBuildOutput();
         }
       }
     } finally {
@@ -210,6 +241,7 @@
     scanStore.executePreparedPlan(plan, true).then((res) => {
       if (res) {
         showResultModal = true;
+        void cleanProjectBuildOutput();
       } else {
         document.getElementById(storagePanelId)?.focus();
       }
@@ -258,7 +290,7 @@
         variant="outline"
         size="sm"
         disabled={scanStore.isScanning || scanStore.isCleaning}
-        onclick={() => scanStore.runScan()}
+        onclick={rescanAll}
         class="gap-1.5"
         id="storage-scan-button"
         motion="paint"
@@ -383,7 +415,14 @@
               onSelectCategory={(cat) => onSelectCategory(cat)}
             />
           {/each}
+          <ProjectBuildOutputCard
+            disabled={!scanStore.canClean || isPreparingReview || scanStore.isCleaning}
+            onOpenProjects={() => handleTabClick('developer-artifacts')}
+          />
         </div>
+        {#if projectNotice}
+          <p class="mt-2 text-meta text-muted-foreground" role="status">{projectNotice}</p>
+        {/if}
       {:else}
         <EmptyState icon={HardDrive} title={presentation.title} description={presentation.description} class="border-solid bg-card py-6" />
       {/if}
@@ -393,17 +432,17 @@
       <CleanupGuidanceList {scan} bind:open={itemDetailsOpen} summaryId={`${storagePanelId}-item-details`} onCategory={onSelectCategory} onQuit={platformContextStore.context?.platform === 'macos' ? previewQuit : undefined} onNavigate={onNavigateTab} current={scanStore.canClean} />
     {/if}
     <!-- Review follows the list in both visual and keyboard order. -->
-      {#if scan && presentation.items.some(isActionable) && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
+      {#if scan && (presentation.items.some(isActionable) || projectSelection.length > 0) && !scanStore.isScanning && !scanStore.isCleaning && !scanStore.isRefreshingAfterClean}
       <div class="storage-selection">
       <SelectionToolbar
-        selectedCount={scanStore.selectedCount}
-        selectedBytes={scanStore.reclaimableBytes}
+        selectedCount={scanStore.selectedCount + projectSelection.length}
+        selectedBytes={scanStore.reclaimableBytes + projectCleanupStore.selectedBytes}
         unestimatedCount={summarizeCategory(scan?.categories.flatMap(category => category.items) ?? [], scanStore.selectedMap).selected_unestimated_count}
         manualCount={scanStore.manualSelectedCount}
         actionLabel="Clean selected"
         onAction={handleCleanSelected}
-        isActionDisabled={!scanStore.canClean || !hasSelectedAction || isPreparingReview}
-        isActionLoading={scanStore.isCleaning || isPreparingReview}
+        isActionDisabled={!scanStore.canClean || (!hasSelectedAction && projectSelection.length === 0) || isPreparingReview || projectCleanupStore.phase === 'cleaning'}
+        isActionLoading={scanStore.isCleaning || isPreparingReview || projectCleanupStore.phase === 'cleaning'}
         isSelectionDisabled={!scanStore.canClean}
       >
         {#snippet extraActions()}

@@ -257,7 +257,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     ownership: { state: 'verified_generated' },
     status: 'complete',
     incomplete_reason: null,
-    selected_by_default: false,
+    selected_by_default: true,
   },
   {
     id: 'artifact-node-modules',
@@ -293,7 +293,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     ownership: { state: 'verified_generated' },
     status: 'complete',
     incomplete_reason: null,
-    selected_by_default: false,
+    selected_by_default: true,
   },
   {
     id: 'artifact-php-vendor',

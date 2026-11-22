@@ -327,7 +327,21 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build debug app bundle from verified frontend
-        run: pnpm tauri build --debug --bundles app --config .github/tauri.package-ci.json
+        run: pnpm tauri build --debug --bundles app --config .github/tauri.package-ci.json --config .github/tauri.adhoc-sign-ci.json
+
+      # Releases sign the bundle ad hoc when no identity is configured (#484).
+      # The smoke build uses the same configuration and must verify.
+      - name: Verify the ad-hoc bundle signature
+        run: |
+          set -euo pipefail
+          APP_PATHS=$(find target src-tauri/target -path '*/debug/bundle/macos/neati.app' -type d -prune 2>/dev/null || true)
+          APP_COUNT=$(printf '%s\n' "$APP_PATHS" | sed '/^$/d' | wc -l | tr -d ' ')
+          if [ "$APP_COUNT" -ne 1 ]; then
+            echo "Expected exactly one macOS app bundle, found $APP_COUNT"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "$APP_PATHS"
+          codesign --display --verbose=2 "$APP_PATHS" 2>&1 | grep -E '^(Identifier|Signature|Sealed Resources)'
 
   package-windows:
     name: Package Smoke (Windows x64 NSIS)

@@ -173,13 +173,17 @@ temporary log.
 
 #### Opening unsigned beta builds on macOS
 
-The macOS beta is unsigned and not notarized. That is a dated decision recorded
-in the [code signing policy](CODE_SIGNING_POLICY.md#macos-notarization): neati
-does not hold a paid Apple Developer ID, so the `.dmg` is never submitted to
-Apple's notary service and carries no stapled ticket. macOS Gatekeeper therefore
-blocks the first launch and displays a security warning (*"cannot be opened
-because the developer cannot be verified"* or, for some download paths,
-*"is damaged and can't be opened"*).
+The macOS beta is signed ad hoc, not with an Apple Developer ID, and is not
+notarized. That is a dated decision recorded in the
+[code signing policy](CODE_SIGNING_POLICY.md#macos-notarization): neati does not
+hold a paid Apple Developer ID, so the `.dmg` is never submitted to Apple's
+notary service and carries no stapled ticket. macOS Gatekeeper therefore blocks
+the first launch and displays a security warning (*"cannot be opened because
+the developer cannot be verified"* or *"Apple could not verify..."*).
+
+If macOS instead says *"neati is damaged and can't be opened"*, you have
+v0.3.122, whose app bundle shipped without a complete signature (#484).
+Download a later release; do not clear the quarantine attribute to get past it.
 
 To launch neati on macOS:
 1. Open the downloaded `.dmg` and drag **neati.app** into `/Applications`.

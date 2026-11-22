@@ -39,9 +39,10 @@ use crate::execution_budget::ExecutionBudgets;
 use crate::large_files::{LargeFileInventory, LargeFileScanner};
 use crate::models::{
     AppLeftoverInventory, AppUninstallInspection, CapabilityAccess, DeveloperArtifactScanEvent,
-    DeveloperArtifactScanResult, DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent,
-    LargeFileScanRequest, LargeFileScanResult, PlatformCapabilitiesProvider, PlatformFeature,
-    RemovalPlanPreview, RemovalResult,
+    DeveloperArtifactScanResult, DeveloperWorkspace, DeveloperWorkspaceRestore,
+    DeveloperWorkspaceSuggestion, InstalledAppInventory, LargeFileScanEvent, LargeFileScanRequest,
+    LargeFileScanResult, PlatformCapabilitiesProvider, PlatformFeature, RemovalPlanPreview,
+    RemovalResult,
 };
 use crate::operation_gate::StorageOperationGate;
 use crate::removal_manager::{RemovalExecutor, RemovalPlan, RemovalPlanner};
@@ -125,6 +126,7 @@ pub struct StorageService {
     system_actions: Arc<dyn neati_platform::SystemActionProvider>,
     platform_capabilities: Arc<dyn PlatformCapabilitiesProvider>,
     temporary_review: Option<Arc<super::temporary_storage::TemporaryStorageService>>,
+    settings: Option<Arc<super::SettingsAuthority>>,
 }
 
 impl StorageService {
@@ -145,6 +147,20 @@ impl StorageService {
             system_actions,
             platform_capabilities,
             temporary_review: None,
+            settings: None,
+        }
+    }
+
+    /// Lets the project review read the folders saved in settings (#486).
+    pub fn with_settings(mut self, settings: Arc<super::SettingsAuthority>) -> Self {
+        self.settings = Some(settings);
+        self
+    }
+
+    fn saved_project_folders(&self) -> Result<Vec<String>, String> {
+        match &self.settings {
+            Some(settings) => Ok(settings.snapshot()?.project_folders),
+            None => Ok(Vec::new()),
         }
     }
 
@@ -390,6 +406,64 @@ impl StorageService {
                 crate::developer_artifacts::pick_workspace(&environment, &worker_state.workspaces)
             },
             "Developer workspace picker worker panicked",
+        )
+        .await
+    }
+
+    /// Registers the saved project folders again, validating each (#486).
+    pub async fn restore_developer_workspaces(&self) -> Result<DeveloperWorkspaceRestore, String> {
+        let saved = self.saved_project_folders()?;
+        let environment = self.environment.clone();
+        let worker_state = self.state.clone();
+        crate::blocking::run_blocking(
+            move || {
+                Ok(crate::developer_artifacts::restore_workspaces(
+                    &environment,
+                    &saved,
+                    &worker_state.workspaces,
+                ))
+            },
+            "Developer workspace restore worker panicked",
+        )
+        .await
+    }
+
+    /// Likely project folders that are not saved yet. Hints only.
+    pub async fn suggest_developer_workspaces(
+        &self,
+    ) -> Result<Vec<DeveloperWorkspaceSuggestion>, String> {
+        let saved = self.saved_project_folders()?;
+        let environment = self.environment.clone();
+        crate::blocking::run_blocking(
+            move || {
+                Ok(crate::developer_artifacts::suggest_workspaces(
+                    &environment,
+                    &saved,
+                ))
+            },
+            "Developer workspace suggestion worker panicked",
+        )
+        .await
+    }
+
+    /// Registers a folder the person accepted from the current suggestions.
+    pub async fn add_suggested_developer_workspace(
+        &self,
+        path: String,
+    ) -> Result<DeveloperWorkspace, String> {
+        let saved = self.saved_project_folders()?;
+        let environment = self.environment.clone();
+        let worker_state = self.state.clone();
+        crate::blocking::run_blocking(
+            move || {
+                crate::developer_artifacts::register_suggested_workspace(
+                    &environment,
+                    &path,
+                    &saved,
+                    &worker_state.workspaces,
+                )
+            },
+            "Developer workspace suggestion worker panicked",
         )
         .await
     }

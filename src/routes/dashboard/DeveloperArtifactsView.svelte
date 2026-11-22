@@ -9,6 +9,8 @@
     DeveloperArtifactUninspected,
     DeveloperArtifactUninspectedReason,
     DeveloperWorkspace,
+    DeveloperWorkspaceRefusal,
+    DeveloperWorkspaceSuggestion,
     RemovalPlanPreview,
     RemovalResult,
   } from '../../lib/models/types';
@@ -21,14 +23,18 @@
     refusalForPreview,
     tauriCancelDeveloperArtifactScan,
     tauriExecuteRemovalPlan,
+    tauriAddSuggestedDeveloperWorkspace,
     tauriPickDeveloperWorkspace,
     tauriPrepareDeveloperArtifactCleanup,
     tauriRegisterDeveloperHomeWorkspace,
+    tauriRestoreDeveloperWorkspaces,
+    tauriSuggestDeveloperWorkspaces,
     tauriShowInFileManager,
     tauriStartDeveloperArtifactScan,
   } from '../../lib/utils/tauri';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { developerArtifactKindLabel } from '../../lib/utils/developerArtifactKinds';
+  import { settingsStore } from '../../lib/stores/settings.svelte';
   import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { nonOverlappingArtifactIds, remainingArtifactScopes, toggleArtifactSelection } from '../../lib/utils/developerArtifactSelection';
   import { canReveal, revealUnavailableReason, runReveal } from '../../lib/utils/reveal';
@@ -59,11 +65,16 @@
 
   onMount(() => {
     void platformContextStore.load();
+    void restoreSavedFolders();
   });
 
   type SortKey = 'size' | 'activity' | 'project' | 'type';
 
   let workspaces = $state<DeveloperWorkspace[]>([]);
+  // Likely project folders that are not saved yet (#486). Hints only.
+  let suggestions = $state<DeveloperWorkspaceSuggestion[]>([]);
+  // Saved folders that no longer validate; they stay saved until removed.
+  let restoreRefusals = $state<DeveloperWorkspaceRefusal[]>([]);
   let selectedWorkspaceIds = $state<string[]>([]);
   // The last result seeds this view once; every scan after that owns the state,
   // so the prop read is intentionally untracked.
@@ -208,19 +219,90 @@
     return 'Unreadable';
   }
 
+  function savedProjectFolders(): string[] {
+    return settingsStore.settings.project_folders ?? [];
+  }
+
+  /** Remembers a folder so the next launch scans it again (#486). */
+  async function rememberFolder(workspace: DeveloperWorkspace) {
+    const saved = savedProjectFolders();
+    if (saved.includes(workspace.path)) return;
+    await settingsStore.save({ project_folders: [...saved, workspace.path] });
+  }
+
+  async function forgetFolder(path: string) {
+    const saved = savedProjectFolders();
+    if (!saved.includes(path)) return;
+    await settingsStore.save({ project_folders: saved.filter((folder) => folder !== path) });
+  }
+
+  function includeWorkspaces(added: DeveloperWorkspace[]) {
+    const known = new Set(workspaces.map((workspace) => workspace.id));
+    workspaces = [...workspaces, ...added.filter((workspace) => !known.has(workspace.id))];
+    selectedWorkspaceIds = [...new Set([...selectedWorkspaceIds, ...added.map((workspace) => workspace.id)])];
+  }
+
+  async function refreshSuggestions() {
+    try {
+      suggestions = await tauriSuggestDeveloperWorkspaces();
+    } catch {
+      suggestions = [];
+    }
+  }
+
+  /**
+   * Registers the saved project folders again and scans them, so a folder
+   * added once is found on every visit without another choice (#486).
+   */
+  async function restoreSavedFolders() {
+    try {
+      const restore = await tauriRestoreDeveloperWorkspaces();
+      restoreRefusals = restore.refused;
+      if (restore.workspaces.length > 0) {
+        includeWorkspaces(restore.workspaces);
+        if (!scanResult && !isScanning) await runScan(selectedWorkspaceIds);
+      }
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : String(cause);
+    }
+    await refreshSuggestions();
+  }
+
   async function addWorkspace() {
     error = null;
     try {
       const workspace = await tauriPickDeveloperWorkspace();
-      if (!workspace || workspaces.some((candidate) => candidate.id === workspace.id)) return;
-      workspaces = [...workspaces, workspace];
-      selectedWorkspaceIds = [...selectedWorkspaceIds, workspace.id];
+      if (!workspace) return;
+      includeWorkspaces([workspace]);
+      await rememberFolder(workspace);
+      await refreshSuggestions();
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
     }
   }
 
+  async function addSuggestedFolder(path: string) {
+    error = null;
+    try {
+      const workspace = await tauriAddSuggestedDeveloperWorkspace(path);
+      includeWorkspaces([workspace]);
+      await rememberFolder(workspace);
+      await refreshSuggestions();
+      await runScan(selectedWorkspaceIds);
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : String(cause);
+    }
+  }
+
+  async function forgetRefusedFolder(path: string) {
+    await forgetFolder(path);
+    restoreRefusals = restoreRefusals.filter((refusal) => refusal.path !== path);
+    await refreshSuggestions();
+  }
+
   function removeWorkspace(id: string) {
+    const removed = workspaces.find((workspace) => workspace.id === id);
+    if (removed) void forgetFolder(removed.path).then(refreshSuggestions);
     workspaces = workspaces.filter((workspace) => workspace.id !== id);
     selectedWorkspaceIds = selectedWorkspaceIds.filter((workspaceId) => workspaceId !== id);
     if (selectedWorkspaceIds.length === 0) {
@@ -468,9 +550,40 @@
       </div>
     </div>
 
+    {#if suggestions.length > 0}
+      <div class="flex flex-wrap items-center gap-2" aria-label="Suggested project folders">
+        <span class="text-meta text-muted-foreground">Suggested</span>
+        {#each suggestions as suggestion (suggestion.path)}
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => addSuggestedFolder(suggestion.path)}
+            disabled={isScanning}
+            class="max-w-full gap-1.5"
+            title={`Add ${suggestion.display_path} and scan it`}
+          >
+            <FolderOpen size={13} aria-hidden="true" />
+            <span class="truncate font-mono">{suggestion.display_path}</span>
+            <span class="shrink-0 text-muted-foreground">· {suggestion.project_count} {suggestion.project_count === 1 ? 'project' : 'projects'}</span>
+          </Button>
+        {/each}
+      </div>
+    {/if}
+
+    {#if restoreRefusals.length > 0}
+      <div class="status-panel-warning space-y-1 rounded-lg border p-3 text-meta" role="status">
+        {#each restoreRefusals as refusal (refusal.path)}
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="min-w-0 break-all"><span class="font-mono">{refusal.path}</span> · {refusal.reason}</span>
+            <Button variant="ghost" size="sm" onclick={() => forgetRefusedFolder(refusal.path)}>Forget</Button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
     {#if workspaces.length === 0}
       <div class="rounded-lg border border-dashed border-border/80 p-4 text-meta text-muted-foreground">
-        <span class="font-medium text-foreground">Scan this computer</span> searches your user-owned files automatically. Add a folder only when you want a narrower scan.
+        <span class="font-medium text-foreground">Add folder</span> once and neati remembers it, scanning it whenever you open Projects. <span class="font-medium text-foreground">Scan this computer</span> searches all of your user-owned files in one pass.
       </div>
     {:else}
       <div class="grid gap-2 sm:grid-cols-2">

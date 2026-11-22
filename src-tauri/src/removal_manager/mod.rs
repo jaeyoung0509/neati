@@ -912,6 +912,7 @@ mod tests {
                 id: "fixture-workspace".into(),
                 name: "Fixture".into(),
                 display_path: root.to_string_lossy().into_owned(),
+                path: root.to_string_lossy().into_owned(),
             },
             path: root.clone(),
             identity: identity_from_path(&root).unwrap(),

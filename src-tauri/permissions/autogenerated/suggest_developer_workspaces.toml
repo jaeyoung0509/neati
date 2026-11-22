@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-suggest-developer-workspaces"
+description = "Enables the suggest_developer_workspaces command without any pre-configured scope."
+commands.allow = ["suggest_developer_workspaces"]
+
+[[permission]]
+identifier = "deny-suggest-developer-workspaces"
+description = "Denies the suggest_developer_workspaces command without any pre-configured scope."
+commands.deny = ["suggest_developer_workspaces"]

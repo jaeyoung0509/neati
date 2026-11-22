@@ -30,6 +30,7 @@ fn workspace(root: &Path) -> DeveloperWorkspaceRecord {
             id: Uuid::new_v4().to_string(),
             name: "Fixture".into(),
             display_path: root.display().to_string(),
+            path: root.display().to_string(),
         },
         path: root.into(),
         identity: identity_from_path(root).unwrap(),

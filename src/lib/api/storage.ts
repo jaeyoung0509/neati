@@ -8,6 +8,8 @@ import type {
   DeveloperArtifactScanEvent,
   DeveloperArtifactScanResult,
   DeveloperWorkspace,
+  DeveloperWorkspaceRestore,
+  DeveloperWorkspaceSuggestion,
   InstalledApp,
   InstalledAppInventory,
   LargeFileItem,
@@ -46,6 +48,12 @@ export interface StorageManagementApi {
   revealLargeFile(itemId: string): Promise<void>;
   pickDeveloperWorkspace(): Promise<DeveloperWorkspace | null>;
   registerDeveloperHomeWorkspace(): Promise<DeveloperWorkspace>;
+  /** Registers the project folders saved in settings again; the backend validates each. */
+  restoreDeveloperWorkspaces(): Promise<DeveloperWorkspaceRestore>;
+  /** Likely project folders that are not saved yet. Hints only. */
+  suggestDeveloperWorkspaces(): Promise<DeveloperWorkspaceSuggestion[]>;
+  /** Registers a folder the backend itself suggested. */
+  addSuggestedDeveloperWorkspace(path: string): Promise<DeveloperWorkspace>;
   startDeveloperArtifactScan(
     workspaceIds: string[],
     onEvent: (event: DeveloperArtifactScanEvent) => void
@@ -90,6 +98,18 @@ const nativeStorageApi: StorageManagementApi = {
 
   async registerDeveloperHomeWorkspace() {
     return await unwrap(commands.registerDeveloperHomeWorkspace());
+  },
+
+  async restoreDeveloperWorkspaces() {
+    return await unwrap(commands.restoreDeveloperWorkspaces());
+  },
+
+  async suggestDeveloperWorkspaces() {
+    return await unwrap(commands.suggestDeveloperWorkspaces());
+  },
+
+  async addSuggestedDeveloperWorkspace(path) {
+    return await unwrap(commands.addSuggestedDeveloperWorkspace(path));
   },
 
   async startDeveloperArtifactScan(workspaceIds, onEvent) {
@@ -188,18 +208,36 @@ const mockDeveloperWorkspaces: DeveloperWorkspace[] = [
     id: 'workspace-myproject',
     name: 'Myproject',
     display_path: '/Users/mock/Myproject',
+    path: '/Users/mock/Myproject',
   },
   {
     id: 'workspace-work',
     name: 'work',
     display_path: '/Users/mock/work',
+    path: '/Users/mock/work',
   },
   {
     id: 'workspace-this-mac',
     name: 'This Computer',
     display_path: '/Users/mock',
+    path: '/Users/mock',
   },
 ];
+
+const mockDeveloperWorkspaceSuggestions: DeveloperWorkspaceSuggestion[] = [
+  { path: '/Users/mock/Myproject', display_path: '/Users/mock/Myproject', project_count: 6 },
+];
+
+/** The preview keeps settings in localStorage, as the mock settings API does. */
+function mockSavedProjectFolders(): string[] {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const saved = JSON.parse(localStorage.getItem('neati.settings') ?? '{}');
+    return Array.isArray(saved.project_folders) ? saved.project_folders : [];
+  } catch {
+    return [];
+  }
+}
 
 const mockDeveloperArtifacts: DeveloperArtifact[] = [
   ...frameworkArtifactFixtures,
@@ -565,6 +603,31 @@ const mockStorageApi: StorageManagementApi = {
 
   async registerDeveloperHomeWorkspace() {
     return { ...mockDeveloperWorkspaces[2] };
+  },
+
+  async restoreDeveloperWorkspaces() {
+    const saved = mockSavedProjectFolders();
+    return {
+      workspaces: mockDeveloperWorkspaces
+        .filter((workspace) => saved.includes(workspace.path))
+        .map((workspace) => ({ ...workspace })),
+      refused: [],
+    };
+  },
+
+  async suggestDeveloperWorkspaces() {
+    const saved = mockSavedProjectFolders();
+    return mockDeveloperWorkspaceSuggestions.filter(
+      (suggestion) => !saved.includes(suggestion.path)
+    );
+  },
+
+  async addSuggestedDeveloperWorkspace(path) {
+    const workspace = mockDeveloperWorkspaces.find((candidate) => candidate.path === path);
+    if (!workspace || !mockDeveloperWorkspaceSuggestions.some((suggestion) => suggestion.path === path)) {
+      throw new Error('That folder is no longer a suggestion. Use Add folder to choose it.');
+    }
+    return { ...workspace };
   },
 
   async startDeveloperArtifactScan(workspaceIds, onEvent) {

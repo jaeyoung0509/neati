@@ -5,6 +5,33 @@ pub struct DeveloperWorkspace {
     pub id: String,
     pub name: String,
     pub display_path: String,
+    /// The canonical folder, so the interface can remember it in settings.
+    /// A saved path grants nothing: it is validated again before every use.
+    pub path: String,
+}
+
+/// A likely project folder in the home directory (#486). A hint only:
+/// nothing is scanned until the person adds it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct DeveloperWorkspaceSuggestion {
+    pub path: String,
+    pub display_path: String,
+    /// Direct children that carry a project marker, capped by the probe.
+    pub project_count: u32,
+}
+
+/// The saved project folders that were registered again at launch, and the
+/// ones that no longer validate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct DeveloperWorkspaceRestore {
+    pub workspaces: Vec<DeveloperWorkspace>,
+    pub refused: Vec<DeveloperWorkspaceRefusal>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct DeveloperWorkspaceRefusal {
+    pub path: String,
+    pub reason: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, specta::Type)]

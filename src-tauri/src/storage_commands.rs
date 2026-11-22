@@ -16,8 +16,9 @@ use crate::commands::DesktopState;
 use crate::events::storage::{TauriDeveloperArtifactProgress, TauriLargeFileScanProgress};
 use crate::models::{
     AppLeftoverInventory, AppUninstallInspection, DeveloperArtifactScanEvent,
-    DeveloperArtifactScanResult, DeveloperWorkspace, InstalledAppInventory, LargeFileScanEvent,
-    LargeFileScanRequest, LargeFileScanResult, RemovalPlanPreview, RemovalResult,
+    DeveloperArtifactScanResult, DeveloperWorkspace, DeveloperWorkspaceRestore,
+    DeveloperWorkspaceSuggestion, InstalledAppInventory, LargeFileScanEvent, LargeFileScanRequest,
+    LargeFileScanResult, RemovalPlanPreview, RemovalResult,
 };
 use crate::services::progress::{DeveloperArtifactScanSink, LargeFileScanSink};
 
@@ -132,6 +133,31 @@ pub async fn pick_developer_workspace(
     state: State<'_, DesktopState>,
 ) -> Result<Option<DeveloperWorkspace>, String> {
     state.storage.pick_developer_workspace().await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn restore_developer_workspaces(
+    state: State<'_, DesktopState>,
+) -> Result<DeveloperWorkspaceRestore, String> {
+    state.storage.restore_developer_workspaces().await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn suggest_developer_workspaces(
+    state: State<'_, DesktopState>,
+) -> Result<Vec<DeveloperWorkspaceSuggestion>, String> {
+    state.storage.suggest_developer_workspaces().await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn add_suggested_developer_workspace(
+    path: String,
+    state: State<'_, DesktopState>,
+) -> Result<DeveloperWorkspace, String> {
+    state.storage.add_suggested_developer_workspace(path).await
 }
 
 #[tauri::command]

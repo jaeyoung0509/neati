@@ -140,6 +140,15 @@ first launch and the build is not notarized. `BUILD_INFO-macos-arm64.txt`
 records `Code signature: self-signed identity (not Apple Developer ID)` or
 `ad-hoc` accordingly.
 
+Without those secrets the job passes Tauri's pseudo-identity `-` through
+`.github/tauri.adhoc-sign-ci.json`, which signs the whole bundle ad hoc. An app
+that carries only the linker's signature on its executable has no sealed
+resources, and Gatekeeper reports a downloaded copy as damaged instead of
+offering **Open Anyway**; v0.3.122 shipped that way (#484). The release job now
+mounts the DMG and refuses to publish unless its app passes
+`codesign --verify --deep --strict`, and the macOS package smoke job in CI
+builds and verifies with the same configuration.
+
 ## Release artifact verification
 
 Every published artifact is accompanied by:

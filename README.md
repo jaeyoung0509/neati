@@ -20,8 +20,8 @@ remain outside the cleanup boundary.
 The app has four sections and Settings:
 
 - **Home**: an overview of this Mac and the next useful action.
-- **Clean**: caches, project build output, large files, apps, containers and
-  local models.
+- **Clean**: caches, project build output, large files, apps, containers,
+  local models and disks.
 - **System**: performance readings, development ports and Keep Awake.
 - **AI**: usage, agent sessions and advisory controls.
 

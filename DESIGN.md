@@ -340,7 +340,7 @@ Settings. Every feature is a tab inside its section; none was removed.
 
 ```text
 Home              Overview: status and the next useful action
-Clean             Caches · Projects · Large Files · Apps · Containers · Models
+Clean             Caches · Projects · Large Files · Apps · Containers · Models · Disks
 System            Performance · Ports · Keep Awake
 AI                Activity · Controls
 
@@ -364,6 +364,7 @@ Settings          anchored at the bottom
   second policy layer and it never mounts a full route offscreen to collect
   data.
 - The Clean entry carries the reclaimable total from the current scan.
+- A view never repeats its section's tabs as a selector or a cross-link button.
 
 ### Standard page pattern
 

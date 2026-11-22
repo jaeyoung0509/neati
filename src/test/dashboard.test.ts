@@ -106,7 +106,7 @@ describe('Dashboard sidebar affordances', () => {
     const rendered = render(Dashboard);
     expect(rendered.body).toContain('aria-label="Clean views"');
     const tablist = rendered.body.split('aria-label="Clean views"')[1]?.split('</div>')[0] ?? '';
-    for (const label of ['Caches', 'Projects', 'Large Files', 'Apps', 'Containers', 'Models']) {
+    for (const label of ['Caches', 'Projects', 'Large Files', 'Apps', 'Containers', 'Models', 'Disks']) {
       expect(tablist).toContain(`<span>${label}</span>`);
     }
     expect(tablist.match(/>\s*Beta\s*</g)).toHaveLength(2);
@@ -129,6 +129,24 @@ describe('Cleanup-first navigation', () => {
     );
   });
 
+  it('closes the Apps tab only when installed apps cannot be inspected', () => {
+    const appsTab = (body: string) => body.match(/<button[^>]*role="tab"[^>]*>(?:(?!<\/button>).)*<span>Apps<\/span>/s)?.[0] ?? '';
+    platformCapabilitiesStore.capabilities = {
+      ...goldenCapabilitiesByPlatform.macos,
+      installed_apps: { status: 'unavailable', reason: 'Application inventory is not supported here.' },
+    };
+    const closed = appsTab(render(Dashboard).body);
+    expect(closed).toContain('disabled');
+    expect(closed).toContain('Application inventory is not supported here.');
+
+    for (const installed_apps of [{ status: 'available' as const }, { status: 'read_only' as const, reason: 'Inspection only' }]) {
+      platformCapabilitiesStore.capabilities = { ...goldenCapabilitiesByPlatform.macos, installed_apps };
+      const open = appsTab(render(Dashboard).body);
+      expect(open).toContain('<span>Apps</span>');
+      expect(open).not.toMatch(/\sdisabled/);
+    }
+  });
+
   it('opens Memory as a focused page without another section selector', () => {
     const rendered = render(PerformanceView, { props: { initialTab: 'memory', standaloneMemory: true } });
     expect(rendered.body).toContain('Memory readings');
@@ -147,8 +165,8 @@ describe('Cleanup-first navigation', () => {
     const cases: Array<[string, string, string]> = [
       ['overview', 'home', 'overview'],
       ['storage', 'clean', 'storage'],
-      ['disk', 'clean', 'storage'],
-      ['disks', 'clean', 'storage'],
+      ['disk', 'clean', 'disks'],
+      ['disks', 'clean', 'disks'],
       ['large-files', 'clean', 'large-files'],
       ['applications', 'clean', 'applications'],
       ['developer-artifacts', 'clean', 'developer-artifacts'],

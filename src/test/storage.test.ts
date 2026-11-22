@@ -727,14 +727,11 @@ describe('StorageView CTA and responsive toolbar layout', () => {
     expect(scanningRender.body).toContain('data-loading-variant="dots"');
   });
 
-  it('labels the native workflow selector and keeps its region programmatically focusable', () => {
+  it('keeps its region programmatically focusable without a workflow selector of its own', () => {
     const rendered = render(StorageView, { props: { onSelectCategory: vi.fn() } });
-    expect(rendered.body).toMatch(/<select[^>]*aria-label="Storage workflows"[^>]*aria-controls=/);
+    // Workflows are Clean section tabs since #450; the page has no selector of its own.
+    expect(rendered.body).not.toContain('aria-label="Storage workflows"');
     expect(rendered.body).not.toContain('role="tablist"');
-    expect(rendered.body).toContain('Storage tools');
-    expect(rendered.body).toContain('Developer Artifacts');
-    expect(rendered.body).toContain('Large Files');
-    expect(rendered.body).toContain('Disks');
     expect(rendered.body).toContain('tabindex="-1"');
     expect(rendered.body).toContain('outline-none');
     expect(rendered.body).toMatch(/class="space-y-4 rounded-xl outline-none"[^>]*role="region"[^>]*tabindex="-1"/);
@@ -881,54 +878,6 @@ describe('detected versus reclaimable storage copy', () => {
     expect(scanStore.reclaimableBytes).toBe(0);
   });
 
-  it('hides the Applications tab when installed_apps is unavailable', async () => {
-    platformCapabilitiesStore.capabilities = {
-      ...(await mockApi.getPlatformCapabilities()),
-      platform: 'windows',
-      installed_apps: {
-        status: 'unavailable',
-        reason: 'Windows application inventory is not supported. Use Windows Settings.',
-      },
-    };
-
-    const rendered = render(StorageView, {
-      props: { onSelectCategory: vi.fn() },
-    });
-
-    expect(rendered.body).not.toContain('Applications');
-    expect(rendered.body).toContain('Cleanup');
-    expect(rendered.body).toContain('Large Files');
-    expect(rendered.body).toContain('Developer Artifacts');
-    expect(rendered.body).toContain('Disks');
-  });
-
-  it('shows the Applications tab when installed_apps is available', async () => {
-    platformCapabilitiesStore.capabilities = {
-      ...(await mockApi.getPlatformCapabilities()),
-      platform: 'macos',
-      installed_apps: { status: 'available' },
-    };
-
-    const rendered = render(StorageView, {
-      props: { onSelectCategory: vi.fn() },
-    });
-
-    expect(rendered.body).toContain('Applications');
-  });
-
-  it('shows the Applications tab when installed_apps is read_only', async () => {
-    platformCapabilitiesStore.capabilities = {
-      ...(await mockApi.getPlatformCapabilities()),
-      platform: 'windows',
-      installed_apps: { status: 'read_only', reason: 'Inspection only' },
-    };
-
-    const rendered = render(StorageView, {
-      props: { onSelectCategory: vi.fn() },
-    });
-
-    expect(rendered.body).toContain('Applications');
-  });
 });
 
 describe('StorageView scan remediation', () => {

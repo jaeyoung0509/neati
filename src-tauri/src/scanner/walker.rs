@@ -933,7 +933,6 @@ impl DirectoryScanner {
     /// is 4 GB and it is being written right now" and a namespace that silently
     /// vanishes from the totals.
     #[allow(clippy::too_many_arguments)]
-    #[allow(clippy::too_many_arguments)]
     fn scan_aged_children(
         context: &WalkContext<'_>,
         signature: &Signature,

@@ -205,18 +205,21 @@ pub trait PlatformPathsProvider: Send + Sync {
 }
 
 fn is_broad_root(path: &Path) -> bool {
-    if path.parent().is_none() {
-        return true;
-    }
-    #[cfg(windows)]
-    {
-        if let Some(path_str) = path.to_str() {
-            let trimmed = path_str.trim_end_matches(['\\', '/']);
-            if trimmed.len() == 2 && trimmed.ends_with(':') {
-                return true;
-            }
-        }
-    }
+    path.parent().is_none() || is_drive_root(path)
+}
+
+/// `C:` or `C:\` names a whole drive, which `Path::parent` does not report as
+/// a root on Windows.
+#[cfg(windows)]
+fn is_drive_root(path: &Path) -> bool {
+    path.to_str().is_some_and(|path_str| {
+        let trimmed = path_str.trim_end_matches(['\\', '/']);
+        trimmed.len() == 2 && trimmed.ends_with(':')
+    })
+}
+
+#[cfg(not(windows))]
+fn is_drive_root(_path: &Path) -> bool {
     false
 }
 

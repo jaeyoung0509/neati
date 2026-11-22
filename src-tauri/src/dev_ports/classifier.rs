@@ -211,11 +211,7 @@ fn is_protected_process(process_name: &str, raw_cmd: &str, exe_path: Option<&Pat
         "k3s",
         "minikube",
     ];
-    if matches_any(CONTAINERS) {
-        return true;
-    }
-
-    false
+    matches_any(CONTAINERS)
 }
 
 /// Matches positive signatures for local development servers.

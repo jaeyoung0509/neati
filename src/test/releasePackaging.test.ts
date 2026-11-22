@@ -331,6 +331,33 @@ describe('release packaging contracts', () => {
     expect(smokeTest).not.toContain("$doctor.Output -match '(?m)\\bFAIL\\b'");
   });
 
+  it('pauses every Windows job behind WINDOWS_SUPPORT without skipping the macOS release', () => {
+    const gate = "if: ${{ vars.WINDOWS_SUPPORT == 'enabled' }}";
+    const jobHeader = (workflow: string, name: string) =>
+      workflow.split(`    name: ${name}\n`)[1]?.split('\n    steps:')[0] ?? '';
+    const ci = readFileSync(join(repositoryRoot, '.github/workflows/ci.yml'), 'utf8');
+    for (const name of [
+      'Rust Checks (Windows x64)',
+      'Minimum Supported Rust Version (Windows target)',
+      'Package Smoke (Windows x64 NSIS)',
+    ]) {
+      expect(jobHeader(ci, name)).toContain(gate);
+    }
+    expect(jobHeader(ci, 'Rust Checks (macOS)')).not.toContain('WINDOWS_SUPPORT');
+
+    const release = readFileSync(join(repositoryRoot, '.github/workflows/release.yml'), 'utf8');
+    expect(jobHeader(release, 'Build Unsigned Public Beta (Windows x64 NSIS)')).toContain(gate);
+    for (const name of ['Attest Build Provenance', 'Publish Combined GitHub Release']) {
+      const header = jobHeader(release, name);
+      expect(header).toContain("needs.release-mac.result == 'success'");
+      expect(header).toContain("needs.release-windows.result == 'skipped'");
+    }
+    // Published paths come from the resolved set, never a hard-coded Windows file.
+    const publish = release.split('  publish-release:\n')[1] ?? '';
+    expect(publish).toContain('${RELEASE_INSTALLERS}');
+    expect(publish).not.toMatch(/--commit "\$\{GITHUB_SHA\}" \\\n\s+artifacts\/neati-windows/);
+  });
+
   it('uses Node 24-based artifact actions in CI and release workflows', () => {
     const workflows = ['.github/workflows/ci.yml', '.github/workflows/release.yml']
       .map((workflow) => readFileSync(join(repositoryRoot, workflow), 'utf8'))

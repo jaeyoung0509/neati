@@ -191,10 +191,30 @@ const CORPUS: &[Entry] = &[
         16 * KB,
         "editor session log",
     ),
+    // Steam's embedded browser profile is `config/htmlcache/Default` on
+    // macOS (#478); the cache sits beside its cookies and saved sign-ins.
     regen(
-        "Library/Application Support/Steam/htmlcache/Cache/Cache_Data/f_000001",
+        "Library/Application Support/Steam/config/htmlcache/Default/Cache/Cache_Data/000208583613f92a_0",
         128 * KB,
         "embedded browser cache",
+    ),
+    regen(
+        "Library/Application Support/Steam/config/htmlcache/Default/Code Cache/js/0003238a4bea7d7d_0",
+        64 * KB,
+        "embedded browser code cache",
+    ),
+    regen(
+        "Library/Application Support/Steam/config/htmlcache/Default/GPUCache/index",
+        16 * KB,
+        "embedded browser GPU cache index",
+    ),
+    keep(
+        "Library/Application Support/Steam/config/htmlcache/Default/Cookies",
+        "embedded browser cookies",
+    ),
+    keep(
+        "Library/Application Support/Steam/config/htmlcache/Default/Login Data",
+        "embedded browser saved sign-ins",
     ),
     regen(
         "Library/Application Support/Adobe/Common/Media Cache Files/clip 48000.cfa",
@@ -546,9 +566,12 @@ fn accuracy_matches_the_recorded_baseline() {
 /// - 2026-11-22, #478: rows found in mac-cleanup-py, kondo, npkill and
 ///   DevCleaner. Every new state row (device backups, a message database, web
 ///   app storage, Drive file content, a heap dump, notebook checkpoints,
-///   Unreal settings, the Adobe media cache index) is kept. New entries
-///   reclaim VS Code session logs, Steam's web and shader caches and Arc and
-///   Vivaldi crash reports (304 KB). Adobe's media cache and Xcode's
+///   Unreal settings, the Adobe media cache index, Steam's embedded-browser
+///   cookies and saved sign-ins) is kept. New entries reclaim VS Code session
+///   logs, Steam's web and shader caches and Arc and Vivaldi crash reports
+///   (384 KB). Steam's web cache row moved to the real macOS layout,
+///   `config/htmlcache/Default`, where a Mac found 0.5 GB that no entry
+///   covered. Adobe's media cache and Xcode's
 ///   documentation cache and device logs are reported for review. Terraform's
 ///   plugin cache is a configured location, not a default one, so it still has
 ///   no entry (128 KB). Expo's row moved out of the corpus: its guard is the
@@ -586,6 +609,8 @@ fn baseline() -> Accuracy {
             + 8
             + 16
             + 128
+            + 64
+            + 16
             + 64
             + 64
             + 32)

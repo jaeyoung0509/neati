@@ -1111,12 +1111,12 @@ family = "applications"
 risk = "rebuild"
 strategy = "delete_directory"
 platforms = ["macos"]
-paths = ["~/Library/Application Support/Steam/htmlcache/{Cache,Code Cache,GPUCache}"]
+paths = ["~/Library/Application Support/Steam/config/htmlcache/Default/{Cache,Code Cache,GPUCache}"]
 unit = "named_subtree"
 min_age_days = 0
 fail_if_running = ["steam_osx", "Steam Helper"]
 owner = "Steam"
-description = "HTTP, code and GPU caches of Steam's embedded browser. Cookies, local storage, the Steam sign-in and installed games stay outside this scope."
+description = "HTTP, code and GPU caches of the default profile of Steam's embedded browser. Its cookies, saved sign-ins, local storage, the Steam client sign-in and installed games stay outside this scope."
 consequence = "Steam downloads store and community pages again when they are opened."
 
 [[signatures]]

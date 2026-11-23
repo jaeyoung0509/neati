@@ -233,6 +233,8 @@ mod tests {
             status: crate::models::DeveloperArtifactStatus::Complete,
             incomplete_reason: None,
             selected_by_default,
+            project_last_activity: None,
+            clean_inclusion: crate::models::CleanInclusion::NotOffered,
         }
     }
 

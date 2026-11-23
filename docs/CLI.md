@@ -97,6 +97,13 @@ console, and Windows support is paused (#445).
 `--json` prints one object with `"schema": "neati.cli/1"`. Progress goes to
 stderr, and only when stderr is a terminal and `--quiet` is absent.
 
+The one-button set follows the person's cleanup rules in Settings (#504):
+build output of recently worked-on projects can be kept, and dependency
+folders of inactive projects can be included. `projects --json` items carry
+`clean_inclusion` (why an item is in the set or left for review) and, when a
+rule needed it, `project_last_activity`. Both fields are additive; the schema
+stays `neati.cli/1`. The CLI reads the rules and never changes them.
+
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Success. A preview counts as success |

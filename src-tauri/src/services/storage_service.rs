@@ -157,6 +157,14 @@ impl StorageService {
         self
     }
 
+    /// The person's cleanup rules (#504); defaults when no settings are wired.
+    fn cleanup_rules(&self) -> Result<crate::models::CleanupRules, String> {
+        match &self.settings {
+            Some(settings) => Ok(settings.snapshot()?.cleanup_rules),
+            None => Ok(crate::models::CleanupRules::default()),
+        }
+    }
+
     fn saved_project_folders(&self) -> Result<Vec<String>, String> {
         match &self.settings {
             Some(settings) => Ok(settings.snapshot()?.project_folders),
@@ -526,6 +534,7 @@ impl StorageService {
         let operation_gate = self.operation_gate.clone();
         let environment = self.environment.clone();
         let worker_state = self.state.clone();
+        let rules = self.cleanup_rules()?;
         let permit = self.budgets.acquire_storage_read().await?;
 
         crate::blocking::run_blocking(
@@ -535,7 +544,7 @@ impl StorageService {
                     let mut emitted_result: Option<DeveloperArtifactScanResult> = None;
                     let mut active_scan_id: Option<String> = None;
                     let cancel_for_event = cancel.clone();
-                    let inventory_result = DeveloperArtifactScanner::scan_workspaces(
+                    let inventory_result = DeveloperArtifactScanner::scan_workspaces_with_rules(
                         &environment,
                         &workspaces,
                         downloads_access,
@@ -553,6 +562,7 @@ impl StorageService {
                             }
                             progress.emit(event);
                         },
+                        rules,
                     );
                     if let Some(scan_id) = active_scan_id.as_deref() {
                         worker_state.remove_developer_artifact_cancel(scan_id);

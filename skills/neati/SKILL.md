@@ -9,7 +9,13 @@ description: Free disk space on a Mac with the neati CLI. It finds regenerable d
 neati is a macOS storage cleaner for developers. Its CLI uses the same scan,
 plan and removal code as the app, and it only ever removes the set the app's
 one-button **Clean** would. That set is idle, regenerable caches and idle,
-verified compiler build output in the user's saved project folders.
+verified compiler build output in the user's saved project folders. If the
+user turned on the dependency rule in neati's Settings, it also includes the
+dependency folders (`node_modules`, Python environments, `vendor`) of projects
+they have not worked on for a while, when a lockfile can reinstall them. Each
+`neati projects --all --json` item says why it is or is not included
+(`clean_inclusion`). Change those rules only in the app; never edit neati's
+settings file.
 
 ## Before you start
 

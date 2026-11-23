@@ -37,7 +37,7 @@ USAGE:
 COMMANDS:
   status              Disk, memory and the last cleanup
   scan [--all]        Caches neati found; --all includes ones that need review
-  projects [--all]    Build output in your saved project folders
+  projects [--all]    Build output and dependency folders in your saved project folders
       --folder PATH   Also scan this folder for this run (repeatable)
   projects add PATH   Save a project folder (quit neati first)
   projects remove PATH
@@ -65,7 +65,8 @@ OPTIONS:
   --quiet   No progress on stderr
 
 `neati clean` only ever removes the set the app's Clean button would: idle,
-regenerable caches and idle, verified build output. Removing items that need
+regenerable caches, idle, verified build output, and the dependency folders of
+inactive projects when that rule is on in Settings. Removing items that need
 review, large files, apps and Docker data stays in the app. Removal is
 permanent.
 

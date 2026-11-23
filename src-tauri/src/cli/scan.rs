@@ -105,6 +105,8 @@ impl Inventory<'_> {
                     kind: kind_label(&item.kind),
                     path: item.path.clone(),
                     bytes: item.allocated_bytes,
+                    clean_inclusion: item.clean_inclusion,
+                    project_last_activity: item.project_last_activity,
                     status: item.status,
                     rebuild_hint: item.rebuild_hint.clone(),
                 }
@@ -165,8 +167,15 @@ struct ProjectEntry {
     kind: String,
     path: String,
     bytes: u64,
-    /// In the one-button Clean set: verified, complete, idle build output.
+    /// In the one-button Clean set: what the person's cleanup rules include
+    /// and an exact check proved idle (#494, #504).
     ready: bool,
+    /// Why it is in the set or left for review.
+    clean_inclusion: crate::models::CleanInclusion,
+    /// When its project was last worked on (seconds since the epoch), when a
+    /// rule needed to know.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    project_last_activity: Option<u64>,
     status: crate::models::DeveloperArtifactStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     rebuild_hint: Option<String>,
@@ -264,7 +273,7 @@ fn print_projects(
         );
     }
     println!(
-        "Build output ready to clean: {} in {} {}.\n",
+        "Ready to clean under your rules: {} in {} {}.\n",
         format_bytes(report.ready_bytes),
         report.ready_items,
         plural(report.ready_items as u64, "folder", "folders")
@@ -282,9 +291,15 @@ fn print_projects(
             display_path(&item.path, home),
             item.reference
         );
+        if all && !item.ready {
+            println!(
+                "                      {}",
+                inclusion_reason(item.clean_inclusion)
+            );
+        }
     }
     if !all {
-        println!("\n`neati projects --all` also lists dependency folders and other output that needs review in the app.");
+        println!("\n`neati projects --all` also lists dependency folders and other output that needs review in the app, with the reason.");
     }
 }
 
@@ -296,5 +311,21 @@ fn eligibility_label(eligibility: CleanupEligibility) -> &'static str {
         CleanupEligibility::PolicyGated => "off",
         CleanupEligibility::Advisory => "advisory",
         CleanupEligibility::Blocked => "protected",
+    }
+}
+
+/// Why a project item is or is not in the one-button set, for the terminal.
+fn inclusion_reason(inclusion: crate::models::CleanInclusion) -> &'static str {
+    use crate::models::CleanInclusion as Inclusion;
+    match inclusion {
+        Inclusion::Included => "Included by your cleanup rules.",
+        Inclusion::NotOffered => "Always reviewed in the app.",
+        Inclusion::NotVerified => "Its size or generated-only ownership was not fully verified.",
+        Inclusion::RuleOff => "Dependency folders of inactive projects are off in Settings.",
+        Inclusion::NoLockfile => "No lockfile beside it, so a reinstall might not reproduce it.",
+        Inclusion::RecentlyActive => "The project was worked on within your rule's period.",
+        Inclusion::ActivityUnknown => "When the project was last worked on could not be observed.",
+        Inclusion::InUse => "A running process has files open in it.",
+        Inclusion::UseUnknown => "neati could not confirm that nothing is using it.",
     }
 }

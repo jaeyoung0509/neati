@@ -190,6 +190,8 @@ pub struct NeatiSettings {
     pub clean_developer_tools: bool,
     pub clean_docker: bool,
     pub include_rebuild_caches: bool,
+    /// Rules for project leftovers in one-button Clean (#504).
+    pub cleanup_rules: crate::models::CleanupRules,
     pub intensive_cleanup: bool,
     pub theme: String,
     pub excluded_signatures: Vec<String>,
@@ -228,6 +230,7 @@ impl Default for NeatiSettings {
             clean_developer_tools: true,
             clean_docker: true,
             include_rebuild_caches: false,
+            cleanup_rules: crate::models::CleanupRules::default(),
             intensive_cleanup: true,
             theme: "light".to_string(),
             excluded_signatures: Vec::new(),
@@ -347,6 +350,7 @@ impl NeatiSettings {
         // Broad verified cache discovery is now standard. Keep the serialized
         // field only to accept existing settings; it is no longer a preference.
         self.intensive_cleanup = true;
+        self.cleanup_rules = self.cleanup_rules.sanitize();
         let mut sections = HashSet::new();
         self.quick_panel_sections
             .retain(|section| sections.insert(*section));

@@ -560,8 +560,9 @@ fn validate_target<'a>(
     validate_target_with_probe(environment, target, &probe_ownership)
 }
 
-/// A project build output is removed only while no process has files open
-/// in it (#494). Unknown refuses: the check must prove the folder idle.
+/// A project build output or dependency store is removed only while no
+/// process has files open in it (#494, #504). Unknown refuses: the check must
+/// prove the folder idle.
 fn build_output_use_refusal(
     target: &RemovalTarget,
     open_files: &dyn neati_platform::open_files::OpenFileProbe,
@@ -569,7 +570,7 @@ fn build_output_use_refusal(
     let RemovalScope::DeveloperArtifact { kind, .. } = &target.scope else {
         return Ok(());
     };
-    if !crate::developer_artifacts::preselection::is_build_output(*kind) {
+    if !crate::developer_artifacts::preselection::checks_use_before_removal(*kind) {
         return Ok(());
     }
     match crate::developer_artifacts::preselection::refusal_before_removal(
@@ -1141,7 +1142,7 @@ mod tests {
             assert_eq!(backend.removed().is_empty(), !removed, "{state:?}");
             if !removed {
                 assert!(
-                    result.items[0].message.contains("build"),
+                    result.items[0].message.contains("this folder"),
                     "{state:?}: {}",
                     result.items[0].message
                 );
@@ -1592,6 +1593,8 @@ mod tests {
             status: crate::models::DeveloperArtifactStatus::Complete,
             incomplete_reason: None,
             selected_by_default: false,
+            project_last_activity: None,
+            clean_inclusion: crate::models::CleanInclusion::NotOffered,
         };
         let record = crate::developer_artifacts::DeveloperArtifactRecord {
             artifact,
@@ -1701,6 +1704,8 @@ mod tests {
                 status: crate::models::DeveloperArtifactStatus::Complete,
                 incomplete_reason: None,
                 selected_by_default: false,
+                project_last_activity: None,
+                clean_inclusion: crate::models::CleanInclusion::NotOffered,
             },
             path: target.clone(),
             identity: identity_from_path(&target).unwrap(),
@@ -1780,6 +1785,8 @@ mod tests {
                 status: crate::models::DeveloperArtifactStatus::Complete,
                 incomplete_reason: None,
                 selected_by_default: false,
+                project_last_activity: None,
+                clean_inclusion: crate::models::CleanInclusion::NotOffered,
             },
             path: target.clone(),
             identity: identity_from_path(&target).unwrap(),

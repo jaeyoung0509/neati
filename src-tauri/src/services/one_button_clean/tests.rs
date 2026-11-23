@@ -173,6 +173,12 @@ fn artifact(id: &str, path: &str, bytes: u64, selected_by_default: bool) -> Deve
         status: DeveloperArtifactStatus::Complete,
         incomplete_reason: None,
         selected_by_default,
+        project_last_activity: None,
+        clean_inclusion: if selected_by_default {
+            crate::models::CleanInclusion::Included
+        } else {
+            crate::models::CleanInclusion::NotOffered
+        },
     }
 }
 

@@ -289,6 +289,8 @@ pub(super) fn record_from_measurement(
         status,
         incomplete_reason,
         selected_by_default: false,
+        project_last_activity: None,
+        clean_inclusion: crate::models::CleanInclusion::NotOffered,
     };
     Some(DeveloperArtifactRecord {
         artifact,

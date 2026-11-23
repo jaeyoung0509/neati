@@ -16,6 +16,7 @@ export class SettingsStore {
     clean_developer_tools: true,
     clean_docker: true,
     include_rebuild_caches: false,
+    cleanup_rules: { build_output_min_idle_days: 0, dependency_stores: { enabled: false, idle_days: 30 } },
     intensive_cleanup: true,
     theme: 'light',
     excluded_signatures: [],

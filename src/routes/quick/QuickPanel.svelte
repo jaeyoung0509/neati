@@ -164,7 +164,7 @@
         return 'Some folders could not be checked. Verified caches can still be permanently deleted.';
       case 'ready':
         return projectBuildBytes > 0
-          ? 'Permanently delete verified caches and idle project build output. They are downloaded or rebuilt again when needed.'
+          ? 'Permanently delete verified caches and the project leftovers your cleanup rules include. They are downloaded or rebuilt again when needed.'
           : 'Permanently delete verified caches. Some may be downloaded or rebuilt again.';
       case 'clean':
         return 'Nothing verifiably cleanable was measured.';
@@ -555,7 +555,7 @@
                 {/if}
               </p>
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
-              <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{projectBuildBytes > 0 ? ` · ${formatBytes(projectBuildBytes)} build output` : ''}{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
+              <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{projectBuildBytes > 0 ? ` · ${formatBytes(projectBuildBytes)} from projects` : ''}{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
             {:else}
               <p class="mt-0.5 text-caption text-muted-foreground">{cleanupState === 'clean' ? 'No caches to clean' : cleanupState === 'failed' ? 'Scan failed' : cleanupState === 'stopped' ? 'Scan stopped' : cleanupState === 'paused' ? 'Scan incomplete' : cleanupState === 'unavailable' ? (capabilitiesPending ? 'Checking…' : 'Unavailable') : cleanupState === 'partial' ? 'Partial scan · No eligible caches' : 'Scan needed'}</p>
             {/if}

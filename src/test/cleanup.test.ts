@@ -94,6 +94,7 @@ const allCategoriesEnabledSettings: NeatiSettings = {
   clean_developer_tools: true,
   clean_docker: true,
   include_rebuild_caches: true, // Even if include_rebuild_caches is true, Quick Clean must be Safe only!
+  cleanup_rules: { build_output_min_idle_days: 0, dependency_stores: { enabled: false, idle_days: 30 } },
   intensive_cleanup: true,
   theme: 'system',
   excluded_signatures: [],

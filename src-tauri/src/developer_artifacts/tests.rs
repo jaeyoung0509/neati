@@ -1293,3 +1293,253 @@ fn only_compiler_build_outputs_qualify_for_preselection() {
         assert!(!is_build_output(kind), "{kind:?}");
     }
 }
+
+mod cleanup_rules {
+    //! One-button inclusion under the person's cleanup rules (#504).
+    use super::*;
+    use crate::models::{CleanInclusion, CleanupRules, IdleRule};
+    use neati_platform::open_files::OpenFileState;
+    use preselection::Selection;
+
+    const DAY: u64 = 24 * 60 * 60;
+    const NOW: u64 = 2_000_000_000;
+
+    struct Fixture {
+        _temp: tempfile::TempDir,
+        home: PathBuf,
+        root: PathBuf,
+        node: PathBuf,
+        rust: PathBuf,
+    }
+
+    fn fixture(lockfile: bool) -> Fixture {
+        let temp = tempfile::tempdir().unwrap();
+        let home = fs::canonicalize(temp.path()).unwrap();
+        let root = home.join("workspace");
+        let node = root.join("web-app");
+        fs::create_dir_all(node.join("node_modules/pkg")).unwrap();
+        fs::write(node.join("package.json"), "{}").unwrap();
+        if lockfile {
+            fs::write(node.join("pnpm-lock.yaml"), "lockfileVersion: '9.0'\n").unwrap();
+        }
+        fs::write(node.join("node_modules/pkg/index.js"), [8u8; 64]).unwrap();
+        let rust = root.join("rust-app");
+        fs::create_dir_all(rust.join("target/debug")).unwrap();
+        fs::write(rust.join("Cargo.toml"), "[package]\nname='fixture'\n").unwrap();
+        fs::write(rust.join("target/debug/app"), [7u8; 64]).unwrap();
+        Fixture {
+            _temp: temp,
+            home,
+            root,
+            node,
+            rust,
+        }
+    }
+
+    fn dependency_rule(enabled: bool, idle_days: u16) -> CleanupRules {
+        CleanupRules {
+            build_output_min_idle_days: 0,
+            dependency_stores: IdleRule { enabled, idle_days },
+        }
+    }
+
+    fn scan(
+        fixture: &Fixture,
+        rules: CleanupRules,
+        idle_days_ago: Option<u64>,
+        use_state: OpenFileState,
+        working_directories: Vec<PathBuf>,
+    ) -> HashMap<DeveloperArtifactKind, DeveloperArtifact> {
+        let activity = move |_: &Path| idle_days_ago.map(|days| NOW - days * DAY);
+        let use_probe = move |paths: &[PathBuf], _: &dyn Fn() -> bool| vec![use_state; paths.len()];
+        let selection = Selection {
+            rules,
+            now: NOW,
+            use_probe: &use_probe,
+            activity: &activity,
+            working_directories,
+        };
+        let inventory = DeveloperArtifactScanner::scan_workspaces_with_selection(
+            &environment_with_home(&fixture.home),
+            &[workspace_record(&fixture.root)],
+            FolderAccess::NotGated,
+            Arc::new(AtomicBool::new(false)),
+            |_| {},
+            &selection,
+        )
+        .unwrap();
+        inventory
+            .records
+            .into_values()
+            .map(|record| (record.artifact.kind, record.artifact))
+            .collect()
+    }
+
+    fn node_modules(
+        found: &HashMap<DeveloperArtifactKind, DeveloperArtifact>,
+    ) -> &DeveloperArtifact {
+        found
+            .get(&DeveloperArtifactKind::NodeModules)
+            .expect("node_modules is reported")
+    }
+
+    #[test]
+    fn the_dependency_rule_is_off_by_default() {
+        let fixture = fixture(true);
+        let found = scan(
+            &fixture,
+            CleanupRules::default(),
+            Some(400),
+            OpenFileState::Idle,
+            vec![],
+        );
+        let node = node_modules(&found);
+        assert!(!node.selected_by_default);
+        assert_eq!(node.clean_inclusion, CleanInclusion::RuleOff);
+        // Build output keeps the #494 behavior: idle means included.
+        let target = &found[&DeveloperArtifactKind::CargoTarget];
+        assert!(target.selected_by_default);
+        assert_eq!(target.clean_inclusion, CleanInclusion::Included);
+    }
+
+    #[test]
+    fn an_inactive_project_with_a_lockfile_includes_its_dependency_store() {
+        let fixture = fixture(true);
+        let found = scan(
+            &fixture,
+            dependency_rule(true, 30),
+            Some(45),
+            OpenFileState::Idle,
+            vec![],
+        );
+        let node = node_modules(&found);
+        assert!(node.selected_by_default);
+        assert_eq!(node.clean_inclusion, CleanInclusion::Included);
+        assert_eq!(node.project_last_activity, Some(NOW - 45 * DAY));
+    }
+
+    #[test]
+    fn recent_work_unknown_activity_or_a_missing_lockfile_keep_it() {
+        let locked = fixture(true);
+        let fixture = &locked;
+        let recent = scan(
+            fixture,
+            dependency_rule(true, 30),
+            Some(3),
+            OpenFileState::Idle,
+            vec![],
+        );
+        assert_eq!(
+            node_modules(&recent).clean_inclusion,
+            CleanInclusion::RecentlyActive
+        );
+        assert!(!node_modules(&recent).selected_by_default);
+
+        let unknown = scan(
+            fixture,
+            dependency_rule(true, 30),
+            None,
+            OpenFileState::Idle,
+            vec![],
+        );
+        assert_eq!(
+            node_modules(&unknown).clean_inclusion,
+            CleanInclusion::ActivityUnknown
+        );
+        assert!(!node_modules(&unknown).selected_by_default);
+
+        let working = scan(
+            fixture,
+            dependency_rule(true, 30),
+            Some(400),
+            OpenFileState::Idle,
+            vec![fixture.node.join("src")],
+        );
+        assert_eq!(
+            node_modules(&working).clean_inclusion,
+            CleanInclusion::RecentlyActive
+        );
+
+        let unlocked = super::cleanup_rules::fixture(false);
+        let found = scan(
+            &unlocked,
+            dependency_rule(true, 30),
+            Some(400),
+            OpenFileState::Idle,
+            vec![],
+        );
+        assert_eq!(
+            node_modules(&found).clean_inclusion,
+            CleanInclusion::NoLockfile
+        );
+        assert!(!node_modules(&found).selected_by_default);
+    }
+
+    #[test]
+    fn a_dependency_store_in_use_or_unknown_stays_for_review() {
+        let fixture = fixture(true);
+        for (state, inclusion) in [
+            (OpenFileState::InUse, CleanInclusion::InUse),
+            (OpenFileState::Unknown, CleanInclusion::UseUnknown),
+        ] {
+            let found = scan(
+                &fixture,
+                dependency_rule(true, 30),
+                Some(400),
+                state,
+                vec![],
+            );
+            assert_eq!(node_modules(&found).clean_inclusion, inclusion, "{state:?}");
+            assert!(!node_modules(&found).selected_by_default, "{state:?}");
+        }
+    }
+
+    #[test]
+    fn a_build_output_idle_period_keeps_active_projects() {
+        let fixture = fixture(true);
+        let rules = CleanupRules {
+            build_output_min_idle_days: 14,
+            ..CleanupRules::default()
+        };
+        let active = scan(&fixture, rules, Some(3), OpenFileState::Idle, vec![]);
+        let target = &active[&DeveloperArtifactKind::CargoTarget];
+        assert_eq!(target.clean_inclusion, CleanInclusion::RecentlyActive);
+        assert!(!target.selected_by_default);
+
+        let inactive = scan(&fixture, rules, Some(20), OpenFileState::Idle, vec![]);
+        let target = &inactive[&DeveloperArtifactKind::CargoTarget];
+        assert_eq!(target.clean_inclusion, CleanInclusion::Included);
+        assert!(target.selected_by_default);
+        assert!(fixture.rust.join("target").is_dir());
+    }
+
+    #[test]
+    fn dependency_stores_and_their_lockfiles() {
+        use preselection::{checks_use_before_removal, is_dependency_store, lockfiles};
+        for kind in [
+            DeveloperArtifactKind::NodeModules,
+            DeveloperArtifactKind::PythonVenv,
+            DeveloperArtifactKind::ComposerVendor,
+            DeveloperArtifactKind::RubyBundle,
+            DeveloperArtifactKind::ElixirDeps,
+        ] {
+            assert!(is_dependency_store(kind), "{kind:?}");
+            assert!(checks_use_before_removal(kind), "{kind:?}");
+            assert!(!lockfiles(kind).is_empty(), "{kind:?}");
+        }
+        for kind in [
+            DeveloperArtifactKind::GoModuleCache,
+            DeveloperArtifactKind::FlutterTooling,
+            DeveloperArtifactKind::ToxEnvironments,
+            DeveloperArtifactKind::NextOutput,
+            DeveloperArtifactKind::TerraformCache,
+            DeveloperArtifactKind::DotnetBin,
+        ] {
+            assert!(!is_dependency_store(kind), "{kind:?}");
+            assert!(!checks_use_before_removal(kind), "{kind:?}");
+        }
+        assert!(checks_use_before_removal(
+            DeveloperArtifactKind::CargoTarget
+        ));
+    }
+}

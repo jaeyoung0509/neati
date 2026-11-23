@@ -29,7 +29,7 @@ pub(super) enum Recognition {
     GlobalGo,
 }
 
-const RULES: &[Rule] = &[
+pub(super) const RULES: &[Rule] = &[
     Rule {
         discovery_name: None, relative: ".svelte-kit/types", kind: DeveloperArtifactKind::SvelteKitTypes,
         recognition: Recognition::FrameworkGenerated { dependency: "@sveltejs/kit", hint: "Only verified generated route types are permanently removed. SvelteKit sync/dev/build regenerates them; output, deployment and offline assets stay." },

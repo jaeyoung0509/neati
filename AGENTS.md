@@ -211,7 +211,8 @@ safety conventions below when changing neati.
   starts the app unchanged.
 - `CleanUseCase` removes only the one-button set: caches from
   `select_quick_clean_safe_candidates` through `reviewed_quick_clean_safe`,
-  and `developer_artifacts::preselection` build output through a one-shot
+  and the `developer_artifacts::preselection` set (build output, plus
+  dependency stores when the person's rule is on) through a one-shot
   developer-artifact plan. It never accepts a path. `--only`/`--skip`
   references narrow that set, and an unknown reference refuses the whole run.
   Without `--yes` it is a preview unless a person answers the terminal prompt;
@@ -482,15 +483,34 @@ safety conventions below when changing neati.
   measurement is `Complete`, its ownership is `VerifiedGenerated`, and an exact
   open-file check proves the folder idle; `RemovalExecutor` repeats that check
   immediately before removal and refuses `InUse` or `Unknown`. Dependency
-  stores (`node_modules`, Python environments, `vendor`, bundles, deps, Go
-  module cache, Flutter tooling), framework outputs, Terraform and .NET `bin`
-  are never preselected and stay reviewable. Do not widen `is_build_output`
-  without the same evidence. The project-local caches kondo and npkill find
+  stores (`node_modules`, Python environments, `vendor`, bundles, deps) are
+  preselected only through the person's dependency rule below; Go module
+  cache, Flutter tooling, framework outputs, Terraform and .NET `bin` are never
+  preselected and stay reviewable. Do not widen `is_build_output` or
+  `is_dependency_store` without the same evidence. The project-local caches kondo and npkill find
   (#479: Python tool caches, tox/nox, Turborepo, Angular, Nx, Unity, Unreal
   `Intermediate`/`DerivedDataCache`, Godot, Elm, `.cpcache`, Bloop, Metals) live
   in `developer_artifacts::project_caches`, need a direct marker (or, for the
   Python tool caches, a valid `CACHEDIR.TAG` inside), and are never
   preselected. `.ipynb_checkpoints` and Unreal `Saved` stay unrecognized.
+
+- Owner direction #504 (November 24, 2026): cleanup rules in Settings
+  (`NeatiSettings.cleanup_rules`) decide project leftovers in one-button
+  Clean. `build_output_min_idle_days` (default `0`, the #494 behavior) keeps
+  the build output of recently worked-on projects. The dependency-store rule
+  defaults **off**; when the person turns it on, a dependency store joins the
+  set only if its project has been inactive for the rule's period (7–365
+  days), one of the ecosystem's lockfiles (`preselection::lockfiles`) sits in
+  the project folder, its measurement is `Complete` and ownership
+  `VerifiedGenerated`, and an exact open-file check proves it idle; the
+  executor repeats that check for every build output and dependency store.
+  Project activity (`developer_artifacts::activity`) is the newest of cheap
+  metadata — the project folder, its direct children, their direct children
+  outside artifact folders, and Git's `index`/`HEAD`/`logs/HEAD` — plus a
+  running process whose working directory is inside the project. Unknown
+  activity is never inactivity. Every artifact reports a typed
+  `CleanInclusion` reason. A new rule that adds a kind of removal defaults off,
+  and changing a default to on is an owner decision.
 
 - Extra AI tool profiles (#451) are directories the person confirmed in
   Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They

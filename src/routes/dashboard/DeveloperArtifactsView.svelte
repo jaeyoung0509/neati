@@ -37,6 +37,7 @@
   } from '../../lib/utils/tauri';
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { developerArtifactKindLabel } from '../../lib/utils/developerArtifactKinds';
+  import { cleanInclusionDetail, cleanInclusionLabel, idleDays } from '../../lib/utils/cleanupRules';
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { nonOverlappingArtifactIds, remainingArtifactScopes, toggleArtifactSelection } from '../../lib/utils/developerArtifactSelection';
   import { canReveal, revealUnavailableReason, runReveal } from '../../lib/utils/reveal';
@@ -840,11 +841,21 @@
               {#if item.status !== 'complete'}
                 <span class={`rounded border px-1.5 py-0.5 text-caption ${item.status === 'measurement_incomplete' || item.status === 'observation_only' ? 'border-border bg-secondary/60 text-muted-foreground' : 'status-chip-destructive text-destructive'}`}>{statusLabel(item.status)}</span>
               {/if}
+              {#if item.clean_inclusion !== 'not_offered' && item.status === 'complete'}
+                <span
+                  class={`rounded border px-1.5 py-0.5 text-caption ${item.clean_inclusion === 'included' ? 'border-primary/40 bg-primary/10 text-foreground' : 'border-border bg-secondary/60 text-muted-foreground'}`}
+                  title={cleanInclusionDetail(item.clean_inclusion)}
+                  data-clean-inclusion={item.clean_inclusion}
+                >{cleanInclusionLabel(item.clean_inclusion)}</span>
+              {/if}
             </div>
             <div class="truncate font-mono text-caption text-muted-foreground" title={item.path}>{item.path}</div>
             <div class="flex flex-wrap gap-x-3 gap-y-1 text-meta text-muted-foreground">
               <span>{item.file_count.toLocaleString()} files</span>
               <span>Last changed {formatTimeAgo(item.newest_mtime ?? undefined)}</span>
+              {#if idleDays(item.project_last_activity) !== null}
+                <span>Project last worked on {formatTimeAgo(item.project_last_activity ?? undefined)}</span>
+              {/if}
               <span>Observed unit: <span class="font-mono text-foreground">{cleanupScopeLabel(item)}</span></span>
             </div>
             {#if item.incomplete_reason}

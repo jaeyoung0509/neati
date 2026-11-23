@@ -101,13 +101,13 @@ pub use neati_core::domain::platform::{
 pub use neati_core::domain::risk::{RiskSummary, RiskTier};
 pub use neati_core::domain::scan::{
     derive_cleanup_disposition, is_safety_blocked_reason, resolve_unit_overlaps,
-    resolve_unit_overlaps_with, AgeObservation, CacheArtifactKind, CacheManagementMode,
-    CacheMetadata, CacheSizeSemantics, CacheUsageConfidence, CategoryResult, CleanupDisposition,
-    CleanupEligibility, CleanupOverlap, CleanupOwnership, CleanupUnit, CleanupUnitIdentity,
-    CleanupUnitKind, DispositionFacts, EligibilityBucket, EligibilityGate, EligibilitySummary,
-    FileSize, OverlappedDiscovery, OwnershipConfidence, PathIdentity, ProviderRestriction,
-    RetentionReason, ScanGap, ScanGapKind, ScanItem, ScanResult, StaleEntryObservation,
-    UnitRelationship,
+    resolve_unit_overlaps_indexed, resolve_unit_overlaps_with, AgeObservation, CacheArtifactKind,
+    CacheManagementMode, CacheMetadata, CacheSizeSemantics, CacheUsageConfidence, CategoryResult,
+    CleanupDisposition, CleanupEligibility, CleanupOverlap, CleanupOwnership, CleanupUnit,
+    CleanupUnitIdentity, CleanupUnitKind, DispositionFacts, EligibilityBucket, EligibilityGate,
+    EligibilitySummary, FileSize, OverlappedDiscovery, OwnershipConfidence, PathIdentity,
+    ProviderRestriction, RetentionReason, ScanGap, ScanGapKind, ScanItem, ScanResult,
+    StaleEntryObservation, UnitRelationship,
 };
 pub use neati_core::domain::storage::{
     AppInstallSource, AppLeftoverClassification, AppRelatedConfidence, AppRelatedKind,

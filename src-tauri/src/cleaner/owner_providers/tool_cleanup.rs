@@ -791,7 +791,22 @@ impl ToolCleanupProvider {
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
-        let observation = self.read_store_checked(environment, guard);
+        self.read_store_with(
+            environment,
+            guard,
+            &super::ProcessView::Live(self.process.as_ref()),
+        )
+    }
+
+    /// [`Self::read_store`] with the process evidence stated: the live table,
+    /// or a scan's snapshot and batched open-file verdicts (#493).
+    fn read_store_with(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+        processes: &super::ProcessView<'_>,
+    ) -> OwnerStoreObservation {
+        let observation = self.read_store_checked(environment, guard, processes);
         if matches!(self.kind, ToolCacheKind::Cocoapods) && !observation.status.is_ready() {
             return super::cocoapods::blocked_observation(environment, observation);
         }
@@ -802,6 +817,7 @@ impl ToolCleanupProvider {
         &self,
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
+        processes: &super::ProcessView<'_>,
     ) -> OwnerStoreObservation {
         if !matches!(
             self.kind,
@@ -821,7 +837,7 @@ impl ToolCleanupProvider {
             )
             .with_inspection_issue(issue);
         }
-        match self.process.running(guard) {
+        match processes.running(guard) {
             None => {
                 return OwnerStoreObservation::refused(
                     ProviderStatus::Blocked,
@@ -856,9 +872,19 @@ impl ToolCleanupProvider {
                 | ToolCacheKind::GithubCli
                 | ToolCacheKind::Corepack
         ) {
-            if let Err(error) =
-                verify_swiftpm_idle(&preview.candidates, self.process.as_ref(), guard)
-            {
+            // A scan observes the candidates' open files in one batch; each
+            // candidate still reads its own verdict (#493).
+            processes.prefetch_open_files(
+                &preview
+                    .candidates
+                    .iter()
+                    .filter(|path| {
+                        std::fs::symlink_metadata(path).is_ok_and(|metadata| metadata.is_dir())
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>(),
+            );
+            if let Err(error) = verify_swiftpm_idle(&preview.candidates, processes, guard) {
                 return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error);
             }
         }
@@ -1091,6 +1117,20 @@ impl OwnerScopedProvider for ToolCleanupProvider {
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
         self.read_store(environment, guard)
+    }
+
+    fn scan_in(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+        context: &super::OwnerScanContext<'_>,
+        _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        self.read_store_with(
+            environment,
+            guard,
+            &context.processes(self.process.as_ref()),
+        )
     }
 
     fn prepare(

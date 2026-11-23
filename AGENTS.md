@@ -550,6 +550,11 @@ safety conventions below when changing neati.
 - Browser unit observations may use the shared scan pool, capped at four workers.
   Every unit still gets its own use verdict; planning and execution obtain fresh
   observations, including the final pre-mutation check.
+- Owner-provider inventories run by a scan (#493) read the scan's process
+  snapshot and batched open-file verdicts through `OwnerScanContext`, and run at
+  most four at a time on the shared scan pool. Results keep catalog order and
+  the serial cancellation rule. `prepare` and `execute` never receive the
+  context and keep their live, fresh checks.
 
 - Developer temporary observations cover allowlisted direct children of the
   platform-stated user and shared temporary roots. The exact default

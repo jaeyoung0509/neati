@@ -6,7 +6,7 @@
 //! Every unit is re-enumerated before Trash. On macOS, disposable offline
 //! units use exact open-file checks; coupled component stores require owner exit.
 
-use super::OwnerScopedProvider;
+use super::{OwnerScanContext, OwnerScopedProvider, ProcessView};
 use crate::models::{
     CleanFailureReason, OwnerProviderRefusal, OwnerProviderSelection, OwnerProviderUnit,
     OwnerStoreObservation, OwnerUnitObservation, OwnerUnitOutcome, OwnerUnitState, PlatformKind,
@@ -291,13 +291,21 @@ impl ChromiumCacheProvider {
         environment: &PlatformEnvironment,
         _guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
-        self.read_store_with_cancellation(environment, &crate::models::NeverCancelled)
+        self.read_store_with_cancellation(
+            environment,
+            &crate::models::NeverCancelled,
+            ProcessView::Live(self.process.as_ref()),
+        )
     }
 
+    /// Reads every supported profile's units. `processes` answers the owner
+    /// and open-file questions: live for preparation and execution, the
+    /// scan's snapshot and batched verdicts for an inventory the scan runs.
     fn read_store_with_cancellation(
         &self,
         environment: &PlatformEnvironment,
         cancellation: &dyn crate::models::CancellationProbe,
+        processes: ProcessView<'_>,
     ) -> OwnerStoreObservation {
         let Some(base) = Self::base(environment) else {
             return OwnerStoreObservation::refused(
@@ -340,38 +348,60 @@ impl ChromiumCacheProvider {
                             continue;
                         }
                     };
-                    for profile in profiles {
+                    let profile_units: Vec<(String, &str, PathBuf)> = profiles
+                        .iter()
+                        .flat_map(|profile| {
+                            let cache_profile = if layout.key.starts_with("mcp-") {
+                                browser_root.join(profile)
+                            } else {
+                                environment
+                                    .user_home()
+                                    .expect("resolved home")
+                                    .join("Library/Caches")
+                                    .join(layout.relative)
+                                    .join(profile)
+                            };
+                            [
+                                (profile.clone(), "Cache", cache_profile.join("Cache")),
+                                (
+                                    profile.clone(),
+                                    "Code Cache",
+                                    cache_profile.join("Code Cache"),
+                                ),
+                                (
+                                    profile.clone(),
+                                    "GPUCache",
+                                    browser_root.join(profile).join("GPUCache"),
+                                ),
+                            ]
+                        })
+                        .collect();
+                    // One batched open-file observation for this browser's
+                    // units; each unit still reads its own verdict (#493).
+                    processes.prefetch_open_files(
+                        &profile_units
+                            .iter()
+                            .map(|(_, _, path)| path)
+                            .filter(|path| {
+                                fs::symlink_metadata(path).is_ok_and(|metadata| metadata.is_dir())
+                            })
+                            .cloned()
+                            .collect::<Vec<_>>(),
+                    );
+                    for (profile, leaf, path) in profile_units {
                         if cancellation.is_cancelled() {
                             break;
                         }
-                        let cache_profile = if layout.key.starts_with("mcp-") {
-                            browser_root.join(&profile)
-                        } else {
-                            environment
-                                .user_home()
-                                .expect("resolved home")
-                                .join("Library/Caches")
-                                .join(layout.relative)
-                                .join(&profile)
-                        };
-                        for (leaf, path) in [
-                            ("Cache", cache_profile.join("Cache")),
-                            ("Code Cache", cache_profile.join("Code Cache")),
-                            ("GPUCache", browser_root.join(&profile).join("GPUCache")),
-                        ] {
-                            if cancellation.is_cancelled() {
-                                break;
-                            }
-                            if let Some(unit) = self.observe_unit(
-                                environment,
-                                layout,
-                                Some(&format!("{profile}/{leaf}")),
-                                &browser_root,
-                                path,
-                                &BrowserOwnerState::Idle,
-                            ) {
-                                units.push(unit);
-                            }
+                        if let Some(unit) = self.observe_unit(
+                            environment,
+                            layout,
+                            Some(&format!("{profile}/{leaf}")),
+                            &browser_root,
+                            path,
+                            &BrowserOwnerState::Idle,
+                            &processes,
+                        ) {
+                            units.push(unit);
                         }
                     }
                 }
@@ -382,10 +412,16 @@ impl ChromiumCacheProvider {
                     {
                         continue;
                     }
-                    let owner = self.owner_state(layout);
-                    if let Some(unit) =
-                        self.observe_unit(environment, layout, None, &browser_root, path, &owner)
-                    {
+                    let owner = self.owner_state(layout, &processes);
+                    if let Some(unit) = self.observe_unit(
+                        environment,
+                        layout,
+                        None,
+                        &browser_root,
+                        path,
+                        &owner,
+                        &processes,
+                    ) {
                         units.push(unit);
                     }
                 }
@@ -423,7 +459,7 @@ impl ChromiumCacheProvider {
                         // browser-wide lock. Check each unit's handles below.
                         BrowserOwnerState::Idle
                     } else {
-                        self.owner_state(layout)
+                        self.owner_state(layout, &processes)
                     };
                     for (profile, path) in paths {
                         if cancellation.is_cancelled() {
@@ -452,6 +488,7 @@ impl ChromiumCacheProvider {
                                             &browser_root,
                                             entry.clone(),
                                             &owner,
+                                            &processes,
                                         )
                                     } else {
                                         let measured = self.measuring.measure(entry);
@@ -473,8 +510,20 @@ impl ChromiumCacheProvider {
                                         Some(unit)
                                     }
                                 };
-                                // Exact unit probes are independent. Reuse the application-owned
-                                // four-worker budget; no process observation survives this read.
+                                // Exact unit probes are independent. A scan observes the
+                                // payload units' open files in one batch first; each unit
+                                // still reads its own verdict (#493).
+                                if environment.platform() == PlatformKind::Macos {
+                                    processes.prefetch_open_files(
+                                        &entries
+                                            .iter()
+                                            .filter(|(_, payload)| *payload)
+                                            .map(|(entry, _)| entry.clone())
+                                            .collect::<Vec<_>>(),
+                                    );
+                                }
+                                // Reuse the application-owned four-worker budget; no
+                                // process observation survives this read.
                                 let observed: Vec<_> = crate::execution_budget::install_shared(
                                     || {
                                         use rayon::prelude::*;
@@ -506,14 +555,19 @@ impl ChromiumCacheProvider {
         observation
     }
 
-    fn owner_state(&self, layout: &BrowserLayout) -> BrowserOwnerState {
-        match self.process.running(&browser_guard(layout)) {
+    fn owner_state(
+        &self,
+        layout: &BrowserLayout,
+        processes: &dyn RunningProcessProbe,
+    ) -> BrowserOwnerState {
+        match processes.running(&browser_guard(layout)) {
             Some(running) if running.is_empty() => BrowserOwnerState::Idle,
             Some(running) => BrowserOwnerState::Running(running),
             None => BrowserOwnerState::Unknown,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn observe_unit(
         &self,
         environment: &PlatformEnvironment,
@@ -522,6 +576,7 @@ impl ChromiumCacheProvider {
         browser_root: &Path,
         path: PathBuf,
         owner: &BrowserOwnerState,
+        processes: &ProcessView<'_>,
     ) -> Option<OwnerUnitObservation> {
         match fs::symlink_metadata(&path) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return None,
@@ -604,8 +659,7 @@ impl ChromiumCacheProvider {
         let owner = if matches!(owner, BrowserOwnerState::Idle)
             && environment.platform() == PlatformKind::Macos
         {
-            file_state = match self
-                .process
+            file_state = match processes
                 .running(&RunningProcessPolicy::none().with_open_files(path.clone()))
             {
                 Some(names) if names.is_empty() => BrowserOwnerState::Idle,
@@ -864,7 +918,10 @@ impl ChromiumCacheProvider {
             return refuse("Browser owner contract disappeared".into());
         };
         if self.kind == BrowserCacheKind::ComponentDownloads
-            && !matches!(self.owner_state(layout), BrowserOwnerState::Idle)
+            && !matches!(
+                self.owner_state(layout, self.process.as_ref()),
+                BrowserOwnerState::Idle
+            )
         {
             return refuse("The browser restarted or its state is unknown; scan again".into());
         }
@@ -894,7 +951,7 @@ impl ChromiumCacheProvider {
                 return Err("Browser store changed during removal inspection".into());
             }
             if (self.kind == BrowserCacheKind::ComponentDownloads || environment.platform() == PlatformKind::Windows)
-                && !matches!(self.owner_state(layout), BrowserOwnerState::Idle) {
+                && !matches!(self.owner_state(layout, self.process.as_ref()), BrowserOwnerState::Idle) {
                 return Err("Browser restarted during removal inspection".into());
             }
             if environment.platform() == PlatformKind::Macos
@@ -984,15 +1041,18 @@ impl OwnerScopedProvider for ChromiumCacheProvider {
         self.read_store(environment, guard)
     }
 
-    fn scan_with_spans(
+    fn scan_in(
         &self,
         environment: &PlatformEnvironment,
         _guard: &RunningProcessPolicy,
-        _source_id: &str,
-        cancellation: &dyn crate::models::CancellationProbe,
+        context: &OwnerScanContext<'_>,
         _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
     ) -> OwnerStoreObservation {
-        self.read_store_with_cancellation(environment, cancellation)
+        self.read_store_with_cancellation(
+            environment,
+            context.cancellation,
+            context.processes(self.process.as_ref()),
+        )
     }
 
     fn prepare(

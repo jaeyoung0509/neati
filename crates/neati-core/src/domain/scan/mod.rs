@@ -27,8 +27,8 @@ pub mod retention;
 pub mod unit;
 
 pub use overlap::{
-    resolve_unit_overlaps, resolve_unit_overlaps_with, CleanupOverlap, OverlapReport,
-    OverlappedDiscovery, UnitRelationship,
+    resolve_unit_overlaps, resolve_unit_overlaps_indexed, resolve_unit_overlaps_with,
+    CleanupOverlap, OverlapAnchors, OverlapReport, OverlappedDiscovery, UnitRelationship,
 };
 pub use retention::{leading_version, retained_siblings, RetentionReason, SiblingObservation};
 pub use unit::{

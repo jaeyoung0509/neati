@@ -67,6 +67,47 @@ impl ScanRelationships {
     }
 }
 
+/// The stable identities the scan's relationship answers come from, so the
+/// overlap pass asks only the retained units a candidate can reach (#493).
+///
+/// [`unit_relationship_with`] relates two units through identity only when
+/// both have a known one: the same entity (equivalent, or shared storage), or
+/// an ancestor of the candidate that is the container's entity (contained).
+/// Without a known identity it falls back to text, which the resolution
+/// indexes itself. So a container is found at its own identity, and a
+/// candidate reaches its own identity and its ancestors'.
+pub(crate) struct ScanAnchors<'a>(pub(crate) &'a std::cell::RefCell<ScanRelationships>);
+
+impl ScanAnchors<'_> {
+    fn known(relationships: &mut ScanRelationships, path: &Path) -> Option<FileIdentity> {
+        relationships
+            .identity(path)
+            .filter(|identity| !identity.is_unknown())
+    }
+}
+
+impl neati_core::domain::scan::OverlapAnchors for ScanAnchors<'_> {
+    type Key = FileIdentity;
+
+    fn anchors(&self, container: &ScanItem) -> Vec<FileIdentity> {
+        Self::known(&mut self.0.borrow_mut(), Path::new(&container.unit.path))
+            .into_iter()
+            .collect()
+    }
+
+    fn reach(&self, candidate: &ScanItem) -> Vec<FileIdentity> {
+        let mut relationships = self.0.borrow_mut();
+        let path = Path::new(&candidate.unit.path);
+        if Self::known(&mut relationships, path).is_none() {
+            // Text decides for this candidate, whatever the container is.
+            return Vec::new();
+        }
+        path.ancestors()
+            .filter_map(|ancestor| Self::known(&mut relationships, ancestor))
+            .collect()
+    }
+}
+
 impl RelationshipProbe for ScanRelationships {
     fn identity(&mut self, path: &Path) -> Option<FileIdentity> {
         if let Some(identity) = self.identities.get(path) {

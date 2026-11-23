@@ -108,6 +108,32 @@ struct SignatureRoot {
     key: Option<String>,
 }
 
+mod aged_measurement;
+
+/// One enumerated child of an aged root, in enumeration order: either already
+/// decided while classifying (a coverage observation, a link, an unreadable
+/// entry) or waiting for its tree measurement.
+enum AgedSlot {
+    Ready(Box<ScanItem>),
+    Measure(AgedChild),
+}
+
+impl AgedSlot {
+    fn ready(item: ScanItem) -> Self {
+        Self::Ready(Box::new(item))
+    }
+}
+
+/// A classified child whose tree is measured before its item is built.
+struct AgedChild {
+    path: std::path::PathBuf,
+    name: String,
+    facts: CandidateFacts,
+    path_text: String,
+    unit: CleanupUnit,
+    ownership: CleanupOwnership,
+}
+
 /// What the filesystem states about a candidate, in the terms the shared rule
 /// uses: the entry kind, whether it is executable, and whether the name alone
 /// already marks it as structured state.
@@ -321,13 +347,13 @@ impl DirectoryScanner {
                         timings.measured_aged_children = true;
                         items.extend(Self::scan_aged_children(
                             context,
+                            pool,
                             signature,
                             &root_path,
                             idx,
                             min_age_days,
                             gate,
                             root.key.as_deref(),
-                            running_apps,
                             &mut timings,
                         ));
                         timings.child_enumeration += started
@@ -573,8 +599,7 @@ impl DirectoryScanner {
                 ),
                 Ok(metadata) => {
                     let facts = CandidateFacts::read(path_buf, &metadata);
-                    (
-                        true,
+                    let measure = || {
                         SizeCalculator::measure_path_with_bundle_rule(
                             path_buf,
                             &signature.exclusions,
@@ -584,9 +609,22 @@ impl DirectoryScanner {
                             context.limits,
                             context.counters,
                             context.permit_application_bundles,
+                        )
+                    };
+                    // Another rule may have named this root with the same
+                    // measurement parameters already in this scan (#493).
+                    let measurement = match context.measurements {
+                        Some(memo) => memo.measure_path(
+                            path_buf,
+                            &signature.exclusions,
+                            context.permit_application_bundles,
+                            context.limits,
+                            context.cancellation,
+                            measure,
                         ),
-                        Some(facts),
-                    )
+                        None => measure(),
+                    };
+                    (true, measurement, Some(facts))
                 }
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => (
                     false,
@@ -961,13 +999,13 @@ impl DirectoryScanner {
     #[allow(clippy::too_many_arguments)]
     fn scan_aged_children(
         context: &WalkContext<'_>,
+        pool: Option<&ThreadPool>,
         signature: &Signature,
         root: &std::path::Path,
         path_index: usize,
         min_age_days: u32,
         gate: EligibilityGate,
         root_key: Option<&str>,
-        _running_apps: &crate::applications::RunningApplications,
         timings: &mut SignatureTimings,
     ) -> Vec<ScanItem> {
         let environment = context.environment;
@@ -1080,6 +1118,9 @@ impl DirectoryScanner {
         let root_text = root.to_string_lossy().to_string();
         let unit_kind = signature.unit_kind();
         let mut items = Vec::new();
+        // Classification is sequential and keeps enumeration order; the
+        // children it admits are measured afterwards, side by side.
+        let mut slots: Vec<AgedSlot> = Vec::new();
         let mut entry_failure = None;
         let mut entry_issue = None;
         let mut coverage_count = 0usize;
@@ -1136,8 +1177,8 @@ impl DirectoryScanner {
                     timings.child_classification += classification_started.elapsed();
                     continue;
                 }
-                items.push(super::coverage::observe(signature, &path,
-                    "Outside this signature's included namespaces; no cleanup operation is authorized", context));
+                slots.push(AgedSlot::ready(super::coverage::observe(signature, &path,
+                    "Outside this signature's included namespaces; no cleanup operation is authorized", context)));
                 timings.child_classification += classification_started.elapsed();
                 continue;
             }
@@ -1149,7 +1190,7 @@ impl DirectoryScanner {
                 (metadata, is_link)
             }) {
                 Ok((_, true)) => {
-                    items.push(
+                    slots.push(AgedSlot::ready(
                         Self::unavailable_aged_item(
                             signature,
                             &path,
@@ -1167,13 +1208,13 @@ impl DirectoryScanner {
                             false,
                         )
                         .with_inspection_issue(Some(ScanGapKind::SafetyProtected)),
-                    );
+                    ));
                     timings.child_classification += classification_started.elapsed();
                     continue;
                 }
                 Ok((metadata, false)) => metadata,
                 Err(err) => {
-                    items.push(
+                    slots.push(AgedSlot::ready(
                         Self::unavailable_aged_item(
                             signature,
                             &path,
@@ -1194,7 +1235,7 @@ impl DirectoryScanner {
                         .with_inspection_issue(Some(
                             inspection_issue_for_io(environment, &path, &err),
                         )),
-                    );
+                    ));
                     timings.child_classification += classification_started.elapsed();
                     continue;
                 }
@@ -1214,12 +1255,12 @@ impl DirectoryScanner {
                     timings.child_classification += classification_started.elapsed();
                     continue;
                 }
-                items.push(super::coverage::observe(
+                slots.push(AgedSlot::ready(super::coverage::observe(
                     signature,
                     &path,
                     "Excluded from generic cleanup; use its dedicated owner when available",
                     context,
-                ));
+                )));
                 timings.child_classification += classification_started.elapsed();
                 continue;
             }
@@ -1235,152 +1276,70 @@ impl DirectoryScanner {
                 // belongs to, and it is reported as an inference.
                 CleanupOwnership::inferred(name.clone())
             };
-
-            // Single-pass fail-closed tree measurement
             timings.child_classification += classification_started.elapsed();
-            let measurement_started = Instant::now();
-            let mut tree_phases = TreePhaseTimings::default();
-            let stats = Self::measure_tree_stats_profiled(
-                context,
-                &path,
-                &observation_policy,
-                0,
-                stale_policy,
-                &mut tree_phases,
-            );
-            let elapsed = measurement_started.elapsed();
-            timings.tree_measurement += elapsed;
-            timings.metadata_and_links += tree_phases.metadata_and_links;
-            timings.age_evaluation += tree_phases.age_evaluation;
-            timings.size_accounting += tree_phases.size_accounting;
-            timings.traversal += elapsed
-                .saturating_sub(tree_phases.metadata_and_links)
-                .saturating_sub(tree_phases.age_evaluation)
-                .saturating_sub(tree_phases.size_accounting);
-            // An incomplete tree cannot prove the candidate's newest timestamp,
-            // so retain it for observability but block cleanup.
-            if !stats.complete {
-                let size = FileSize::new(stats.logical, Some(stats.allocated));
-                let last_modified = stats
-                    .newest_mtime
-                    .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok())
-                    .map(|duration| duration.as_secs());
-                items.push(
-                    Self::unavailable_aged_item(
-                        signature,
-                        &path,
-                        Self::item_id_for(signature, path_index, root_key, Some(&name)),
-                        name,
-                        size,
-                        stats.file_count,
-                        last_modified,
-                        stats.skipped_entries,
-                        stats.incomplete_reason.unwrap_or_else(|| {
-                            format!("Could not completely inspect {}", path.display())
-                        }),
-                        gate,
-                        false,
-                    )
-                    .with_inspection_issue(stats.inspection_issue),
-                );
-                continue;
-            }
-
-            let size = FileSize::new(stats.logical, Some(stats.allocated));
-            let newest_modified = stats
-                .newest_mtime
-                .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok())
-                .map(|duration| duration.as_secs());
-            let age = AgeObservation::evaluate(min_age_days, newest_modified, now_secs);
-            let stale = stale_policy.map(|_| {
-                StaleEntryObservation::new(min_age_days, stats.stale_bytes, stats.stale_file_count)
-            });
-
-            // An empty fresh observation carries nothing a user could act on.
-            if size.observed_bytes() == 0 && age.satisfied {
-                continue;
-            }
-
-            let description = match stale {
-                Some(stale) if stale.nothing_is_stale() => format!(
-                    "{} (nothing inside has been inactive for {} days)",
-                    signature.description, min_age_days
-                ),
-                Some(stale) => format!(
-                    "{} ({} of it has been inactive for at least {} days)",
-                    signature.description,
-                    format_bytes(stale.stale_bytes),
-                    min_age_days
-                ),
-                None if age.satisfied => format!(
-                    "{} (unchanged for at least {} days)",
-                    signature.description, min_age_days
-                ),
-                None => format!(
-                    "{} (used within the last {} days; kept until it is stale)",
-                    signature.description, min_age_days
-                ),
-            };
-
-            // The signature's resolved guard below is the single owner policy.
-            // Do not pre-mark a whole namespace busy before its unit check.
-            let owner_running = false;
-
-            let cache_metadata = signature.cache_metadata();
-            let disposition = derive_cleanup_disposition(
-                DispositionFacts::new(
-                    signature.risk,
-                    ObservationQuality::Fresh,
-                    &cache_metadata,
-                    &size,
-                    None,
-                )
-                .with_gate(gate)
-                .with_running_owner(owner_running)
-                .with_age(stale.is_none().then_some(&age))
-                .with_stale_entries(stale.as_ref())
-                .with_structured_state(facts.structured_state),
-            );
-            let is_selected = disposition.eligibility == CleanupEligibility::AutoCleanable
-                && disposition.cleanable_bytes.unwrap_or(0) > 0;
-
-            let display_name = match root_key {
-                Some(key) => format!("{name} ({key})"),
-                None => name.clone(),
-            };
-            items.push(ScanItem {
-                id: Self::item_id_for(signature, path_index, root_key, Some(&name)),
-                signature_id: signature.id.clone(),
-                name: display_name,
-                category: signature.category,
-                risk: signature.risk,
-                path: path_text,
-                size,
-                file_count: stats.file_count,
-                description,
-                cache_metadata,
-                disposition,
+            slots.push(AgedSlot::Measure(AgedChild {
+                path,
+                name,
+                facts,
+                path_text,
                 unit,
                 ownership,
-                age: stale.is_none().then_some(age),
-                stale,
-                structured_state: facts.structured_state,
-                provider_restriction: None,
-                retained: None,
-                entry_kind: facts.entry_kind,
+            }));
+        }
+
+        // Single-pass fail-closed tree measurement of every classified child,
+        // side by side on the shared pool (#493). Results keep enumeration
+        // order, so the items below are the ones a serial walk builds.
+        let children: Vec<&Path> = slots
+            .iter()
+            .filter_map(|slot| match slot {
+                AgedSlot::Measure(child) => Some(child.path.as_path()),
+                AgedSlot::Ready(_) => None,
+            })
+            .collect();
+        let (measured, measured_timings) = aged_measurement::measure_children(
+            context,
+            pool,
+            &observation_policy,
+            stale_policy,
+            &children,
+        );
+        timings.tree_measurement += measured_timings.tree_measurement;
+        timings.metadata_and_links += measured_timings.metadata_and_links;
+        timings.age_evaluation += measured_timings.age_evaluation;
+        timings.size_accounting += measured_timings.size_accounting;
+        timings.traversal += measured_timings.traversal;
+        let mut measured = measured.into_iter();
+        for slot in slots {
+            let child = match slot {
+                AgedSlot::Ready(item) => {
+                    items.push(*item);
+                    continue;
+                }
+                AgedSlot::Measure(child) => child,
+            };
+            // A child the cancelled scan never reached ends the walk here, as
+            // the serial walk stopped before it; a child measured while the
+            // scan was stopped is the last one it reports.
+            let Some(aged_measurement::MeasuredChild { stats, stopped }) =
+                measured.next().flatten()
+            else {
+                break;
+            };
+            items.extend(Self::aged_child_item(
+                signature,
+                child,
+                stats,
+                path_index,
+                root_key,
                 gate,
-                owner_running,
-                lifecycle_provider_action: false,
-                requires_confirmation: false,
-                overlaps: Vec::new(),
-                is_selected,
-                last_modified: newest_modified,
-                exists: true,
-                quality: ObservationQuality::Fresh,
-                inspection_issue: None,
-                incomplete_reason: None,
-                skipped_entry_count: stats.skipped_entries,
-            });
+                min_age_days,
+                now_secs,
+                stale_policy,
+            ));
+            if stopped {
+                break;
+            }
         }
 
         if let Some(reason) = entry_failure {
@@ -1409,6 +1368,153 @@ impl DirectoryScanner {
         }
 
         items
+    }
+
+    /// The item one measured child of an aged root is reported as, or nothing
+    /// for a complete observation of an empty, satisfied child.
+    #[allow(clippy::too_many_arguments)]
+    fn aged_child_item(
+        signature: &Signature,
+        child: AgedChild,
+        stats: TreeStats,
+        path_index: usize,
+        root_key: Option<&str>,
+        gate: EligibilityGate,
+        min_age_days: u32,
+        now_secs: u64,
+        stale_policy: Option<crate::safety::StaleEntryPolicy>,
+    ) -> Option<ScanItem> {
+        let AgedChild {
+            path,
+            name,
+            facts,
+            path_text,
+            unit,
+            ownership,
+        } = child;
+        // An incomplete tree cannot prove the candidate's newest timestamp,
+        // so retain it for observability but block cleanup.
+        if !stats.complete {
+            let size = FileSize::new(stats.logical, Some(stats.allocated));
+            let last_modified = stats
+                .newest_mtime
+                .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok())
+                .map(|duration| duration.as_secs());
+            return Some(
+                Self::unavailable_aged_item(
+                    signature,
+                    &path,
+                    Self::item_id_for(signature, path_index, root_key, Some(&name)),
+                    name,
+                    size,
+                    stats.file_count,
+                    last_modified,
+                    stats.skipped_entries,
+                    stats.incomplete_reason.unwrap_or_else(|| {
+                        format!("Could not completely inspect {}", path.display())
+                    }),
+                    gate,
+                    false,
+                )
+                .with_inspection_issue(stats.inspection_issue),
+            );
+        }
+
+        let size = FileSize::new(stats.logical, Some(stats.allocated));
+        let newest_modified = stats
+            .newest_mtime
+            .and_then(|modified| modified.duration_since(SystemTime::UNIX_EPOCH).ok())
+            .map(|duration| duration.as_secs());
+        let age = AgeObservation::evaluate(min_age_days, newest_modified, now_secs);
+        let stale = stale_policy.map(|_| {
+            StaleEntryObservation::new(min_age_days, stats.stale_bytes, stats.stale_file_count)
+        });
+
+        // An empty fresh observation carries nothing a user could act on.
+        if size.observed_bytes() == 0 && age.satisfied {
+            return None;
+        }
+
+        let description = match stale {
+            Some(stale) if stale.nothing_is_stale() => format!(
+                "{} (nothing inside has been inactive for {} days)",
+                signature.description, min_age_days
+            ),
+            Some(stale) => format!(
+                "{} ({} of it has been inactive for at least {} days)",
+                signature.description,
+                format_bytes(stale.stale_bytes),
+                min_age_days
+            ),
+            None if age.satisfied => format!(
+                "{} (unchanged for at least {} days)",
+                signature.description, min_age_days
+            ),
+            None => format!(
+                "{} (used within the last {} days; kept until it is stale)",
+                signature.description, min_age_days
+            ),
+        };
+
+        // The signature's resolved guard below is the single owner policy.
+        // Do not pre-mark a whole namespace busy before its unit check.
+        let owner_running = false;
+
+        let cache_metadata = signature.cache_metadata();
+        let disposition = derive_cleanup_disposition(
+            DispositionFacts::new(
+                signature.risk,
+                ObservationQuality::Fresh,
+                &cache_metadata,
+                &size,
+                None,
+            )
+            .with_gate(gate)
+            .with_running_owner(owner_running)
+            .with_age(stale.is_none().then_some(&age))
+            .with_stale_entries(stale.as_ref())
+            .with_structured_state(facts.structured_state),
+        );
+        let is_selected = disposition.eligibility == CleanupEligibility::AutoCleanable
+            && disposition.cleanable_bytes.unwrap_or(0) > 0;
+
+        let display_name = match root_key {
+            Some(key) => format!("{name} ({key})"),
+            None => name.clone(),
+        };
+        Some(ScanItem {
+            id: Self::item_id_for(signature, path_index, root_key, Some(&name)),
+            signature_id: signature.id.clone(),
+            name: display_name,
+            category: signature.category,
+            risk: signature.risk,
+            path: path_text,
+            size,
+            file_count: stats.file_count,
+            description,
+            cache_metadata,
+            disposition,
+            unit,
+            ownership,
+            age: stale.is_none().then_some(age),
+            stale,
+            structured_state: facts.structured_state,
+            provider_restriction: None,
+            retained: None,
+            entry_kind: facts.entry_kind,
+            gate,
+            owner_running,
+            lifecycle_provider_action: false,
+            requires_confirmation: false,
+            overlaps: Vec::new(),
+            is_selected,
+            last_modified: newest_modified,
+            exists: true,
+            quality: ObservationQuality::Fresh,
+            inspection_issue: None,
+            incomplete_reason: None,
+            skipped_entry_count: stats.skipped_entries,
+        })
     }
 
     fn unavailable_selector_item(
@@ -1881,3 +1987,6 @@ fn format_bytes(bytes: u64) -> String {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod aged_pool_tests;

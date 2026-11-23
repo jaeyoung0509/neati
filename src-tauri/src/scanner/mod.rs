@@ -1,5 +1,6 @@
 mod coverage;
 pub mod engine;
+mod measurement_memo;
 pub mod observation;
 pub mod relationship;
 pub mod retention;

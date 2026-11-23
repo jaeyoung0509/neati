@@ -37,6 +37,7 @@ fn aged_port<'a>(
         provider,
         environment: env,
         now: SystemTime::now() + Duration::from_secs(4 * 86400),
+        processes: crate::cleaner::ProcessView::Live(provider.process.as_ref()),
     }
 }
 
@@ -165,6 +166,7 @@ fn young_unknown_use_foreign_identity_and_links_are_not_ready() {
         provider: &provider,
         environment: &env,
         now: SystemTime::now(),
+        processes: crate::cleaner::ProcessView::Live(provider.process.as_ref()),
     };
     assert_eq!(
         young.inventory(ReviewedCacheKind::NodeCompileCache).units[0].state,

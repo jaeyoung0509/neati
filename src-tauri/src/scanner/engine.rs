@@ -4,9 +4,9 @@ use crate::cleaner::LifecycleProviderRegistry;
 use crate::docker::DockerAdapter;
 use crate::execution_budget::shared_scan_pool;
 use crate::models::{
-    resolve_unit_overlaps_with, Category, CategoryResult, EligibilitySummary, ObservationQuality,
-    PathIdentity, RiskTier, ScanEvent, ScanGap, ScanGapKind, ScanItem, ScanResult,
-    UnitRelationship,
+    resolve_unit_overlaps_indexed, Category, CategoryResult, EligibilitySummary,
+    ObservationQuality, PathIdentity, RiskTier, ScanEvent, ScanGap, ScanGapKind, ScanItem,
+    ScanResult, UnitRelationship,
 };
 use crate::orbstack::OrbStackAdapter;
 use crate::scanner::DirectoryScanner;
@@ -19,7 +19,7 @@ use std::path::Path;
 use std::time::{Instant, SystemTime};
 use uuid::Uuid;
 
-use crate::scanner::relationship::ScanRelationships;
+use crate::scanner::relationship::{ScanAnchors, ScanRelationships};
 
 pub struct ScanEngine;
 
@@ -55,6 +55,29 @@ fn route_exact_owner_observations(
                     == UnitRelationship::Equivalent
         },
     );
+}
+
+/// Routes exact owner observations and folds overlapping units, with one
+/// relationship snapshot for the whole pass.
+///
+/// The fold asks only the retained units a candidate shares a path or an
+/// identity with (#493); every other retained unit is one the relationship
+/// would call distinct, so the verdicts are those of asking every unit.
+fn resolve_scan_overlaps(
+    categories: &mut [CategoryResult],
+    registry: &SignatureRegistry,
+) -> neati_core::domain::scan::OverlapReport {
+    let relationships = RefCell::new(ScanRelationships::default());
+    route_exact_owner_observations(categories, registry, &relationships);
+    resolve_unit_overlaps_indexed(
+        categories,
+        &[],
+        PathIdentity::CaseSensitive,
+        |candidate, container| {
+            scan_unit_relationship(candidate, container, registry, &relationships)
+        },
+        &ScanAnchors(&relationships),
+    )
 }
 
 /// The relationship two units have, together with the cleanup policy the scan
@@ -506,6 +529,9 @@ impl ScanEngine {
         // tests and reported to the interface.
         let limits = ScanLimits::default();
         let counters = TraversalCounters::default();
+        // A root two rules name with the same measurement parameters is walked
+        // once per scan (#493); the memo is dropped with the scan.
+        let measurements = super::measurement_memo::MeasurementMemo::default();
 
         for &category in target_categories {
             if cancellation.is_cancelled() {
@@ -540,7 +566,8 @@ impl ScanEngine {
                 let gate = sig.eligibility_gate(intensive_cleanup);
                 let context =
                     WalkContext::new(environment, cancellation, limits, &counters, &events)
-                        .for_structured_state_policy(sig.structured_state_policy());
+                        .for_structured_state_policy(sig.structured_state_policy())
+                        .with_measurement_memo(&measurements);
                 let span_started = Instant::now();
                 let mut scanned = DirectoryScanner::scan_signature_with_context(
                     sig,
@@ -650,15 +677,23 @@ impl ScanEngine {
             //    semantics only its owner knows. Their candidates are
             //    discovered here — in the category their catalog entry declares
             //    — and every one of them is offered for explicit selection.
+            //    They read the scan's own process snapshot and open-file
+            //    verdicts, run side by side on the shared pool, and name the
+            //    store they are reading while they read it (#493).
             if !was_cancelled {
-                for item in owner_providers.scan_items_with_cancellation_and_spans(
+                for item in owner_providers.scan_items_in(
                     registry,
                     category,
                     intensive_cleanup,
                     excluded_signatures,
                     environment,
-                    cancellation,
+                    &crate::cleaner::OwnerScan::of_scan(
+                        &running_apps,
+                        cancellation,
+                        directory_pool,
+                    ),
                     &mut spans,
+                    &events,
                 ) {
                     if cancellation.is_cancelled() {
                         was_cancelled = true;
@@ -708,16 +743,7 @@ impl ScanEngine {
         // restated before any number derived from them is reported.
         let overlap_started = Instant::now();
         super::coverage::route_to_owners(&mut category_results);
-        let relationships = RefCell::new(ScanRelationships::default());
-        route_exact_owner_observations(&mut category_results, registry, &relationships);
-        let overlap = resolve_unit_overlaps_with(
-            &mut category_results,
-            &[],
-            PathIdentity::CaseSensitive,
-            |candidate, container| {
-                scan_unit_relationship(candidate, container, registry, &relationships)
-            },
-        );
+        let overlap = resolve_scan_overlaps(&mut category_results, registry);
         spans.push(ScanSpan {
             source_id: "scan.overlap_resolution".into(),
             duration_ms: overlap_started
@@ -874,16 +900,7 @@ impl ScanEngine {
             category.ambiguous_overlap_bytes = 0;
         }
         super::coverage::route_to_owners(&mut categories);
-        let relationships = RefCell::new(ScanRelationships::default());
-        route_exact_owner_observations(&mut categories, registry, &relationships);
-        let overlap = resolve_unit_overlaps_with(
-            &mut categories,
-            &[],
-            PathIdentity::CaseSensitive,
-            |candidate, container| {
-                scan_unit_relationship(candidate, container, registry, &relationships)
-            },
-        );
+        let overlap = resolve_scan_overlaps(&mut categories, registry);
         let physical = super::shared_storage::audit(&mut categories, environment);
         let overlap_duration_ms = overlap_started
             .elapsed()
@@ -1033,3 +1050,6 @@ impl<F: FnMut(ScanEvent)> RootProgressSink for ScanEvents<'_, F> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod overlap_tests;

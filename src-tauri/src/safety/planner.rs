@@ -441,6 +441,19 @@ impl SafetyPlanner {
                     SymlinkGuard::validate_anchored_path(&path, environment)?;
                 }
 
+                // 2c. A keep-newest signature (#480) never plans the unit its
+                //     siblings show to be newest now, whatever the scan saw.
+                if crate::models::retains_newest_version(&signature.id) {
+                    if let Some(reason) = crate::scanner::retention::retention_of(&path) {
+                        refusals.push(safety_refusal(
+                            item,
+                            CleanFailureReason::ChangedSinceScan,
+                            reason.explanation(),
+                        ));
+                        continue;
+                    }
+                }
+
                 // 3. Hard Blacklist check (lexical & canonical)
                 Blacklist::validate_with(&path, environment)?;
                 SymlinkGuard::validate_canonical_blacklist(&path, environment)?;
@@ -962,6 +975,7 @@ mod tests {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             entry_kind: crate::models::EntryKind::File,
             gate: Default::default(),
             owner_running: false,

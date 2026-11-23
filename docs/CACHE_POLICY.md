@@ -215,7 +215,7 @@ to quit the app themselves because its process adapter has no graceful operation
 | `~/.cache/{typescript,vite,webpack,eslint,prettier}` | Exact literal directories; payload cleanup when Node/Bun/tool processes are idle |
 | `~/.cache/codex-runtimes` | Installed runtime observation; zero cleanable bytes |
 | Zed `node/cache` and `node/*/cache` | Download payloads only; installed runtimes/extensions/language servers remain outside scope |
-| Xcode DeviceSupport | Existing 30-day retention plus active Xcode/Simulator guards |
+| Xcode DeviceSupport (iOS, watchOS, tvOS, visionOS, macOS) | Existing 30-day retention plus active Xcode/Simulator guards; the newest symbol set per platform folder is kept |
 
 Named JavaScript cache paths honor the same injected `XDG_CACHE_HOME` contract,
 defaulting to `~/.cache` when unset or exactly empty. Gradle roots honor
@@ -413,3 +413,17 @@ Xcode iOS DeviceSupport (`system.xcode_device_support`) uses the same policy.
 Each per-OS symbol set is its own named unit, removed whole only when it has
 been inactive for 30 days and Xcode, xcodebuild, Simulator and XCBBuildService
 are not running. Xcode downloads the set again when that device reconnects.
+
+The watchOS, tvOS, visionOS and macOS DeviceSupport folders
+(`system.xcode_{watchos,tvos,visionos,macos}_device_support`, #480) hold the
+same Xcode-written per-OS layout and carry the same rule, unit, strategy and
+process guard, so they are listed in `OWNER_GUARDED_BUILD_OUTPUT` on the same
+evidence. Every DeviceSupport signature is also in `RETAIN_NEWEST_VERSION`: in
+each platform folder the symbol set with the highest leading version (for
+example `17.4.1 (21E236) arm64e` or `iPhone15,2 17.4 (21E219)`) is reported
+but never offered, because it is the one the device in hand needs. Every build
+of that version is kept. When a folder name carries no version, the most
+recently modified set is kept as well, and an unlistable folder keeps every
+set. The scan, the planner and the execution guard each list the folder again
+through `scanner::retention::retention_of`, so a set that became the newest
+after the scan is skipped rather than removed.

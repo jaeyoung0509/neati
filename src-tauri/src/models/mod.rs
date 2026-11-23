@@ -105,8 +105,9 @@ pub use neati_core::domain::scan::{
     CacheMetadata, CacheSizeSemantics, CacheUsageConfidence, CategoryResult, CleanupDisposition,
     CleanupEligibility, CleanupOverlap, CleanupOwnership, CleanupUnit, CleanupUnitIdentity,
     CleanupUnitKind, DispositionFacts, EligibilityBucket, EligibilityGate, EligibilitySummary,
-    FileSize, OverlappedDiscovery, OwnershipConfidence, PathIdentity, ProviderRestriction, ScanGap,
-    ScanGapKind, ScanItem, ScanResult, StaleEntryObservation, UnitRelationship,
+    FileSize, OverlappedDiscovery, OwnershipConfidence, PathIdentity, ProviderRestriction,
+    RetentionReason, ScanGap, ScanGapKind, ScanItem, ScanResult, StaleEntryObservation,
+    UnitRelationship,
 };
 pub use neati_core::domain::storage::{
     AppInstallSource, AppLeftoverClassification, AppRelatedConfidence, AppRelatedKind,

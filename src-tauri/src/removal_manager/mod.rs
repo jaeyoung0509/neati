@@ -806,10 +806,13 @@ fn validate_developer_artifact_scope(
     if marker_identities.is_empty() && kind != DeveloperArtifactKind::GoModuleCache {
         return Err("Skipped because project evidence is missing.".to_string());
     }
+    // A Python tool cache may instead be evidenced by the standard cache tag
+    // inside itself (#479); no other kind may self-certify.
     if kind != DeveloperArtifactKind::GoModuleCache
-        && !marker_identities
-            .iter()
-            .any(|(marker, _)| marker.parent() == Some(project_root))
+        && !marker_identities.iter().any(|(marker, _)| {
+            marker.parent() == Some(project_root)
+                || crate::developer_artifacts::is_inner_cache_tag(kind, &target.path, marker)
+        })
     {
         return Err(
             "Skipped because no marker directly identifies the reviewed project root.".to_string(),

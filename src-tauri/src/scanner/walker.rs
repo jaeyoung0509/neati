@@ -362,6 +362,13 @@ impl DirectoryScanner {
             }
         }
 
+        // A keep-newest signature (#480) states which unit its siblings show
+        // to be in use. The planner and the execution guard list the siblings
+        // again rather than trust this fact.
+        if crate::models::retains_newest_version(&signature.id) {
+            crate::scanner::retention::annotate(&mut items);
+        }
+
         // A selection is derived from the facts above, so it is applied after
         // every field is set: only an auto-cleanable unit with reclaimable
         // bytes may be pre-selected.
@@ -701,6 +708,7 @@ impl DirectoryScanner {
             stale: None,
             structured_state: facts.as_ref().and_then(|facts| facts.structured_state),
             provider_restriction: None,
+            retained: None,
             entry_kind: facts
                 .as_ref()
                 .map(|facts| facts.entry_kind)
@@ -885,6 +893,7 @@ impl DirectoryScanner {
             stale: None,
             structured_state: facts.structured_state,
             provider_restriction: None,
+            retained: None,
             entry_kind: facts.entry_kind,
             gate,
             owner_running: false,
@@ -1357,6 +1366,7 @@ impl DirectoryScanner {
                 stale,
                 structured_state: facts.structured_state,
                 provider_restriction: None,
+                retained: None,
                 entry_kind: facts.entry_kind,
                 gate,
                 owner_running,
@@ -1465,6 +1475,7 @@ impl DirectoryScanner {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             entry_kind: EntryKind::Directory,
             gate,
             owner_running: false,
@@ -1531,6 +1542,7 @@ impl DirectoryScanner {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             entry_kind: EntryKind::Directory,
             gate,
             owner_running,

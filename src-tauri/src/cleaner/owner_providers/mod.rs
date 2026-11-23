@@ -714,6 +714,7 @@ impl OwnerProviderRegistry {
             stale: None,
             structured_state: None,
             provider_restriction,
+            retained: None,
             entry_kind: EntryKind::Directory,
             gate,
             owner_running: unit.is_some_and(|unit| unit.state == OwnerUnitState::InUse),

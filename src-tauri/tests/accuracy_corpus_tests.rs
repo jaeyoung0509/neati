@@ -160,6 +160,21 @@ const CORPUS: &[Entry] = &[
         256 * KB,
         "device symbol dump, re-downloaded when the device connects",
     ),
+    // DevCleaner keeps the newest symbol set per platform (#480): it is the
+    // one the device in hand needs, so neati never offers it.
+    keep(
+        "Library/Developer/Xcode/iOS DeviceSupport/18.1 (22B83)/Symbols/usr/lib/libobjc.A.dylib",
+        "newest iOS symbol set, kept for the device in hand",
+    ),
+    regen(
+        "Library/Developer/Xcode/watchOS DeviceSupport/Watch6,2 10.0 (21R356)/Symbols/usr/lib/libobjc.A.dylib",
+        128 * KB,
+        "older watchOS symbol set, re-downloaded when that watch connects",
+    ),
+    keep(
+        "Library/Developer/Xcode/watchOS DeviceSupport/Watch7,3 11.1 (22S73)/Symbols/usr/lib/libobjc.A.dylib",
+        "newest watchOS symbol set, kept for the watch in hand",
+    ),
     keep(
         "Library/Developer/Xcode/UserData/FontAndColorThemes/Mine.xccolortheme",
         "Xcode user data beside DerivedData",
@@ -612,6 +627,12 @@ fn accuracy_matches_the_recorded_baseline() {
 /// - 2026-11-22, #482: an Electron session partition's HTTP, code and GPU
 ///   caches are reclaimed (208 KB); its cookies, Local Storage, IndexedDB and
 ///   Service Worker storage are kept.
+/// - 2026-11-23, #480: DeviceSupport keeps the newest symbol set per platform
+///   and covers watchOS, tvOS, visionOS and macOS. The newest iOS (18.1) and
+///   watchOS (11.1) sets are `MustKeep` rows and are neither preselected nor
+///   offered; the older iOS 17.0 set is still reclaimed, and the older watchOS
+///   10.0 set is newly reclaimed (128 KB). Without the rule the newest sets
+///   would be preselected false positives.
 fn baseline() -> Accuracy {
     Accuracy {
         preselected_false_positives: Vec::new(),
@@ -652,7 +673,8 @@ fn baseline() -> Accuracy {
             + 32
             + 128
             + 64
-            + 16)
+            + 16
+            + 128)
             * KB,
     }
 }

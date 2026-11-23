@@ -1739,7 +1739,7 @@ export type DashboardTab_Serialize = "overview" | "disk" | "storage" |
 
 export type DeveloperArtifact = DeveloperArtifact_Serialize | DeveloperArtifact_Deserialize;
 
-export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "svelte_kit_output" | "next_output" | "svelte_kit_types" | "next_webpack_cache" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache";
+export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "svelte_kit_output" | "next_output" | "svelte_kit_types" | "next_webpack_cache" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache" | "python_bytecode_cache" | "pytest_cache" | "mypy_cache" | "ruff_cache" | "tox_environments" | "nox_environments" | "turbo_cache" | "angular_cache" | "nx_cache" | "unity_library" | "unity_temp" | "unity_obj" | "unity_logs" | "unreal_intermediate" | "unreal_derived_data_cache" | "godot_cache" | "elm_stuff" | "clojure_cpcache" | "bloop_cache" | "metals_cache";
 
 export type DeveloperArtifactScanEvent = DeveloperArtifactScanEvent_Serialize | DeveloperArtifactScanEvent_Deserialize;
 
@@ -1875,7 +1875,7 @@ export type DeveloperArtifact_Serialize = {
 	selected_by_default: boolean,
 };
 
-export type DeveloperEcosystem = "rust" | "node" | "python" | "go" | "java" | "kotlin" | "php" | "ruby" | "dotnet" | "c" | "cpp" | "swift" | "dart" | "elixir" | "erlang" | "scala" | "clojure" | "haskell" | "zig" | "objective_c" | "r" | "julia" | "lua" | "terraform";
+export type DeveloperEcosystem = "rust" | "node" | "python" | "go" | "java" | "kotlin" | "php" | "ruby" | "dotnet" | "c" | "cpp" | "swift" | "dart" | "elixir" | "erlang" | "scala" | "clojure" | "haskell" | "zig" | "objective_c" | "r" | "julia" | "lua" | "terraform" | "unity" | "unreal" | "godot" | "elm";
 
 export type DeveloperWorkspace = {
 	id: string,
@@ -3407,6 +3407,21 @@ export type ResourceAttribution_Serialize = {
 	mutable_actions_allowed: boolean,
 };
 
+/**  Why the keep-newest rule retains a unit. */
+export type RetentionReason =
+/**  Its name carries the newest version among its siblings. */
+"newest_version" |
+/**
+ *  A sibling name carries no version, so the most recently modified unit
+ *  is kept as well.
+ */
+"newest_modified" |
+/**
+ *  The siblings could not be listed completely, so no unit can be shown
+ *  not to be the newest.
+ */
+"siblings_unverified";
+
 export type RiskSummary = RiskSummary_Serialize | RiskSummary_Deserialize;
 
 export type RiskSummary_Deserialize = {
@@ -3612,6 +3627,14 @@ export type ScanItem_Deserialize = {
 	/**  A complete provider observation refused by its own age or layout policy. */
 	provider_restriction?: ProviderRestriction | null,
 	/**
+	 *  Why a keep-newest rule retains this unit among its siblings (#480).
+	 *
+	 *  Recorded at discovery so the displayed verdict can be re-derived. The
+	 *  planner and the execution guard observe the siblings again instead of
+	 *  trusting it.
+	 */
+	retained?: RetentionReason | null,
+	/**
 	 *  What the scan found at the path: a file, a directory, or neither.
 	 *
 	 *  The plan carries this observation forward so execution can tell "the
@@ -3705,6 +3728,14 @@ export type ScanItem_Serialize = {
 	structured_state: StructuredStateKind | null,
 	/**  A complete provider observation refused by its own age or layout policy. */
 	provider_restriction: ProviderRestriction | null,
+	/**
+	 *  Why a keep-newest rule retains this unit among its siblings (#480).
+	 *
+	 *  Recorded at discovery so the displayed verdict can be re-derived. The
+	 *  planner and the execution guard observe the siblings again instead of
+	 *  trusting it.
+	 */
+	retained?: RetentionReason | null,
 	/**
 	 *  What the scan found at the path: a file, a directory, or neither.
 	 *

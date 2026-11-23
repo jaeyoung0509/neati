@@ -2344,6 +2344,7 @@ name = "neati-desktop"
 version = "0.3.138"
 dependencies = [
  "base64 0.23.1",
+ "flate2",
  "libc",
  "neati-core",
  "neati-platform",
@@ -2375,6 +2376,7 @@ dependencies = [
  "uuid",
  "walkdir",
  "windows-sys 0.61.2",
+ "zip",
 ]
 
 [[package]]
@@ -6144,6 +6146,7 @@ checksum = "a9534624d547e3f516ecde0ed9a70d37788f01d340efcfdd03bf3ea8e163c1d0"
 dependencies = [
  "constant_time_eq",
  "crc32fast",
+ "flate2",
  "getrandom 0.4.3",
  "indexmap 2.14.0",
  "libc",

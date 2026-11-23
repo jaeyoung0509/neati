@@ -253,7 +253,8 @@ pub fn get_ai_provider_descriptors() -> Vec<crate::ai_providers::ProviderDescrip
 }
 
 // ---------------------------------------------------------------------------
-// Agent sessions (#508). Each handler forwards to the window's session desk.
+// Agent sessions (#508, #509). Each handler forwards to the window's session
+// desk; paths come from system dialogs the desk opens, never from the window.
 
 /// The read-only session inventory, grouped by project.
 #[tauri::command]
@@ -264,7 +265,58 @@ pub async fn get_agent_sessions(
     ports.session_desk.inventory().await
 }
 
-/// Stops the running session inventory.
+/// Resolves the chosen sessions and counts likely secrets. Writes nothing.
+#[tauri::command]
+#[specta::specta]
+pub async fn prepare_session_export(
+    keys: Vec<String>,
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<crate::models::SessionExportPreview, String> {
+    ports.session_desk.prepare_export(keys).await
+}
+
+/// Asks where to save and writes the held export. `null` when the dialog was
+/// closed.
+#[tauri::command]
+#[specta::specta]
+pub async fn export_session_bundle(
+    preview_id: uuid::Uuid,
+    allow_secrets: bool,
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<Option<crate::models::SessionExportOutcome>, String> {
+    ports.session_desk.export(preview_id, allow_secrets).await
+}
+
+/// Asks for a bundle and verifies it. `null` when the dialog was closed.
+#[tauri::command]
+#[specta::specta]
+pub async fn open_session_bundle(
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<Option<crate::models::SessionBundlePreview>, String> {
+    ports.session_desk.open_bundle().await
+}
+
+/// A project folder on this Mac, chosen in the system dialog, for a remap.
+#[tauri::command]
+#[specta::specta]
+pub async fn pick_session_project_folder(
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<Option<String>, String> {
+    ports.session_desk.pick_project_folder().await
+}
+
+/// Imports the held bundle; existing files are kept, never replaced.
+#[tauri::command]
+#[specta::specta]
+pub async fn import_session_bundle(
+    preview_id: uuid::Uuid,
+    remaps: Vec<crate::models::SessionRemap>,
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<crate::models::SessionImportOutcome, String> {
+    ports.session_desk.import(preview_id, remaps).await
+}
+
+/// Stops the running session inventory, export or import.
 #[tauri::command]
 #[specta::specta]
 pub fn cancel_session_operation(ports: State<'_, crate::composition::ApplicationPorts>) {

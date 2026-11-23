@@ -24,6 +24,11 @@ import type {
   CommandLineStatus,
   AutomaticCleanStatus,
   AgentSessionInventory,
+  SessionBundlePreview,
+  SessionExportOutcome,
+  SessionExportPreview,
+  SessionImportOutcome,
+  SessionRemap,
   OneButtonOutcome,
   OneButtonPreview,
   ControlCenterQuickSummary,
@@ -440,7 +445,32 @@ export function tauriGetAgentSessions(): Promise<AgentSessionInventory> {
   return api.getAgentSessions();
 }
 
-/** Stops the running session read. */
+/** Counts likely secrets in the chosen sessions and holds the export (#509). */
+export function tauriPrepareSessionExport(keys: string[]): Promise<SessionExportPreview> {
+  return api.prepareSessionExport(keys);
+}
+
+/** Opens the save dialog and writes the held export; `null` when it was closed. */
+export function tauriExportSessionBundle(previewId: string, allowSecrets: boolean): Promise<SessionExportOutcome | null> {
+  return api.exportSessionBundle(previewId, allowSecrets);
+}
+
+/** Opens the file dialog and verifies the chosen bundle; `null` when it was closed. */
+export function tauriOpenSessionBundle(): Promise<SessionBundlePreview | null> {
+  return api.openSessionBundle();
+}
+
+/** A project folder chosen in the system dialog, for a remap. */
+export function tauriPickSessionProjectFolder(): Promise<string | null> {
+  return api.pickSessionProjectFolder();
+}
+
+/** Imports the held bundle; existing files are kept, never replaced. */
+export function tauriImportSessionBundle(previewId: string, remaps: SessionRemap[]): Promise<SessionImportOutcome> {
+  return api.importSessionBundle(previewId, remaps);
+}
+
+/** Stops the running session read, export or import. */
 export function tauriCancelSessionOperation(): Promise<void> {
   return api.cancelSessionOperation();
 }

@@ -18,6 +18,11 @@ import type {
   CommandLineStatus,
   AutomaticCleanStatus,
   AgentSessionInventory,
+  SessionBundlePreview,
+  SessionExportOutcome,
+  SessionExportPreview,
+  SessionImportOutcome,
+  SessionRemap,
   OneButtonOutcome,
   OneButtonPreview,
   CleanItemResult,
@@ -2011,6 +2016,26 @@ export const mockApi = {
 
   async getAgentSessions(): Promise<AgentSessionInventory> {
     return agentSessionsMock.inventory();
+  },
+
+  async prepareSessionExport(keys: string[]): Promise<SessionExportPreview> {
+    return agentSessionsMock.prepareExport(keys);
+  },
+
+  async exportSessionBundle(previewId: string, allowSecrets: boolean): Promise<SessionExportOutcome | null> {
+    return agentSessionsMock.exportBundle(previewId, allowSecrets);
+  },
+
+  async openSessionBundle(): Promise<SessionBundlePreview | null> {
+    return agentSessionsMock.openBundle();
+  },
+
+  async pickSessionProjectFolder(): Promise<string | null> {
+    return agentSessionsMock.pickProjectFolder();
+  },
+
+  async importSessionBundle(previewId: string, remaps: SessionRemap[]): Promise<SessionImportOutcome> {
+    return agentSessionsMock.importBundle(previewId, remaps);
   },
 
   async cancelSessionOperation(): Promise<void> {},

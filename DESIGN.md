@@ -789,15 +789,23 @@ Control Center retains its budget, manual-usage and advisory controls.
 
 ### Agent sessions
 
-Sessions (#508) is a Beta tab in the AI section. It lists Claude Code and
-Codex sessions grouped by project in one bordered surface per project. Each
-project shows a header row with the folder path in monospace, the session
-count and the size. Each session row shows the capped first prompt (or a
-short id), the tool, the last activity, the file count and the size. A
-project whose folder is gone carries a `Folder gone` warning badge. A file
-date stands in for a missing record date and is labelled as such. Loading,
-empty, missing-folder and failed reads are separate states. The view never
-offers to delete a session.
+Sessions (#508, #509) is a Beta tab in the AI section. It lists Claude Code
+and Codex sessions grouped by project in one bordered surface per project.
+Each project shows a header row with a select-all checkbox, the folder path
+in monospace, the session count and the size. Each session row shows a
+checkbox, the capped first prompt (or a short id), the tool, the last
+activity, the file count and the size. A project whose folder is gone carries
+a `Folder gone` warning badge. A file date stands in for a missing record date
+and is labelled as such. Loading, empty, missing-folder and failed reads are
+separate states.
+
+Export is the page's one primary action. Its dialog states the session, file
+and byte counts and lists likely secrets as counts per kind. An
+acknowledgement checkbox is required before the save dialog opens. Import
+opens the file dialog, then a review that names the verified bundle and the
+files that are kept rather than replaced. For a folder that is not on this
+Mac, a `Choose folder…` action offers a remap. Both dialogs offer Stop while
+they run. The view never offers to delete a session.
 
 ### Containers (Docker)
 

@@ -1,8 +1,9 @@
-//! Agent session records as the window and the CLI see them (#508).
+//! Agent session records as the window and the CLI see them (#508, #509).
 //!
 //! Only derived facts cross IPC: identity, the project folder, dates, sizes,
-//! and a capped title from the first prompt. No other transcript text and no
-//! session file path beyond the project folder.
+//! and a capped title from the first prompt. No other transcript text, no
+//! session file path beyond the project folder, and never a secret value: a
+//! secret finding is a kind and a count.
 
 use serde::{Deserialize, Serialize};
 
@@ -132,6 +133,139 @@ pub struct AgentSessionInventory {
     pub incomplete_reasons: Vec<String>,
 }
 
+/// A likely secret shape found while preparing a bundle. Values are never
+/// kept, only counted.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, specta::Type,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum SecretKind {
+    /// `-----BEGIN … PRIVATE KEY-----`
+    PrivateKey,
+    /// `sk-ant-…`
+    AnthropicKey,
+    /// `sk-…`
+    OpenaiStyleKey,
+    /// `ghp_…`
+    GithubToken,
+    /// `github_pat_…`
+    GithubFineGrainedToken,
+    /// `AKIA…`
+    AwsAccessKey,
+    /// `xoxb-…` / `xoxp-…`
+    SlackToken,
+}
+
+impl SecretKind {
+    pub const ALL: [SecretKind; 7] = [
+        SecretKind::PrivateKey,
+        SecretKind::AnthropicKey,
+        SecretKind::OpenaiStyleKey,
+        SecretKind::GithubToken,
+        SecretKind::GithubFineGrainedToken,
+        SecretKind::AwsAccessKey,
+        SecretKind::SlackToken,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            SecretKind::PrivateKey => "private key block",
+            SecretKind::AnthropicKey => "Anthropic key (sk-ant-)",
+            SecretKind::OpenaiStyleKey => "API key (sk-)",
+            SecretKind::GithubToken => "GitHub token (ghp_)",
+            SecretKind::GithubFineGrainedToken => "GitHub token (github_pat_)",
+            SecretKind::AwsAccessKey => "AWS access key (AKIA)",
+            SecretKind::SlackToken => "Slack token (xoxb-/xoxp-)",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SecretFinding {
+    pub kind: SecretKind,
+    pub count: u32,
+}
+
+/// A held export, before the person picks where it goes (#509).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SessionExportPreview {
+    /// One-shot id the export submits.
+    pub id: uuid::Uuid,
+    pub sessions: u32,
+    pub files: u32,
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub bytes: u64,
+    /// Counts per kind. Not empty means the person must confirm.
+    pub findings: Vec<SecretFinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SessionExportOutcome {
+    /// Where the bundle was written.
+    pub path: String,
+    pub sessions: u32,
+    pub files: u32,
+    /// Session bytes in the bundle, before compression.
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub bytes: u64,
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub archive_bytes: u64,
+    pub findings: Vec<SecretFinding>,
+}
+
+/// One session in a bundle that was read and verified.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SessionBundleEntry {
+    pub tool: AgentSessionTool,
+    pub session_id: String,
+    pub original_cwd: Option<String>,
+    pub files: u32,
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub bytes: u64,
+    /// Files that already exist here and would be kept, not replaced.
+    pub existing_files: u32,
+}
+
+/// A recorded project folder and whether it exists on this Mac.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SessionBundleProject {
+    pub original_cwd: String,
+    pub folder: ProjectFolderState,
+    pub sessions: u32,
+}
+
+/// A verified bundle held for one import.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SessionBundlePreview {
+    pub id: uuid::Uuid,
+    /// The bundle's file name, for display.
+    pub name: String,
+    pub neati_version: String,
+    pub sessions: Vec<SessionBundleEntry>,
+    pub projects: Vec<SessionBundleProject>,
+}
+
+/// Rewrite `from` to `to` in the imported sessions' `cwd` fields.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SessionRemap {
+    pub from: String,
+    pub to: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct SessionImportOutcome {
+    pub sessions: u32,
+    pub written_files: u32,
+    /// Files that already existed and were kept.
+    pub kept_existing: Vec<String>,
+    /// Files whose `cwd` fields were rewritten by a remap.
+    pub rewritten_files: u32,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -195,5 +329,44 @@ mod tests {
             incomplete_reasons: vec![],
         };
         assert!(serde_json::to_string(&inventory).is_err());
+        let preview = SessionExportPreview {
+            id: uuid::Uuid::nil(),
+            sessions: 1,
+            files: 1,
+            bytes: too_big,
+            findings: vec![],
+        };
+        assert!(serde_json::to_string(&preview).is_err());
+        let outcome = SessionExportOutcome {
+            path: "/tmp/x".into(),
+            sessions: 1,
+            files: 1,
+            bytes: 1,
+            archive_bytes: too_big,
+            findings: vec![],
+        };
+        assert!(serde_json::to_string(&outcome).is_err());
+        let entry = SessionBundleEntry {
+            tool: AgentSessionTool::Claude,
+            session_id: "s".into(),
+            original_cwd: None,
+            files: 1,
+            bytes: too_big,
+            existing_files: 0,
+        };
+        assert!(serde_json::to_string(&entry).is_err());
+    }
+
+    #[test]
+    fn a_finding_is_a_kind_and_a_count() {
+        let json = serde_json::to_value(SecretFinding {
+            kind: SecretKind::AnthropicKey,
+            count: 2,
+        })
+        .expect("serializes");
+        assert_eq!(
+            json,
+            serde_json::json!({ "kind": "anthropic_key", "count": 2 })
+        );
     }
 }

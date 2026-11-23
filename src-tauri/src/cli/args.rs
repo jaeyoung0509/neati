@@ -66,6 +66,27 @@ pub enum Command {
     },
     /// The agent session inventory (#508). Read-only.
     Sessions,
+    /// Writes a session bundle (#509).
+    SessionsExport(SessionExportOptions),
+    /// Imports a session bundle (#509). Never replaces a file.
+    SessionsImport(SessionImportOptions),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct SessionExportOptions {
+    /// Where the bundle goes. It must not exist.
+    pub out: String,
+    /// Session keys or ids; empty means every session.
+    pub only: Vec<String>,
+    /// Write the bundle even when likely secrets were found.
+    pub allow_secrets: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct SessionImportOptions {
+    pub bundle: String,
+    /// `(old, new)` project folders.
+    pub remaps: Vec<(String, String)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -411,19 +432,64 @@ fn parse_skill(rest: &[String]) -> Result<Invocation, String> {
     }
 }
 
-/// `sessions`: the read-only inventory.
+/// `sessions`, `sessions export --out PATH …`, `sessions import PATH …`.
 fn parse_sessions(rest: &[String]) -> Result<Invocation, String> {
     let mut globals = Globals::default();
-    for argument in rest {
-        if !globals.take(argument) {
-            return Err(if argument.starts_with("--") {
-                unknown(argument)
-            } else {
-                format!("Unknown sessions action {argument}.")
-            });
+    match rest.first().map(String::as_str) {
+        Some("export") => {
+            let mut options = SessionExportOptions::default();
+            let mut out = None;
+            let mut arguments = rest[1..].iter();
+            while let Some(argument) = arguments.next() {
+                match argument.as_str() {
+                    "--out" | "-o" => out = Some(value(&mut arguments, "--out")?),
+                    "--only" => options.only.extend(references(&mut arguments, "--only")?),
+                    "--allow-secrets" => options.allow_secrets = true,
+                    other if globals.take(other) => {}
+                    other => return Err(unknown(other)),
+                }
+            }
+            options.out = out.ok_or_else(|| "sessions export needs --out PATH.".to_string())?;
+            Ok(globals.finish(Command::SessionsExport(options)))
+        }
+        Some("import") => {
+            let mut options = SessionImportOptions::default();
+            let mut bundle = None;
+            let mut arguments = rest[1..].iter();
+            while let Some(argument) = arguments.next() {
+                match argument.as_str() {
+                    "--remap" => {
+                        let pair = value(&mut arguments, "--remap")?;
+                        let (old, new) = pair
+                            .split_once('=')
+                            .filter(|(old, new)| !old.is_empty() && !new.is_empty())
+                            .ok_or_else(|| "--remap needs OLD=NEW.".to_string())?;
+                        options.remaps.push((old.to_string(), new.to_string()));
+                    }
+                    other if globals.take(other) => {}
+                    other if other.starts_with("--") || bundle.is_some() => {
+                        return Err(unknown(other))
+                    }
+                    other => bundle = Some(other.to_string()),
+                }
+            }
+            options.bundle =
+                bundle.ok_or_else(|| "sessions import needs a bundle path.".to_string())?;
+            Ok(globals.finish(Command::SessionsImport(options)))
+        }
+        _ => {
+            for argument in rest {
+                if !globals.take(argument) {
+                    return Err(if argument.starts_with("--") {
+                        unknown(argument)
+                    } else {
+                        format!("Unknown sessions action {argument}. Use export or import.")
+                    });
+                }
+            }
+            Ok(globals.finish(Command::Sessions))
         }
     }
-    Ok(globals.finish(Command::Sessions))
 }
 
 fn value<'a>(
@@ -540,10 +606,47 @@ mod tests {
     }
 
     #[test]
-    fn sessions_parses_only_global_options() {
+    fn sessions_commands_parse_their_options() {
         assert_eq!(run(&["sessions", "--json"]).command, Command::Sessions);
         assert!(run(&["sessions", "--json"]).json);
-        for words in [&["sessions", "delete"][..], &["sessions", "--all"][..]] {
+        assert_eq!(
+            run(&[
+                "sessions",
+                "export",
+                "--out",
+                "b.neati-sessions",
+                "--only",
+                "a,b",
+                "--allow-secrets"
+            ])
+            .command,
+            Command::SessionsExport(SessionExportOptions {
+                out: "b.neati-sessions".into(),
+                only: vec!["a".into(), "b".into()],
+                allow_secrets: true,
+            })
+        );
+        assert_eq!(
+            run(&[
+                "sessions",
+                "import",
+                "b.neati-sessions",
+                "--remap",
+                "/old=/new"
+            ])
+            .command,
+            Command::SessionsImport(SessionImportOptions {
+                bundle: "b.neati-sessions".into(),
+                remaps: vec![("/old".into(), "/new".into())],
+            })
+        );
+        for words in [
+            &["sessions", "export"][..],
+            &["sessions", "import"][..],
+            &["sessions", "import", "a", "b"][..],
+            &["sessions", "import", "a", "--remap", "/old"][..],
+            &["sessions", "delete"][..],
+        ] {
             assert!(matches!(parse_words(words), Parsed::Usage(_)), "{words:?}");
         }
     }

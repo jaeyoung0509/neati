@@ -215,6 +215,10 @@ import type {
   AgentSessionProject_Serialize,
   AgentSessionSummary_Serialize,
   AgentSessionToolTotal_Serialize,
+  SessionBundleEntry_Serialize,
+  SessionBundlePreview_Serialize,
+  SessionExportOutcome_Serialize,
+  SessionExportPreview_Serialize,
 } from '../bindings/tauri';
 
 export type { OneButtonActivity, OneButtonFailure, OneButtonSource } from '../bindings/tauri';
@@ -225,12 +229,25 @@ export type {
   AgentSkillTarget,
   CommandLineStatus,
 } from '../bindings/tauri';
-// Agent sessions (#508): the window only ever receives these shapes.
-export type { AgentSessionIssue, AgentSessionTool, ProjectFolderState } from '../bindings/tauri';
+// Agent sessions (#508, #509): the window only ever receives these shapes.
+export type {
+  AgentSessionIssue,
+  AgentSessionTool,
+  ProjectFolderState,
+  SecretFinding,
+  SecretKind,
+  SessionBundleProject,
+  SessionImportOutcome,
+  SessionRemap,
+} from '../bindings/tauri';
 export type AgentSessionInventory = AgentSessionInventory_Serialize;
 export type AgentSessionProject = AgentSessionProject_Serialize;
 export type AgentSessionSummary = AgentSessionSummary_Serialize;
 export type AgentSessionToolTotal = AgentSessionToolTotal_Serialize;
+export type SessionBundleEntry = SessionBundleEntry_Serialize;
+export type SessionBundlePreview = SessionBundlePreview_Serialize;
+export type SessionExportOutcome = SessionExportOutcome_Serialize;
+export type SessionExportPreview = SessionExportPreview_Serialize;
 
 // One-button Clean (#500): the window only ever receives these shapes.
 export type OneButtonItem = OneButtonItem_Serialize;

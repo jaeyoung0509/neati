@@ -25,6 +25,11 @@ import type {
   CommandLineStatus,
   AutomaticCleanStatus,
   AgentSessionInventory,
+  SessionBundlePreview,
+  SessionExportOutcome,
+  SessionExportPreview,
+  SessionImportOutcome,
+  SessionRemap,
   OneButtonOutcome,
   OneButtonPreview,
   CleanupFailure,
@@ -469,6 +474,26 @@ export const nativeApi = {
 
   async getAgentSessions(): Promise<AgentSessionInventory> {
     return await unwrap(commands.getAgentSessions());
+  },
+
+  async prepareSessionExport(keys: string[]): Promise<SessionExportPreview> {
+    return await unwrap(commands.prepareSessionExport(keys));
+  },
+
+  async exportSessionBundle(previewId: string, allowSecrets: boolean): Promise<SessionExportOutcome | null> {
+    return await unwrap(commands.exportSessionBundle(previewId, allowSecrets));
+  },
+
+  async openSessionBundle(): Promise<SessionBundlePreview | null> {
+    return await unwrap(commands.openSessionBundle());
+  },
+
+  async pickSessionProjectFolder(): Promise<string | null> {
+    return await unwrap(commands.pickSessionProjectFolder());
+  },
+
+  async importSessionBundle(previewId: string, remaps: SessionRemap[]): Promise<SessionImportOutcome> {
+    return await unwrap(commands.importSessionBundle(previewId, remaps));
   },
 
   async cancelSessionOperation(): Promise<void> {

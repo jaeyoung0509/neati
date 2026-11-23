@@ -95,8 +95,8 @@ fn the_one_button_core_names_no_service_and_no_interface() {
 
 #[test]
 fn the_session_use_case_names_no_interface() {
-    // #508: the session library and the window's desk reach the bounded
-    // context, never Tauri, a terminal or a service.
+    // #508, #509: the session library and the window's desk reach the bounded
+    // context and the driven picker port, never Tauri, a terminal or a service.
     let core = files("src/services/agent_sessions", &[]);
     assert_eq!(
         core.iter()
@@ -105,7 +105,13 @@ fn the_session_use_case_names_no_interface() {
         ["desk.rs", "mod.rs", "ports.rs"]
     );
     let mut forbidden = CONCRETE_SERVICES.to_vec();
-    forbidden.extend(["tauri", "println!", "eprintln!", "std::io::std"]);
+    forbidden.extend([
+        "tauri",
+        "println!",
+        "eprintln!",
+        "std::io::std",
+        "NativeBundlePicker",
+    ]);
     let found = offenders(&core, &forbidden);
     assert!(
         found.is_empty(),
@@ -138,6 +144,7 @@ fn ports_are_bound_only_in_the_composition_root() {
             if code(&text).any(|line| {
                 line.contains("ServiceCacheCleanup::new")
                     || line.contains("ServiceProjectCleanup::new")
+                    || line.contains("NativeBundlePicker")
                     || line.contains("AgentSessionLibrary::new")
             }) {
                 bindings.push(format!("{directory}/{name}"));
@@ -152,5 +159,6 @@ fn ports_are_bound_only_in_the_composition_root() {
         fs::read_to_string(source("src/composition/interfaces.rs")).expect("composition source");
     assert!(composition.contains("ServiceCacheCleanup::new"));
     assert!(composition.contains("ServiceProjectCleanup::new"));
+    assert!(composition.contains("NativeBundlePicker"));
     assert!(composition.contains("AgentSessionLibrary::new"));
 }

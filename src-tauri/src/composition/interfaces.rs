@@ -7,6 +7,7 @@
 
 use std::sync::Arc;
 
+use crate::agent_sessions::picker::NativeBundlePicker;
 use crate::commands::DesktopState;
 use crate::services::agent_sessions::desk::SessionDesk;
 use crate::services::agent_sessions::ports::SessionLibrary;
@@ -30,9 +31,10 @@ pub struct ApplicationPorts {
     pub insights: Arc<dyn InsightQueries>,
     /// The `neati` command and the agent skill (#500).
     pub command_line: Arc<CommandLineService>,
-    /// The agent session inventory (#508).
+    /// Agent session inventory and bundles (#508, #509).
     pub sessions: Arc<dyn SessionLibrary>,
-    /// The same library for the window, which can stop a running read.
+    /// The same library for the window, with held previews and system
+    /// dialogs.
     pub session_desk: Arc<SessionDesk>,
 }
 
@@ -51,7 +53,10 @@ pub fn application_ports(state: &DesktopState) -> ApplicationPorts {
     let sessions: Arc<dyn SessionLibrary> =
         Arc::new(AgentSessionLibrary::new(state.environment.clone()));
     ApplicationPorts {
-        session_desk: Arc::new(SessionDesk::new(sessions.clone())),
+        session_desk: Arc::new(SessionDesk::new(
+            sessions.clone(),
+            Arc::new(NativeBundlePicker),
+        )),
         sessions,
         clean_sessions: Arc::new(OneButtonSessions::new(clean.clone())),
         clean,

@@ -58,7 +58,7 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 22] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 56] = [
+const READ_ONLY_PERMISSIONS: [&str; 59] = [
     "allow-suggest-developer-workspaces",
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
@@ -123,7 +123,13 @@ const READ_ONLY_PERMISSIONS: [&str; 56] = [
     "allow-get-command-line-status",
     // Lists agent session files from bounded head/tail reads (#508).
     "allow-get-agent-sessions",
-    // Stopping a session read stops work; it authorizes nothing.
+    // Counts likely secrets in chosen sessions and holds a preview (#509).
+    "allow-prepare-session-export",
+    // Verifies a bundle the person picked and holds a preview; writes nothing (#509).
+    "allow-open-session-bundle",
+    // Returns a folder the person picked in the system dialog (#509).
+    "allow-pick-session-project-folder",
+    // Stopping a session read or bundle stops work; it authorizes nothing.
     "allow-cancel-session-operation",
 ];
 
@@ -186,6 +192,10 @@ const MUTATING_PERMISSIONS: [&str; 44] = [
     "allow-execute-one-button-clean",
     // Writes neati's own agent skill file under the home folder (#500).
     "allow-install-agent-skill",
+    // Writes a new bundle file where the person chose; never replaces one (#509).
+    "allow-export-session-bundle",
+    // Adds session files from a verified bundle; never replaces one (#509).
+    "allow-import-session-bundle",
 ];
 
 /// The quick panel's deliberately narrow mutating use case. The backend

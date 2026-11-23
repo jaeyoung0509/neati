@@ -85,7 +85,36 @@ export const commands = {
 	installAgentSkill: (target: AgentSkillTarget) => typedError<AgentSkillInstall, string>(__TAURI_INVOKE("install_agent_skill", { target })),
 	/**  The read-only session inventory, grouped by project. */
 	getAgentSessions: () => typedError<AgentSessionInventory_Serialize, string>(__TAURI_INVOKE("get_agent_sessions")),
-	/**  Stops the running session inventory. */
+	/**  Resolves the chosen sessions and counts likely secrets. Writes nothing. */
+	prepareSessionExport: (keys: string[]) => typedError<SessionExportPreview_Serialize, string>(__TAURI_INVOKE("prepare_session_export", { keys })),
+	/**
+	 *  Asks where to save and writes the held export. `null` when the dialog was
+	 *  closed.
+	 */
+	exportSessionBundle: (previewId: string, allowSecrets: boolean) => typedError<{
+	/**  Where the bundle was written. */
+	path: string,
+	sessions: number,
+	files: number,
+	/**  Session bytes in the bundle, before compression. */
+	bytes: number,
+	archive_bytes: number,
+	findings: SecretFinding[],
+} | null, string>(__TAURI_INVOKE("export_session_bundle", { previewId, allowSecrets })),
+	/**  Asks for a bundle and verifies it. `null` when the dialog was closed. */
+	openSessionBundle: () => typedError<{
+	id: string,
+	/**  The bundle's file name, for display. */
+	name: string,
+	neati_version: string,
+	sessions: SessionBundleEntry_Serialize[],
+	projects: SessionBundleProject[],
+} | null, string>(__TAURI_INVOKE("open_session_bundle")),
+	/**  A project folder on this Mac, chosen in the system dialog, for a remap. */
+	pickSessionProjectFolder: () => typedError<string | null, string>(__TAURI_INVOKE("pick_session_project_folder")),
+	/**  Imports the held bundle; existing files are kept, never replaced. */
+	importSessionBundle: (previewId: string, remaps: SessionRemap[]) => typedError<SessionImportOutcome, string>(__TAURI_INVOKE("import_session_bundle", { previewId, remaps })),
+	/**  Stops the running session inventory, export or import. */
 	cancelSessionOperation: () => __TAURI_INVOKE<void>("cancel_session_operation"),
 	getMemoryMetrics: () => typedError<MemoryMetrics_Serialize, string>(__TAURI_INVOKE("get_memory_metrics")),
 	/**  The system-wide CPU share, with the state that says how current it is. */
@@ -4306,6 +4335,31 @@ export type ScanSpan_Serialize = {
 	duration_ms: number,
 };
 
+export type SecretFinding = {
+	kind: SecretKind,
+	count: number,
+};
+
+/**
+ *  A likely secret shape found while preparing a bundle. Values are never
+ *  kept, only counted.
+ */
+export type SecretKind =
+/**  `-----BEGIN … PRIVATE KEY-----` */
+"private_key" |
+/**  `sk-ant-…` */
+"anthropic_key" |
+/**  `sk-…` */
+"openai_style_key" |
+/**  `ghp_…` */
+"github_token" |
+/**  `github_pat_…` */
+"github_fine_grained_token" |
+/**  `AKIA…` */
+"aws_access_key" |
+/**  `xoxb-…` / `xoxp-…` */
+"slack_token";
+
 export type SelectedApplication = {
 	name: string,
 	executable_pattern: string,
@@ -4322,6 +4376,125 @@ export type SelfCheckRow = {
 	name: string,
 	outcome: SelfCheckOutcome,
 	detail: string,
+};
+
+/**  One session in a bundle that was read and verified. */
+export type SessionBundleEntry = SessionBundleEntry_Serialize | SessionBundleEntry_Deserialize;
+
+/**  One session in a bundle that was read and verified. */
+export type SessionBundleEntry_Deserialize = {
+	tool: AgentSessionTool,
+	session_id: string,
+	original_cwd: string | null,
+	files: number,
+	bytes: number,
+	/**  Files that already exist here and would be kept, not replaced. */
+	existing_files: number,
+};
+
+/**  One session in a bundle that was read and verified. */
+export type SessionBundleEntry_Serialize = {
+	tool: AgentSessionTool,
+	session_id: string,
+	original_cwd: string | null,
+	files: number,
+	bytes: number,
+	/**  Files that already exist here and would be kept, not replaced. */
+	existing_files: number,
+};
+
+/**  A verified bundle held for one import. */
+export type SessionBundlePreview = SessionBundlePreview_Serialize | SessionBundlePreview_Deserialize;
+
+/**  A verified bundle held for one import. */
+export type SessionBundlePreview_Deserialize = {
+	id: string,
+	/**  The bundle's file name, for display. */
+	name: string,
+	neati_version: string,
+	sessions: SessionBundleEntry_Deserialize[],
+	projects: SessionBundleProject[],
+};
+
+/**  A verified bundle held for one import. */
+export type SessionBundlePreview_Serialize = {
+	id: string,
+	/**  The bundle's file name, for display. */
+	name: string,
+	neati_version: string,
+	sessions: SessionBundleEntry_Serialize[],
+	projects: SessionBundleProject[],
+};
+
+/**  A recorded project folder and whether it exists on this Mac. */
+export type SessionBundleProject = {
+	original_cwd: string,
+	folder: ProjectFolderState,
+	sessions: number,
+};
+
+export type SessionExportOutcome = SessionExportOutcome_Serialize | SessionExportOutcome_Deserialize;
+
+export type SessionExportOutcome_Deserialize = {
+	/**  Where the bundle was written. */
+	path: string,
+	sessions: number,
+	files: number,
+	/**  Session bytes in the bundle, before compression. */
+	bytes: number,
+	archive_bytes: number,
+	findings: SecretFinding[],
+};
+
+export type SessionExportOutcome_Serialize = {
+	/**  Where the bundle was written. */
+	path: string,
+	sessions: number,
+	files: number,
+	/**  Session bytes in the bundle, before compression. */
+	bytes: number,
+	archive_bytes: number,
+	findings: SecretFinding[],
+};
+
+/**  A held export, before the person picks where it goes (#509). */
+export type SessionExportPreview = SessionExportPreview_Serialize | SessionExportPreview_Deserialize;
+
+/**  A held export, before the person picks where it goes (#509). */
+export type SessionExportPreview_Deserialize = {
+	/**  One-shot id the export submits. */
+	id: string,
+	sessions: number,
+	files: number,
+	bytes: number,
+	/**  Counts per kind. Not empty means the person must confirm. */
+	findings: SecretFinding[],
+};
+
+/**  A held export, before the person picks where it goes (#509). */
+export type SessionExportPreview_Serialize = {
+	/**  One-shot id the export submits. */
+	id: string,
+	sessions: number,
+	files: number,
+	bytes: number,
+	/**  Counts per kind. Not empty means the person must confirm. */
+	findings: SecretFinding[],
+};
+
+export type SessionImportOutcome = {
+	sessions: number,
+	written_files: number,
+	/**  Files that already existed and were kept. */
+	kept_existing: string[],
+	/**  Files whose `cwd` fields were rewritten by a remap. */
+	rewritten_files: number,
+};
+
+/**  Rewrite `from` to `to` in the imported sessions' `cwd` fields. */
+export type SessionRemap = {
+	from: string,
+	to: string,
 };
 
 export type SnapshotQuality = "fresh" | "stale" | "partial" | "unavailable";

@@ -1,16 +1,23 @@
-//! Fixture homes for the session inventory (#508).
+//! Fixture homes for the session inventory and bundles (#508, #509).
 //!
 //! Every file here is synthetic and shaped like the real formats (key names
 //! and value types checked on a real machine). Nothing reads or writes the
 //! real home folder.
 
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use super::bundle::{
+    import_bundle, read_bundle, scan_for_export, write_bundle, ExportSession, Manifest,
+    ManifestFile, ManifestSession, SCHEMA,
+};
 use super::inventory::{
     discover, project_inventory, DiscoveredSession, Discovery, InventoryLimits,
 };
 use super::{SessionCancel, SessionRoots};
-use crate::models::{AgentSessionIssue, AgentSessionTool, ProjectFolderState};
+use crate::models::{
+    AgentSessionIssue, AgentSessionTool, ProjectFolderState, SecretKind, SessionRemap,
+};
 
 const BODY: &str = "TRANSCRIPT_BODY_MARKER";
 const QUEUED: &str = "QUEUED_PROMPT_MARKER";
@@ -73,14 +80,8 @@ impl Home {
         }
     }
 
-    /// Claude Code's folder name for a project: every character other than
-    /// an ASCII letter or digit becomes `-`.
     fn claude_folder(cwd: &Path) -> String {
-        cwd.to_str()
-            .unwrap()
-            .chars()
-            .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
-            .collect()
+        super::remap::claude_project_folder(cwd.to_str().unwrap()).unwrap()
     }
 
     /// One Claude session in the present project (with side files), one
@@ -176,6 +177,18 @@ fn folder_state(cwd: &str) -> ProjectFolderState {
     } else {
         ProjectFolderState::Missing
     }
+}
+
+fn export_of(sessions: &[DiscoveredSession]) -> Vec<ExportSession> {
+    sessions
+        .iter()
+        .map(|session| ExportSession {
+            tool: session.tool,
+            session_id: session.session_id.clone(),
+            original_cwd: session.cwd.clone(),
+            files: session.files.clone(),
+        })
+        .collect()
 }
 
 #[test]
@@ -347,4 +360,487 @@ fn a_home_without_session_folders_is_empty_not_an_error() {
         .tools
         .iter()
         .all(|tool| !tool.present && tool.sessions == 0));
+}
+
+fn bytes_under(root: &Path) -> Vec<(String, Vec<u8>)> {
+    let mut files: Vec<(String, Vec<u8>)> = walkdir::WalkDir::new(root)
+        .into_iter()
+        .flatten()
+        .filter(|entry| entry.file_type().is_file())
+        .map(|entry| {
+            (
+                super::relative_slash_path(root, entry.path()).unwrap(),
+                std::fs::read(entry.path()).unwrap(),
+            )
+        })
+        .collect();
+    files.sort();
+    files
+}
+
+fn export_both(home: &Home, destination: &Path) -> Vec<ExportSession> {
+    let sessions = export_of(&[
+        home.session(AgentSessionTool::Claude, CLAUDE_ID),
+        home.session(AgentSessionTool::Codex, CODEX_ID),
+    ]);
+    write_bundle(
+        &sessions,
+        destination,
+        false,
+        "9.9.9",
+        &SessionCancel::new(),
+    )
+    .expect("the bundle is written");
+    sessions
+}
+
+#[test]
+fn export_then_import_round_trips_byte_for_byte() {
+    let source = Home::populated();
+    let out = tempfile::tempdir().unwrap();
+    let bundle_path = out.path().join("s.neati-sessions");
+    let sessions = export_both(&source, &bundle_path);
+
+    let bundle = read_bundle(&bundle_path, &SessionCancel::new()).expect("the bundle verifies");
+    assert_eq!(bundle.manifest.schema, SCHEMA);
+    assert_eq!(bundle.manifest.neati_version, "9.9.9");
+    let manifest_json = serde_json::to_value(&bundle.manifest).unwrap();
+    let keys = |value: &serde_json::Value| {
+        let mut keys: Vec<String> = value.as_object().unwrap().keys().cloned().collect();
+        keys.sort();
+        keys
+    };
+    assert_eq!(
+        keys(&manifest_json),
+        ["neati_version", "schema", "sessions"],
+        "no machine or account field"
+    );
+    assert_eq!(
+        keys(&manifest_json["sessions"][0]),
+        ["files", "original_cwd", "session_id", "tool"]
+    );
+
+    let target = Home::empty();
+    let report = import_bundle(
+        &bundle,
+        &target.roots,
+        &[],
+        &folder_state,
+        &SessionCancel::new(),
+    )
+    .expect("the import succeeds");
+    assert_eq!(report.written, 4);
+    assert_eq!(report.sessions, 2);
+    assert!(report.kept_existing.is_empty());
+    assert_eq!(report.rewritten, 0);
+
+    for session in &sessions {
+        for file in &session.files {
+            let imported = target.roots.tool_root(session.tool).join(&file.relative);
+            assert_eq!(
+                std::fs::read(&imported).expect("imported file"),
+                std::fs::read(&file.path).expect("source file"),
+                "{} is byte for byte",
+                file.relative
+            );
+        }
+    }
+    // The imported sessions appear in the target's own inventory.
+    let imported = target.discover();
+    assert_eq!(imported.sessions.len(), 2);
+}
+
+#[test]
+fn import_keeps_an_existing_file() {
+    let source = Home::populated();
+    let out = tempfile::tempdir().unwrap();
+    let bundle_path = out.path().join("s.neati-sessions");
+    export_both(&source, &bundle_path);
+    let bundle = read_bundle(&bundle_path, &SessionCancel::new()).unwrap();
+
+    let target = Home::empty();
+    let existing = target.roots.codex_home.join(format!(
+        "sessions/2026/11/21/rollout-2026-11-21T10-00-00-{CODEX_ID}.jsonl"
+    ));
+    write(&existing, b"the person's own copy\n");
+    let report = import_bundle(
+        &bundle,
+        &target.roots,
+        &[],
+        &folder_state,
+        &SessionCancel::new(),
+    )
+    .expect("the import succeeds");
+    assert_eq!(
+        std::fs::read(&existing).unwrap(),
+        b"the person's own copy\n"
+    );
+    assert_eq!(report.kept_existing.len(), 1);
+    assert!(report.kept_existing[0].starts_with("codex/sessions/"));
+    assert_eq!(report.written, 3);
+
+    // A second import writes nothing new and replaces nothing.
+    let before = bytes_under(&target.root);
+    let again = import_bundle(
+        &bundle,
+        &target.roots,
+        &[],
+        &folder_state,
+        &SessionCancel::new(),
+    )
+    .expect("the second import succeeds");
+    assert_eq!(again.written, 0);
+    assert_eq!(again.kept_existing.len(), 4);
+    assert_eq!(bytes_under(&target.root), before);
+}
+
+#[test]
+fn export_never_replaces_a_file() {
+    let source = Home::populated();
+    let out = tempfile::tempdir().unwrap();
+    let bundle_path = out.path().join("s.neati-sessions");
+    write(&bundle_path, b"something else");
+    let sessions = export_of(&[source.session(AgentSessionTool::Codex, CODEX_ID)]);
+    let error = write_bundle(&sessions, &bundle_path, false, "1", &SessionCancel::new())
+        .expect_err("an existing destination is refused");
+    assert!(error.contains("never replaces"));
+    assert_eq!(std::fs::read(&bundle_path).unwrap(), b"something else");
+    assert_eq!(
+        std::fs::read_dir(out.path()).unwrap().count(),
+        1,
+        "no partial file is left"
+    );
+}
+
+#[test]
+fn secret_findings_are_counts_and_refuse_without_permission() {
+    let home = Home::empty();
+    let present = home.present.to_str().unwrap().to_string();
+    let claude = home
+        .roots
+        .claude_projects
+        .join(Home::claude_folder(&home.present));
+    let key = super::secrets::fake_token("sk-ant-", 32);
+    write(
+        &claude.join(format!("{CLAUDE_ID}.jsonl")),
+        claude_session(
+            CLAUDE_ID,
+            &present,
+            "deploy it",
+            &format!(
+                "export ANTHROPIC_API_KEY={key} {}",
+                super::secrets::fake_token("ghp_", 36)
+            ),
+        )
+        .as_bytes(),
+    );
+    let sessions = export_of(&[home.session(AgentSessionTool::Claude, CLAUDE_ID)]);
+    let scan = scan_for_export(&sessions, &SessionCancel::new()).unwrap();
+    assert_eq!(scan.secrets.count(SecretKind::AnthropicKey), 1);
+    assert_eq!(scan.secrets.count(SecretKind::GithubToken), 1);
+    let findings = serde_json::to_string(&scan.secrets.findings()).unwrap();
+    assert!(!findings.contains(&key));
+
+    let out = tempfile::tempdir().unwrap();
+    let refused = out.path().join("refused.neati-sessions");
+    let error = write_bundle(&sessions, &refused, false, "1", &SessionCancel::new())
+        .expect_err("findings refuse the bundle");
+    assert!(!error.contains(&key));
+    assert!(!refused.exists());
+    assert_eq!(
+        std::fs::read_dir(out.path()).unwrap().count(),
+        0,
+        "no partial file is left"
+    );
+
+    let allowed = out.path().join("allowed.neati-sessions");
+    let report = write_bundle(&sessions, &allowed, true, "1", &SessionCancel::new())
+        .expect("allowed findings write the bundle");
+    assert_eq!(report.secrets.count(SecretKind::AnthropicKey), 1);
+    assert!(allowed.is_file());
+}
+
+/// Writes a zip with the given entries, for hostile bundles.
+fn raw_bundle(path: &Path, manifest: &Manifest, entries: &[(&str, &[u8])]) {
+    let file = std::fs::File::create(path).unwrap();
+    let mut zip = zip::ZipWriter::new(file);
+    let options = zip::write::SimpleFileOptions::default();
+    for (name, bytes) in entries {
+        zip.start_file(*name, options).unwrap();
+        zip.write_all(bytes).unwrap();
+    }
+    zip.start_file("manifest.json", options).unwrap();
+    zip.write_all(&serde_json::to_vec(manifest).unwrap())
+        .unwrap();
+    zip.finish().unwrap();
+}
+
+fn one_file_manifest(tool: AgentSessionTool, id: &str, path: &str, bytes: &[u8]) -> Manifest {
+    Manifest {
+        schema: SCHEMA.to_string(),
+        neati_version: "1".to_string(),
+        sessions: vec![ManifestSession {
+            tool,
+            session_id: id.to_string(),
+            original_cwd: Some("/somewhere".to_string()),
+            files: vec![ManifestFile {
+                path: path.to_string(),
+                size: bytes.len() as u64,
+                sha256: crate::hash::sha256_hex(bytes),
+            }],
+        }],
+    }
+}
+
+#[test]
+fn a_tampered_checksum_is_refused_before_anything_is_written() {
+    let out = tempfile::tempdir().unwrap();
+    let path = out.path().join("t.neati-sessions");
+    let original = b"{\"type\":\"user\"}\n";
+    let manifest = one_file_manifest(
+        AgentSessionTool::Claude,
+        CLAUDE_ID,
+        &format!("-p/{CLAUDE_ID}.jsonl"),
+        original,
+    );
+    let tampered = b"{\"type\":\"evil\"}\n";
+    raw_bundle(
+        &path,
+        &manifest,
+        &[(&format!("claude/-p/{CLAUDE_ID}.jsonl"), tampered)],
+    );
+    let error = read_bundle(&path, &SessionCancel::new()).expect_err("a changed file is refused");
+    assert!(error.contains("checksum"), "{error}");
+
+    // A size that disagrees with the manifest is refused the same way.
+    let longer = b"{\"type\":\"user\"}\n\n";
+    raw_bundle(
+        &path,
+        &manifest,
+        &[(&format!("claude/-p/{CLAUDE_ID}.jsonl"), longer)],
+    );
+    assert!(read_bundle(&path, &SessionCancel::new()).is_err());
+}
+
+#[test]
+fn traversal_absolute_paths_and_unlisted_entries_are_refused() {
+    let out = tempfile::tempdir().unwrap();
+    let path = out.path().join("t.neati-sessions");
+    let bytes = b"{}\n";
+    for hostile in [
+        format!("../{CLAUDE_ID}.jsonl"),
+        format!("-p/../../{CLAUDE_ID}.jsonl"),
+        format!("/etc/{CLAUDE_ID}.jsonl"),
+        format!("-p\\..\\{CLAUDE_ID}.jsonl"),
+        format!("./-p/{CLAUDE_ID}.jsonl"),
+        format!("C:/-p/{CLAUDE_ID}.jsonl"),
+        "-p/other-session.jsonl".to_string(),
+    ] {
+        let manifest = one_file_manifest(AgentSessionTool::Claude, CLAUDE_ID, &hostile, bytes);
+        raw_bundle(&path, &manifest, &[(&format!("claude/{hostile}"), bytes)]);
+        let error =
+            read_bundle(&path, &SessionCancel::new()).expect_err("a hostile path is refused");
+        assert!(error.contains("unsafe path"), "{hostile}: {error}");
+    }
+    let codex = one_file_manifest(AgentSessionTool::Codex, CODEX_ID, "config.toml", bytes);
+    raw_bundle(&path, &codex, &[("codex/config.toml", bytes)]);
+    assert!(
+        read_bundle(&path, &SessionCancel::new()).is_err(),
+        "only session folders are written"
+    );
+
+    let good_path = format!("-p/{CLAUDE_ID}.jsonl");
+    let manifest = one_file_manifest(AgentSessionTool::Claude, CLAUDE_ID, &good_path, bytes);
+    raw_bundle(
+        &path,
+        &manifest,
+        &[
+            (&format!("claude/{good_path}"), bytes),
+            ("claude/-p/extra.jsonl", bytes),
+        ],
+    );
+    let error =
+        read_bundle(&path, &SessionCancel::new()).expect_err("an unlisted entry is refused");
+    assert!(error.contains("does not list"), "{error}");
+
+    let mut other_schema = manifest.clone();
+    other_schema.schema = "neati.sessions/2".to_string();
+    raw_bundle(
+        &path,
+        &other_schema,
+        &[(&format!("claude/{good_path}"), bytes)],
+    );
+    assert!(read_bundle(&path, &SessionCancel::new()).is_err());
+
+    write(&path, b"not a zip");
+    assert!(read_bundle(&path, &SessionCancel::new()).is_err());
+}
+
+#[test]
+fn a_link_entry_is_refused() {
+    let out = tempfile::tempdir().unwrap();
+    let path = out.path().join("t.neati-sessions");
+    let good_path = format!("-p/{CLAUDE_ID}.jsonl");
+    let manifest = one_file_manifest(
+        AgentSessionTool::Claude,
+        CLAUDE_ID,
+        &good_path,
+        b"/etc/passwd",
+    );
+    let file = std::fs::File::create(&path).unwrap();
+    let mut zip = zip::ZipWriter::new(file);
+    zip.add_symlink(
+        format!("claude/{good_path}"),
+        "/etc/passwd",
+        zip::write::SimpleFileOptions::default(),
+    )
+    .unwrap();
+    zip.start_file("manifest.json", zip::write::SimpleFileOptions::default())
+        .unwrap();
+    zip.write_all(&serde_json::to_vec(&manifest).unwrap())
+        .unwrap();
+    zip.finish().unwrap();
+    let error = read_bundle(&path, &SessionCancel::new()).expect_err("a link entry is refused");
+    assert!(error.contains("link"), "{error}");
+}
+
+#[cfg(unix)]
+#[test]
+fn import_never_writes_through_a_linked_session_folder() {
+    let source = Home::populated();
+    let out = tempfile::tempdir().unwrap();
+    let bundle_path = out.path().join("s.neati-sessions");
+    export_both(&source, &bundle_path);
+    let bundle = read_bundle(&bundle_path, &SessionCancel::new()).unwrap();
+
+    let target = Home::empty();
+    let elsewhere = target.root.join("elsewhere");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    std::fs::create_dir_all(target.roots.claude_projects.parent().unwrap()).unwrap();
+    std::os::unix::fs::symlink(&elsewhere, &target.roots.claude_projects).unwrap();
+    let error = import_bundle(
+        &bundle,
+        &target.roots,
+        &[],
+        &folder_state,
+        &SessionCancel::new(),
+    )
+    .expect_err("a linked session folder is refused");
+    assert!(error.contains("link"), "{error}");
+    assert_eq!(std::fs::read_dir(&elsewhere).unwrap().count(), 0);
+}
+
+#[test]
+fn a_remap_moves_claude_sessions_and_rewrites_only_cwd_fields() {
+    let source = Home::empty();
+    let old = source.missing.to_str().unwrap().to_string();
+    let claude = source
+        .roots
+        .claude_projects
+        .join(Home::claude_folder(&source.missing));
+    let main = claude_session(CLAUDE_ID, &old, &format!("Look at {old}/README"), "");
+    write(&claude.join(format!("{CLAUDE_ID}.jsonl")), main.as_bytes());
+    write(
+        &claude
+            .join(CLAUDE_ID)
+            .join("subagents")
+            .join("agent-a1.jsonl"),
+        claude_session("agent-a1", &format!("{old}/sub"), "sub task", "").as_bytes(),
+    );
+    write(
+        &claude.join(CLAUDE_ID).join("tool-results").join("r1.txt"),
+        old.as_bytes(),
+    );
+    let out = tempfile::tempdir().unwrap();
+    let bundle_path = out.path().join("s.neati-sessions");
+    let sessions = export_of(&[source.session(AgentSessionTool::Claude, CLAUDE_ID)]);
+    write_bundle(&sessions, &bundle_path, false, "1", &SessionCancel::new()).unwrap();
+    let bundle = read_bundle(&bundle_path, &SessionCancel::new()).unwrap();
+
+    let target = Home::empty();
+    let new = target.present.to_str().unwrap().to_string();
+    // The old folder must be missing here and the new one present.
+    let refused = import_bundle(
+        &bundle,
+        &target.roots,
+        &[SessionRemap {
+            from: old.clone(),
+            to: target.root.join("nope").to_string_lossy().into_owned(),
+        }],
+        &folder_state,
+        &SessionCancel::new(),
+    );
+    assert!(refused.is_err());
+    assert!(import_bundle(
+        &bundle,
+        &target.roots,
+        &[SessionRemap {
+            from: "/never/recorded".into(),
+            to: new.clone()
+        }],
+        &folder_state,
+        &SessionCancel::new(),
+    )
+    .is_err());
+    assert!(
+        !target.roots.claude_projects.exists(),
+        "a refused remap writes nothing"
+    );
+
+    let report = import_bundle(
+        &bundle,
+        &target.roots,
+        &[SessionRemap {
+            from: format!("{old}/"),
+            to: new.clone(),
+        }],
+        &folder_state,
+        &SessionCancel::new(),
+    )
+    .expect("the remapped import succeeds");
+    assert_eq!(report.written, 3);
+    assert_eq!(report.rewritten, 2, "both JSONL files had cwd fields");
+
+    let folder = target
+        .roots
+        .claude_projects
+        .join(Home::claude_folder(&target.present));
+    let imported = std::fs::read_to_string(folder.join(format!("{CLAUDE_ID}.jsonl"))).unwrap();
+    assert_eq!(
+        imported,
+        main.replace(&format!("\"cwd\":\"{old}\""), &format!("\"cwd\":\"{new}\"")),
+        "only cwd fields change; the prompt that names the old folder stays"
+    );
+    assert!(imported.contains(&format!("Look at {old}/README")));
+    let sub =
+        std::fs::read_to_string(folder.join(CLAUDE_ID).join("subagents/agent-a1.jsonl")).unwrap();
+    assert!(sub.contains(&format!("\"cwd\":\"{new}/sub\"")));
+    assert_eq!(
+        std::fs::read_to_string(folder.join(CLAUDE_ID).join("tool-results/r1.txt")).unwrap(),
+        old,
+        "non-JSONL files are copied as they were"
+    );
+    // The moved session is listed under its new project.
+    let inventory = project_inventory(&target.discover(), 1, &folder_state);
+    assert_eq!(inventory.projects.len(), 1);
+    assert_eq!(inventory.projects[0].cwd.as_deref(), Some(new.as_str()));
+    assert_eq!(inventory.projects[0].folder, ProjectFolderState::Present);
+}
+
+#[test]
+fn a_stopped_export_leaves_no_file() {
+    let home = Home::populated();
+    let sessions = export_of(&[home.session(AgentSessionTool::Codex, CODEX_ID)]);
+    let out = tempfile::tempdir().unwrap();
+    let cancel = SessionCancel::new();
+    cancel.cancel();
+    assert!(write_bundle(
+        &sessions,
+        &out.path().join("x.neati-sessions"),
+        false,
+        "1",
+        &cancel
+    )
+    .is_err());
+    assert_eq!(std::fs::read_dir(out.path()).unwrap().count(), 0);
 }

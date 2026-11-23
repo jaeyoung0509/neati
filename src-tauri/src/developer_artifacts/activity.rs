@@ -7,8 +7,11 @@
 //!   (a build or an install is work);
 //! - the direct children of its ordinary subfolders, so an edit saved inside
 //!   `src/` moves the answer;
-//! - Git's own record of work: `index`, `HEAD` and `logs/HEAD` in the
-//!   checkout's git directory (the worktree's own one for a linked worktree).
+//! - Git's own record of work in the checkout's git directory (the
+//!   worktree's own one for a linked worktree): the modification time of
+//!   `index` and `HEAD`, and the time written in the last `logs/HEAD` entry.
+//!   The reflog's own modification time is not used: `git gc` rewrites every
+//!   worktree's reflog when it expires entries, which is maintenance, not work.
 //!
 //! Finder's `.DS_Store` is not work and is ignored. A process whose working
 //! directory is inside the project is checked separately by the caller.
@@ -110,13 +113,42 @@ pub fn project_last_activity(
     if let crate::git::GitDirectory::Resolved { git_dir, .. } =
         crate::git::git_directory(project_root, environment)
     {
-        for relative in ["index", "HEAD", "logs/HEAD"] {
+        for relative in ["index", "HEAD"] {
             if let Ok(metadata) = fs::symlink_metadata(git_dir.join(relative)) {
                 observe(&metadata);
             }
         }
+        if let Some(seconds) = last_reflog_time(&git_dir.join("logs/HEAD")) {
+            newest = Some(newest.map_or(seconds, |current| current.max(seconds)));
+        }
     }
     newest
+}
+
+/// Bytes read from the end of a reflog: one entry is a few hundred bytes.
+const REFLOG_TAIL_BYTES: u64 = 8 * 1024;
+
+/// The time recorded in the last reflog entry, in seconds since the epoch.
+///
+/// An entry is `<old> <new> <name> <<email>> <seconds> <zone>\t<message>`.
+/// Only the bounded tail of a regular, unlinked file is read.
+pub(crate) fn last_reflog_time(path: &Path) -> Option<u64> {
+    use std::io::{Read, Seek, SeekFrom};
+    let metadata = fs::symlink_metadata(path).ok()?;
+    if !metadata.is_file() {
+        return None;
+    }
+    let mut file = fs::File::open(path).ok()?;
+    let start = metadata.len().saturating_sub(REFLOG_TAIL_BYTES);
+    file.seek(SeekFrom::Start(start)).ok()?;
+    let mut tail = Vec::new();
+    file.take(REFLOG_TAIL_BYTES).read_to_end(&mut tail).ok()?;
+    let text = String::from_utf8_lossy(&tail);
+    let line = text.lines().rev().find(|line| !line.trim().is_empty())?;
+    let header = line.split('\t').next()?;
+    let mut fields = header.rsplitn(3, ' ');
+    let _zone = fields.next()?;
+    fields.next()?.parse().ok()
 }
 
 /// Whether a running process works inside `project_root`.
@@ -249,10 +281,45 @@ mod tests {
         }
         set_age(&root, now, 40);
         let environment = environment(temp.path());
-        // `logs/HEAD` was written just now.
-        assert_eq!(age_days(project_last_activity(&environment, &root)), 0);
-        set_age(&git.join("logs/HEAD"), now, 40);
+        // An empty reflog records nothing; its fresh modification time alone
+        // is not work (git gc rewrites reflogs).
         assert_eq!(age_days(project_last_activity(&environment, &root)), 40);
+        let entry = |seconds: u64| {
+            format!(
+                "{zero} {one} Fixture <fixture@example.invalid> {seconds} +0900\tcommit: work\n",
+                zero = "0".repeat(40),
+                one = "1".repeat(40)
+            )
+        };
+        fs::write(
+            git.join("logs/HEAD"),
+            entry(now - 50 * DAY) + &entry(now - 2 * DAY),
+        )
+        .unwrap();
+        set_age(&git.join("logs/HEAD"), now, 40);
+        set_age(&git.join("logs"), now, 40);
+        set_age(&git, now, 40);
+        assert_eq!(age_days(project_last_activity(&environment, &root)), 2);
+        // Maintenance that rewrites an old reflog does not make it recent.
+        fs::write(git.join("logs/HEAD"), entry(now - 45 * DAY)).unwrap();
+        set_age(&git.join("logs"), now, 40);
+        set_age(&git, now, 40);
+        assert_eq!(age_days(project_last_activity(&environment, &root)), 40);
+    }
+
+    #[test]
+    fn a_reflog_entry_time_is_read_from_its_last_line_only() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("HEAD");
+        fs::write(
+            &path,
+            "a b N <n@e> 100 +0000\tone\nc d Name With Spaces <n@e> 200 -0500\ttwo\tthree\n\n",
+        )
+        .unwrap();
+        assert_eq!(last_reflog_time(&path), Some(200));
+        fs::write(&path, "garbage\n").unwrap();
+        assert_eq!(last_reflog_time(&path), None);
+        assert_eq!(last_reflog_time(&temp.path().join("missing")), None);
     }
 
     #[test]

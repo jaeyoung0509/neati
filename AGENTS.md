@@ -506,7 +506,9 @@ safety conventions below when changing neati.
   executor repeats that check for every build output and dependency store.
   Project activity (`developer_artifacts::activity`) is the newest of cheap
   metadata — the project folder, its direct children, their direct children
-  outside artifact folders, and Git's `index`/`HEAD`/`logs/HEAD` — plus a
+  outside artifact folders, Git's `index`/`HEAD` times and the time written
+  in the last `logs/HEAD` entry (never the reflog's mtime, which `git gc`
+  rewrites) — plus a
   running process whose working directory is inside the project. Unknown
   activity is never inactivity. Every artifact reports a typed
   `CleanInclusion` reason. A new rule that adds a kind of removal defaults off,

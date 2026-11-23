@@ -1,3 +1,4 @@
+pub mod agent_sessions;
 mod ai_service;
 pub mod cancellation;
 mod cleanup_quit;

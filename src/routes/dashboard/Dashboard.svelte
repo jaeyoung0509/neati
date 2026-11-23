@@ -22,6 +22,7 @@
   import DevelopmentServersView from './DevelopmentServersView.svelte';
   import ProjectCockpitView from './ProjectCockpitView.svelte';
   import AiControlCenterView from './AiControlCenterView.svelte';
+  import AgentSessionsView from './AgentSessionsView.svelte';
   import OverviewView from './OverviewView.svelte';
   import AwakeView from './AwakeView.svelte';
   import SettingsView from './SettingsView.svelte';
@@ -56,7 +57,8 @@
     | 'developer-artifacts'
     | 'disks'
     | 'cpu'
-    | 'battery';
+    | 'battery'
+    | 'sessions';
 
   let currentTab = $state<Tab>('storage');
   let selectedCategory = $state<CategoryResult | null>(null);
@@ -141,6 +143,7 @@
     development_servers: 'development_ports',
     projects: 'ai_integrations',
     usage: 'ai_integrations',
+    sessions: 'ai_integrations',
     ai_control: 'ai_integrations',
     awake: 'keep_awake',
   };
@@ -485,6 +488,8 @@
               <ModelsView />
             {:else if currentTab === 'projects' || currentTab === 'usage'}
               <ProjectCockpitView onNavigateTab={(tab) => selectTab(tab)} />
+            {:else if currentTab === 'sessions'}
+              <AgentSessionsView />
             {:else if currentTab === 'ai_control'}
               <AiControlCenterView onNavigateTab={(tab) => selectTab(tab)} />
             {:else if currentTab === 'development_servers'}

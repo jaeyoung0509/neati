@@ -121,6 +121,10 @@ const READ_ONLY_PERMISSIONS: [&str; 56] = [
     "allow-preview-one-button-clean",
     // Reads where `neati` resolves and which agent skills exist (#500).
     "allow-get-command-line-status",
+    // Lists agent session files from bounded head/tail reads (#508).
+    "allow-get-agent-sessions",
+    // Stopping a session read stops work; it authorizes nothing.
+    "allow-cancel-session-operation",
 ];
 
 /// Command permissions that change machine or persistent state, spawn a

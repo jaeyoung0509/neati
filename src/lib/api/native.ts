@@ -24,6 +24,7 @@ import type {
   AgentSkillTarget,
   CommandLineStatus,
   AutomaticCleanStatus,
+  AgentSessionInventory,
   OneButtonOutcome,
   OneButtonPreview,
   CleanupFailure,
@@ -464,6 +465,14 @@ export const nativeApi = {
 
   async installAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
     return await unwrap(commands.installAgentSkill(target));
+  },
+
+  async getAgentSessions(): Promise<AgentSessionInventory> {
+    return await unwrap(commands.getAgentSessions());
+  },
+
+  async cancelSessionOperation(): Promise<void> {
+    await commands.cancelSessionOperation();
   },
 
   async setLaunchAtLogin(enabled: boolean): Promise<LaunchAtLogin> {

@@ -17,6 +17,7 @@ import type {
   AgentSkillTarget,
   CommandLineStatus,
   AutomaticCleanStatus,
+  AgentSessionInventory,
   OneButtonOutcome,
   OneButtonPreview,
   CleanItemResult,
@@ -62,6 +63,7 @@ import * as emptyTrashMock from './mocks/emptyTrash';
 import { createDevelopmentPortsMock } from './mocks/developmentPorts';
 import { createOneButtonCleanMock } from './mocks/oneButtonClean';
 import { createCommandLineMock } from './mocks/commandLine';
+import { createAgentSessionsMock } from './mocks/agentSessions';
 import { previewPlatform } from './mocks/previewPlatform';
 import { goldenCapabilitiesByPlatform } from '../models/platformCapabilities';
 import { goldenPlatformContextByPlatform } from '../models/platformContext';
@@ -272,6 +274,7 @@ const MOCK_PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
 
 const developmentPortsMock = createDevelopmentPortsMock();
 const commandLineMock = createCommandLineMock();
+const agentSessionsMock = createAgentSessionsMock();
 // The ready caches are the mock scan's; the module itself holds no rule.
 const oneButtonCleanMock = createOneButtonCleanMock(() =>
   (lastMockScan?.result.categories ?? [])
@@ -2005,6 +2008,12 @@ export const mockApi = {
   async installAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
     return commandLineMock.install(target);
   },
+
+  async getAgentSessions(): Promise<AgentSessionInventory> {
+    return agentSessionsMock.inventory();
+  },
+
+  async cancelSessionOperation(): Promise<void> {},
 
   async getLaunchAtLogin(): Promise<LaunchAtLogin> {
     return { status: 'unavailable', reason: 'Start at login is set in the desktop app, not the browser preview.' };

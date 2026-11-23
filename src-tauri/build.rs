@@ -39,6 +39,8 @@ fn main() {
         "execute_one_button_clean",
         "get_command_line_status",
         "install_agent_skill",
+        "get_agent_sessions",
+        "cancel_session_operation",
         "get_memory_metrics",
         "get_cpu_metrics",
         "get_battery_metrics",

@@ -64,6 +64,8 @@ pub enum Command {
         target: SkillTarget,
         force: bool,
     },
+    /// The agent session inventory (#508). Read-only.
+    Sessions,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -152,6 +154,7 @@ pub fn parse(args: &[String]) -> Parsed {
         "history" => no_options(rest, Command::History),
         "doctor" => no_options(rest, Command::Doctor),
         "skill" => parse_skill(rest),
+        "sessions" => parse_sessions(rest),
         _ => return Parsed::NotCli,
     };
     match result {
@@ -408,6 +411,21 @@ fn parse_skill(rest: &[String]) -> Result<Invocation, String> {
     }
 }
 
+/// `sessions`: the read-only inventory.
+fn parse_sessions(rest: &[String]) -> Result<Invocation, String> {
+    let mut globals = Globals::default();
+    for argument in rest {
+        if !globals.take(argument) {
+            return Err(if argument.starts_with("--") {
+                unknown(argument)
+            } else {
+                format!("Unknown sessions action {argument}.")
+            });
+        }
+    }
+    Ok(globals.finish(Command::Sessions))
+}
+
 fn value<'a>(
     arguments: &mut impl Iterator<Item = &'a String>,
     flag: &str,
@@ -519,6 +537,15 @@ mod tests {
             parse_words(&["projects", "--folder", "--json"]),
             Parsed::Usage(_)
         ));
+    }
+
+    #[test]
+    fn sessions_parses_only_global_options() {
+        assert_eq!(run(&["sessions", "--json"]).command, Command::Sessions);
+        assert!(run(&["sessions", "--json"]).json);
+        for words in [&["sessions", "delete"][..], &["sessions", "--all"][..]] {
+            assert!(matches!(parse_words(words), Parsed::Usage(_)), "{words:?}");
+        }
     }
 
     #[test]

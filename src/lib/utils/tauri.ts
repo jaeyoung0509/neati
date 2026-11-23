@@ -23,6 +23,7 @@ import type {
   AgentSkillTarget,
   CommandLineStatus,
   AutomaticCleanStatus,
+  AgentSessionInventory,
   OneButtonOutcome,
   OneButtonPreview,
   ControlCenterQuickSummary,
@@ -432,6 +433,16 @@ export function tauriGetAutomaticCleanStatus(): Promise<AutomaticCleanStatus> {
 /** Installs neati's agent skill; never replaces a file neati did not write. */
 export function tauriInstallAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
   return api.installAgentSkill(target);
+}
+
+/** Claude Code and Codex sessions on this Mac, by project; read-only (#508). */
+export function tauriGetAgentSessions(): Promise<AgentSessionInventory> {
+  return api.getAgentSessions();
+}
+
+/** Stops the running session read. */
+export function tauriCancelSessionOperation(): Promise<void> {
+  return api.cancelSessionOperation();
 }
 
 export function tauriGetLaunchAtLogin(): Promise<LaunchAtLogin> {

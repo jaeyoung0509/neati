@@ -83,6 +83,10 @@ export const commands = {
 	 *  neati did not write (#500).
 	 */
 	installAgentSkill: (target: AgentSkillTarget) => typedError<AgentSkillInstall, string>(__TAURI_INVOKE("install_agent_skill", { target })),
+	/**  The read-only session inventory, grouped by project. */
+	getAgentSessions: () => typedError<AgentSessionInventory_Serialize, string>(__TAURI_INVOKE("get_agent_sessions")),
+	/**  Stops the running session inventory. */
+	cancelSessionOperation: () => __TAURI_INVOKE<void>("cancel_session_operation"),
 	getMemoryMetrics: () => typedError<MemoryMetrics_Serialize, string>(__TAURI_INVOKE("get_memory_metrics")),
 	/**  The system-wide CPU share, with the state that says how current it is. */
 	getCpuMetrics: () => typedError<CpuMetrics_Serialize, string>(__TAURI_INVOKE("get_cpu_metrics")),
@@ -397,6 +401,140 @@ export type AgentQuickSummary_Serialize = {
 };
 
 export type AgentSession = AgentSession_Serialize | AgentSession_Deserialize;
+
+/**  The read-only inventory (#508). */
+export type AgentSessionInventory = AgentSessionInventory_Serialize | AgentSessionInventory_Deserialize;
+
+/**  The read-only inventory (#508). */
+export type AgentSessionInventory_Deserialize = {
+	observed_at: number,
+	projects: AgentSessionProject_Deserialize[],
+	tools: AgentSessionToolTotal_Deserialize[],
+	/**  A file cap or the read budget was reached. */
+	truncated: boolean,
+	cancelled: boolean,
+	incomplete_reasons: string[],
+};
+
+/**  The read-only inventory (#508). */
+export type AgentSessionInventory_Serialize = {
+	observed_at: number,
+	projects: AgentSessionProject_Serialize[],
+	tools: AgentSessionToolTotal_Serialize[],
+	/**  A file cap or the read budget was reached. */
+	truncated: boolean,
+	cancelled: boolean,
+	incomplete_reasons: string[],
+};
+
+/**  Why a session's details are incomplete. */
+export type AgentSessionIssue =
+/**  The file could not be opened or read. */
+"unreadable" |
+/**  The first bytes held no record neati recognises. */
+"no_records" |
+/**  The read budget ran out; dates come from the file. */
+"not_read";
+
+export type AgentSessionProject = AgentSessionProject_Serialize | AgentSessionProject_Deserialize;
+
+export type AgentSessionProject_Deserialize = {
+	/**  Opaque group reference. */
+	key: string,
+	cwd: string | null,
+	display_name: string,
+	folder: ProjectFolderState,
+	total_bytes: number,
+	last_activity_at: number | null,
+	sessions: AgentSessionSummary_Deserialize[],
+};
+
+export type AgentSessionProject_Serialize = {
+	/**  Opaque group reference. */
+	key: string,
+	cwd: string | null,
+	display_name: string,
+	folder: ProjectFolderState,
+	total_bytes: number,
+	last_activity_at: number | null,
+	sessions: AgentSessionSummary_Serialize[],
+};
+
+export type AgentSessionSummary = AgentSessionSummary_Serialize | AgentSessionSummary_Deserialize;
+
+export type AgentSessionSummary_Deserialize = {
+	/**  Opaque, stable reference for selection and `--only`. */
+	key: string,
+	tool: AgentSessionTool,
+	session_id: string,
+	/**  The working directory the session recorded first. */
+	cwd: string | null,
+	/**  The first prompt, capped. Shown locally only and never logged. */
+	title: string | null,
+	/**  Unix seconds. */
+	started_at: number | null,
+	/**  Unix seconds. */
+	last_activity_at: number | null,
+	/**  The dates come from the session's records rather than the file's. */
+	dates_from_records: boolean,
+	size_bytes: number,
+	file_count: number,
+	/**  Codex keeps archived sessions apart. */
+	archived: boolean,
+	issue: AgentSessionIssue | null,
+};
+
+export type AgentSessionSummary_Serialize = {
+	/**  Opaque, stable reference for selection and `--only`. */
+	key: string,
+	tool: AgentSessionTool,
+	session_id: string,
+	/**  The working directory the session recorded first. */
+	cwd: string | null,
+	/**  The first prompt, capped. Shown locally only and never logged. */
+	title: string | null,
+	/**  Unix seconds. */
+	started_at: number | null,
+	/**  Unix seconds. */
+	last_activity_at: number | null,
+	/**  The dates come from the session's records rather than the file's. */
+	dates_from_records: boolean,
+	size_bytes: number,
+	file_count: number,
+	/**  Codex keeps archived sessions apart. */
+	archived: boolean,
+	issue: AgentSessionIssue | null,
+};
+
+/**  The tools whose session files neati reads. */
+export type AgentSessionTool =
+/**  Claude Code: `~/.claude/projects/<folder>/<session>.jsonl`. */
+"claude" |
+/**
+ *  Codex: `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` and
+ *  `~/.codex/archived_sessions`.
+ */
+"codex";
+
+export type AgentSessionToolTotal = AgentSessionToolTotal_Serialize | AgentSessionToolTotal_Deserialize;
+
+export type AgentSessionToolTotal_Deserialize = {
+	tool: AgentSessionTool,
+	/**  The tool's session folder exists on this Mac. */
+	present: boolean,
+	sessions: number,
+	files: number,
+	bytes: number,
+};
+
+export type AgentSessionToolTotal_Serialize = {
+	tool: AgentSessionTool,
+	/**  The tool's session folder exists on this Mac. */
+	present: boolean,
+	sessions: number,
+	files: number,
+	bytes: number,
+};
 
 export type AgentSession_Deserialize = {
 	/**  Opaque, snapshot-stable identity. Never a PID. */
@@ -3278,6 +3416,13 @@ export type ProjectContext_Serialize = {
 	dev_ports: number[],
 	artifact_size_bytes: number | null,
 };
+
+/**  Whether a session's project folder is on this Mac. */
+export type ProjectFolderState = "present" |
+/**  The recorded folder is gone: the session is orphaned. */
+"missing" |
+/**  No folder was recorded, or it is not checked (a network location). */
+"unknown";
 
 export type ProjectIdentity = {
 	/**  Opaque hash of the canonical project/worktree root. */

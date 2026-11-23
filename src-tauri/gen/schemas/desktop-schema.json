@@ -207,6 +207,12 @@
           "markdownDescription": "Enables the cancel_scan command without any pre-configured scope."
         },
         {
+          "description": "Enables the cancel_session_operation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-session-operation",
+          "markdownDescription": "Enables the cancel_session_operation command without any pre-configured scope."
+        },
+        {
           "description": "Enables the cancel_temporary_storage_review command without any pre-configured scope.",
           "type": "string",
           "const": "allow-cancel-temporary-storage-review",
@@ -313,6 +319,12 @@
           "type": "string",
           "const": "allow-get-agent-quick-summary",
           "markdownDescription": "Enables the get_agent_quick_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_agent_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-agent-sessions",
+          "markdownDescription": "Enables the get_agent_sessions command without any pre-configured scope."
         },
         {
           "description": "Enables the get_ai_control_center command without any pre-configured scope.",
@@ -807,6 +819,12 @@
           "markdownDescription": "Denies the cancel_scan command without any pre-configured scope."
         },
         {
+          "description": "Denies the cancel_session_operation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-session-operation",
+          "markdownDescription": "Denies the cancel_session_operation command without any pre-configured scope."
+        },
+        {
           "description": "Denies the cancel_temporary_storage_review command without any pre-configured scope.",
           "type": "string",
           "const": "deny-cancel-temporary-storage-review",
@@ -913,6 +931,12 @@
           "type": "string",
           "const": "deny-get-agent-quick-summary",
           "markdownDescription": "Denies the get_agent_quick_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_agent_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-agent-sessions",
+          "markdownDescription": "Denies the get_agent_sessions command without any pre-configured scope."
         },
         {
           "description": "Denies the get_ai_control_center command without any pre-configured scope.",

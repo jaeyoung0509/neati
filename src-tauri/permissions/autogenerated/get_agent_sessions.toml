@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-agent-sessions"
+description = "Enables the get_agent_sessions command without any pre-configured scope."
+commands.allow = ["get_agent_sessions"]
+
+[[permission]]
+identifier = "deny-get-agent-sessions"
+description = "Denies the get_agent_sessions command without any pre-configured scope."
+commands.deny = ["get_agent_sessions"]

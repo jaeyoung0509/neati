@@ -46,6 +46,7 @@ export const SECTIONS: readonly SectionDef[] = [
     label: 'AI',
     routes: [
       { route: 'projects', label: 'Activity' },
+      { route: 'sessions', label: 'Sessions' },
       { route: 'ai_control', label: 'Controls' },
     ],
   },
@@ -95,6 +96,7 @@ export type DashboardStage = 'core' | 'beta';
 const BETA_ROUTES: ReadonlySet<string> = new Set([
   'projects',
   'usage',
+  'sessions',
   'ai_control',
   'docker',
   'models',
@@ -132,6 +134,6 @@ export function dashboardNavigationOwner(tab: string): string {
   const route = normalizeDashboardTab(tab);
   if (['large-files', 'applications', 'developer-artifacts', 'disks'].includes(route)) return 'storage';
   if (['memory', 'cpu', 'battery'].includes(tab)) return 'performance';
-  if (['usage', 'ai_control'].includes(route)) return 'projects';
+  if (['usage', 'sessions', 'ai_control'].includes(route)) return 'projects';
   return route;
 }

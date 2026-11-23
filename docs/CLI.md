@@ -65,7 +65,7 @@ person's choice.
 The CLI is the app's own `Neati` executable. `main.rs` hands the arguments to
 `cli::run` before Tauri starts. Only a recognised command word (`status`,
 `scan`, `projects`, `clean`, `ports`, `ai`, `history`, `doctor`, `skill`,
-`help`, `version`) is the CLI's. Any other launch is the app's, including no
+`sessions`, `help`, `version`) is the CLI's. Any other launch is the app's, including no
 arguments, the login item's `--background` and `--doctor`.
 
 - With Homebrew, the cask links the executable onto `PATH` as `neati`.
@@ -94,6 +94,7 @@ console, and Windows support is paused (#445).
 | `history` | Completed cleanups as counts |
 | `doctor` | `Neati --doctor` |
 | `skill print` / `skill install` | The agent skill |
+| `sessions` | Claude Code and Codex sessions by project. Read-only |
 
 `--json` prints one object with `"schema": "neati.cli/1"`. Progress goes to
 stderr, and only when stderr is a terminal and `--quiet` is absent.
@@ -150,6 +151,25 @@ The CLI never accepts a path to remove. Reviewable, recent, advisory and
 protected items are reported and left alone. The same goes for Large Files,
 App Uninstaller, Temporary Folders, home Trash, Docker, local models, and
 memory and port actions. Those keep the app's confirmation flows.
+
+## Agent sessions (#508)
+
+`sessions` runs through its own driving port, `SessionLibrary`
+(`services/agent_sessions/ports.rs`). `AgentSessionLibrary` serves it from
+`agent_sessions/`, with the home folder from the injected
+`PlatformEnvironment`. The window uses the same port through `SessionDesk`,
+which also owns the stop signal of a running read.
+
+- **Inventory.** Claude Code `~/.claude/projects/<folder>/<id>.jsonl` (plus
+  the `<id>/` side folder of subagents and tool results) and Codex
+  `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` and
+  `~/.codex/archived_sessions`. Links are never followed. At most 5,000
+  sessions per tool are read, newest first. Each file gives 64 KiB of head,
+  growing to 1 MiB until a typed prompt is found, and 64 KiB of tail, within
+  a 512 MiB budget for the whole inventory. A whole transcript is never
+  parsed. The title is the first typed prompt, capped at 120 characters.
+  It is shown locally and never logged. A project folder that is gone is
+  flagged. A network location (`/net`, `/Network`) is never checked.
 
 ## Settings
 

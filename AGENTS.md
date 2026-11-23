@@ -243,6 +243,17 @@ safety conventions below when changing neati.
   adapter, never to a use case. A breaking field change bumps the schema name
   and the skill in the same change.
 
+## Agent sessions (#508)
+
+- The inventory (`agent_sessions/inventory.rs`) is read-only. It reads only
+  bounded head and tail windows, never parses a whole transcript, never
+  follows a link, and takes the home folder from the injected
+  `PlatformEnvironment`. Only derived facts and the capped first-prompt title
+  cross IPC. Titles and transcript text are never logged.
+- Nothing in this context deletes or edits a session file. No network.
+- The CLI and the window reach the context only through the `SessionLibrary`
+  port; `AgentSessionLibrary` is bound only in `composition/interfaces.rs`.
+
 ## Platform environment and verification
 
 - Platform facts have one source: `neati_platform::PlatformEnvironment` (built in

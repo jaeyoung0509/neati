@@ -46,6 +46,7 @@ settings file.
 | `neati ports --json` | Development servers listening (port, pid, project) |
 | `neati ai --json` | AI tool usage windows and token counts |
 | `neati history --json` | Past cleanups |
+| `neati sessions --json` | Claude Code and Codex sessions by project, with sizes and whether the project folder still exists. Read-only |
 
 Every JSON object has `"schema": "neati.cli/1"` and `"command"`. If a command
 fails, it prints `{"error": "..."}` and exits 1. A usage error exits 2.
@@ -86,3 +87,4 @@ with `--folder ~/code` on both the preview and the `--yes` run. To remember it,
   yourself.
 - Do not run `clean` repeatedly to "make sure". Preview once, remove once.
 - neati only lists dev servers (`ports`); it does not stop them from the CLI.
+- Never delete or edit agent session files yourself; neati only lists them.

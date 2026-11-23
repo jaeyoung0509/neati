@@ -251,3 +251,22 @@ pub async fn delete_ai_provider_credential(
 pub fn get_ai_provider_descriptors() -> Vec<crate::ai_providers::ProviderDescriptor> {
     crate::ai_providers::ProviderRegistry::all()
 }
+
+// ---------------------------------------------------------------------------
+// Agent sessions (#508). Each handler forwards to the window's session desk.
+
+/// The read-only session inventory, grouped by project.
+#[tauri::command]
+#[specta::specta]
+pub async fn get_agent_sessions(
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<crate::models::AgentSessionInventory, String> {
+    ports.session_desk.inventory().await
+}
+
+/// Stops the running session inventory.
+#[tauri::command]
+#[specta::specta]
+pub fn cancel_session_operation(ports: State<'_, crate::composition::ApplicationPorts>) {
+    ports.session_desk.cancel();
+}

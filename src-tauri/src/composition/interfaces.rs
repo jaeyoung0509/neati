@@ -8,6 +8,9 @@
 use std::sync::Arc;
 
 use crate::commands::DesktopState;
+use crate::services::agent_sessions::desk::SessionDesk;
+use crate::services::agent_sessions::ports::SessionLibrary;
+use crate::services::agent_sessions::AgentSessionLibrary;
 use crate::services::command_line::CommandLineService;
 use crate::services::insights::{InsightQueries, MachineInsights};
 use crate::services::one_button_clean::adapters::{
@@ -27,6 +30,10 @@ pub struct ApplicationPorts {
     pub insights: Arc<dyn InsightQueries>,
     /// The `neati` command and the agent skill (#500).
     pub command_line: Arc<CommandLineService>,
+    /// The agent session inventory (#508).
+    pub sessions: Arc<dyn SessionLibrary>,
+    /// The same library for the window, which can stop a running read.
+    pub session_desk: Arc<SessionDesk>,
 }
 
 pub fn application_ports(state: &DesktopState) -> ApplicationPorts {
@@ -41,7 +48,11 @@ pub fn application_ports(state: &DesktopState) -> ApplicationPorts {
     ));
     let worktrees = Arc::new(ServiceWorktreeCleanup::new(state.worktrees.clone()));
     let clean: Arc<dyn CleanUseCase> = Arc::new(OneButtonClean::new(caches, projects, worktrees));
+    let sessions: Arc<dyn SessionLibrary> =
+        Arc::new(AgentSessionLibrary::new(state.environment.clone()));
     ApplicationPorts {
+        session_desk: Arc::new(SessionDesk::new(sessions.clone())),
+        sessions,
         clean_sessions: Arc::new(OneButtonSessions::new(clean.clone())),
         clean,
         insights: Arc::new(MachineInsights::new(

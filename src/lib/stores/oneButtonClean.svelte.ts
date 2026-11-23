@@ -21,6 +21,8 @@ export class OneButtonCleanStore {
   outcome = $state<OneButtonOutcome | null>(null);
   activity = $state('');
   error = $state<string | null>(null);
+  /** When the current check or removal started, for elapsed time (#491). */
+  startedAt = $state<number | null>(null);
   private generation = 0;
 
   /** The browser preview must never pretend to delete; tests may state otherwise. */
@@ -41,6 +43,7 @@ export class OneButtonCleanStore {
     this.phase = 'checking';
     this.error = null;
     this.activity = '';
+    this.startedAt = Date.now();
     try {
       const preview = await tauriPreviewOneButtonClean((event) => {
         if (generation === this.generation) this.activity = describeOneButtonActivity(event);
@@ -70,6 +73,7 @@ export class OneButtonCleanStore {
     const generation = ++this.generation;
     this.phase = 'cleaning';
     this.error = null;
+    this.startedAt = Date.now();
     // The id is one-shot: drop it now so nothing can submit it twice.
     this.preview = null;
     try {

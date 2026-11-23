@@ -43,6 +43,7 @@
   import AnimatedValue from '../../lib/components/AnimatedValue.svelte';
   import QuickMetricRow from '../../lib/components/metrics/QuickMetricRow.svelte';
   import OneButtonResultModal from '../../lib/components/OneButtonResultModal.svelte';
+  import ElapsedTime from '../../lib/components/ElapsedTime.svelte';
   import { oneButtonCleanStore } from '../../lib/stores/oneButtonClean.svelte';
   import QuickCleanupDetailsDialog from '../../lib/components/QuickCleanupDetailsDialog.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
@@ -549,6 +550,9 @@
               <p class="quick-cleanup-status mt-0.5 flex items-center gap-1.5 text-caption text-muted-foreground" role="status">
                 <LoadingIndicator active={panelActive && !scanStore.isCancelling} size="xs" class="text-primary" />
                 <span class="truncate">{cleanupState === 'cleaning' ? (oneButton.activity || 'Cleaning') : scanStore.isRefreshingAfterClean ? 'Checking the result' : oneButton.phase === 'checking' ? (oneButton.activity || 'Checking project folders') : 'Checking storage'}</span>
+                {#if (oneButton.phase === 'cleaning' || oneButton.phase === 'checking') && oneButton.startedAt !== null}
+                  <span aria-hidden="true">·</span><ElapsedTime since={oneButton.startedAt} class="shrink-0" />
+                {/if}
               </p>
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
               <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{projectBuildBytes > 0 ? ` · ${formatBytes(projectBuildBytes)} build output` : ''}{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>

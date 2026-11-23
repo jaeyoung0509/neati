@@ -49,6 +49,28 @@ const OVERLAP: usize = 256;
 /// The longest unfinished match carried forward.
 const MAX_CARRY: usize = 16 * 1024;
 
+/// Shown instead of a likely secret.
+pub const REDACTED: &str = "[redacted]";
+
+/// `text` with every likely secret replaced by [`REDACTED`].
+pub fn redact(text: &str) -> String {
+    // The pattern needs a non-token character before a token, as in a file.
+    let padded = format!("\n{text}");
+    let bytes = padded.as_bytes();
+    let mut output = Vec::with_capacity(bytes.len());
+    let mut last = 0;
+    for captures in PATTERN.captures_iter(bytes) {
+        let Some(token) = (1..=GROUPS.len()).find_map(|index| captures.get(index)) else {
+            continue;
+        };
+        output.extend_from_slice(&bytes[last..token.start()]);
+        output.extend_from_slice(REDACTED.as_bytes());
+        last = token.end();
+    }
+    output.extend_from_slice(&bytes[last..]);
+    String::from_utf8_lossy(&output[1..]).into_owned()
+}
+
 /// Counts per kind, in [`SecretKind::ALL`] order.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct SecretCounts([u32; 7]);
@@ -191,6 +213,21 @@ pub(crate) fn fake_token(prefix: &str, length: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn redaction_replaces_each_secret_and_keeps_the_words() {
+        let key = fake_token("sk-ant-", 30);
+        let text = format!(
+            "use {key} and {} to test task-runner",
+            fake_token("ghp_", 36)
+        );
+        assert_eq!(
+            redact(&text),
+            "use [redacted] and [redacted] to test task-runner"
+        );
+        assert_eq!(redact(&format!("{key} first")), "[redacted] first");
+        assert_eq!(redact("no secrets here"), "no secrets here");
+    }
 
     fn anthropic() -> String {
         fake_token("sk-ant-", 32)

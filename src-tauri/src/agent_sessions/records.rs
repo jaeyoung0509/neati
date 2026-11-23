@@ -100,7 +100,7 @@ fn claude_head(record: &Value, facts: &mut HeadFacts) {
             .and_then(parse_timestamp);
     }
     if facts.title.is_none() {
-        facts.title = claude_prompt(record).and_then(title_from);
+        facts.title = claude_prompt(record).and_then(|prompt| title_from(&redact(prompt)));
     }
 }
 
@@ -164,7 +164,7 @@ fn codex_head(record: &Value, facts: &mut HeadFacts) {
             .and_then(parse_timestamp);
     }
     if facts.title.is_none() {
-        facts.title = codex_prompt(record).and_then(title_from);
+        facts.title = codex_prompt(record).and_then(|prompt| title_from(&redact(prompt)));
     }
 }
 
@@ -205,6 +205,13 @@ fn typed(content: &str) -> Option<&str> {
         && !trimmed.starts_with("# AGENTS.md")
         && !trimmed.starts_with("Caveat:"))
     .then_some(trimmed)
+}
+
+/// A prompt with every likely secret replaced, before it becomes a title: a
+/// title is shown in the window and printed by `neati sessions --json`, which
+/// coding agents read (#509 review).
+fn redact(prompt: &str) -> String {
+    super::secrets::redact(prompt)
 }
 
 /// One line of at most [`TITLE_LIMIT`] characters, control characters removed.

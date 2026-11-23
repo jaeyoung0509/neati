@@ -104,6 +104,7 @@ fn one_item_preview() -> CleanPreview {
         review: ReviewSummary::default(),
         caches: None,
         projects: None,
+        worktrees: None,
     }
 }
 

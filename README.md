@@ -249,8 +249,9 @@ neati ai
 
 `neati clean` removes only what the app's **Clean** button would: idle,
 regenerable caches and idle, verified build output in your project folders,
-plus dependency folders of inactive projects if you turn on that cleanup rule
-in Settings.
+plus dependency folders of inactive projects and finished Git worktrees if you
+turn on those cleanup rules in Settings. `neati worktrees` lists the worktrees
+in your project folders and whether each is finished.
 Without `--yes` it only previews, unless you answer its prompt in a terminal.
 Add `--json` to any command for machine-readable output.
 

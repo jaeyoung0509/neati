@@ -35,6 +35,7 @@ describe('Project cleanup rules (#504)', () => {
     expect(resolveCleanupRules({ dependency_stores: { enabled: true } })).toEqual({
       build_output_min_idle_days: 0,
       dependency_stores: { enabled: true, idle_days: 30 },
+      worktrees: { enabled: false, idle_days: 14 },
     });
     expect(DEFAULT_CLEANUP_RULES.dependency_stores.enabled).toBe(false);
   });
@@ -71,6 +72,7 @@ describe('Project cleanup rules (#504)', () => {
     settingsStore.settings.cleanup_rules = {
       build_output_min_idle_days: 14,
       dependency_stores: { enabled: true, idle_days: 60 },
+      worktrees: { enabled: false, idle_days: 14 },
     };
     const body = render(SettingsCleanupRules).body;
     expect(body).toContain('cleanup-dependency-days');

@@ -9,6 +9,9 @@ mod project_caches_tests;
 mod recognition;
 mod rules;
 mod workspaces;
+pub(crate) use activity::{
+    has_working_process, project_last_activity, running_working_directories,
+};
 pub(crate) use project_caches::is_inner_cache_tag;
 pub(crate) use rules::artifact_is_framework_parent;
 pub(crate) use rules::artifact_relative_is_allowed;

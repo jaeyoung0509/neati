@@ -58,6 +58,7 @@ export function createOneButtonCleanMock(readyCacheItems: () => ScanItem[]) {
         total_bytes: cacheBytes + projectBytes,
         cache_bytes: cacheBytes,
         project_bytes: projectBytes,
+        worktree_bytes: 0,
         review_items: 2,
         review_bytes: 1.4 * GIB,
         project_folders: 1,

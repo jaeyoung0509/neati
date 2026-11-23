@@ -219,6 +219,12 @@ export const commands = {
 	startDeveloperArtifactScan: (workspaceIds: string[], onEvent: Channel<DeveloperArtifactScanEvent_Deserialize>) => typedError<DeveloperArtifactScanResult_Serialize, string>(__TAURI_INVOKE("start_developer_artifact_scan", { workspaceIds, onEvent })),
 	cancelDeveloperArtifactScan: (scanId: string) => typedError<null, string>(__TAURI_INVOKE("cancel_developer_artifact_scan", { scanId })),
 	prepareDeveloperArtifactCleanup: (scanId: string, selectedItemIds: string[]) => typedError<RemovalPlanPreview_Serialize, string>(__TAURI_INVOKE("prepare_developer_artifact_cleanup", { scanId, selectedItemIds })),
+	/**  Scans the saved project folders' repositories for linked worktrees (#505). */
+	scanWorktrees: () => typedError<WorktreeInventory_Serialize, string>(__TAURI_INVOKE("scan_worktrees")),
+	/**  Holds the selected finished worktrees as a one-shot removal plan. */
+	prepareWorktreeRemoval: (scanId: string, selectedItemIds: string[]) => typedError<WorktreeRemovalPreview_Serialize, string>(__TAURI_INVOKE("prepare_worktree_removal", { scanId, selectedItemIds })),
+	/**  Removes exactly the worktrees of a prepared plan, through Git. */
+	executeWorktreeRemoval: (planId: string) => typedError<WorktreeRemovalResult_Serialize, string>(__TAURI_INVOKE("execute_worktree_removal", { planId })),
 	getInstalledApps: () => typedError<InstalledAppInventory_Serialize, string>(__TAURI_INVOKE("get_installed_apps")),
 	getAppLeftovers: () => typedError<AppLeftoverInventory_Serialize, string>(__TAURI_INVOKE("get_app_leftovers")),
 	inspectAppUninstall: (appId: string) => typedError<AppUninstallInspection_Serialize, string>(__TAURI_INVOKE("inspect_app_uninstall", { appId })),
@@ -1561,6 +1567,12 @@ export type CleanupRules = {
 	 *  environments, `vendor`, bundles, `deps`).
 	 */
 	dependency_stores?: IdleRule,
+	/**
+	 *  Finished Git worktrees (#505): clean, reachable, unused and inactive
+	 *  for the rule's period. The period also decides what the Projects view
+	 *  calls finished when the rule is off.
+	 */
+	worktrees?: IdleRule,
 };
 
 /**
@@ -2865,6 +2877,8 @@ export type OneButtonPreview_Deserialize = {
 	total_bytes: number,
 	cache_bytes: number,
 	project_bytes: number,
+	/**  Finished worktrees in the set (#505). */
+	worktree_bytes: number,
 	/**  Found but left for review in the main window. */
 	review_items: number,
 	review_bytes: number,
@@ -2882,6 +2896,8 @@ export type OneButtonPreview_Serialize = {
 	total_bytes: number,
 	cache_bytes: number,
 	project_bytes: number,
+	/**  Finished worktrees in the set (#505). */
+	worktree_bytes: number,
 	/**  Found but left for review in the main window. */
 	review_items: number,
 	review_bytes: number,
@@ -2892,7 +2908,7 @@ export type OneButtonPreview_Serialize = {
 	project_folders: number,
 };
 
-export type OneButtonSource = "cache" | "project";
+export type OneButtonSource = "cache" | "project" | "worktree";
 
 /**
  *  Who is expected to own a discovered unit, and how strongly that is known.
@@ -4370,6 +4386,152 @@ export type UsageWindow_Serialize = {
 	used_percent: number | null,
 	resets_at: number | null,
 };
+
+/**  The coding agent whose worktree folder this is, when the path says so. */
+export type WorktreeAgent = "codex" | "claude_code";
+
+export type WorktreeInventory = WorktreeInventory_Serialize | WorktreeInventory_Deserialize;
+
+export type WorktreeInventory_Deserialize = {
+	scan_id: string,
+	/**  Repositories found in the saved project folders. */
+	repositories: number,
+	items: WorktreeItem_Deserialize[],
+	/**  Repositories neati did not read, with the reason. */
+	refused: string[],
+	/**  The idle period that decided `Finished`. */
+	idle_days: number,
+	/**  Whether finished worktrees are in one-button Clean. */
+	rule_enabled: boolean,
+};
+
+export type WorktreeInventory_Serialize = {
+	scan_id: string,
+	/**  Repositories found in the saved project folders. */
+	repositories: number,
+	items: WorktreeItem_Serialize[],
+	/**  Repositories neati did not read, with the reason. */
+	refused: string[],
+	/**  The idle period that decided `Finished`. */
+	idle_days: number,
+	/**  Whether finished worktrees are in one-button Clean. */
+	rule_enabled: boolean,
+};
+
+export type WorktreeItem = WorktreeItem_Serialize | WorktreeItem_Deserialize;
+
+export type WorktreeItem_Deserialize = {
+	/**  Opaque, stable for the same location. */
+	id: string,
+	/**  The repository's main checkout. */
+	repository: string,
+	path: string,
+	name: string,
+	/**  The checked-out branch, without `refs/heads/`; `None` when detached. */
+	branch: string | null,
+	/**  Abbreviated commit. */
+	head: string,
+	agent: WorktreeAgent | null,
+	allocated_bytes: number,
+	file_count: number,
+	/**  False when the measurement skipped entries; the bytes are a lower bound. */
+	measurement_complete: boolean,
+	/**  Last work in it, in seconds since the epoch. */
+	last_activity: number | null,
+	state: WorktreeState,
+	/**  Detail for `Refused`, already free of private paths. */
+	reason: string | null,
+	/**  In one-button Clean: finished, and the person's worktree rule is on. */
+	selected_by_default: boolean,
+};
+
+export type WorktreeItem_Serialize = {
+	/**  Opaque, stable for the same location. */
+	id: string,
+	/**  The repository's main checkout. */
+	repository: string,
+	path: string,
+	name: string,
+	/**  The checked-out branch, without `refs/heads/`; `None` when detached. */
+	branch: string | null,
+	/**  Abbreviated commit. */
+	head: string,
+	agent: WorktreeAgent | null,
+	allocated_bytes: number,
+	file_count: number,
+	/**  False when the measurement skipped entries; the bytes are a lower bound. */
+	measurement_complete: boolean,
+	/**  Last work in it, in seconds since the epoch. */
+	last_activity: number | null,
+	state: WorktreeState,
+	/**  Detail for `Refused`, already free of private paths. */
+	reason: string | null,
+	/**  In one-button Clean: finished, and the person's worktree rule is on. */
+	selected_by_default: boolean,
+};
+
+export type WorktreeRemovalFailure = {
+	id: string,
+	name: string,
+	message: string,
+};
+
+export type WorktreeRemovalPreview = WorktreeRemovalPreview_Serialize | WorktreeRemovalPreview_Deserialize;
+
+export type WorktreeRemovalPreview_Deserialize = {
+	plan_id: string,
+	items: WorktreeItem_Deserialize[],
+	total_bytes: number,
+	expires_in_seconds: number,
+};
+
+export type WorktreeRemovalPreview_Serialize = {
+	plan_id: string,
+	items: WorktreeItem_Serialize[],
+	total_bytes: number,
+	expires_in_seconds: number,
+};
+
+export type WorktreeRemovalResult = WorktreeRemovalResult_Serialize | WorktreeRemovalResult_Deserialize;
+
+export type WorktreeRemovalResult_Deserialize = {
+	removed: string[],
+	failed: WorktreeRemovalFailure[],
+	/**  The measured size of the removed checkouts, not a free-space delta. */
+	reclaimed_bytes: number,
+};
+
+export type WorktreeRemovalResult_Serialize = {
+	removed: string[],
+	failed: WorktreeRemovalFailure[],
+	/**  The measured size of the removed checkouts, not a free-space delta. */
+	reclaimed_bytes: number,
+};
+
+/**  Why a worktree can or cannot be removed now. */
+export type WorktreeState =
+/**  Nothing in it is unique and nothing uses it: removable. */
+"finished" |
+/**  Worked on within the rule's period, or a process works inside it. */
+"recently_active" |
+/**  When it was last worked on could not be observed. */
+"activity_unknown" |
+/**  Modified or untracked files that only exist here. */
+"has_changes" |
+/**  Submodules, which Git does not remove without force. */
+"has_submodules" |
+/**  Locked with `git worktree lock`. */
+"locked" |
+/**  A detached commit that no branch or tag contains. */
+"commits_only_here" |
+/**  A running process has files open in it. */
+"in_use" |
+/**  The open-file check could not prove it idle. */
+"use_unknown" |
+/**  Registered with Git, but the folder is gone. */
+"missing" |
+/**  neati could not inspect it safely; see `reason`. */
+"refused";
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

@@ -4,12 +4,14 @@ import type { CleanInclusion, CleanupRules } from '../models/types';
 export type ResolvedCleanupRules = {
   build_output_min_idle_days: number;
   dependency_stores: { enabled: boolean; idle_days: number };
+  worktrees: { enabled: boolean; idle_days: number };
 };
 
 /** The backend's defaults (#504): new removal rules start off. */
 export const DEFAULT_CLEANUP_RULES: ResolvedCleanupRules = {
   build_output_min_idle_days: 0,
   dependency_stores: { enabled: false, idle_days: 30 },
+  worktrees: { enabled: false, idle_days: 14 },
 };
 
 /** Fills fields an older settings file leaves out with the defaults. */
@@ -20,6 +22,10 @@ export function resolveCleanupRules(rules: CleanupRules | null | undefined): Res
     dependency_stores: {
       enabled: rules?.dependency_stores?.enabled ?? DEFAULT_CLEANUP_RULES.dependency_stores.enabled,
       idle_days: rules?.dependency_stores?.idle_days ?? DEFAULT_CLEANUP_RULES.dependency_stores.idle_days,
+    },
+    worktrees: {
+      enabled: rules?.worktrees?.enabled ?? DEFAULT_CLEANUP_RULES.worktrees.enabled,
+      idle_days: rules?.worktrees?.idle_days ?? DEFAULT_CLEANUP_RULES.worktrees.idle_days,
     },
   };
 }

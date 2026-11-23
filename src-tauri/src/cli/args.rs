@@ -37,6 +37,10 @@ pub enum Command {
         folders: Vec<String>,
         all: bool,
     },
+    /// Linked Git worktrees in the saved project folders (#505), read-only.
+    Worktrees {
+        folders: Vec<String>,
+    },
     /// Saves a project folder in the app's settings.
     ProjectsAdd {
         path: String,
@@ -138,6 +142,7 @@ pub fn parse(args: &[String]) -> Parsed {
         "status" => no_options(rest, Command::Status),
         "scan" => parse_scan(rest),
         "projects" => parse_projects(rest),
+        "worktrees" => parse_worktrees(rest),
         "large-files" => parse_large_files(rest),
         "apps" => no_options(rest, Command::Apps),
         "docker" => no_options(rest, Command::Docker),
@@ -222,6 +227,20 @@ fn parse_projects(rest: &[String]) -> Result<Invocation, String> {
         }
     }
     Ok(globals.finish(Command::Projects { folders, all }))
+}
+
+fn parse_worktrees(rest: &[String]) -> Result<Invocation, String> {
+    let mut globals = Globals::default();
+    let mut folders = Vec::new();
+    let mut arguments = rest.iter();
+    while let Some(argument) = arguments.next() {
+        match argument.as_str() {
+            "--folder" => folders.push(value(&mut arguments, "--folder")?),
+            other if globals.take(other) => {}
+            other => return Err(unknown(other)),
+        }
+    }
+    Ok(globals.finish(Command::Worktrees { folders }))
 }
 
 /// `projects add PATH` / `projects remove PATH`.

@@ -297,6 +297,12 @@
           "markdownDescription": "Enables the execute_temporary_storage_review command without any pre-configured scope."
         },
         {
+          "description": "Enables the execute_worktree_removal command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-execute-worktree-removal",
+          "markdownDescription": "Enables the execute_worktree_removal command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_agent_integrations command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-agent-integrations",
@@ -561,6 +567,12 @@
           "markdownDescription": "Enables the prepare_temporary_storage_review command without any pre-configured scope."
         },
         {
+          "description": "Enables the prepare_worktree_removal command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-prepare-worktree-removal",
+          "markdownDescription": "Enables the prepare_worktree_removal command without any pre-configured scope."
+        },
+        {
           "description": "Enables the preview_ai_recommendation command without any pre-configured scope.",
           "type": "string",
           "const": "allow-preview-ai-recommendation",
@@ -667,6 +679,12 @@
           "type": "string",
           "const": "allow-save-settings",
           "markdownDescription": "Enables the save_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the scan_worktrees command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-scan-worktrees",
+          "markdownDescription": "Enables the scan_worktrees command without any pre-configured scope."
         },
         {
           "description": "Enables the set_awake_rules command without any pre-configured scope.",
@@ -871,6 +889,12 @@
           "type": "string",
           "const": "deny-execute-temporary-storage-review",
           "markdownDescription": "Denies the execute_temporary_storage_review command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the execute_worktree_removal command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-execute-worktree-removal",
+          "markdownDescription": "Denies the execute_worktree_removal command without any pre-configured scope."
         },
         {
           "description": "Denies the get_agent_integrations command without any pre-configured scope.",
@@ -1137,6 +1161,12 @@
           "markdownDescription": "Denies the prepare_temporary_storage_review command without any pre-configured scope."
         },
         {
+          "description": "Denies the prepare_worktree_removal command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-prepare-worktree-removal",
+          "markdownDescription": "Denies the prepare_worktree_removal command without any pre-configured scope."
+        },
+        {
           "description": "Denies the preview_ai_recommendation command without any pre-configured scope.",
           "type": "string",
           "const": "deny-preview-ai-recommendation",
@@ -1243,6 +1273,12 @@
           "type": "string",
           "const": "deny-save-settings",
           "markdownDescription": "Denies the save_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the scan_worktrees command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-scan-worktrees",
+          "markdownDescription": "Denies the scan_worktrees command without any pre-configured scope."
         },
         {
           "description": "Denies the set_awake_rules command without any pre-configured scope.",

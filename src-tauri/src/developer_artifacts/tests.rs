@@ -1341,6 +1341,7 @@ mod cleanup_rules {
         CleanupRules {
             build_output_min_idle_days: 0,
             dependency_stores: IdleRule { enabled, idle_days },
+            ..CleanupRules::default()
         }
     }
 

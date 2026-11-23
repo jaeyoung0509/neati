@@ -65,6 +65,8 @@ impl CleanRun<'_> {
         let request = CleanRequest {
             caches: options.caches,
             projects: options.projects,
+            // Finished worktrees belong to the project part of the set.
+            worktrees: options.projects,
             only: options.only.clone(),
             skip: options.skip.clone(),
             // A terminal run is its own process: there is nothing to reuse,
@@ -175,6 +177,7 @@ impl<'a> From<&'a Candidate> for CandidateJson<'a> {
             source: match candidate.source {
                 Source::Cache => "cache",
                 Source::Project => "project",
+                Source::Worktree => "worktree",
             },
             name: &candidate.name,
             kind: &candidate.kind,

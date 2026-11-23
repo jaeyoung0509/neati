@@ -17,6 +17,7 @@ mod storage_service;
 mod system_service;
 mod temporary_storage;
 mod update_service;
+mod worktree_service;
 
 pub use ai_service::AiService;
 pub use cancellation::{CancellationRegistry, ScanCancellation};
@@ -29,5 +30,6 @@ pub use settings_service::{SettingsAuthority, SettingsChange, SettingsChangeReac
 pub use storage_service::StorageService;
 pub use system_service::{DockerStatusCache, SystemService};
 pub use update_service::UpdateService;
+pub use worktree_service::WorktreeService;
 
 pub mod cleanup_service;

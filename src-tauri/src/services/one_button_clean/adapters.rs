@@ -240,3 +240,64 @@ impl DeveloperArtifactScanSink for ProjectActivity {
         }
     }
 }
+
+/// [`WorktreeCleanup`] over [`crate::services::WorktreeService`] (#505).
+pub struct ServiceWorktreeCleanup {
+    worktrees: Arc<crate::services::WorktreeService>,
+}
+
+impl ServiceWorktreeCleanup {
+    pub fn new(worktrees: Arc<crate::services::WorktreeService>) -> Self {
+        Self { worktrees }
+    }
+}
+
+impl super::ports::WorktreeCleanup for ServiceWorktreeCleanup {
+    fn current(&self) -> Option<crate::models::WorktreeInventory> {
+        self.worktrees.current()
+    }
+
+    fn scan(
+        &self,
+        activity: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<crate::models::WorktreeInventory, String>> {
+        Box::pin(async move {
+            activity.report(Activity::Scanning {
+                location: "Git worktrees".to_string(),
+            });
+            self.worktrees.scan().await
+        })
+    }
+
+    fn remove(
+        &self,
+        scan_id: String,
+        ids: Vec<String>,
+        activity: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<RemovalReport, String>> {
+        Box::pin(async move {
+            let preview = self.worktrees.prepare_removal(&scan_id, &ids)?;
+            let progress = activity.clone();
+            let result = self
+                .worktrees
+                .execute_removal(preview.plan_id, move |name, index, total| {
+                    progress.report(Activity::Removing {
+                        name: name.to_string(),
+                        index,
+                        total,
+                    });
+                })
+                .await?;
+            Ok(RemovalReport {
+                reclaimed_bytes: result.reclaimed_bytes,
+                removed: result.removed,
+                skipped: 0,
+                failed: result
+                    .failed
+                    .into_iter()
+                    .map(|failure| (failure.id, failure.message))
+                    .collect(),
+            })
+        })
+    }
+}

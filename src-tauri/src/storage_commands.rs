@@ -250,3 +250,35 @@ pub async fn execute_removal_plan(
 ) -> Result<RemovalResult, String> {
     state.storage.execute_removal_plan(plan_id).await
 }
+
+/// Scans the saved project folders' repositories for linked worktrees (#505).
+#[tauri::command]
+#[specta::specta]
+pub async fn scan_worktrees(
+    state: State<'_, DesktopState>,
+) -> Result<crate::models::WorktreeInventory, String> {
+    state.worktrees.scan().await
+}
+
+/// Holds the selected finished worktrees as a one-shot removal plan.
+#[tauri::command]
+#[specta::specta]
+pub async fn prepare_worktree_removal(
+    scan_id: String,
+    selected_item_ids: Vec<String>,
+    state: State<'_, DesktopState>,
+) -> Result<crate::models::WorktreeRemovalPreview, String> {
+    state
+        .worktrees
+        .prepare_removal(&scan_id, &selected_item_ids)
+}
+
+/// Removes exactly the worktrees of a prepared plan, through Git.
+#[tauri::command]
+#[specta::specta]
+pub async fn execute_worktree_removal(
+    plan_id: uuid::Uuid,
+    state: State<'_, DesktopState>,
+) -> Result<crate::models::WorktreeRemovalResult, String> {
+    state.worktrees.execute_removal(plan_id, |_, _, _| {}).await
+}

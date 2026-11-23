@@ -46,6 +46,7 @@ pub mod storage_commands;
 pub mod tooling;
 #[cfg(target_os = "macos")]
 mod window_material;
+pub mod worktrees;
 
 use commands::DesktopState;
 use neati_platform::path_algebra::PathFlavor;
@@ -727,6 +728,9 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             storage_commands::start_developer_artifact_scan,
             storage_commands::cancel_developer_artifact_scan,
             storage_commands::prepare_developer_artifact_cleanup,
+            storage_commands::scan_worktrees,
+            storage_commands::prepare_worktree_removal,
+            storage_commands::execute_worktree_removal,
             storage_commands::get_installed_apps,
             storage_commands::get_app_leftovers,
             storage_commands::inspect_app_uninstall,

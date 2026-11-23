@@ -10,7 +10,9 @@ use std::sync::Arc;
 use crate::commands::DesktopState;
 use crate::services::command_line::CommandLineService;
 use crate::services::insights::{InsightQueries, MachineInsights};
-use crate::services::one_button_clean::adapters::{ServiceCacheCleanup, ServiceProjectCleanup};
+use crate::services::one_button_clean::adapters::{
+    ServiceCacheCleanup, ServiceProjectCleanup, ServiceWorktreeCleanup,
+};
 use crate::services::one_button_clean::ports::CleanUseCase;
 use crate::services::one_button_clean::sessions::OneButtonSessions;
 use crate::services::one_button_clean::OneButtonClean;
@@ -37,7 +39,8 @@ pub fn application_ports(state: &DesktopState) -> ApplicationPorts {
         state.storage.clone(),
         state.settings.clone(),
     ));
-    let clean: Arc<dyn CleanUseCase> = Arc::new(OneButtonClean::new(caches, projects));
+    let worktrees = Arc::new(ServiceWorktreeCleanup::new(state.worktrees.clone()));
+    let clean: Arc<dyn CleanUseCase> = Arc::new(OneButtonClean::new(caches, projects, worktrees));
     ApplicationPorts {
         clean_sessions: Arc::new(OneButtonSessions::new(clean.clone())),
         clean,

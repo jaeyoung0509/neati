@@ -213,7 +213,8 @@ safety conventions below when changing neati.
   `select_quick_clean_safe_candidates` through `reviewed_quick_clean_safe`,
   and the `developer_artifacts::preselection` set (build output, plus
   dependency stores when the person's rule is on) through a one-shot
-  developer-artifact plan. It never accepts a path. `--only`/`--skip`
+  developer-artifact plan, and finished worktrees the person's worktree rule
+  includes through `WorktreeService`. It never accepts a path. `--only`/`--skip`
   references narrow that set, and an unknown reference refuses the whole run.
   Without `--yes` it is a preview unless a person answers the terminal prompt;
   `--json` without `--yes` never removes.
@@ -513,6 +514,22 @@ safety conventions below when changing neati.
   activity is never inactivity. Every artifact reports a typed
   `CleanInclusion` reason. A new rule that adds a kind of removal defaults off,
   and changing a default to on is an owner decision.
+
+- Owner direction #505 (November 24, 2026): finished Git worktrees are a
+  cleanup unit (`worktrees`, `WorktreeService`). Only linked worktrees of main
+  checkouts found in saved project folders are reported, never the main
+  worktree. A worktree is `Finished` only when it is present, inside the home
+  folder, not protected, not locked, has no `.gitmodules`, `git status
+  --porcelain --untracked-files=all` is empty (optional locks off), a detached
+  commit is contained in another ref, no running process works inside it, its
+  activity is older than the worktree rule's period, and an exact open-file
+  check proves it idle. Every other state is reported and never removable.
+  Removal re-derives all of it immediately before running fixed-argument
+  `git worktree remove <path>` through the hardened `git_command`; `--force`,
+  `rm -rf` and the generic deleter are never used for a checkout, and
+  branches and commits are never touched. The worktree rule defaults **off**;
+  with it off, finished worktrees are removed only through the Projects view's
+  explicit selection and confirmation. `git worktree prune` is not run.
 
 - Extra AI tool profiles (#451) are directories the person confirmed in
   Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They

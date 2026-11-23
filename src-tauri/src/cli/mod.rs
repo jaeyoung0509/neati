@@ -39,6 +39,8 @@ COMMANDS:
   scan [--all]        Caches neati found; --all includes ones that need review
   projects [--all]    Build output and dependency folders in your saved project folders
       --folder PATH   Also scan this folder for this run (repeatable)
+  worktrees           Git worktrees in those folders and whether each is finished
+      --folder PATH   Also look in this folder for this run
   projects add PATH   Save a project folder (quit neati first)
   projects remove PATH
   clean               Preview what one-button Clean removes (nothing is removed)
@@ -144,6 +146,7 @@ pub fn run(args: &[String]) -> Option<i32> {
 fn run_folders(command: &Command) -> Result<&[String], String> {
     Ok(match command {
         Command::Projects { folders, .. } => folders,
+        Command::Worktrees { folders } => folders,
         Command::Clean(options) => &options.folders,
         _ => &[],
     })
@@ -183,6 +186,13 @@ fn dispatch(
             json,
         }
         .projects(*all),
+        Command::Worktrees { .. } => scan::Inventory {
+            use_case: ports.clean.as_ref(),
+            progress,
+            home,
+            json,
+        }
+        .worktrees(),
         Command::Clean(options) => clean::CleanRun {
             use_case: ports.clean.as_ref(),
             approval,
@@ -207,6 +217,7 @@ fn command_name(command: &Command) -> &'static str {
         Command::Version => "version",
         Command::Status => "status",
         Command::Scan { .. } => "scan",
+        Command::Worktrees { .. } => "worktrees",
         Command::Projects { .. } | Command::ProjectsAdd { .. } | Command::ProjectsRemove { .. } => {
             "projects"
         }

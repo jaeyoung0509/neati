@@ -15,6 +15,7 @@ use crate::services::ports::Activity;
 pub enum OneButtonSource {
     Cache,
     Project,
+    Worktree,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
@@ -44,6 +45,10 @@ pub struct OneButtonPreview {
     #[serde(with = "crate::ipc_numeric::u64")]
     #[specta(type = u64)]
     pub project_bytes: u64,
+    /// Finished worktrees in the set (#505).
+    #[serde(with = "crate::ipc_numeric::u64")]
+    #[specta(type = u64)]
+    pub worktree_bytes: u64,
     /// Found but left for review in the main window.
     #[serde(with = "crate::ipc_numeric::u64")]
     #[specta(type = u64)]
@@ -76,6 +81,7 @@ impl OneButtonPreview {
                     source: match candidate.source {
                         Source::Cache => OneButtonSource::Cache,
                         Source::Project => OneButtonSource::Project,
+                        Source::Worktree => OneButtonSource::Worktree,
                     },
                     name: candidate.name.clone(),
                     kind: candidate.kind.clone(),
@@ -86,6 +92,7 @@ impl OneButtonPreview {
             total_bytes: preview.total_bytes,
             cache_bytes: bytes_of(Source::Cache),
             project_bytes: bytes_of(Source::Project),
+            worktree_bytes: bytes_of(Source::Worktree),
             review_items: preview.review.items,
             review_bytes: preview.review.bytes,
             project_folders: preview
@@ -200,6 +207,7 @@ mod tests {
             review: ReviewSummary { items: 1, bytes: 7 },
             caches: None,
             projects: None,
+            worktrees: None,
         };
         let projected = OneButtonPreview::project(uuid::Uuid::nil(), &preview);
         assert_eq!((projected.cache_bytes, projected.project_bytes), (10, 32));

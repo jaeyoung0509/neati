@@ -572,7 +572,7 @@ describe('quick cleanup state', () => {
           reference: 'cache', source: 'cache', name: 'Application Cache', kind: 'system',
           path: '/fixture/cache', bytes: 1048576,
         }],
-        total_bytes: 1048576, cache_bytes: 1048576, project_bytes: 0,
+        total_bytes: 1048576, cache_bytes: 1048576, project_bytes: 0, worktree_bytes: 0,
         review_items: 0, review_bytes: 0, project_folders: 0,
       };
       oneButtonCleanStore.phase = 'ready';

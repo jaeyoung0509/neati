@@ -11,5 +11,7 @@
 //! produced; a service receives only the handles it needs.
 
 mod desktop;
+mod interfaces;
 
 pub use desktop::{desktop_state, desktop_state_with_catalog};
+pub use interfaces::{application_ports, ApplicationPorts};

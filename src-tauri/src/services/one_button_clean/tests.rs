@@ -1,0 +1,366 @@
+//! The use case against fake driven ports: no filesystem, no services.
+
+use std::sync::{Arc, Mutex};
+
+use crate::models::{
+    ArtifactOwnershipEvidence, Category, CategoryResult, DeveloperArtifact, DeveloperArtifactKind,
+    DeveloperArtifactScanResult, DeveloperArtifactStatus, DeveloperEcosystem, FileSize,
+    ObservationQuality, RiskTier, ScanItem, ScanResult,
+};
+use crate::services::ports::{ActivityPort, PortFuture, Silent};
+
+use super::ports::*;
+use super::selection::project_reference;
+use super::OneButtonClean;
+
+type Calls = Mutex<Vec<(String, Vec<String>)>>;
+
+struct FakeCaches {
+    scan: ScanResult,
+    chosen: Vec<String>,
+    report: RemovalReport,
+    removals: Calls,
+}
+
+impl CacheCleanup for FakeCaches {
+    fn scan(&self, _: Arc<dyn ActivityPort>) -> PortFuture<'_, Result<ScanResult, String>> {
+        Box::pin(async move { Ok(self.scan.clone()) })
+    }
+
+    fn one_button_ids(&self, _: &ScanResult) -> Result<Vec<String>, String> {
+        Ok(self.chosen.clone())
+    }
+
+    fn remove(
+        &self,
+        scan_id: String,
+        ids: Vec<String>,
+        _: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<RemovalReport, String>> {
+        Box::pin(async move {
+            self.removals.lock().unwrap().push((scan_id, ids));
+            Ok(self.report.clone())
+        })
+    }
+}
+
+struct FakeProjects {
+    inventory: ProjectInventory,
+    report: RemovalReport,
+    scans: Mutex<u32>,
+    removals: Calls,
+}
+
+impl ProjectCleanup for FakeProjects {
+    fn scan(&self, _: Arc<dyn ActivityPort>) -> PortFuture<'_, Result<ProjectInventory, String>> {
+        Box::pin(async move {
+            *self.scans.lock().unwrap() += 1;
+            Ok(self.inventory.clone())
+        })
+    }
+
+    fn remove(
+        &self,
+        scan_id: String,
+        ids: Vec<String>,
+        _: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<RemovalReport, String>> {
+        Box::pin(async move {
+            self.removals.lock().unwrap().push((scan_id, ids));
+            Ok(self.report.clone())
+        })
+    }
+}
+
+fn item(id: &str, bytes: u64) -> ScanItem {
+    let mut item = ScanItem::mock(
+        id,
+        "test_sig",
+        id,
+        Category::System,
+        RiskTier::Safe,
+        format!("/Users/me/Library/Caches/{id}"),
+        FileSize::new(bytes, Some(bytes)),
+        1,
+    );
+    item.disposition = item.derive_disposition();
+    item
+}
+
+fn scan(items: Vec<ScanItem>) -> ScanResult {
+    let mut category = CategoryResult {
+        category: Category::System,
+        display_name: Category::System.display_name().to_string(),
+        total_bytes: 0,
+        cleanable_bytes: 0,
+        safe_bytes: 0,
+        rebuild_bytes: 0,
+        manual_bytes: 0,
+        quality: ObservationQuality::Fresh,
+        skipped_entry_count: 0,
+        incomplete_item_count: 0,
+        eligibility: Default::default(),
+        suppressed_duplicate_count: 0,
+        suppressed_duplicate_bytes: 0,
+        suppressed_overlap_count: 0,
+        suppressed_overlap_bytes: 0,
+        ambiguous_overlap_count: 0,
+        ambiguous_overlap_bytes: 0,
+        items: Vec::new(),
+    };
+    for item in &items {
+        category.eligibility.add(item);
+    }
+    let eligibility = category.eligibility.clone();
+    category.items = items;
+    ScanResult {
+        cancelled: false,
+        metrics: Default::default(),
+        scan_id: "cache-scan".to_string(),
+        valid_for_seconds: ScanResult::VALID_FOR_SECONDS,
+        started_at: 0,
+        finished_at: 0,
+        total_bytes: 0,
+        cleanable_bytes: 0,
+        safe_bytes: 0,
+        rebuild_bytes: 0,
+        manual_bytes: 0,
+        categories: vec![category],
+        incomplete_reasons: Vec::new(),
+        gaps: Vec::new(),
+        spans: Vec::new(),
+        quality: ObservationQuality::Fresh,
+        skipped_entry_count: 0,
+        incomplete_item_count: 0,
+        eligibility,
+        suppressed_duplicate_count: 0,
+        suppressed_duplicate_bytes: 0,
+        suppressed_overlap_count: 0,
+        suppressed_overlap_bytes: 0,
+        ambiguous_overlap_count: 0,
+        ambiguous_overlap_bytes: 0,
+    }
+}
+
+fn artifact(id: &str, path: &str, bytes: u64, selected_by_default: bool) -> DeveloperArtifact {
+    DeveloperArtifact {
+        id: id.to_string(),
+        workspace_id: "workspace".to_string(),
+        project_name: "app".to_string(),
+        ecosystem: DeveloperEcosystem::Rust,
+        kind: DeveloperArtifactKind::CargoTarget,
+        path: path.to_string(),
+        logical_bytes: bytes,
+        allocated_bytes: bytes,
+        file_count: 1,
+        newest_mtime: None,
+        rebuild_hint: None,
+        evidence: Vec::new(),
+        ownership: ArtifactOwnershipEvidence::VerifiedGenerated,
+        status: DeveloperArtifactStatus::Complete,
+        incomplete_reason: None,
+        selected_by_default,
+    }
+}
+
+struct World {
+    caches: Arc<FakeCaches>,
+    projects: Arc<FakeProjects>,
+    use_case: OneButtonClean,
+}
+
+/// Caches `a`, `b`, `c` with the backend choosing `a` and `c`; one idle build
+/// output and one dependency folder the backend did not preselect.
+fn world() -> World {
+    let caches = Arc::new(FakeCaches {
+        scan: scan(vec![item("a", 100), item("b", 200), item("c", 300)]),
+        chosen: vec!["a".to_string(), "c".to_string()],
+        report: RemovalReport {
+            reclaimed_bytes: 100,
+            removed: vec!["a".to_string()],
+            skipped: 0,
+            failed: Vec::new(),
+        },
+        removals: Mutex::new(Vec::new()),
+    });
+    let projects = Arc::new(FakeProjects {
+        inventory: ProjectInventory {
+            folders: vec!["/Users/me/code".to_string()],
+            refused: Vec::new(),
+            result: Some(DeveloperArtifactScanResult {
+                scan_id: "project-scan".to_string(),
+                items: vec![
+                    artifact("t1", "/Users/me/code/app/target", 1000, true),
+                    artifact("n1", "/Users/me/code/app/node_modules", 50, false),
+                ],
+                discovered_count: 2,
+                measured_count: 2,
+                skipped_entries: 0,
+                cancelled: false,
+                truncated: false,
+                uninspected: Vec::new(),
+            }),
+        },
+        report: RemovalReport {
+            reclaimed_bytes: 1000,
+            removed: vec!["t1".to_string()],
+            skipped: 0,
+            failed: Vec::new(),
+        },
+        scans: Mutex::new(0),
+        removals: Mutex::new(Vec::new()),
+    });
+    let use_case = OneButtonClean::new(caches.clone(), projects.clone());
+    World {
+        caches,
+        projects,
+        use_case,
+    }
+}
+
+fn preview(world: &World, request: CleanRequest) -> Result<CleanPreview, OneButtonError> {
+    tauri::async_runtime::block_on(world.use_case.preview(request, Arc::new(Silent)))
+}
+
+fn references(preview: &CleanPreview) -> Vec<&str> {
+    preview
+        .chosen
+        .iter()
+        .map(|candidate| candidate.reference.as_str())
+        .collect()
+}
+
+#[test]
+fn the_preview_is_exactly_the_backend_set_and_removes_nothing() {
+    let world = world();
+    let preview = preview(&world, CleanRequest::default()).expect("preview");
+    let target = project_reference("/Users/me/code/app/target");
+    assert_eq!(references(&preview), ["a", "c", target.as_str()]);
+    assert_eq!(preview.total_bytes, 100 + 300 + 1000);
+    // The dependency folder is reported for review, never chosen.
+    assert_eq!(preview.review.items, 1);
+    assert_eq!(preview.review.bytes, 50);
+    assert!(world.caches.removals.lock().unwrap().is_empty());
+    assert!(world.projects.removals.lock().unwrap().is_empty());
+}
+
+#[test]
+fn an_unknown_reference_refuses_before_any_removal() {
+    let world = world();
+    let refused = preview(
+        &world,
+        CleanRequest {
+            only: vec!["b".to_string()],
+            ..CleanRequest::default()
+        },
+    );
+    // `b` exists in the scan, but the backend did not choose it.
+    assert_eq!(
+        refused.expect_err("not in the set"),
+        OneButtonError::UnknownReferences(vec!["b".to_string()])
+    );
+    assert!(world.caches.removals.lock().unwrap().is_empty());
+}
+
+#[test]
+fn execution_submits_only_the_chosen_ids_with_their_own_scan() {
+    let world = world();
+    let preview = preview(
+        &world,
+        CleanRequest {
+            skip: vec!["c".to_string()],
+            ..CleanRequest::default()
+        },
+    )
+    .expect("preview");
+    let outcome =
+        tauri::async_runtime::block_on(world.use_case.execute(&preview, Arc::new(Silent)))
+            .expect("execute");
+    assert_eq!(
+        *world.caches.removals.lock().unwrap(),
+        [("cache-scan".to_string(), vec!["a".to_string()])]
+    );
+    assert_eq!(
+        *world.projects.removals.lock().unwrap(),
+        [("project-scan".to_string(), vec!["t1".to_string()])]
+    );
+    assert_eq!(outcome.reclaimed_bytes, 1100);
+    assert_eq!(outcome.removed, 2);
+    assert!(outcome.failed.is_empty());
+}
+
+#[test]
+fn failures_come_back_named_by_reference() {
+    let mut world = world();
+    let caches = Arc::new(FakeCaches {
+        report: RemovalReport {
+            reclaimed_bytes: 0,
+            removed: Vec::new(),
+            skipped: 1,
+            failed: vec![("a".to_string(), "Locked by its owner.".to_string())],
+        },
+        scan: world.caches.scan.clone(),
+        chosen: vec!["a".to_string()],
+        removals: Mutex::new(Vec::new()),
+    });
+    world.use_case = OneButtonClean::new(caches, world.projects.clone());
+    let preview = preview(
+        &world,
+        CleanRequest {
+            projects: false,
+            ..CleanRequest::default()
+        },
+    )
+    .expect("preview");
+    let outcome =
+        tauri::async_runtime::block_on(world.use_case.execute(&preview, Arc::new(Silent)))
+            .expect("execute");
+    assert_eq!(outcome.skipped, 1);
+    assert_eq!(
+        outcome.failed,
+        [UnitFailure {
+            reference: "a".to_string(),
+            name: "a".to_string(),
+            message: "Locked by its owner.".to_string(),
+        }]
+    );
+}
+
+#[test]
+fn a_source_left_out_is_never_scanned_or_touched() {
+    let world = world();
+    let preview = preview(
+        &world,
+        CleanRequest {
+            projects: false,
+            ..CleanRequest::default()
+        },
+    )
+    .expect("preview");
+    assert_eq!(*world.projects.scans.lock().unwrap(), 0);
+    assert!(preview.projects.is_none());
+    tauri::async_runtime::block_on(world.use_case.execute(&preview, Arc::new(Silent)))
+        .expect("execute");
+    assert!(world.projects.removals.lock().unwrap().is_empty());
+}
+
+#[test]
+fn an_empty_selection_executes_nothing() {
+    let world = world();
+    let target = project_reference("/Users/me/code/app/target");
+    let preview = preview(
+        &world,
+        CleanRequest {
+            skip: vec!["a".to_string(), "c".to_string(), target],
+            ..CleanRequest::default()
+        },
+    )
+    .expect("preview");
+    assert!(preview.chosen.is_empty());
+    let outcome =
+        tauri::async_runtime::block_on(world.use_case.execute(&preview, Arc::new(Silent)))
+            .expect("execute");
+    assert_eq!(outcome, CleanOutcome::default());
+    assert!(world.caches.removals.lock().unwrap().is_empty());
+    assert!(world.projects.removals.lock().unwrap().is_empty());
+}

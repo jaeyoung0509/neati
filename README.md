@@ -230,6 +230,39 @@ Windows builds do not update themselves. Open
 the newest tag with the version shown in neati. Enabled AI integrations can
 still contact their providers for usage data; that is separate from updating.
 
+### Command line and agent skill
+
+From 0.3.134 the app doubles as a command-line tool. The Homebrew cask links it
+as `neati`. Without Homebrew, use
+`/Applications/neati.app/Contents/MacOS/Neati`.
+
+```bash
+neati status          # free space, memory, last cleanup
+neati clean           # preview what one-button Clean would remove
+neati clean --yes     # permanently remove that set
+neati projects --folder ~/code
+neati ports
+neati ai
+```
+
+`neati clean` removes only what the app's **Clean** button would: idle,
+regenerable caches and idle, verified build output in your project folders.
+Without `--yes` it only previews, unless you answer its prompt in a terminal.
+Add `--json` to any command for machine-readable output.
+
+To let Claude Code or Codex use neati safely, install the bundled skill:
+
+```bash
+neati skill install                  # ~/.claude/skills/neati
+```
+
+```bash
+neati skill install --target codex   # ~/.codex/skills/neati
+```
+
+The skill makes the agent preview first and ask before anything is removed.
+See [docs/CLI.md](docs/CLI.md).
+
 ## Privacy & Local Diagnostics
 
 - **Local processing**: Scans, cleanup decisions, and diagnostics stay on your

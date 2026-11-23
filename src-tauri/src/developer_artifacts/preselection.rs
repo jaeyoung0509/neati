@@ -26,6 +26,10 @@ pub type UseProbe<'a> = dyn Fn(&[PathBuf], &dyn Fn() -> bool) -> Vec<OpenFileSta
 /// Reports when the project at a root was last worked on, in epoch seconds.
 pub type ActivityProbe<'a> = dyn Fn(&Path) -> Option<u64> + Sync + 'a;
 
+/// Lists the working directories of running processes. Asked at most once per
+/// scan, and only when a rule needs project activity.
+pub type WorkingDirectories<'a> = dyn Fn() -> Vec<PathBuf> + Sync + 'a;
+
 /// Compiler build outputs, recreated by the project's own build.
 pub fn is_build_output(kind: DeveloperArtifactKind) -> bool {
     use DeveloperArtifactKind as Kind;
@@ -115,8 +119,8 @@ pub struct Selection<'a> {
     pub now: u64,
     pub use_probe: &'a UseProbe<'a>,
     pub activity: &'a ActivityProbe<'a>,
-    /// Working directories of running processes, observed once per scan.
-    pub working_directories: Vec<PathBuf>,
+    /// Working directories of running processes, observed lazily, once.
+    pub working_directories: &'a WorkingDirectories<'a>,
 }
 
 impl<'a> Selection<'a> {
@@ -127,7 +131,7 @@ impl<'a> Selection<'a> {
             now: super::unix_timestamp(),
             use_probe: &neati_platform::open_files::observe_open_files_batch,
             activity,
-            working_directories: running_working_directories(),
+            working_directories: &running_working_directories,
         }
     }
 }
@@ -145,6 +149,7 @@ fn rule_verdict(
     record: &mut DeveloperArtifactRecord,
     selection: &Selection<'_>,
     activity: &mut HashMap<PathBuf, Option<u64>>,
+    working: &mut Option<Vec<PathBuf>>,
 ) -> Result<(), CleanInclusion> {
     let kind = record.artifact.kind;
     let dependency = is_dependency_store(kind);
@@ -170,7 +175,8 @@ fn rule_verdict(
     if idle_days == 0 {
         return Ok(());
     }
-    if has_working_process(&record.project_root, &selection.working_directories) {
+    let working = working.get_or_insert_with(|| (selection.working_directories)());
+    if has_working_process(&record.project_root, working) {
         return Err(CleanInclusion::RecentlyActive);
     }
     let last = *activity
@@ -196,6 +202,7 @@ pub fn apply(
     is_cancelled: &dyn Fn() -> bool,
 ) {
     let mut activity = HashMap::new();
+    let mut working = None;
     let mut candidates: Vec<(String, PathBuf)> = Vec::new();
     let mut keys: Vec<String> = records.keys().cloned().collect();
     keys.sort();
@@ -207,7 +214,7 @@ pub fn apply(
             continue;
         };
         record.artifact.selected_by_default = false;
-        match rule_verdict(record, selection, &mut activity) {
+        match rule_verdict(record, selection, &mut activity, &mut working) {
             Ok(()) => candidates.push((id, record.path.clone())),
             Err(reason) => record.artifact.clean_inclusion = reason,
         }
@@ -243,7 +250,7 @@ pub fn refusal_before_removal(state: OpenFileState) -> Option<&'static str> {
             Some("Skipped because a running process has files open in this folder.")
         }
         OpenFileState::Unknown => {
-            Some("Skipped because neati could not confirm that nothing is using this folder.")
+            Some("Skipped because neati could not confirm that nothing is using this folder. Close tools that may use it and try again.")
         }
     }
 }

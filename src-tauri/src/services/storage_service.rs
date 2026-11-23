@@ -585,12 +585,16 @@ impl StorageService {
     /// The last developer-artifact inventory while it is still fresh enough
     /// to plan from, as the result the scan returned.
     pub fn current_developer_artifacts(&self) -> Option<DeveloperArtifactScanResult> {
+        // Inclusion was decided with the rules in force at scan time. After
+        // the person changes a rule, Clean must scan again rather than act on
+        // the old decision (#504).
+        let rules = self.cleanup_rules().ok()?;
         self.state
             .developer_artifact_inventory
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .as_ref()
-            .filter(|inventory| inventory.is_fresh())
+            .filter(|inventory| inventory.is_current_for(&rules))
             .map(crate::developer_artifacts::result_from_inventory)
     }
 

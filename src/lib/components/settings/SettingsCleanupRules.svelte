@@ -1,5 +1,6 @@
 <script lang="ts">
   import { settingsStore } from '../../stores/settings.svelte';
+  import { projectCleanupStore } from '../../stores/projectCleanup.svelte';
   import { resolveCleanupRules, type ResolvedCleanupRules } from '../../utils/cleanupRules';
   import Card from '../Card.svelte';
   import Switch from '../Switch.svelte';
@@ -13,8 +14,12 @@
 
   let rules = $derived<ResolvedCleanupRules>(resolveCleanupRules(settingsStore.settings.cleanup_rules));
 
-  function save(next: ResolvedCleanupRules) {
-    void settingsStore.save({ cleanup_rules: next });
+  async function save(next: ResolvedCleanupRules) {
+    // Inclusion is decided at scan time, so a saved rule asks for a fresh
+    // project check; the backend also refuses to reuse the old decision.
+    if (await settingsStore.save({ cleanup_rules: next })) {
+      void projectCleanupStore.refresh();
+    }
   }
 
   function buildOutputLabel(days: number): string {

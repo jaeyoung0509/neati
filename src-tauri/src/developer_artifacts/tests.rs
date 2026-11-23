@@ -55,6 +55,7 @@ fn scanner_descends_into_unrecognized_output_wrappers() {
 #[test]
 fn developer_inventory_is_stale_when_the_clock_moves_backwards() {
     let inventory = DeveloperArtifactInventory {
+        rules: crate::models::CleanupRules::default(),
         scan_id: "scan".to_string(),
         records: HashMap::new(),
         workspace_ids: Vec::new(),
@@ -1350,6 +1351,7 @@ mod cleanup_rules {
         use_state: OpenFileState,
         working_directories: Vec<PathBuf>,
     ) -> HashMap<DeveloperArtifactKind, DeveloperArtifact> {
+        let working = move || working_directories.clone();
         let activity = move |_: &Path| idle_days_ago.map(|days| NOW - days * DAY);
         let use_probe = move |paths: &[PathBuf], _: &dyn Fn() -> bool| vec![use_state; paths.len()];
         let selection = Selection {
@@ -1357,7 +1359,7 @@ mod cleanup_rules {
             now: NOW,
             use_probe: &use_probe,
             activity: &activity,
-            working_directories,
+            working_directories: &working,
         };
         let inventory = DeveloperArtifactScanner::scan_workspaces_with_selection(
             &environment_with_home(&fixture.home),
@@ -1511,6 +1513,35 @@ mod cleanup_rules {
         assert_eq!(target.clean_inclusion, CleanInclusion::Included);
         assert!(target.selected_by_default);
         assert!(fixture.rust.join("target").is_dir());
+    }
+
+    #[test]
+    fn an_inventory_decided_with_other_rules_is_not_reused_for_clean() {
+        let fixture = fixture(true);
+        let selection_rules = dependency_rule(true, 30);
+        let activity = |_: &Path| Some(NOW - 400 * DAY);
+        let use_probe =
+            |paths: &[PathBuf], _: &dyn Fn() -> bool| vec![OpenFileState::Idle; paths.len()];
+        let selection = Selection {
+            rules: selection_rules,
+            now: NOW,
+            use_probe: &use_probe,
+            activity: &activity,
+            working_directories: &Vec::new,
+        };
+        let inventory = DeveloperArtifactScanner::scan_workspaces_with_selection(
+            &environment_with_home(&fixture.home),
+            &[workspace_record(&fixture.root)],
+            FolderAccess::NotGated,
+            Arc::new(AtomicBool::new(false)),
+            |_| {},
+            &selection,
+        )
+        .unwrap();
+        assert_eq!(inventory.rules, selection_rules);
+        assert!(inventory.is_current_for(&selection_rules));
+        // The person turned the dependency rule off after the scan.
+        assert!(!inventory.is_current_for(&CleanupRules::default()));
     }
 
     #[test]

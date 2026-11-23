@@ -965,14 +965,27 @@ mod tests {
         PlatformEnvironment,
         DeveloperArtifactInventory,
     ) {
+        artifact_fixture(|project| {
+            std::fs::create_dir_all(project.join("target/assets")).unwrap();
+            std::fs::write(project.join("Cargo.toml"), "[package]\nname='fixture'\n").unwrap();
+            std::fs::write(project.join("target/assets/output.bin"), b"generated").unwrap();
+        })
+    }
+
+    /// A workspace with one project laid out by `layout` and one artifact.
+    fn artifact_fixture(
+        layout: impl FnOnce(&Path),
+    ) -> (
+        tempfile::TempDir,
+        PlatformEnvironment,
+        DeveloperArtifactInventory,
+    ) {
         let temp = tempfile::tempdir().unwrap();
         let root = std::fs::canonicalize(temp.path())
             .unwrap()
             .join("workspace");
         let project = root.join("project");
-        std::fs::create_dir_all(project.join("target/assets")).unwrap();
-        std::fs::write(project.join("Cargo.toml"), "[package]\nname='fixture'\n").unwrap();
-        std::fs::write(project.join("target/assets/output.bin"), b"generated").unwrap();
+        layout(&project);
         std::fs::write(temp.path().join("outside-sentinel"), b"authored outside").unwrap();
         let git = if cfg!(windows) {
             PathBuf::from(r"C:\Program Files\Git\cmd\git.exe")
@@ -1147,6 +1160,43 @@ mod tests {
                     result.items[0].message
                 );
                 assert!(record.path.join("assets/output.bin").is_file());
+            }
+        }
+    }
+
+    #[test]
+    fn a_dependency_store_is_removed_only_while_it_is_proven_idle() {
+        use neati_platform::open_files::{FixedOpenFileProbe, OpenFileState};
+        for (state, removed) in [
+            (OpenFileState::Idle, true),
+            (OpenFileState::InUse, false),
+            (OpenFileState::Unknown, false),
+        ] {
+            let (_temp, environment, inventory) = artifact_fixture(|project| {
+                std::fs::create_dir_all(project.join("node_modules/pkg")).unwrap();
+                std::fs::write(project.join("package.json"), "{}").unwrap();
+                std::fs::write(project.join("pnpm-lock.yaml"), "lockfileVersion: '9.0'\n").unwrap();
+                std::fs::write(project.join("node_modules/pkg/index.js"), b"generated").unwrap();
+            });
+            let record = inventory.records.values().next().unwrap();
+            assert_eq!(
+                record.artifact.kind,
+                crate::models::DeveloperArtifactKind::NodeModules
+            );
+            let plan = RemovalPlanner::from_developer_artifacts(
+                &environment,
+                &inventory,
+                std::slice::from_ref(&record.artifact.id),
+            )
+            .unwrap();
+            let backend = Arc::new(neati_platform::MockRemovalBackend::new());
+            let result = RemovalExecutor::new(backend.clone())
+                .with_open_file_probe(Arc::new(FixedOpenFileProbe(state)))
+                .execute(&environment, plan);
+            assert_eq!(result.removed_count == 1, removed, "{state:?}");
+            assert_eq!(backend.removed().is_empty(), !removed, "{state:?}");
+            if !removed {
+                assert!(record.path.join("pkg/index.js").is_file(), "{state:?}");
             }
         }
     }
@@ -1608,6 +1658,7 @@ mod tests {
             marker_identities: vec![(marker, marker_identity)],
         };
         let inventory = DeveloperArtifactInventory {
+            rules: crate::models::CleanupRules::default(),
             scan_id: "developer-scan".to_string(),
             records: HashMap::from([("artifact".to_string(), record)]),
             workspace_ids: vec!["workspace-id".to_string()],
@@ -1717,6 +1768,7 @@ mod tests {
             marker_identities: vec![(marker.clone(), marker_identity)],
         };
         let inventory = DeveloperArtifactInventory {
+            rules: crate::models::CleanupRules::default(),
             scan_id: "developer-scan".to_string(),
             records: HashMap::from([("artifact".to_string(), record)]),
             workspace_ids: vec!["workspace-id".to_string()],
@@ -1798,6 +1850,7 @@ mod tests {
             marker_identities: vec![(marker.clone(), identity_from_path(&marker).unwrap())],
         };
         let inventory = DeveloperArtifactInventory {
+            rules: crate::models::CleanupRules::default(),
             scan_id: "developer-scan".to_string(),
             records: HashMap::from([("artifact".to_string(), record)]),
             workspace_ids: vec!["workspace-id".to_string()],

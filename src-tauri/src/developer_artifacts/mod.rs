@@ -84,9 +84,18 @@ pub struct DeveloperArtifactInventory {
     pub cancelled: bool,
     pub truncated: bool,
     pub uninspected: Vec<DeveloperArtifactUninspected>,
+    /// The cleanup rules one-button inclusion was decided with (#504). An
+    /// inventory decided with other rules is never reused for Clean.
+    pub rules: crate::models::CleanupRules,
 }
 
 impl DeveloperArtifactInventory {
+    /// Whether one-button Clean may act on this inventory's inclusion: it is
+    /// fresh and was decided with the rules in force now (#504).
+    pub fn is_current_for(&self, rules: &crate::models::CleanupRules) -> bool {
+        self.is_fresh() && self.rules == *rules
+    }
+
     pub fn is_fresh(&self) -> bool {
         self.is_fresh_at(unix_timestamp())
     }
@@ -316,7 +325,7 @@ impl DeveloperArtifactScanner {
             now: unix_timestamp(),
             use_probe,
             activity: &activity,
-            working_directories: Vec::new(),
+            working_directories: &Vec::new,
         };
         Self::scan_workspaces_with_selection(
             environment,
@@ -372,6 +381,7 @@ impl DeveloperArtifactScanner {
                         truncated,
                         uninspected,
                     },
+                    selection.rules,
                     &mut on_event,
                 );
             }
@@ -427,6 +437,7 @@ impl DeveloperArtifactScanner {
                         truncated,
                         uninspected,
                     },
+                    selection.rules,
                     &mut on_event,
                 );
             }
@@ -539,6 +550,7 @@ impl DeveloperArtifactScanner {
                 truncated,
                 uninspected,
             },
+            selection.rules,
             &mut on_event,
         )
     }
@@ -548,6 +560,7 @@ impl DeveloperArtifactScanner {
         workspace_ids: &[String],
         records: HashMap<String, DeveloperArtifactRecord>,
         progress: ScanProgress,
+        rules: crate::models::CleanupRules,
         on_event: &mut F,
     ) -> Result<DeveloperArtifactInventory, String>
     where
@@ -567,6 +580,7 @@ impl DeveloperArtifactScanner {
             }
         }
         let inventory = DeveloperArtifactInventory {
+            rules,
             scan_id: scan_id.clone(),
             records,
             workspace_ids: workspace_ids.to_vec(),

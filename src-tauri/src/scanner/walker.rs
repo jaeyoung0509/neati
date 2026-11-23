@@ -592,8 +592,7 @@ impl DirectoryScanner {
                 ),
                 Ok(metadata) => {
                     let facts = CandidateFacts::read(path_buf, &metadata);
-                    (
-                        true,
+                    let measure = || {
                         SizeCalculator::measure_path_with_bundle_rule(
                             path_buf,
                             &signature.exclusions,
@@ -603,9 +602,22 @@ impl DirectoryScanner {
                             context.limits,
                             context.counters,
                             context.permit_application_bundles,
+                        )
+                    };
+                    // Another rule may have named this root with the same
+                    // measurement parameters already in this scan (#493).
+                    let measurement = match context.measurements {
+                        Some(memo) => memo.measure_path(
+                            path_buf,
+                            &signature.exclusions,
+                            context.permit_application_bundles,
+                            context.limits,
+                            context.cancellation,
+                            measure,
                         ),
-                        Some(facts),
-                    )
+                        None => measure(),
+                    };
+                    (true, measurement, Some(facts))
                 }
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => (
                     false,

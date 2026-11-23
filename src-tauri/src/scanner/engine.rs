@@ -529,6 +529,9 @@ impl ScanEngine {
         // tests and reported to the interface.
         let limits = ScanLimits::default();
         let counters = TraversalCounters::default();
+        // A root two rules name with the same measurement parameters is walked
+        // once per scan (#493); the memo is dropped with the scan.
+        let measurements = super::measurement_memo::MeasurementMemo::default();
 
         for &category in target_categories {
             if cancellation.is_cancelled() {
@@ -563,7 +566,8 @@ impl ScanEngine {
                 let gate = sig.eligibility_gate(intensive_cleanup);
                 let context =
                     WalkContext::new(environment, cancellation, limits, &counters, &events)
-                        .for_structured_state_policy(sig.structured_state_policy());
+                        .for_structured_state_policy(sig.structured_state_policy())
+                        .with_measurement_memo(&measurements);
                 let span_started = Instant::now();
                 let mut scanned = DirectoryScanner::scan_signature_with_context(
                     sig,

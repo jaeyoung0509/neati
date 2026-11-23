@@ -230,3 +230,12 @@ pub async fn execute_empty_trash(
 pub fn cancel_empty_trash(plan_id: String, state: State<'_, DesktopState>) {
     state.cleanup.cancel_empty_trash(&plan_id);
 }
+
+/// What automatic Clean last did and when it may run next (#507).
+#[tauri::command]
+#[specta::specta]
+pub fn get_automatic_clean_status(
+    automatic: State<'_, Arc<crate::automatic_clean::AutomaticClean>>,
+) -> crate::models::AutomaticCleanStatus {
+    automatic.status()
+}

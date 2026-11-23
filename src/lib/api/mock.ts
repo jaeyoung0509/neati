@@ -16,6 +16,7 @@ import type {
   AgentSkillInstall,
   AgentSkillTarget,
   CommandLineStatus,
+  AutomaticCleanStatus,
   OneButtonOutcome,
   OneButtonPreview,
   CleanItemResult,
@@ -1823,6 +1824,7 @@ export const mockApi = {
       clean_docker: true,
       include_rebuild_caches: false,
       cleanup_rules: { build_output_min_idle_days: 0, dependency_stores: { enabled: false, idle_days: 30 }, worktrees: { enabled: false, idle_days: 14 } },
+    automatic_clean: { enabled: false, interval: 'weekly' },
       intensive_cleanup: true,
       theme: 'light',
       excluded_signatures: [],
@@ -1982,6 +1984,22 @@ export const mockApi = {
 
   async getCommandLineStatus(): Promise<CommandLineStatus> {
     return commandLineMock.status();
+  },
+
+  async getAutomaticCleanStatus(): Promise<AutomaticCleanStatus> {
+    // Mirrors the backend's shape; the preview never schedules anything.
+    const saved = await this.getSettings();
+    const settings = { enabled: false, interval: 'weekly' as const, ...(saved.automatic_clean ?? {}) };
+    const lastRun = Math.floor(Date.now() / 1000) - 3 * 86_400;
+    return {
+      settings,
+      last_run: settings.enabled
+        ? { at: lastRun, reclaimed_bytes: 12_884_901_888, removed: 14, failed: 0, error: null }
+        : null,
+      next_due_at: settings.enabled ? lastRun + 7 * 86_400 : null,
+      waiting: settings.enabled ? 'not_due' : 'disabled',
+      available: true,
+    };
   },
 
   async installAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {

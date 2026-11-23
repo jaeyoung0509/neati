@@ -69,6 +69,8 @@ export const commands = {
 	 *  preview is held backend-side; the window receives it with an opaque id.
 	 */
 	previewOneButtonClean: (onEvent: Channel<OneButtonActivity>) => typedError<OneButtonPreview_Serialize, string>(__TAURI_INVOKE("preview_one_button_clean", { onEvent })),
+	/**  What automatic Clean last did and when it may run next (#507). */
+	getAutomaticCleanStatus: () => __TAURI_INVOKE<AutomaticCleanStatus_Serialize>("get_automatic_clean_status"),
 	/**
 	 *  Executes, once, exactly the preview `preview_id` names. The window cannot
 	 *  submit a path, an item id or a strategy.
@@ -749,6 +751,70 @@ export type AuditEntry_Serialize = {
 	project_ref: string | null,
 	message: string,
 };
+
+export type AutomaticCleanInterval = "daily" | "weekly";
+
+/**  One automatic run, kept so Settings can say what happened. */
+export type AutomaticCleanRun = AutomaticCleanRun_Serialize | AutomaticCleanRun_Deserialize;
+
+/**  One automatic run, kept so Settings can say what happened. */
+export type AutomaticCleanRun_Deserialize = {
+	at: number,
+	reclaimed_bytes: number,
+	removed: number,
+	failed: number,
+	/**  Why the run stopped before removing anything, when it did. */
+	error: string | null,
+};
+
+/**  One automatic run, kept so Settings can say what happened. */
+export type AutomaticCleanRun_Serialize = {
+	at: number,
+	reclaimed_bytes: number,
+	removed: number,
+	failed: number,
+	/**  Why the run stopped before removing anything, when it did. */
+	error: string | null,
+};
+
+/**  The person's choice. Missing fields deserialize to off. */
+export type AutomaticCleanSettings = {
+	enabled?: boolean,
+	interval?: AutomaticCleanInterval,
+};
+
+export type AutomaticCleanStatus = AutomaticCleanStatus_Serialize | AutomaticCleanStatus_Deserialize;
+
+export type AutomaticCleanStatus_Deserialize = {
+	settings: AutomaticCleanSettings,
+	last_run: AutomaticCleanRun_Deserialize | null,
+	/**  Earliest time the next run may start. */
+	next_due_at: number | null,
+	/**  The last check's reason for not running, if it did not run. */
+	waiting: AutomaticCleanWait | null,
+	/**  False where neati cannot observe idleness or power (not macOS). */
+	available: boolean,
+};
+
+export type AutomaticCleanStatus_Serialize = {
+	settings: AutomaticCleanSettings,
+	last_run: AutomaticCleanRun_Serialize | null,
+	/**  Earliest time the next run may start. */
+	next_due_at: number | null,
+	/**  The last check's reason for not running, if it did not run. */
+	waiting: AutomaticCleanWait | null,
+	/**  False where neati cannot observe idleness or power (not macOS). */
+	available: boolean,
+};
+
+/**  Why the last check did not clean. */
+export type AutomaticCleanWait = "disabled" | "not_due" | "on_battery" |
+/**  The person used the Mac within the last few minutes. */
+"person_active" |
+/**  Power source or input idleness could not be observed here. */
+"conditions_unknown" |
+/**  A run is already in progress. */
+"running";
 
 export type AutopilotPreferences = AutopilotPreferences_Serialize | AutopilotPreferences_Deserialize;
 
@@ -2717,6 +2783,8 @@ export type NeatiSettings_Deserialize = {
 	include_rebuild_caches?: boolean,
 	/**  Rules for project leftovers in one-button Clean (#504). */
 	cleanup_rules?: CleanupRules,
+	/**  Automatic Clean (#507). Off by default. */
+	automatic_clean?: AutomaticCleanSettings,
 	intensive_cleanup?: boolean,
 	theme?: string,
 	excluded_signatures?: string[],
@@ -2764,6 +2832,8 @@ export type NeatiSettings_Serialize = {
 	include_rebuild_caches: boolean,
 	/**  Rules for project leftovers in one-button Clean (#504). */
 	cleanup_rules: CleanupRules,
+	/**  Automatic Clean (#507). Off by default. */
+	automatic_clean: AutomaticCleanSettings,
 	intensive_cleanup: boolean,
 	theme: string,
 	excluded_signatures: string[],

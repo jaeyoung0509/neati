@@ -89,6 +89,7 @@ fn main() {
         "cancel_developer_artifact_scan",
         "prepare_developer_artifact_cleanup",
         "scan_worktrees",
+        "get_automatic_clean_status",
         "prepare_worktree_removal",
         "execute_worktree_removal",
         "get_installed_apps",

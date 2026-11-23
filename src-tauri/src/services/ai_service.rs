@@ -1138,6 +1138,11 @@ impl SettingsChangeReaction for AiService {
         if next.agent_notifications.enabled {
             notifications.request_permission()?;
         }
+        // Automatic Clean (#507) announces what it removed. Ask once when it
+        // is on; a refusal does not block the setting, it only silences it.
+        if next.automatic_clean.enabled {
+            let _ = notifications.request_permission();
+        }
         Ok(())
     }
 

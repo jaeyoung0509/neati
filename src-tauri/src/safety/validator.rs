@@ -480,6 +480,20 @@ impl SafetyValidator {
             );
         }
 
+        // 7b. A keep-newest signature (#480) keeps the unit its siblings show
+        //     to be newest at this moment: a newer set that Xcode or the
+        //     person removed after the plan was built makes an older one the
+        //     newest.
+        if crate::models::retains_newest_version(&target.signature_id) {
+            if let Some(reason) = crate::scanner::retention::retention_of(path) {
+                return skipped(
+                    target,
+                    CleanFailureReason::ChangedSinceScan,
+                    reason.explanation(),
+                );
+            }
+        }
+
         // 8. Stale temp directory TOCTOU: re-verify the freshness invariant
         //    against the same age rule the scan applied.
         if let Some(days) = target.min_age_days {

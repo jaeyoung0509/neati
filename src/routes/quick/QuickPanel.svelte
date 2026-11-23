@@ -42,7 +42,9 @@
   import BrandIcon from '../../lib/components/BrandIcon.svelte';
   import AnimatedValue from '../../lib/components/AnimatedValue.svelte';
   import QuickMetricRow from '../../lib/components/metrics/QuickMetricRow.svelte';
-  import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
+  import OneButtonResultModal from '../../lib/components/OneButtonResultModal.svelte';
+  import ElapsedTime from '../../lib/components/ElapsedTime.svelte';
+  import { oneButtonCleanStore } from '../../lib/stores/oneButtonClean.svelte';
   import QuickCleanupDetailsDialog from '../../lib/components/QuickCleanupDetailsDialog.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
@@ -64,6 +66,10 @@
   let panelDataReady = $state(false);
   let activation = 0;
   let showResultModal = $state(false);
+  // One-button Clean (#500): the backend previews caches plus idle build
+  // output and executes exactly that preview; the panel holds no rule.
+  let oneButton = oneButtonCleanStore;
+  let previewedScanId = '';
   let showCleanupDetails = $state(false);
   let usageNow = $state(Date.now());
   let usageClock: ReturnType<typeof setInterval> | undefined;
@@ -108,20 +114,16 @@
     platformCapabilitiesStore.capabilities === null && platformCapabilitiesStore.error === null
   );
 
-  let quickCleanableBytes = $derived.by(() =>
-    scanStore.quickCleanableBytes(settings)
-  );
-  let quickSafeItems = $derived(
-    scan?.categories.flatMap((category) => category.items.filter((item) =>
-      scanStore.isQuickCleanEligible(category.category, item, settings)
-    )) ?? []
-  );
+  let quickCleanableBytes = $derived(oneButton.totalBytes);
+  let quickItemCount = $derived(oneButton.itemCount);
+  let projectBuildBytes = $derived(oneButton.preview?.project_bytes ?? 0);
 
   let cleanupState = $derived(cleanupSummaryState({
     available: cleanupAvailable,
     hasScan: !!scan,
-    scanning: scanStore.isScanning,
-    cleaning: scanStore.isCleaning,
+    // The preview is part of checking: until it answers, no total is final.
+    scanning: scanStore.isScanning || oneButton.phase === 'checking',
+    cleaning: scanStore.isCleaning || oneButton.phase === 'cleaning',
     freshness: scanStore.freshness,
     discovery: scanStore.discovery,
     cleanableBytes: quickCleanableBytes,
@@ -161,7 +163,9 @@
       case 'partial':
         return 'Some folders could not be checked. Verified caches can still be permanently deleted.';
       case 'ready':
-        return 'Permanently delete verified caches. Some may be downloaded or rebuilt again.';
+        return projectBuildBytes > 0
+          ? 'Permanently delete verified caches and idle project build output. They are downloaded or rebuilt again when needed.'
+          : 'Permanently delete verified caches. Some may be downloaded or rebuilt again.';
       case 'clean':
         return 'Nothing verifiably cleanable was measured.';
     }
@@ -269,6 +273,9 @@
     usageClock = undefined;
     stopFreshness?.();
     stopFreshness = undefined;
+    // A hidden panel holds no preview; the next activation checks again.
+    oneButton.reset();
+    previewedScanId = '';
   }
 
   onMount(() => {
@@ -363,14 +370,25 @@
     };
   });
 
+  // Each new scan gets one preview of the one-button set, while the panel is
+  // visible; the backend reuses that scan instead of scanning again.
+  $effect(() => {
+    const scanId = scan?.scan_id;
+    const settled = panelActive && cleanupAvailable && !!scanId
+      && !scanStore.isScanning && !scanStore.isCleaning && scanStore.canClean;
+    if (!settled || !scanId || scanId === previewedScanId) return;
+    previewedScanId = scanId;
+    untrack(() => void oneButton.refresh());
+  });
+
   async function handleCleanSafe() {
-    if (!scan || !scanStore.canClean || quickSafeItems.length === 0) return;
-    const result = await scanStore.reviewedQuickCleanSafe(
-      scan.scan_id,
-      quickSafeItems.map(item => item.id),
-    );
-    if (result) {
+    if (!scan || !scanStore.canClean || quickItemCount === 0) return;
+    const outcome = await oneButton.clean();
+    if (outcome) {
       showResultModal = true;
+      // Measure again; the new scan gets its own preview.
+      previewedScanId = '';
+      void scanStore.runScan();
     }
   }
 
@@ -500,9 +518,9 @@
     </div>
   </div>
 
-  {#if showResultModal && scanStore.lastCleanResult}
-    <CleanResultModal
-      result={scanStore.lastCleanResult}
+  {#if showResultModal && oneButton.outcome}
+    <OneButtonResultModal
+      outcome={oneButton.outcome}
       onClose={() => (showResultModal = false)}
       returnFocusTargetId="quick-open-neati-button"
     />
@@ -510,7 +528,7 @@
   {#if showCleanupDetails && scan}
     <QuickCleanupDetailsDialog
       {scan}
-      quickEligibleCount={quickSafeItems.length}
+      quickEligibleCount={quickItemCount}
       busy={cleanupBusy}
       onClose={() => (showCleanupDetails = false)}
       onReview={() => { showCleanupDetails = false; handleOpenRoute('storage'); }}
@@ -531,10 +549,13 @@
             {#if cleanupBusy}
               <p class="quick-cleanup-status mt-0.5 flex items-center gap-1.5 text-caption text-muted-foreground" role="status">
                 <LoadingIndicator active={panelActive && !scanStore.isCancelling} size="xs" class="text-primary" />
-                <span>{cleanupState === 'cleaning' ? 'Cleaning caches' : scanStore.isRefreshingAfterClean ? 'Checking the result' : 'Checking storage'}</span>
+                <span class="truncate">{cleanupState === 'cleaning' ? (oneButton.activity || 'Cleaning') : scanStore.isRefreshingAfterClean ? 'Checking the result' : oneButton.phase === 'checking' ? (oneButton.activity || 'Checking project folders') : 'Checking storage'}</span>
+                {#if (oneButton.phase === 'cleaning' || oneButton.phase === 'checking') && oneButton.startedAt !== null}
+                  <span aria-hidden="true">·</span><ElapsedTime since={oneButton.startedAt} class="shrink-0" />
+                {/if}
               </p>
             {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickCleanableBytes > 0)}
-              <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
+              <p class="mt-0.5 text-caption text-muted-foreground"><span class="font-semibold tabular-nums text-foreground"><AnimatedValue value={cleanupValue} active={panelActive} /></span> available{projectBuildBytes > 0 ? ` · ${formatBytes(projectBuildBytes)} build output` : ''}{cleanupState === 'partial' ? ' · Partial scan' : ''}</p>
             {:else}
               <p class="mt-0.5 text-caption text-muted-foreground">{cleanupState === 'clean' ? 'No caches to clean' : cleanupState === 'failed' ? 'Scan failed' : cleanupState === 'stopped' ? 'Scan stopped' : cleanupState === 'paused' ? 'Scan incomplete' : cleanupState === 'unavailable' ? (capabilitiesPending ? 'Checking…' : 'Unavailable') : cleanupState === 'partial' ? 'Partial scan · No eligible caches' : 'Scan needed'}</p>
             {/if}
@@ -545,8 +566,8 @@
           <Button variant="secondary" size="sm" onclick={() => void scanStore.runScan()} title={cleanupDetail} class="shrink-0">
             {cleanupState === 'unknown' ? 'Scan Now' : 'Scan Again'}
           </Button>
-        {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickSafeItems.length > 0)}
-          <Button variant="primary" size="sm" disabled={!scanStore.canClean} onclick={handleCleanSafe} title={cleanupDetail} class="shrink-0 gap-1.5"><Trash2 size={14} /><span>Clean</span></Button>
+        {:else if cleanupState === 'ready' || (cleanupState === 'partial' && quickItemCount > 0)}
+          <Button variant="primary" size="sm" disabled={!scanStore.canClean || oneButton.phase !== 'ready'} onclick={handleCleanSafe} title={cleanupDetail} class="shrink-0 gap-1.5"><Trash2 size={14} /><span>Clean</span></Button>
         {:else if cleanupState === 'partial' || cleanupState === 'clean'}
           <Button variant="primary" size="sm" disabled title={scan ? quickCleanupUnavailableReason(scan) : cleanupDetail} class="shrink-0 gap-1.5"><Trash2 size={14} /><span>Clean</span></Button>
         {:else}
@@ -564,14 +585,14 @@
           onclick={() => handleOpenRoute('developer_artifacts')}
         >Project folders not scanned · Add one</button>
       {/if}
-      {#if scan && !cleanupBusy && quickSafeItems.length === 0 && (cleanupState === 'partial' || cleanupState === 'clean')}
+      {#if scan && !cleanupBusy && quickItemCount === 0 && (cleanupState === 'partial' || cleanupState === 'clean')}
         <div class="mt-2 flex items-center justify-between gap-2 text-caption text-muted-foreground">
           <p>{quickCleanupUnavailableReason(scan)}</p>
           <Button variant="ghost" size="xs" onclick={() => (showCleanupDetails = true)} class="shrink-0">Details</Button>
         </div>
       {/if}
-      {#if scanStore.error && !cleanupBusy}
-        <p class="mt-2 text-caption leading-snug text-destructive" role="alert">{scanStore.error}</p>
+      {#if (scanStore.error || oneButton.error) && !cleanupBusy}
+        <p class="mt-2 text-caption leading-snug text-destructive" role="alert">{scanStore.error ?? oneButton.error}</p>
       {/if}
     </section>
   {:else if section === 'cpu'}

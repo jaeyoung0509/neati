@@ -216,11 +216,23 @@ safety conventions below when changing neati.
   references narrow that set, and an unknown reference refuses the whole run.
   Without `--yes` it is a preview unless a person answers the terminal prompt;
   `--json` without `--yes` never removes.
-- Reviewed workflows (Large Files, App Uninstaller, Temporary Folders, home
-  Trash, Docker, local models, memory and port actions, Keep Awake) stay
-  app-only until each gets its own CLI confirmation design in its own change.
-- The CLI reads the app's settings and never writes them; unparsable settings
-  refuse the run instead of falling back to defaults.
+- Removal in reviewed workflows (Large Files, App Uninstaller, Temporary
+  Folders, home Trash, Docker, local models, memory and port actions, Keep
+  Awake) stays app-only until each gets its own CLI confirmation design in
+  its own change. The CLI may list them read-only through `InsightQueries`.
+- The CLI reads the app's settings. Its only write is `projects add|remove`,
+  which refuses while another neati process runs and writes every other
+  setting back unchanged. Unparsable settings refuse the run instead of
+  falling back to defaults.
+- The Quick Panel's Clean goes through `CleanUseCase` (#500):
+  `preview_one_button_clean` holds the preview in `OneButtonSessions` (one-shot
+  id, TTL, cap) and `execute_one_button_clean` runs exactly that preview.
+  Both are granted to the quick window only. The panel must not re-derive
+  eligibility in the frontend.
+- Settings → Command line and agents reports where `neati` resolves and offers
+  a link command to copy; the app never writes a PATH folder. Skill installs go
+  through `services::command_line` and never replace a file neati did not
+  write.
 - `skills/neati/SKILL.md` is compiled into the binary and must keep teaching
   preview → explicit user approval → `clean --yes --only <refs>`, and that an
   agent never deletes neati's paths itself. `skill install` replaces only its
@@ -430,7 +442,11 @@ safety conventions below when changing neati.
   compiled Apple model still refuses the whole unit. The scan measures bundles
   as content only under the same policy, so the scan and the planner agree. Do
   not add an id without the same evidence, and do not relax the default
-  policy to gain coverage.
+  policy to gain coverage. #480 lists the watchOS, tvOS, visionOS and macOS
+  DeviceSupport folders on that evidence (the same Xcode layout and guard), and
+  `RETAIN_NEWEST_VERSION` keeps the newest symbol set per platform folder: the
+  scan reports it as `recent`, and the planner and the execution guard list the
+  folder again through `scanner::retention::retention_of` before any removal.
 - Generic cleanup never removes structured state: databases, their WAL/SHM
   companions, locks, credentials, configuration, bundles, and executables are
   refused by the planner and skipped by the execution guard. A provider that
@@ -469,7 +485,12 @@ safety conventions below when changing neati.
   stores (`node_modules`, Python environments, `vendor`, bundles, deps, Go
   module cache, Flutter tooling), framework outputs, Terraform and .NET `bin`
   are never preselected and stay reviewable. Do not widen `is_build_output`
-  without the same evidence.
+  without the same evidence. The project-local caches kondo and npkill find
+  (#479: Python tool caches, tox/nox, Turborepo, Angular, Nx, Unity, Unreal
+  `Intermediate`/`DerivedDataCache`, Godot, Elm, `.cpcache`, Bloop, Metals) live
+  in `developer_artifacts::project_caches`, need a direct marker (or, for the
+  Python tool caches, a valid `CACHEDIR.TAG` inside), and are never
+  preselected. `.ipynb_checkpoints` and Unreal `Saved` stay unrecognized.
 
 - Extra AI tool profiles (#451) are directories the person confirmed in
   Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They
@@ -529,6 +550,11 @@ safety conventions below when changing neati.
 - Browser unit observations may use the shared scan pool, capped at four workers.
   Every unit still gets its own use verdict; planning and execution obtain fresh
   observations, including the final pre-mutation check.
+- Owner-provider inventories run by a scan (#493) read the scan's process
+  snapshot and batched open-file verdicts through `OwnerScanContext`, and run at
+  most four at a time on the shared scan pool. Results keep catalog order and
+  the serial cancellation rule. `prepare` and `execute` never receive the
+  context and keep their live, fresh checks.
 
 - Developer temporary observations cover allowlisted direct children of the
   platform-stated user and shared temporary roots. The exact default

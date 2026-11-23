@@ -452,6 +452,22 @@ inventory is still valid.
   dots in the readable action foreground, while Quick Panel statuses use inline
   dots and accurate system-font operation text. It never supplies a percentage, completion time
   or new telemetry requests.
+- **Long operations** (#491): catalog cleanup, update install, a running
+  removal plan and the OpenRouter browser sign-in name their current phase from
+  the events the backend already sends (`Removing npm cache · 3 of 12`) and add
+  seconds elapsed (`ElapsedTime`). The clock belongs to the mounted surface and
+  stops in a hidden document; the phase sentence is the live region, not the
+  seconds. A wait with a backend limit states it. Progress bars count finished
+  targets only. Every such action is disabled while it runs, so a second press
+  never starts a second request.
+- **Load phases**: a first read is `idle`, `loading`, `ready` or `error`
+  (`utils/loadPhase.ts`). Only `ready` may render an empty list as final; before
+  it, the view shows `LoadingState`. A later refresh keeps the previous answer.
+- **RemovalPlanCard**: the one-shot permanent-removal review shared by
+  Projects, Large Files and Apps. The view supplies its title, count/size line,
+  consequence note and expiry recovery; the card owns the countdown, the
+  expiring/expired tones, focus on the recovery action, and the busy and
+  disabled states of Cancel and the destructive confirm.
 - **AnimatedValue**: brief reveal for headline readings only; no row-list replay,
   no interpolated totals, no motion while hidden or under reduced motion/transparency.
 - **SelectionToolbar**: reserved space in the content column; count, measured

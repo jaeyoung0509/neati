@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 /// a permission added to `capabilities/quick.json` has to be added here too —
 /// that edit is the review, and it is the only way past
 /// [`quick_window_grants_only_reviewed_read_mostly_permissions`].
-const QUICK_WINDOW_PERMISSIONS: [&str; 20] = [
+const QUICK_WINDOW_PERMISSIONS: [&str; 22] = [
     "allow-get-ai-usage",
     "allow-get-ai-provider-descriptors",
     "allow-get-ai-control-quick-summary",
@@ -36,6 +36,10 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 20] = [
     "allow-get-last-scan",
     "allow-quick-clean-safe",
     "allow-reviewed-quick-clean-safe",
+    // One-button Clean through the use case (#500): a backend-held preview,
+    // then that preview by opaque id. No path, item id or strategy.
+    "allow-preview-one-button-clean",
+    "allow-execute-one-button-clean",
     "allow-get-memory-metrics",
     "allow-get-cpu-metrics",
     "allow-get-battery-metrics",
@@ -54,7 +58,7 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 20] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 52] = [
+const READ_ONLY_PERMISSIONS: [&str; 54] = [
     "allow-suggest-developer-workspaces",
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
@@ -111,6 +115,10 @@ const READ_ONLY_PERMISSIONS: [&str; 52] = [
     // Lists lookalike folder names in the home directory; reads nothing inside (#451).
     "allow-suggest-ai-tool-profiles",
     "allow-get-cleanup-history",
+    // Scans and holds a preview; removes nothing (#500).
+    "allow-preview-one-button-clean",
+    // Reads where `neati` resolves and which agent skills exist (#500).
+    "allow-get-command-line-status",
 ];
 
 /// Command permissions that change machine or persistent state, spawn a
@@ -123,7 +131,7 @@ const READ_ONLY_PERMISSIONS: [&str; 52] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 40] = [
+const MUTATING_PERMISSIONS: [&str; 42] = [
     "allow-restore-developer-workspaces",
     "allow-add-suggested-developer-workspace",
     "allow-connect-openrouter-oauth",
@@ -166,13 +174,20 @@ const MUTATING_PERMISSIONS: [&str; 40] = [
     "allow-install-update",
     // Writes or removes neati's own LaunchAgent (#436).
     "allow-set-launch-at-login",
+    // Permanently removes exactly a held one-button preview (#500).
+    "allow-execute-one-button-clean",
+    // Writes neati's own agent skill file under the home folder (#500).
+    "allow-install-agent-skill",
 ];
 
 /// The quick panel's deliberately narrow mutating use case. The backend
 /// chooses direct-cleanup targets or validates displayed cache identities from
 /// its current scan; the panel cannot submit paths or strategies.
-const QUICK_WINDOW_MUTATING_PERMISSIONS: [&str; 2] =
-    ["allow-quick-clean-safe", "allow-reviewed-quick-clean-safe"];
+const QUICK_WINDOW_MUTATING_PERMISSIONS: [&str; 3] = [
+    "allow-quick-clean-safe",
+    "allow-reviewed-quick-clean-safe",
+    "allow-execute-one-button-clean",
+];
 
 /// Registered commands the main window deliberately does not grant.
 ///
@@ -181,9 +196,15 @@ const QUICK_WINDOW_MUTATING_PERMISSIONS: [&str; 2] =
 /// exactly one caller, the menu-bar panel, and the dashboard has no surface
 /// that reaches it. The identity-bound variant likewise belongs only to the
 /// panel. Granting either to `main` would widen that window's authority for a
-/// caller that does not exist, so the exemptions are recorded here.
-const MAIN_WINDOW_EXEMPT_PERMISSIONS: [&str; 2] =
-    ["allow-quick-clean-safe", "allow-reviewed-quick-clean-safe"];
+/// caller that does not exist, so the exemptions are recorded here. The
+/// one-button use case (#500) is the panel's too until the dashboard's Clean
+/// moves onto it.
+const MAIN_WINDOW_EXEMPT_PERMISSIONS: [&str; 4] = [
+    "allow-quick-clean-safe",
+    "allow-reviewed-quick-clean-safe",
+    "allow-preview-one-button-clean",
+    "allow-execute-one-button-clean",
+];
 
 fn manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

@@ -249,6 +249,32 @@ pub async fn suggest_ai_tool_profiles(
     state.system.suggest_ai_tool_profiles().await
 }
 
+/// Where `neati` resolves and which agents have the skill installed (#500).
+#[tauri::command]
+#[specta::specta]
+pub async fn get_command_line_status(
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<crate::models::CommandLineStatus, String> {
+    let command_line = ports.command_line.clone();
+    run_blocking(move || Ok(command_line.status()), "command-line status").await
+}
+
+/// Installs the bundled agent skill for one agent; never replaces a file
+/// neati did not write (#500).
+#[tauri::command]
+#[specta::specta]
+pub async fn install_agent_skill(
+    target: crate::models::AgentSkillTarget,
+    ports: State<'_, crate::composition::ApplicationPorts>,
+) -> Result<crate::models::AgentSkillInstall, String> {
+    let command_line = ports.command_line.clone();
+    run_blocking(
+        move || command_line.install_skill(target),
+        "agent skill install",
+    )
+    .await
+}
+
 /// Whether this installed copy starts at login, read from the system.
 #[tauri::command]
 #[specta::specta]

@@ -90,11 +90,22 @@ impl ReviewedCacheProvider {
             removal,
         }
     }
+    /// The port preparation and execution read: the live process table and
+    /// a fresh open-file observation for every unit.
     fn port<'a>(&'a self, environment: &'a PlatformEnvironment) -> NativePort<'a> {
+        self.port_with(environment, super::ProcessView::Live(self.process.as_ref()))
+    }
+
+    fn port_with<'a>(
+        &'a self,
+        environment: &'a PlatformEnvironment,
+        processes: super::ProcessView<'a>,
+    ) -> NativePort<'a> {
         NativePort {
             provider: self,
             environment,
             now: SystemTime::now(),
+            processes,
         }
     }
 }
@@ -117,6 +128,16 @@ impl OwnerScopedProvider for ReviewedCacheProvider {
     fn scan(&self, env: &PlatformEnvironment, _: &RunningProcessPolicy) -> OwnerStoreObservation {
         self.port(env).inventory(self.kind)
     }
+    fn scan_in(
+        &self,
+        env: &PlatformEnvironment,
+        _: &RunningProcessPolicy,
+        context: &super::OwnerScanContext<'_>,
+        _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        self.port_with(env, context.processes(self.process.as_ref()))
+            .inventory(self.kind)
+    }
     fn prepare(
         &self,
         env: &PlatformEnvironment,
@@ -137,6 +158,10 @@ struct NativePort<'a> {
     provider: &'a ReviewedCacheProvider,
     environment: &'a PlatformEnvironment,
     now: SystemTime,
+    /// What a unit's owner and open-file questions read while it is observed:
+    /// live for preparation and execution, the scan's evidence for a scan.
+    /// The final pre-removal checks always read the live table.
+    processes: super::ProcessView<'a>,
 }
 impl NativePort<'_> {
     fn candidates(&self, kind: ReviewedCacheKind) -> Result<Vec<Candidate>, String> {
@@ -729,7 +754,7 @@ impl NativePort<'_> {
         if self.provider.kind == ReviewedCacheKind::GradleMarkers {
             guard = guard.with_gradle_owner();
         }
-        match self.provider.process.running(&guard) {
+        match self.processes.running(&guard) {
             None => {
                 unit.state = OwnerUnitState::Blocked;
                 unit.detail = Some("Owner or open-file state is unknown".into());
@@ -764,6 +789,16 @@ impl ReviewedCachePort for NativePort<'_> {
         match self.candidates(kind) {
             Err(detail) => OwnerStoreObservation::refused(ProviderStatus::Blocked, None, detail),
             Ok(candidates) => {
+                // A scan observes the candidates' open files in one batch;
+                // each unit still reads its own verdict (#493).
+                self.processes.prefetch_open_files(
+                    &candidates
+                        .iter()
+                        .map(|candidate| &candidate.path)
+                        .filter(|path| fs::symlink_metadata(path).is_ok_and(|m| m.is_dir()))
+                        .cloned()
+                        .collect::<Vec<_>>(),
+                );
                 let start = std::time::Instant::now();
                 let mut units = Vec::new();
                 for candidate in candidates {
@@ -1255,6 +1290,7 @@ mod tests {
             provider: &provider,
             environment: &env,
             now: SystemTime::now() + Duration::from_secs(8 * 86400),
+            processes: crate::cleaner::ProcessView::Live(provider.process.as_ref()),
         };
         let old = port.inventory(ReviewedCacheKind::AbandonedDownloads);
         assert_eq!(old.units[0].state, OwnerUnitState::Ready);
@@ -1289,6 +1325,7 @@ mod tests {
             provider: &provider,
             environment: &env,
             now: SystemTime::now() + Duration::from_secs(8 * 86400),
+            processes: crate::cleaner::ProcessView::Live(provider.process.as_ref()),
         };
         let scan = port.inventory(ReviewedCacheKind::UpdaterStaging);
         assert_eq!(scan.units.len(), 2);
@@ -1340,6 +1377,7 @@ mod tests {
             provider: &provider,
             environment: &env,
             now: SystemTime::now() + Duration::from_secs(31 * 86400),
+            processes: crate::cleaner::ProcessView::Live(provider.process.as_ref()),
         };
         let scan = port.inventory(ReviewedCacheKind::MailDownloads);
         assert_eq!(scan.units.len(), 1);
@@ -1511,6 +1549,7 @@ mod tests {
             provider: &provider,
             environment: &env,
             now: SystemTime::now() + Duration::from_secs(8 * 86400),
+            processes: crate::cleaner::ProcessView::Live(provider.process.as_ref()),
         };
         let scan = port.inventory(ReviewedCacheKind::CodexStaging);
         assert_eq!(scan.units.len(), 1);
@@ -1599,6 +1638,7 @@ mod tests {
             provider: &provider,
             environment: &env,
             now: SystemTime::now() + Duration::from_secs(8 * 86400),
+            processes: crate::cleaner::ProcessView::Live(provider.process.as_ref()),
         };
         let scan = port.inventory(ReviewedCacheKind::CodexStaging);
         assert_eq!(scan.units[0].state, OwnerUnitState::Ready);

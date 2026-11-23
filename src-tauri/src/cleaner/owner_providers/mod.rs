@@ -48,8 +48,13 @@ pub mod homebrew;
 pub mod homebrew_cleanup;
 mod node_temp;
 pub mod reviewed_cache;
+mod scan_context;
+mod scan_run;
 #[cfg(target_os = "macos")]
 pub mod tool_cleanup;
+
+pub use scan_context::{OwnerScanContext, ProcessView, ProviderProgress};
+pub use scan_run::{OwnerScan, OWNER_PROVIDER_LANES};
 
 use crate::models::{
     derive_cleanup_disposition, CacheManagementMode, CacheSizeSemantics, CleanStrategy,
@@ -111,14 +116,18 @@ pub trait OwnerScopedProvider: Send + Sync {
         guard: &neati_core::domain::cleanup::RunningProcessPolicy,
     ) -> OwnerStoreObservation;
 
-    /// Optional read-only diagnostics. The default preserves the provider's
-    /// ordinary observation; diagnostics never carry authorization or paths.
-    fn scan_with_spans(
+    /// The inventory a scan runs (#493).
+    ///
+    /// The context lends the scan's process snapshot, its batched open-file
+    /// verdicts, its cancellation and a progress channel; a provider that
+    /// reads them answers what [`scan`](Self::scan) answers without probing
+    /// the process table again. Diagnostics spans never carry authorization
+    /// or paths. The default preserves the provider's ordinary observation.
+    fn scan_in(
         &self,
         environment: &PlatformEnvironment,
         guard: &neati_core::domain::cleanup::RunningProcessPolicy,
-        _source_id: &str,
-        _cancellation: &dyn crate::models::CancellationProbe,
+        _context: &OwnerScanContext<'_>,
         _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
     ) -> OwnerStoreObservation {
         self.scan(environment, guard)
@@ -142,6 +151,21 @@ pub trait OwnerScopedProvider: Send + Sync {
         environment: &PlatformEnvironment,
         authorization: &OwnerProviderAuthorization,
     ) -> OwnerProviderExecution;
+}
+
+/// One catalog entry's provider, as a scan runs it.
+struct ScanJob<'r> {
+    signature: &'r Signature,
+    provider: &'r Arc<dyn OwnerScopedProvider>,
+    provider_id: &'r str,
+}
+
+/// What one provider's inventory produced inside a scan.
+struct ScanOutcome {
+    observation: OwnerStoreObservation,
+    spans: Vec<neati_core::domain::scan::ScanSpan>,
+    /// The scan had been stopped by the time the inventory ended.
+    stopped: bool,
 }
 
 /// The owner-scoped providers this build implements, keyed by the id the
@@ -316,89 +340,100 @@ impl OwnerProviderRegistry {
         excluded_signatures: &[String],
         environment: &PlatformEnvironment,
     ) -> Vec<ScanItem> {
-        self.scan_items_with_spans(
+        self.scan_items_in(
             registry,
             category,
             intensive_cleanup,
             excluded_signatures,
             environment,
+            &OwnerScan::unscanned(&crate::models::NeverCancelled),
             &mut Vec::new(),
+            &crate::scanner::NoRootProgress,
         )
     }
 
-    pub fn scan_items_with_spans(
-        &self,
-        registry: &SignatureRegistry,
-        category: crate::models::Category,
-        intensive_cleanup: bool,
-        excluded_signatures: &[String],
-        environment: &PlatformEnvironment,
-        spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
-    ) -> Vec<ScanItem> {
-        self.scan_items_with_cancellation_and_spans(
-            registry,
-            category,
-            intensive_cleanup,
-            excluded_signatures,
-            environment,
-            &crate::models::NeverCancelled,
-            spans,
-        )
-    }
-
+    /// Enumerates the units for one scan (#493).
+    ///
+    /// The scan lends its process snapshot, batched open-file verdicts and
+    /// cancellation; providers run at most `scan.lanes` at a time on the
+    /// scan's pool, and each one's start and long steps are reported through
+    /// `progress` on the calling thread while it runs. The items, their order
+    /// and the spans are those of running the providers one after another in
+    /// catalog order: a provider that finished after the scan was stopped,
+    /// and every provider after it, contributes no items.
     #[allow(clippy::too_many_arguments)]
-    pub fn scan_items_with_cancellation_and_spans(
+    pub fn scan_items_in(
         &self,
         registry: &SignatureRegistry,
         category: crate::models::Category,
         intensive_cleanup: bool,
         excluded_signatures: &[String],
         environment: &PlatformEnvironment,
-        cancellation: &dyn crate::models::CancellationProbe,
+        scan: &OwnerScan<'_>,
         spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+        progress: &dyn crate::scanner::RootProgressSink,
     ) -> Vec<ScanItem> {
-        let mut items = Vec::new();
-        for signature in registry.by_category_for_mode(category, intensive_cleanup) {
-            if cancellation.is_cancelled() {
-                break;
-            }
-            let Some(provider_id) = signature.provider_id.as_deref() else {
-                continue;
-            };
-            if signature.strategy != CleanStrategy::OwnerProvider {
-                continue;
-            }
-            if excluded_signatures.iter().any(|id| id == &signature.id) {
-                continue;
-            }
-            let Some(provider) = self.providers.get(provider_id) else {
-                crate::diagnostics::log_error(
-                    "cleanup",
-                    &format!(
-                        "Signature `{}` names owner provider `{provider_id}`, which this build does not implement; nothing was enumerated",
-                        signature.id
-                    ),
-                );
-                continue;
-            };
-            // The host decides, not the environment's stated flavor: a
-            // simulated Windows profile on a machine with no Windows shell
-            // cannot act on a Windows store, and the catalog's own platform
-            // gate reads the same fact.
-            if !provider.platforms().contains(&PlatformKind::current()) {
-                continue;
-            }
-            let guard = signature.process_guard();
+        let jobs = self.scan_jobs(registry, category, intensive_cleanup, excluded_signatures);
+        let run = |job: &ScanJob<'_>, progress: &dyn ProviderProgress| {
+            let guard = job.signature.process_guard();
+            let context = scan.context(&job.signature.id, progress);
             let started = std::time::Instant::now();
-            let observation =
-                provider.scan_with_spans(environment, &guard, &signature.id, cancellation, spans);
+            let mut spans = Vec::new();
+            let observation = job
+                .provider
+                .scan_in(environment, &guard, &context, &mut spans);
             spans.push(neati_core::domain::scan::ScanSpan {
-                source_id: signature.id.clone(),
+                source_id: job.signature.id.clone(),
                 duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
             });
-            if cancellation.is_cancelled() {
+            ScanOutcome {
+                observation,
+                spans,
+                stopped: scan.cancellation.is_cancelled(),
+            }
+        };
+        let mut outcomes: Vec<Option<ScanOutcome>> = jobs.iter().map(|_| None).collect();
+        let mut focus = scan_run::ProgressFocus::default();
+        let announce = |(index, location): (usize, std::path::PathBuf)| {
+            progress.root_started(jobs[index].signature, &location);
+        };
+        scan_run::run_in_lanes(
+            &jobs,
+            scan.pool,
+            scan.lanes,
+            scan.cancellation,
+            &run,
+            &mut |report| match report {
+                scan_run::Report::Started(index) => announce(focus.started(
+                    index,
+                    std::path::PathBuf::from(format!("provider://{}", jobs[index].provider_id)),
+                )),
+                scan_run::Report::Location(index, location) => {
+                    announce(focus.moved(index, location))
+                }
+                scan_run::Report::Finished(index, outcome) => {
+                    outcomes[index] = outcome;
+                    if let Some(next) = focus.finished(index) {
+                        announce(next);
+                    }
+                }
+            },
+        );
+
+        let mut items = Vec::new();
+        for (job, outcome) in jobs.iter().zip(outcomes) {
+            // Serial order decides: a provider the stopped scan never started
+            // ends the pass, and one that finished after the stop reports its
+            // timing but none of its units.
+            let Some(outcome) = outcome else {
+                break;
+            };
+            spans.extend(outcome.spans);
+            if outcome.stopped {
                 break;
             }
+            let (signature, provider, provider_id) = (job.signature, job.provider, job.provider_id);
+            let observation = outcome.observation;
             let gate = signature.eligibility_gate(intensive_cleanup);
             if !observation.status.is_ready() {
                 crate::diagnostics::log_error(
@@ -429,6 +464,52 @@ impl OwnerProviderRegistry {
             });
         }
         items
+    }
+
+    /// The catalog's owner-provider entries for one category that this build
+    /// can run on this host, in catalog order.
+    fn scan_jobs<'r>(
+        &'r self,
+        registry: &'r SignatureRegistry,
+        category: crate::models::Category,
+        intensive_cleanup: bool,
+        excluded_signatures: &[String],
+    ) -> Vec<ScanJob<'r>> {
+        let mut jobs = Vec::new();
+        for signature in registry.by_category_for_mode(category, intensive_cleanup) {
+            let Some(provider_id) = signature.provider_id.as_deref() else {
+                continue;
+            };
+            if signature.strategy != CleanStrategy::OwnerProvider {
+                continue;
+            }
+            if excluded_signatures.iter().any(|id| id == &signature.id) {
+                continue;
+            }
+            let Some(provider) = self.providers.get(provider_id) else {
+                crate::diagnostics::log_error(
+                    "cleanup",
+                    &format!(
+                        "Signature `{}` names owner provider `{provider_id}`, which this build does not implement; nothing was enumerated",
+                        signature.id
+                    ),
+                );
+                continue;
+            };
+            // The host decides, not the environment's stated flavor: a
+            // simulated Windows profile on a machine with no Windows shell
+            // cannot act on a Windows store, and the catalog's own platform
+            // gate reads the same fact.
+            if !provider.platforms().contains(&PlatformKind::current()) {
+                continue;
+            }
+            jobs.push(ScanJob {
+                signature,
+                provider,
+                provider_id,
+            });
+        }
+        jobs
     }
 
     /// Builds the private authorization for the units the caller selected.
@@ -714,6 +795,7 @@ impl OwnerProviderRegistry {
             stale: None,
             structured_state: None,
             provider_restriction,
+            retained: None,
             entry_kind: EntryKind::Directory,
             gate,
             owner_running: unit.is_some_and(|unit| unit.state == OwnerUnitState::InUse),
@@ -955,8 +1037,13 @@ mod tests {
         OwnerUnitObservation::ready(key, PathBuf::from("/store").join(key), bytes, bytes, 2)
     }
 
+    /// A provider that stops the scan ends the owner pass: no provider after
+    /// it in catalog order reports units, even one that already ran beside it
+    /// (#493), and the scan states that it was cancelled. Which providers may
+    /// still start once the stop is set is pinned by the lane tests in
+    /// `scan_run`.
     #[test]
-    fn stopping_one_owner_observation_prevents_later_owner_launches() {
+    fn stopping_one_owner_observation_reports_no_later_owner_units() {
         use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
         struct StopSignal(Arc<AtomicBool>);
         impl crate::models::CancellationProbe for StopSignal {
@@ -995,8 +1082,18 @@ mod tests {
                 self.calls.fetch_add(1, Ordering::SeqCst);
                 if self.cancel_after_read {
                     self.stop.store(true, Ordering::SeqCst);
+                    return OwnerStoreObservation::ready(None, Vec::new());
                 }
-                OwnerStoreObservation::ready(None, Vec::new())
+                OwnerStoreObservation::ready(
+                    Some(PathBuf::from("/store")),
+                    vec![OwnerUnitObservation::ready(
+                        "later",
+                        PathBuf::from("/store/later"),
+                        4_096,
+                        4_096,
+                        1,
+                    )],
+                )
             }
             fn prepare(
                 &self,
@@ -1051,7 +1148,7 @@ mod tests {
             |_| {},
         );
         assert_eq!(first_calls.load(Ordering::SeqCst), 1);
-        assert_eq!(later_calls.load(Ordering::SeqCst), 0);
+        assert!(later_calls.load(Ordering::SeqCst) <= 1);
         assert!(result.cancelled);
         assert_eq!(result.quality, ObservationQuality::Partial);
         assert!(result

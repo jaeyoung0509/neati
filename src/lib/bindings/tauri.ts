@@ -63,6 +63,24 @@ export const commands = {
 	 *  The panel cannot submit a path or a cleanup strategy.
 	 */
 	reviewedQuickCleanSafe: (scanId: string, selectedItemIds: string[], onEvent: Channel<CleanEvent_Deserialize>) => typedError<CleanResult_Serialize, CleanupFailure>(__TAURI_INVOKE("reviewed_quick_clean_safe", { scanId, selectedItemIds, onEvent })),
+	/**
+	 *  Previews the one-button set (#500): the verified caches of the current
+	 *  scan plus the idle, verified build output in saved project folders. The
+	 *  preview is held backend-side; the window receives it with an opaque id.
+	 */
+	previewOneButtonClean: (onEvent: Channel<OneButtonActivity>) => typedError<OneButtonPreview_Serialize, string>(__TAURI_INVOKE("preview_one_button_clean", { onEvent })),
+	/**
+	 *  Executes, once, exactly the preview `preview_id` names. The window cannot
+	 *  submit a path, an item id or a strategy.
+	 */
+	executeOneButtonClean: (previewId: string, onEvent: Channel<OneButtonActivity>) => typedError<OneButtonOutcome_Serialize, string>(__TAURI_INVOKE("execute_one_button_clean", { previewId, onEvent })),
+	/**  Where `neati` resolves and which agents have the skill installed (#500). */
+	getCommandLineStatus: () => typedError<CommandLineStatus, string>(__TAURI_INVOKE("get_command_line_status")),
+	/**
+	 *  Installs the bundled agent skill for one agent; never replaces a file
+	 *  neati did not write (#500).
+	 */
+	installAgentSkill: (target: AgentSkillTarget) => typedError<AgentSkillInstall, string>(__TAURI_INVOKE("install_agent_skill", { target })),
 	getMemoryMetrics: () => typedError<MemoryMetrics_Serialize, string>(__TAURI_INVOKE("get_memory_metrics")),
 	/**  The system-wide CPU share, with the state that says how current it is. */
 	getCpuMetrics: () => typedError<CpuMetrics_Serialize, string>(__TAURI_INVOKE("get_cpu_metrics")),
@@ -411,6 +429,36 @@ export type AgentSession_Serialize = {
 	can_stop: boolean,
 	stop_lease_id: string | null,
 };
+
+export type AgentSkillInstall = {
+	target: AgentSkillTarget,
+	path: string,
+	/**  An earlier neati copy was replaced. */
+	replaced: boolean,
+};
+
+export type AgentSkillState =
+/**  No skill file there. */
+"missing" |
+/**  neati's own copy, matching this version. */
+"current" |
+/**  neati's own copy from another version; installing replaces it. */
+"outdated" |
+/**  A file neati did not write; installing never replaces it. */
+"foreign";
+
+export type AgentSkillStatus = {
+	target: AgentSkillTarget,
+	path: string,
+	state: AgentSkillState,
+};
+
+/**  Where an agent loads skills from. */
+export type AgentSkillTarget =
+/**  `~/.claude/skills` */
+"claude" |
+/**  `~/.codex/skills` */
+"codex";
 
 export type AiControlCenterSnapshot = AiControlCenterSnapshot_Serialize | AiControlCenterSnapshot_Deserialize;
 
@@ -1512,6 +1560,18 @@ export type CleanupUnitKind =
 /**  No host path: a container runtime prunes the resources it owns. */
 "container_resource";
 
+export type CommandLineStatus = {
+	/**  This app's executable, which is the `neati` command. */
+	executable: string | null,
+	/**  Where `neati` resolves on the stated PATH, when it does. */
+	command_path: string | null,
+	/**  Whether that `neati` is this app. */
+	linked_here: boolean,
+	/**  A command that links this app as `neati`, for a person to run. */
+	link_command: string | null,
+	skills: AgentSkillStatus[],
+};
+
 export type ControlCenterQuickSummary = ControlCenterQuickSummary_Serialize | ControlCenterQuickSummary_Deserialize;
 
 export type ControlCenterQuickSummary_Deserialize = {
@@ -1679,7 +1739,7 @@ export type DashboardTab_Serialize = "overview" | "disk" | "storage" |
 
 export type DeveloperArtifact = DeveloperArtifact_Serialize | DeveloperArtifact_Deserialize;
 
-export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "svelte_kit_output" | "next_output" | "svelte_kit_types" | "next_webpack_cache" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache";
+export type DeveloperArtifactKind = "cargo_target" | "node_modules" | "svelte_kit_output" | "next_output" | "svelte_kit_types" | "next_webpack_cache" | "python_venv" | "go_module_cache" | "maven_target" | "sbt_target" | "clojure_target" | "gradle_build" | "gradle_cache" | "composer_vendor" | "ruby_bundle" | "dotnet_bin" | "dotnet_obj" | "c_make_build" | "swift_build" | "flutter_tooling" | "elixir_build" | "elixir_deps" | "erlang_build" | "haskell_stack_work" | "haskell_dist_newstyle" | "zig_cache" | "terraform_cache" | "python_bytecode_cache" | "pytest_cache" | "mypy_cache" | "ruff_cache" | "tox_environments" | "nox_environments" | "turbo_cache" | "angular_cache" | "nx_cache" | "unity_library" | "unity_temp" | "unity_obj" | "unity_logs" | "unreal_intermediate" | "unreal_derived_data_cache" | "godot_cache" | "elm_stuff" | "clojure_cpcache" | "bloop_cache" | "metals_cache";
 
 export type DeveloperArtifactScanEvent = DeveloperArtifactScanEvent_Serialize | DeveloperArtifactScanEvent_Deserialize;
 
@@ -1815,7 +1875,7 @@ export type DeveloperArtifact_Serialize = {
 	selected_by_default: boolean,
 };
 
-export type DeveloperEcosystem = "rust" | "node" | "python" | "go" | "java" | "kotlin" | "php" | "ruby" | "dotnet" | "c" | "cpp" | "swift" | "dart" | "elixir" | "erlang" | "scala" | "clojure" | "haskell" | "zig" | "objective_c" | "r" | "julia" | "lua" | "terraform";
+export type DeveloperEcosystem = "rust" | "node" | "python" | "go" | "java" | "kotlin" | "php" | "ruby" | "dotnet" | "c" | "cpp" | "swift" | "dart" | "elixir" | "erlang" | "scala" | "clojure" | "haskell" | "zig" | "objective_c" | "r" | "julia" | "lua" | "terraform" | "unity" | "unreal" | "godot" | "elm";
 
 export type DeveloperWorkspace = {
 	id: string,
@@ -2684,6 +2744,91 @@ export type ObservationScope = "subscription" | "api_key" | "project" | "organiz
 
 export type ObservationSourceKind = "live_authoritative" | "live_quota" | "local_estimate" | "credential_validated" | "manual";
 
+/**  What the use case is doing, streamed to the window. */
+export type OneButtonActivity = { type: "scanning"; location: string } | { type: "measuring"; project: string; kind: string } | { type: "removing"; name: string; index: number; total: number } | { type: "checking"; source: string };
+
+export type OneButtonFailure = {
+	reference: string,
+	name: string,
+	message: string,
+};
+
+export type OneButtonItem = OneButtonItem_Serialize | OneButtonItem_Deserialize;
+
+export type OneButtonItem_Deserialize = {
+	/**  A display key; the window never submits it back. */
+	reference: string,
+	source: OneButtonSource,
+	name: string,
+	kind: string,
+	path: string,
+	bytes: number,
+};
+
+export type OneButtonItem_Serialize = {
+	/**  A display key; the window never submits it back. */
+	reference: string,
+	source: OneButtonSource,
+	name: string,
+	kind: string,
+	path: string,
+	bytes: number,
+};
+
+export type OneButtonOutcome = OneButtonOutcome_Serialize | OneButtonOutcome_Deserialize;
+
+export type OneButtonOutcome_Deserialize = {
+	reclaimed_bytes: number,
+	removed: number,
+	skipped: number,
+	failed: OneButtonFailure[],
+};
+
+export type OneButtonOutcome_Serialize = {
+	reclaimed_bytes: number,
+	removed: number,
+	skipped: number,
+	failed: OneButtonFailure[],
+};
+
+export type OneButtonPreview = OneButtonPreview_Serialize | OneButtonPreview_Deserialize;
+
+export type OneButtonPreview_Deserialize = {
+	/**  The one-shot id `execute_one_button_clean` accepts. */
+	id: string,
+	items: OneButtonItem_Deserialize[],
+	total_bytes: number,
+	cache_bytes: number,
+	project_bytes: number,
+	/**  Found but left for review in the main window. */
+	review_items: number,
+	review_bytes: number,
+	/**
+	 *  Saved project folders, so the interface can say build output was not
+	 *  checked rather than that there is none.
+	 */
+	project_folders: number,
+};
+
+export type OneButtonPreview_Serialize = {
+	/**  The one-shot id `execute_one_button_clean` accepts. */
+	id: string,
+	items: OneButtonItem_Serialize[],
+	total_bytes: number,
+	cache_bytes: number,
+	project_bytes: number,
+	/**  Found but left for review in the main window. */
+	review_items: number,
+	review_bytes: number,
+	/**
+	 *  Saved project folders, so the interface can say build output was not
+	 *  checked rather than that there is none.
+	 */
+	project_folders: number,
+};
+
+export type OneButtonSource = "cache" | "project";
+
 /**
  *  Who is expected to own a discovered unit, and how strongly that is known.
  *
@@ -3262,6 +3407,21 @@ export type ResourceAttribution_Serialize = {
 	mutable_actions_allowed: boolean,
 };
 
+/**  Why the keep-newest rule retains a unit. */
+export type RetentionReason =
+/**  Its name carries the newest version among its siblings. */
+"newest_version" |
+/**
+ *  A sibling name carries no version, so the most recently modified unit
+ *  is kept as well.
+ */
+"newest_modified" |
+/**
+ *  The siblings could not be listed completely, so no unit can be shown
+ *  not to be the newest.
+ */
+"siblings_unverified";
+
 export type RiskSummary = RiskSummary_Serialize | RiskSummary_Deserialize;
 
 export type RiskSummary_Deserialize = {
@@ -3467,6 +3627,14 @@ export type ScanItem_Deserialize = {
 	/**  A complete provider observation refused by its own age or layout policy. */
 	provider_restriction?: ProviderRestriction | null,
 	/**
+	 *  Why a keep-newest rule retains this unit among its siblings (#480).
+	 *
+	 *  Recorded at discovery so the displayed verdict can be re-derived. The
+	 *  planner and the execution guard observe the siblings again instead of
+	 *  trusting it.
+	 */
+	retained?: RetentionReason | null,
+	/**
 	 *  What the scan found at the path: a file, a directory, or neither.
 	 *
 	 *  The plan carries this observation forward so execution can tell "the
@@ -3560,6 +3728,14 @@ export type ScanItem_Serialize = {
 	structured_state: StructuredStateKind | null,
 	/**  A complete provider observation refused by its own age or layout policy. */
 	provider_restriction: ProviderRestriction | null,
+	/**
+	 *  Why a keep-newest rule retains this unit among its siblings (#480).
+	 *
+	 *  Recorded at discovery so the displayed verdict can be re-derived. The
+	 *  planner and the execution guard observe the siblings again instead of
+	 *  trusting it.
+	 */
+	retained?: RetentionReason | null,
 	/**
 	 *  What the scan found at the path: a file, a directory, or neither.
 	 *

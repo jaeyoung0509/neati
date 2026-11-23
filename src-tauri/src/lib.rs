@@ -437,6 +437,8 @@ pub fn run() {
     let container_host =
         crate::docker::adapter::ContainerHost::from_value(std::env::var("DOCKER_HOST").ok());
     let app_state = composition::desktop_state(environment, container_host);
+    // The interface-agnostic use cases, bound once to the same services.
+    let application_ports = composition::application_ports(&app_state);
     let awake_manager = app_state.system.awake_manager();
     let ai_control_runtime = app_state.ai.runtime();
 
@@ -452,6 +454,7 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     let builder = builder
         .manage(app_state)
+        .manage(application_ports)
         .manage(QuickPanelVisibility::default())
         .on_window_event(|window, event| {
             if window.label() != "quick" {
@@ -671,6 +674,10 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::execute_clean,
             commands::quick_clean_safe,
             commands::reviewed_quick_clean_safe,
+            commands::preview_one_button_clean,
+            commands::execute_one_button_clean,
+            commands::get_command_line_status,
+            commands::install_agent_skill,
             commands::get_memory_metrics,
             commands::get_cpu_metrics,
             commands::get_battery_metrics,

@@ -12,6 +12,12 @@ import type {
   Category,
   CategoryResult,
   CleanEvent,
+  OneButtonActivity,
+  AgentSkillInstall,
+  AgentSkillTarget,
+  CommandLineStatus,
+  OneButtonOutcome,
+  OneButtonPreview,
   CleanItemResult,
   CleanResult,
   ControlCenterQuickSummary,
@@ -53,6 +59,8 @@ import type {
 import type { nativeApi } from './native';
 import * as emptyTrashMock from './mocks/emptyTrash';
 import { createDevelopmentPortsMock } from './mocks/developmentPorts';
+import { createOneButtonCleanMock } from './mocks/oneButtonClean';
+import { createCommandLineMock } from './mocks/commandLine';
 import { previewPlatform } from './mocks/previewPlatform';
 import { goldenCapabilitiesByPlatform } from '../models/platformCapabilities';
 import { goldenPlatformContextByPlatform } from '../models/platformContext';
@@ -262,6 +270,13 @@ const MOCK_PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
 ];
 
 const developmentPortsMock = createDevelopmentPortsMock();
+const commandLineMock = createCommandLineMock();
+// The ready caches are the mock scan's; the module itself holds no rule.
+const oneButtonCleanMock = createOneButtonCleanMock(() =>
+  (lastMockScan?.result.categories ?? [])
+    .flatMap((category) => category.items)
+    .filter((item) => isAutoCleanable(item) && cleanableBytes(item) > 0)
+);
 
 let mockControlPreferences: AiControlPreferences = {
   budgets: [],
@@ -1524,6 +1539,19 @@ export const mockApi = {
     return this.executeClean(plan, true, onEvent);
   },
 
+  async previewOneButtonClean(
+    onEvent: (event: OneButtonActivity) => void
+  ): Promise<OneButtonPreview> {
+    return oneButtonCleanMock.preview(onEvent);
+  },
+
+  async executeOneButtonClean(
+    previewId: string,
+    onEvent: (event: OneButtonActivity) => void
+  ): Promise<OneButtonOutcome> {
+    return oneButtonCleanMock.execute(previewId, onEvent);
+  },
+
   async getMemoryMetrics(): Promise<MemoryMetrics> {
     return {
       total_bytes: 16 * 1024 * 1024 * 1024,
@@ -1949,6 +1977,14 @@ export const mockApi = {
       { tool: 'claude', path: '/Users/preview/.claude-work' },
       { tool: 'codex', path: '/Users/preview/.codex-personal' },
     ];
+  },
+
+  async getCommandLineStatus(): Promise<CommandLineStatus> {
+    return commandLineMock.status();
+  },
+
+  async installAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
+    return commandLineMock.install(target);
   },
 
   async getLaunchAtLogin(): Promise<LaunchAtLogin> {

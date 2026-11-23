@@ -463,7 +463,75 @@ provider = "Xcode"
 artifact_kind = "build_artifact"
 consequence = "Xcode re-downloads the symbol set the next time the device is connected."
 fail_if_running = ["Xcode", "xcodebuild", "Simulator", "XCBBuildService"]
-description = "Per-OS-version symbol dumps inactive for at least 30 days, while Xcode and Simulator are closed. Recent support sets stay intact."
+description = "Per-OS-version iOS symbol dumps inactive for at least 30 days, while Xcode and Simulator are closed. The newest symbol set in the folder is kept for the device in hand; recent support sets stay intact."
+
+[[signatures]]
+id = "system.xcode_watchos_device_support"
+name = "Xcode watchOS Device Support"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Developer/Xcode/watchOS DeviceSupport/*"]
+unit = "named_subtree"
+min_age_days = 30
+provider = "Xcode"
+artifact_kind = "build_artifact"
+consequence = "Xcode re-downloads the symbol set the next time the device is connected."
+fail_if_running = ["Xcode", "xcodebuild", "Simulator", "XCBBuildService"]
+description = "Per-OS-version watchOS symbol dumps inactive for at least 30 days, while Xcode and Simulator are closed. The newest symbol set in the folder is kept for the device in hand; recent support sets stay intact."
+
+[[signatures]]
+id = "system.xcode_tvos_device_support"
+name = "Xcode tvOS Device Support"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Developer/Xcode/tvOS DeviceSupport/*"]
+unit = "named_subtree"
+min_age_days = 30
+provider = "Xcode"
+artifact_kind = "build_artifact"
+consequence = "Xcode re-downloads the symbol set the next time the device is connected."
+fail_if_running = ["Xcode", "xcodebuild", "Simulator", "XCBBuildService"]
+description = "Per-OS-version tvOS symbol dumps inactive for at least 30 days, while Xcode and Simulator are closed. The newest symbol set in the folder is kept for the device in hand; recent support sets stay intact."
+
+[[signatures]]
+id = "system.xcode_visionos_device_support"
+name = "Xcode visionOS Device Support"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Developer/Xcode/visionOS DeviceSupport/*"]
+unit = "named_subtree"
+min_age_days = 30
+provider = "Xcode"
+artifact_kind = "build_artifact"
+consequence = "Xcode re-downloads the symbol set the next time the device is connected."
+fail_if_running = ["Xcode", "xcodebuild", "Simulator", "XCBBuildService"]
+description = "Per-OS-version visionOS symbol dumps inactive for at least 30 days, while Xcode and Simulator are closed. The newest symbol set in the folder is kept for the device in hand; recent support sets stay intact."
+
+[[signatures]]
+id = "system.xcode_macos_device_support"
+name = "Xcode macOS Device Support"
+category = "developer"
+family = "developer"
+risk = "rebuild"
+strategy = "delete_directory"
+platforms = ["macos"]
+paths = ["~/Library/Developer/Xcode/macOS DeviceSupport/*"]
+unit = "named_subtree"
+min_age_days = 30
+provider = "Xcode"
+artifact_kind = "build_artifact"
+consequence = "Xcode re-downloads the symbol set the next time the device is connected."
+fail_if_running = ["Xcode", "xcodebuild", "Simulator", "XCBBuildService"]
+description = "Per-OS-version macOS symbol dumps inactive for at least 30 days, while Xcode and Simulator are closed. The newest symbol set in the folder is kept for the device in hand; recent support sets stay intact."
 
 [[signatures]]
 id = "system.intensive.containers_caches"

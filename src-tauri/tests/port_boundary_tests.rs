@@ -81,7 +81,7 @@ fn the_one_button_core_names_no_service_and_no_interface() {
         core.iter()
             .map(|(name, _)| name.as_str())
             .collect::<Vec<_>>(),
-        ["mod.rs", "ports.rs", "selection.rs"]
+        ["mod.rs", "ports.rs", "selection.rs", "sessions.rs"]
     );
     let mut forbidden = CONCRETE_SERVICES.to_vec();
     forbidden.extend(["tauri", "println!", "eprintln!", "std::io::std"]);

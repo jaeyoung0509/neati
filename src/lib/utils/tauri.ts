@@ -18,6 +18,12 @@ import type {
   Category,
   CleanEvent,
   CleanResult,
+  OneButtonActivity,
+  AgentSkillInstall,
+  AgentSkillTarget,
+  CommandLineStatus,
+  OneButtonOutcome,
+  OneButtonPreview,
   ControlCenterQuickSummary,
   DevelopmentListener,
   DeveloperArtifactScanEvent,
@@ -245,6 +251,21 @@ export function tauriReviewedQuickCleanSafe(
   return api.reviewedQuickCleanSafe(scanId, selectedItemIds, onEvent);
 }
 
+/** Previews the one-button set; the backend holds it behind the returned id. */
+export function tauriPreviewOneButtonClean(
+  onEvent: (event: OneButtonActivity) => void
+): Promise<OneButtonPreview> {
+  return api.previewOneButtonClean(onEvent);
+}
+
+/** Executes, once, exactly the preview the id names. */
+export function tauriExecuteOneButtonClean(
+  previewId: string,
+  onEvent: (event: OneButtonActivity) => void
+): Promise<OneButtonOutcome> {
+  return api.executeOneButtonClean(previewId, onEvent);
+}
+
 export function tauriGetMemoryMetrics(): Promise<MemoryMetrics> {
   return api.getMemoryMetrics();
 }
@@ -395,6 +416,16 @@ export function tauriGetCleanupHistory(): Promise<CleanupHistoryEntry[]> {
 
 export function tauriSuggestAiToolProfiles(): Promise<AiToolProfileSuggestion[]> {
   return api.suggestAiToolProfiles();
+}
+
+/** Where `neati` resolves and which agent skills are installed (#500). */
+export function tauriGetCommandLineStatus(): Promise<CommandLineStatus> {
+  return api.getCommandLineStatus();
+}
+
+/** Installs neati's agent skill; never replaces a file neati did not write. */
+export function tauriInstallAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
+  return api.installAgentSkill(target);
 }
 
 export function tauriGetLaunchAtLogin(): Promise<LaunchAtLogin> {

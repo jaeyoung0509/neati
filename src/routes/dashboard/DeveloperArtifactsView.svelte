@@ -1,6 +1,6 @@
 <script lang="ts">
   import LoadingState from '../../lib/components/LoadingState.svelte';
-  import { onMount, tick, untrack } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import TemporaryStorageView from './TemporaryStorageView.svelte';
   import type {
     DeveloperArtifact,
@@ -19,7 +19,9 @@
   import Card from '../../lib/components/Card.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
-  import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
+  import RemovalPlanCard from '../../lib/components/RemovalPlanCard.svelte';
+  import { formatBytes, formatTimeAgo } from '../../lib/utils/format';
+  import { countLabel, planSizeLabel } from '../../lib/utils/removalPlan';
   import {
     refusalForPreview,
     tauriCancelDeveloperArtifactScan,
@@ -36,7 +38,6 @@
   import { platformContextStore } from '../../lib/stores/platformContext.svelte';
   import { developerArtifactKindLabel } from '../../lib/utils/developerArtifactKinds';
   import { settingsStore } from '../../lib/stores/settings.svelte';
-  import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import { nonOverlappingArtifactIds, remainingArtifactScopes, toggleArtifactSelection } from '../../lib/utils/developerArtifactSelection';
   import { canReveal, revealUnavailableReason, runReveal } from '../../lib/utils/reveal';
   import {
@@ -102,8 +103,6 @@
   let skippedEntries = $state(seed?.skipped_entries ?? 0);
   let error = $state<string | null>(null);
   let revealError = $state<string | null>(null);
-  let now = $state(Date.now());
-  let expiryActionFocused = $state(false);
   let partialCleanupConfirmed = $state(false);
   let selectedIdSet = $derived(new Set(selectedIds));
   let selectedItems = $derived(items.filter((item) => selectedIdSet.has(item.id)));
@@ -126,19 +125,6 @@
       return right.allocated_bytes - left.allocated_bytes;
     })
   );
-  let remainingSecs = $derived(plan ? ttlRemaining(plan.expires_at, now) : 0);
-  let isExpired = $derived(plan ? remainingSecs === 0 : false);
-
-  $effect(() => {
-    if (!plan) return;
-    return observeWhileVisible(() => { now = Date.now(); }, 1000);
-  });
-
-  $effect(() => {
-    if (!isExpired || expiryActionFocused) return;
-    expiryActionFocused = true;
-    void tick().then(() => document.getElementById('developer-artifact-expiry-action')?.focus());
-  });
 
   function kindLabel(item: DeveloperArtifact): string {
     return developerArtifactKindLabel(item.kind);
@@ -174,6 +160,26 @@
       haskell_dist_newstyle: 'dist-newstyle/',
       zig_cache: '.zig-cache/',
       terraform_cache: '.terraform/',
+      python_bytecode_cache: '__pycache__/',
+      pytest_cache: '.pytest_cache/',
+      mypy_cache: '.mypy_cache/',
+      ruff_cache: '.ruff_cache/',
+      tox_environments: '.tox/',
+      nox_environments: '.nox/',
+      turbo_cache: '.turbo/',
+      angular_cache: '.angular/',
+      nx_cache: '.nx/',
+      unity_library: 'Library/',
+      unity_temp: 'Temp/',
+      unity_obj: 'Obj/',
+      unity_logs: 'Logs/',
+      unreal_intermediate: 'Intermediate/',
+      unreal_derived_data_cache: 'DerivedDataCache/',
+      godot_cache: '.godot/',
+      elm_stuff: 'elm-stuff/',
+      clojure_cpcache: '.cpcache/',
+      bloop_cache: '.bloop/',
+      metals_cache: '.metals/',
     };
     return labels[item.kind];
   }
@@ -188,7 +194,6 @@
     plan = null;
     removalResult = null;
     relatedScopesNeedRefresh = false;
-    expiryActionFocused = false;
     partialCleanupConfirmed = false;
   }
 
@@ -735,24 +740,21 @@
   {/if}
 
   {#if plan}
-    <Card class={`space-y-3 p-5 ${isExpired ? 'status-panel-destructive' : 'status-panel-warning'}`}>
-      <div class="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
-        <div>
-          <div class="flex items-center gap-2 text-sm font-semibold">
-            Generated-folder review ready
-            <span class="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-caption text-muted-foreground">{formatCountdown(remainingSecs)}</span>
-          </div>
-          <p class="mt-1 text-meta text-muted-foreground">{plan.item_count} selected artifact{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" size="sm" disabled={isExecuting} onclick={() => { plan = null; partialCleanupConfirmed = false; }}>Cancel</Button>
-          <Button variant="destructive" size="md" onclick={executeCleanup} disabled={isExecuting || isExpired || (hasMeasurementIncompleteSelected && !partialCleanupConfirmed)} class="gap-1.5">
-            <LoadingActionContent busy={isExecuting} busyLabel="Deleting…" word="cleaning">
-              <Trash2 size={14} aria-hidden="true" />{isExpired ? 'Expired' : 'Permanently delete generated folders'}
-            </LoadingActionContent>
-          </Button>
-        </div>
-      </div>
+    <RemovalPlanCard
+      {plan}
+      title="Generated-folder review ready"
+      summary={`${countLabel(plan.item_count, 'selected artifact')} · ${planSizeLabel(plan)} allocated`}
+      confirmLabel="Permanently delete generated folders"
+      note="One-shot plan. neati rechecks workspace identity, markers, exact artifact type, symlinks, and filesystem identity before each permanent deletion."
+      expiredMessage="Plan expired. Scan again to refresh the inventory."
+      expiryActionId="developer-artifact-expiry-action"
+      expiryActionLabel="Scan again"
+      onExpiryAction={() => { plan = null; void scanArtifacts(); }}
+      executing={isExecuting}
+      confirmBlocked={hasMeasurementIncompleteSelected && !partialCleanupConfirmed}
+      onConfirm={executeCleanup}
+      onCancel={() => { plan = null; partialCleanupConfirmed = false; }}
+    >
       <div class="rounded-lg border border-border/70 bg-background/60 p-3">
         <p class="text-meta text-muted-foreground">Only the exact generated directories below will be permanently deleted. Project source and project configuration stay; verified generated metadata is deleted with its output.</p>
         {#if hasFrameworkSelection}<p class="mt-1 text-meta text-muted-foreground">Deletion cannot be undone from Trash. Rebuild verified generated outputs with their owning tools.</p>{/if}
@@ -765,13 +767,7 @@
           {/each}
         </div>
       </div>
-      {#if isExpired}
-        <div role="alert" class="flex items-center justify-between gap-2 rounded-lg border status-chip-destructive p-2.5 text-meta text-destructive">
-          <span>Plan expired. Scan again to refresh the inventory.</span>
-          <Button id="developer-artifact-expiry-action" variant="ghost" size="sm" onclick={() => { plan = null; void scanArtifacts(); }}>Scan again</Button>
-        </div>
-      {:else}
-        <p class="text-meta text-muted-foreground">One-shot plan. neati rechecks workspace identity, markers, exact artifact type, symlinks, and filesystem identity before each permanent deletion.</p>
+      {#snippet footer()}
         {#if hasMeasurementIncompleteSelected}
           <div class="space-y-2 rounded-lg border status-chip-warning p-3 text-meta text-warning">
             <p class="font-medium">Some selected measurements are partial.</p>
@@ -782,8 +778,8 @@
             </label>
           </div>
         {/if}
-      {/if}
-    </Card>
+      {/snippet}
+    </RemovalPlanCard>
   {/if}
 
   <div class="flex flex-wrap items-end justify-between gap-3">

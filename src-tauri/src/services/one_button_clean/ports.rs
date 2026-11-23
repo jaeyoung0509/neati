@@ -17,6 +17,10 @@ use super::selection::Candidate;
 pub struct CleanRequest {
     pub caches: bool,
     pub projects: bool,
+    /// Use an inventory the process already holds while it is still valid for
+    /// cleanup, instead of scanning again. The window sets this, because its
+    /// own scan just ran; a terminal run starts with nothing to reuse.
+    pub reuse_current: bool,
     /// Keep only these references. Empty keeps the whole set.
     pub only: Vec<String>,
     /// Leave these references out.
@@ -28,6 +32,7 @@ impl Default for CleanRequest {
         Self {
             caches: true,
             projects: true,
+            reuse_current: false,
             only: Vec::new(),
             skip: Vec::new(),
         }
@@ -85,6 +90,8 @@ pub struct CleanOutcome {
 pub enum OneButtonError {
     /// `--only`/`--skip` named something outside this run's set.
     UnknownReferences(Vec<String>),
+    /// The preview being executed is unknown, already used, or too old.
+    PreviewExpired,
     /// A scan, plan or removal could not run.
     Unavailable(String),
 }
@@ -96,6 +103,9 @@ impl std::fmt::Display for OneButtonError {
                 formatter,
                 "Not in this run's Clean set: {}. Nothing was removed. Preview again to see the current references.",
                 references.join(", ")
+            ),
+            Self::PreviewExpired => formatter.write_str(
+                "This preview is no longer current. Check again before cleaning.",
             ),
             Self::Unavailable(message) => formatter.write_str(message),
         }
@@ -136,6 +146,10 @@ pub struct RemovalReport {
 
 /// Driven port: the cache inventory and its reviewed quick-clean removal.
 pub trait CacheCleanup: Send + Sync {
+    /// The scan this process already published, while it is still valid for
+    /// cleanup. `None` means scan.
+    fn current(&self) -> Option<ScanResult>;
+
     /// A complete scan with the person's exclusions.
     fn scan(&self, activity: Arc<dyn ActivityPort>) -> PortFuture<'_, Result<ScanResult, String>>;
 
@@ -154,6 +168,9 @@ pub trait CacheCleanup: Send + Sync {
 
 /// Driven port: build output in the saved project folders.
 pub trait ProjectCleanup: Send + Sync {
+    /// The project inventory this process already holds, while it is fresh.
+    fn current(&self) -> Option<ProjectInventory>;
+
     fn scan(
         &self,
         activity: Arc<dyn ActivityPort>,

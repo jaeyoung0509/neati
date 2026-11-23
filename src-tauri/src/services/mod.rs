@@ -1,6 +1,7 @@
 mod ai_service;
 pub mod cancellation;
 mod cleanup_quit;
+pub mod command_line;
 pub mod desktop_notifications;
 mod empty_trash;
 pub mod insights;

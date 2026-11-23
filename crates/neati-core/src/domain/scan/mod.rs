@@ -23,12 +23,14 @@ use crate::domain::{Category, ObservationQuality, RiskTier};
 use serde::{Deserialize, Serialize};
 
 pub mod overlap;
+pub mod retention;
 pub mod unit;
 
 pub use overlap::{
-    resolve_unit_overlaps, resolve_unit_overlaps_with, CleanupOverlap, OverlapReport,
-    OverlappedDiscovery, UnitRelationship,
+    resolve_unit_overlaps, resolve_unit_overlaps_indexed, resolve_unit_overlaps_with,
+    CleanupOverlap, OverlapAnchors, OverlapReport, OverlappedDiscovery, UnitRelationship,
 };
+pub use retention::{leading_version, retained_siblings, RetentionReason, SiblingObservation};
 pub use unit::{
     AgeObservation, CleanupOwnership, CleanupUnit, CleanupUnitIdentity, CleanupUnitKind,
     EligibilityGate, OwnershipConfidence, PathIdentity, StaleEntryObservation,
@@ -503,6 +505,9 @@ pub struct DispositionFacts<'a> {
     pub structured_state: Option<StructuredStateKind>,
     /// A provider's measured policy verdict, separate from scan quality.
     pub provider_restriction: Option<&'a ProviderRestriction>,
+    /// Why a keep-newest rule retains this unit among its siblings, when one
+    /// does.
+    pub retained: Option<RetentionReason>,
     /// Whether a reviewed provider — not generic cleanup — performs this
     /// unit's cleanup.
     ///
@@ -539,6 +544,7 @@ impl<'a> DispositionFacts<'a> {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             lifecycle_provider_action: false,
             requires_confirmation: false,
             overlap: None,
@@ -575,6 +581,12 @@ impl<'a> DispositionFacts<'a> {
         restriction: Option<&'a ProviderRestriction>,
     ) -> Self {
         self.provider_restriction = restriction;
+        self
+    }
+
+    /// States that a keep-newest rule retains this unit among its siblings.
+    pub fn with_retention(mut self, retained: Option<RetentionReason>) -> Self {
+        self.retained = retained;
         self
     }
 
@@ -637,6 +649,7 @@ fn derive_own_disposition(facts: DispositionFacts<'_>) -> CleanupDisposition {
         stale,
         structured_state,
         provider_restriction,
+        retained,
         lifecycle_provider_action,
         requires_confirmation,
         // The overlap verdict is applied by the caller, after these facts have
@@ -710,6 +723,13 @@ fn derive_own_disposition(facts: DispositionFacts<'_>) -> CleanupDisposition {
 
     if let Some(ProviderRestriction::Recent(reason)) = provider_restriction {
         return CleanupDisposition::recent(reason.clone());
+    }
+
+    // 6a. A keep-newest rule retains the unit its siblings show to be the one
+    //     in use. Like an unmet age policy, the bytes are real and reported,
+    //     and the unit becomes eligible only once a newer sibling exists.
+    if let Some(reason) = retained {
+        return CleanupDisposition::recent(reason.explanation());
     }
 
     // 6b. A policy that ages the entries inside the unit reports how much of it
@@ -892,6 +912,13 @@ pub struct ScanItem {
     /// A complete provider observation refused by its own age or layout policy.
     #[serde(default)]
     pub provider_restriction: Option<ProviderRestriction>,
+    /// Why a keep-newest rule retains this unit among its siblings (#480).
+    ///
+    /// Recorded at discovery so the displayed verdict can be re-derived. The
+    /// planner and the execution guard observe the siblings again instead of
+    /// trusting it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retained: Option<RetentionReason>,
     /// What the scan found at the path: a file, a directory, or neither.
     ///
     /// The plan carries this observation forward so execution can tell "the
@@ -996,6 +1023,7 @@ impl ScanItem {
         .with_stale_entries(self.stale.as_ref())
         .with_structured_state(self.structured_state)
         .with_provider_restriction(self.provider_restriction.as_ref())
+        .with_retention(self.retained)
         .with_lifecycle_provider_action(self.lifecycle_provider_action)
         .with_confirmation_requirement(self.requires_confirmation)
         .with_overlap(overlap)
@@ -1081,6 +1109,7 @@ impl ScanItem {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             owner_running: false,
             lifecycle_provider_action: false,
             requires_confirmation: false,
@@ -1594,6 +1623,7 @@ mod tests {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             entry_kind: EntryKind::Directory,
             gate: EligibilityGate::Open,
             owner_running: false,

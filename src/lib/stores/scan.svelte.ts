@@ -25,6 +25,7 @@ import {
   tauriScanDiscovery,
 } from '../utils/tauri';
 import { cleanableBytes, isActionable, isAutoCleanable, isBulkSelectable, isProviderBacked } from '../utils/cleanup';
+import { IDLE_CLEAN_PROGRESS, reduceCleanProgress, type CleanProgress } from '../utils/cleanProgress';
 
 /** How the in-flight (or most recent) scan was started. Drives auto-refresh copy. */
 export type ScanTrigger = 'auto' | 'manual';
@@ -48,17 +49,9 @@ export class ScanStore {
   isCancelling = $state(false);
   lastScan = $state<ScanResult | null>(null);
   discovery = $state<ScanDiscovery>({ status: 'exhausted' });
-  cleanProgress = $state<{
-    currentItem: string;
-    index: number;
-    total: number;
-    percent: number;
-  }>({
-    currentItem: '',
-    index: 0,
-    total: 0,
-    percent: 0,
-  });
+  cleanProgress = $state<CleanProgress>({ ...IDLE_CLEAN_PROGRESS });
+  /** When the running catalog cleanup started, for its elapsed time (#491). */
+  cleanStartedAt = $state<number | null>(null);
   lastCleanResult = $state<CleanResult | null>(null);
   error = $state<string | null>(null);
   /**
@@ -838,6 +831,9 @@ export class ScanStore {
     this.isCleaning = true;
     this.error = null;
     this.lastCleanResult = null;
+    // A new run never shows the previous run's last target.
+    this.cleanProgress = { ...IDLE_CLEAN_PROGRESS };
+    this.cleanStartedAt = Date.now();
 
     try {
       if (Math.floor(Date.now() / 1000) > plan.expires_at) {
@@ -851,32 +847,9 @@ export class ScanStore {
       }
 
       const result = await tauriExecuteClean(plan, confirmed, (event: CleanEvent) => {
-        switch (event.type) {
-          case 'Started':
-            this.cleanProgress = {
-              currentItem: 'Starting cleanup...',
-              index: 0,
-              total: event.total_targets,
-              percent: 0,
-            };
-            break;
-          case 'ItemStarted':
-            this.cleanProgress = {
-              currentItem: event.name,
-              index: event.index,
-              total: event.total,
-              percent: Math.round((event.index / event.total) * 100),
-            };
-            break;
-          case 'ItemFinished':
-            break;
-          case 'Finished':
-            this.lastCleanResult = event.result;
-            break;
-          case 'Error':
-            this.error = event.message;
-            break;
-        }
+        this.cleanProgress = reduceCleanProgress(this.cleanProgress, event);
+        if (event.type === 'Finished') this.lastCleanResult = event.result;
+        if (event.type === 'Error') this.error = event.message;
       });
 
       this.lastCleanResult = result;
@@ -892,6 +865,7 @@ export class ScanStore {
     } finally {
       this.isCleaning = false;
       this.isRefreshingAfterClean = false;
+      this.cleanStartedAt = null;
     }
   }
 

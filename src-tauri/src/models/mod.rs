@@ -22,6 +22,7 @@ pub mod ai_control_center;
 pub mod ai_profiles;
 pub mod ai_usage;
 pub mod awake;
+pub mod command_line;
 pub mod dev_ports;
 pub mod developer_artifacts;
 pub mod diagnostics;
@@ -30,6 +31,7 @@ pub mod history;
 pub mod local_model;
 pub mod login;
 pub mod metrics;
+pub mod one_button;
 pub mod settings;
 pub mod signature;
 pub mod update;
@@ -39,6 +41,7 @@ pub use ai_control_center::*;
 pub use ai_profiles::*;
 pub use ai_usage::*;
 pub use awake::*;
+pub use command_line::*;
 pub use dev_ports::*;
 pub use developer_artifacts::*;
 pub use diagnostics::*;
@@ -48,6 +51,7 @@ pub use local_model::*;
 pub use login::*;
 pub use metrics::*;
 pub use neati_platform::PlatformCapabilitiesProvider;
+pub use one_button::*;
 pub use settings::*;
 pub use signature::*;
 pub use update::*;
@@ -97,12 +101,13 @@ pub use neati_core::domain::platform::{
 pub use neati_core::domain::risk::{RiskSummary, RiskTier};
 pub use neati_core::domain::scan::{
     derive_cleanup_disposition, is_safety_blocked_reason, resolve_unit_overlaps,
-    resolve_unit_overlaps_with, AgeObservation, CacheArtifactKind, CacheManagementMode,
-    CacheMetadata, CacheSizeSemantics, CacheUsageConfidence, CategoryResult, CleanupDisposition,
-    CleanupEligibility, CleanupOverlap, CleanupOwnership, CleanupUnit, CleanupUnitIdentity,
-    CleanupUnitKind, DispositionFacts, EligibilityBucket, EligibilityGate, EligibilitySummary,
-    FileSize, OverlappedDiscovery, OwnershipConfidence, PathIdentity, ProviderRestriction, ScanGap,
-    ScanGapKind, ScanItem, ScanResult, StaleEntryObservation, UnitRelationship,
+    resolve_unit_overlaps_indexed, resolve_unit_overlaps_with, AgeObservation, CacheArtifactKind,
+    CacheManagementMode, CacheMetadata, CacheSizeSemantics, CacheUsageConfidence, CategoryResult,
+    CleanupDisposition, CleanupEligibility, CleanupOverlap, CleanupOwnership, CleanupUnit,
+    CleanupUnitIdentity, CleanupUnitKind, DispositionFacts, EligibilityBucket, EligibilityGate,
+    EligibilitySummary, FileSize, OverlappedDiscovery, OwnershipConfidence, PathIdentity,
+    ProviderRestriction, RetentionReason, ScanGap, ScanGapKind, ScanItem, ScanResult,
+    StaleEntryObservation, UnitRelationship,
 };
 pub use neati_core::domain::storage::{
     AppInstallSource, AppLeftoverClassification, AppRelatedConfidence, AppRelatedKind,

@@ -47,9 +47,18 @@ It fails if:
   Tauri or stdout, or
 - a driven port is bound outside `composition/`.
 
-The same use case is ready for the window. The Clean button can call
-`CleanUseCase` instead of combining two removals in the frontend; that is a
-separate change.
+The Quick Panel already uses this use case (#500). Two narrow commands serve
+it:
+
+- `preview_one_button_clean` holds a `CleanPreview` in `OneButtonSessions`
+  behind an opaque one-shot id, with a 5-minute TTL and a cap of 4. It
+  reuses the scan the panel just published while that scan is valid for
+  cleanup.
+- `execute_one_button_clean` runs exactly that preview, once.
+
+The panel no longer re-derives which caches are cleanable. The dashboard's
+Clean keeps its explicit per-item selection, because reviewable items need a
+person's choice.
 
 ## Where the command comes from
 
@@ -73,6 +82,10 @@ console, and Windows support is paused (#445).
 | `status` | Disk, memory pressure, last cleanup. Read-only |
 | `scan [--all]` | Cache inventory with eligibility. Read-only |
 | `projects [--folder PATH] [--all]` | Build output in saved project folders. Read-only |
+| `projects add PATH` / `projects remove PATH` | Saves or forgets a project folder in the app's settings. Refuses while the app is open |
+| `large-files [--min-size SIZE] [--root NAME] [--installers]` | Large files under the app's roots. Read-only |
+| `apps` | Installed apps by size. Read-only |
+| `docker` | Docker engine status and data. Read-only |
 | `clean` | Preview of the one-button Clean set. Read-only |
 | `clean --yes [--only REF] [--skip REF]` | Permanently removes the previewed set |
 | `ports` | Development listeners. Read-only; stopping stays in the app |
@@ -128,8 +141,14 @@ memory and port actions. Those keep the app's confirmation flows.
 ## Settings
 
 The CLI reads `settings.json` from Tauri's configuration directory
-(`~/Library/Application Support/com.neati.desktop` on macOS) and never writes
-it. A running app keeps its own copy, so a CLI write would be overwritten.
+(`~/Library/Application Support/com.neati.desktop` on macOS).
+
+- The one write is `projects add|remove`. It refuses while another neati
+  process is running, because the app keeps its own copy and would overwrite
+  the change.
+- An added folder must be an existing directory and pass
+  `validate_saved_project_folders`.
+- Every other setting is written back exactly as it was read, atomically.
 
 - A missing file means defaults, as on a fresh install.
 - A file that does not parse refuses the run. Defaults would drop the person's
@@ -141,7 +160,15 @@ folders are.
 
 ## The agent skill
 
-`skills/neati/SKILL.md` is compiled into the binary.
+`skills/neati/SKILL.md` is compiled into the binary by
+`services::command_line`, which both interfaces use.
+
+**Settings → Command line and agents** in the app:
+
+- shows whether `neati` resolves to this app on the stated PATH;
+- offers a link command to copy (the app never edits a PATH folder);
+- installs or updates the skill for Claude Code and Codex. The window never
+  replaces a file neati did not write.
 
 - `neati skill install` writes it to `~/.claude/skills/neati/SKILL.md`.
 - `--target codex` writes to `~/.codex/skills/neati/SKILL.md`, and `--dir PATH`

@@ -22,6 +22,9 @@ use crate::domain::RiskTier;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+mod index;
+pub use index::OverlapAnchors;
+
 /// One other catalog rule that named the same location.
 ///
 /// The entry is provenance, not a second target: its bytes are already counted
@@ -282,6 +285,55 @@ pub fn resolve_unit_overlaps_with<F>(
 where
     F: Fn(&ScanItem, &ScanItem) -> Option<UnitRelationship>,
 {
+    // A resolver that states no anchors may relate any two units, so every
+    // retained unit is asked.
+    resolve(
+        categories,
+        overlapped,
+        identity,
+        relationship,
+        &mut index::EveryRetained,
+    )
+}
+
+/// [`resolve_unit_overlaps_with`] for a resolver that states where its
+/// relationships can come from (#493).
+///
+/// The verdicts are the same: a retained unit the candidate shares no location
+/// key with — no path text, no anchor — is one the resolver would call
+/// `Distinct`, and a `Distinct` answer changes nothing. Only the retained units
+/// a candidate can reach are asked, in the same retention order, so a scan of
+/// `n` units no longer asks `n²` relationship questions.
+pub fn resolve_unit_overlaps_indexed<F, A>(
+    categories: &mut [CategoryResult],
+    overlapped: &[OverlappedDiscovery],
+    identity: PathIdentity,
+    relationship: F,
+    anchors: &A,
+) -> OverlapReport
+where
+    F: Fn(&ScanItem, &ScanItem) -> Option<UnitRelationship>,
+    A: OverlapAnchors,
+{
+    resolve(
+        categories,
+        overlapped,
+        identity,
+        relationship,
+        &mut index::ByLocation::new(anchors),
+    )
+}
+
+fn resolve<F>(
+    categories: &mut [CategoryResult],
+    overlapped: &[OverlappedDiscovery],
+    identity: PathIdentity,
+    relationship: F,
+    lookup: &mut dyn index::ContainerLookup,
+) -> OverlapReport
+where
+    F: Fn(&ScanItem, &ScanItem) -> Option<UnitRelationship>,
+{
     let mut report = OverlapReport::default();
     let mut touched: HashSet<usize> = HashSet::new();
 
@@ -345,7 +397,8 @@ where
     });
 
     let mut retained: Vec<(CleanupUnitIdentity, usize, usize)> = Vec::new();
-    let mut suppressed_keys: Vec<CleanupUnitIdentity> = Vec::new();
+    let mut suppressed_keys = index::FoldedKeys::default();
+    let mut reachable: Vec<usize> = Vec::new();
     // (suppressed category, suppressed item, container category, container item,
     //  whether its bytes are already stated by a unit folded above it,
     //  whether this is an exact duplicate rather than containment,
@@ -360,13 +413,15 @@ where
         // Candidates are visited broadest-first, so a unit inside a unit that
         // was folded already is part of that unit's bytes: it is folded too,
         // but contributes them once.
-        let already_counted = suppressed_keys.iter().any(|outer| key.is_within(outer));
+        let already_counted = suppressed_keys.contains_within(&key);
         let candidate = &categories[category_index].items[item_index];
         let mut conflict_target = None;
         let mut ambiguity_target = false;
         let mut coverage_conflict_targets: Vec<(usize, usize)> = Vec::new();
-        let suppression_target = retained
+        lookup.candidates(&key, candidate, retained.len(), &mut reachable);
+        let suppression_target = reachable
             .iter()
+            .map(|&position| &retained[position])
             .find_map(|(outer, outer_category, outer_item)| {
                 let container = &categories[*outer_category].items[*outer_item];
                 let relation = relationship(candidate, container).unwrap_or_else(|| {
@@ -434,7 +489,7 @@ where
                     is_conflict,
                 ));
                 if !already_counted {
-                    suppressed_keys.push(key);
+                    suppressed_keys.insert(key);
                 }
             }
             None => {
@@ -456,6 +511,11 @@ where
                     conflict.authority_conflict = true;
                     authority_conflicts.push((outer_category, outer_item, conflict));
                 }
+                lookup.retain(
+                    retained.len(),
+                    &key,
+                    &categories[category_index].items[item_index],
+                );
                 retained.push((key, category_index, item_index));
             }
         }

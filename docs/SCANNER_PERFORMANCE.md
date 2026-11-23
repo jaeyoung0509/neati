@@ -132,6 +132,12 @@ per root, before the walk reads it. A scan spends most of its time inside one
 root, so naming the root is what lets the interface show where a long scan is;
 per-category item counts arrive with `CategoryFinished`.
 
+Owner providers report the same event while they run (#493): `provider://<id>`
+when a provider starts, and the location a long step reads — Homebrew cleanup
+names its prefix before `brew cleanup --dry-run`. When the provider last named
+ends while others still run, the longest-running one is named again, so the
+interface never sits on a location nothing is reading.
+
 ### Cancellation
 
 `cancel_scan(scan_id)` sets the signal the scan registered under the id its
@@ -147,8 +153,10 @@ measured by the benchmark (`cancellation_latency_is_measured_from_the_first_cand
 which also asserts the work actually stopped: the cancelled run reads fewer
 directories than the fixture contains and never produces the later candidates.
 
-Owner discovery checks Stop before and after each provider, and Homebrew's
-read-only child commands receive the signal. Generic cache use checks also
+Owner discovery starts no provider once Stop is set; a provider already running
+finishes under the same signal, and it and every provider after it in catalog
+order report no units (the serial pass's rule). Homebrew's read-only child
+commands receive the signal. Generic cache use checks also
 receive it: an interrupted open-file read is unknown, and later unit probes do
 not start. Observed rows remain present without cleanup eligibility when their
 required check did not complete. Planning/execution retain fresh, uncancelled
@@ -335,9 +343,9 @@ diagnostic child. Developer-temp took 77–88 ms: classification 1–2 ms, metad
 508–509 ms. Nested spans are not additive. These diagnose remaining costs and
 establish no causal live improvement or installed-app permission behavior.
 
-Signature/category/provider orchestration retains its ordered single-writer
-progress sink. Parallel orchestration would require buffering/interleaving that
-stream and scheduling around nested walks and child-process admissions. Existing
+Signature and category orchestration retains its ordered single-writer progress
+sink. Owner providers now run in bounded lanes whose reports reach that single
+writer on the scan's thread (see "Scan-time reuse and fan-out" below). Existing
 independent browser-unit fanout uses the shared four-worker pool and keeps each
 unit's fresh use verdict. Neither that pool nor the 16-task queue was increased.
 One mutable Homebrew preview dominates startup; caching it would carry an old
@@ -361,6 +369,46 @@ measure native IPC. Actual native large-scan input/Stop and VoiceOver announceme
 acceptance remains pending. Computer Use connectivity was subsequently restored,
 but final-bundle native IPC/input/Stop and VoiceOver checks have not yet run.
 No native criterion is waived; #379 remains open until that evidence is obtained.
+
+## Scan-time reuse and fan-out (#493)
+
+Every item below changes when work happens, never what a scan reports: the
+items, bytes, eligibility and order are those of the serial pass, and nothing
+here reaches planning or execution, which keep their own fresh checks.
+
+- **Batched open files.** A filesystem signature's guarded units are observed
+  with one `lsof` per 48 units; a failed batch falls back to single
+  observations and never proves idle.
+- **Owner providers.** A scan lends each provider an `OwnerScanContext`: its
+  process snapshot, its batched open-file verdicts, its cancellation and a
+  progress channel. Inventories that ask about many units prefetch their open
+  files in one batch; each unit still reads its own verdict. At most
+  `OWNER_PROVIDER_LANES` (4) providers run at once on the shared scan pool,
+  never more than its workers and never on threads of their own; results are
+  taken in catalog order. `prepare` and `execute` never receive the context.
+- **Aged children.** An aged root's admitted children are measured side by side
+  on the shared pool with the same single-pass tree walk, and their items are
+  built in enumeration order. A stopped scan still reports a prefix a serial
+  walk could have produced.
+- **Duplicate roots.** A fixed root two rules name with the same exclusions,
+  bundle rule and depth bound is walked once per scan; a cancelled walk is not
+  reused, and the memo holds at most 4,096 roots.
+- **Overlap resolution.** Retained units are indexed by path text, ancestors and
+  stable identity, so a candidate is compared only with units it can be related
+  to, in the same retention order. A randomized test compares it with the
+  pairwise pass.
+
+Fixture-only measurements on the development Mac (debug build, 2026-11-23):
+
+| Work | Before | After |
+|---|---|---|
+| Overlap pass, 2,200 units | 24,168 ms | 76 ms |
+| 48-unit offline-cache inventory | 1,890 ms (live port, `lsof` per unit) | 137 ms (snapshot, one batch) |
+| Aged root, 64 children / 27k entries | ~1,400 ms serial | ~500 ms on 4 workers |
+| Provider pass, one 770 ms and seven 100 ms fakes | 1,541 ms | 773 ms |
+
+These are component timings on temporary fixtures, not a live scan of a real
+home; no end-to-end real-machine speedup is claimed here.
 
 ## Recorded real-machine baselines
 

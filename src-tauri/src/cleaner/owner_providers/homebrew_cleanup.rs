@@ -65,6 +65,7 @@ trait BrewCommandRunner: Send + Sync {
         _source_id: &str,
         _cancellation: &dyn crate::models::CancellationProbe,
         _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+        _progress: &dyn super::ProviderProgress,
     ) -> Result<BrewPreview, String> {
         self.preview(environment)
     }
@@ -160,6 +161,7 @@ impl BrewCommandRunner for NativeBrewCommandRunner {
             "homebrew.cleanup",
             &crate::models::NeverCancelled,
             &mut Vec::new(),
+            &super::scan_context::NoProviderProgress,
         )
     }
 
@@ -169,6 +171,7 @@ impl BrewCommandRunner for NativeBrewCommandRunner {
         source_id: &str,
         cancellation: &dyn crate::models::CancellationProbe,
         spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+        progress: &dyn super::ProviderProgress,
     ) -> Result<BrewPreview, String> {
         let executable = timed_phase(spans, source_id, "executable_discovery", || {
             Self::executable(environment)
@@ -176,6 +179,9 @@ impl BrewCommandRunner for NativeBrewCommandRunner {
         let prefix = timed_phase(spans, source_id, "prefix_query", || {
             Self::prefix(&executable, cancellation)
         })?;
+        // The dry run is the slow step (seconds): say which installation it
+        // reads while it runs, so a scan is not silent on its last root.
+        progress.location_started(&prefix);
         let version = timed_phase(spans, source_id, "version_query", || {
             Self::version(&executable, cancellation)
         })?;
@@ -261,22 +267,25 @@ impl HomebrewCleanupProvider {
         self.read_store_with_spans(
             environment,
             guard,
-            "homebrew.cleanup",
-            &crate::models::NeverCancelled,
+            &super::OwnerScanContext::unscanned("homebrew.cleanup", &crate::models::NeverCancelled),
             &mut Vec::new(),
         )
     }
 
+    /// Reads Homebrew's own cleanup preview. The context states the process
+    /// evidence (the live table, or a scan's snapshot), the cancellation and
+    /// where progress goes.
     fn read_store_with_spans(
         &self,
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
-        source_id: &str,
-        cancellation: &dyn crate::models::CancellationProbe,
+        context: &super::OwnerScanContext<'_>,
         spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
     ) -> OwnerStoreObservation {
+        let source_id = context.source_id;
+        let processes = context.processes(self.process.as_ref());
         match timed_phase(spans, source_id, "process_use_check", || {
-            self.process.running(guard)
+            processes.running(guard)
         }) {
             None => {
                 return OwnerStoreObservation::refused(
@@ -297,16 +306,18 @@ impl HomebrewCleanupProvider {
             }
             Some(_) => {}
         }
-        let preview =
-            match self
-                .runner
-                .preview_with_spans(environment, source_id, cancellation, spans)
-            {
-                Ok(preview) => preview,
-                Err(error) => {
-                    return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error)
-                }
-            };
+        let preview = match self.runner.preview_with_spans(
+            environment,
+            source_id,
+            context.cancellation,
+            spans,
+            context,
+        ) {
+            Ok(preview) => preview,
+            Err(error) => {
+                return OwnerStoreObservation::refused(ProviderStatus::Blocked, None, error)
+            }
+        };
         let root = preview.prefix.clone();
         if preview.candidates.is_empty() || preview.estimated_bytes == 0 {
             return OwnerStoreObservation::ready(Some(root), Vec::new());
@@ -503,15 +514,14 @@ impl OwnerScopedProvider for HomebrewCleanupProvider {
         self.read_store(environment, guard)
     }
 
-    fn scan_with_spans(
+    fn scan_in(
         &self,
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
-        source_id: &str,
-        cancellation: &dyn crate::models::CancellationProbe,
+        context: &super::OwnerScanContext<'_>,
         spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
     ) -> OwnerStoreObservation {
-        self.read_store_with_spans(environment, guard, source_id, cancellation, spans)
+        self.read_store_with_spans(environment, guard, context, spans)
     }
 
     fn prepare(
@@ -778,11 +788,10 @@ mod tests {
         let guard = RunningProcessPolicy::guarding(vec!["brew".into()]);
         let plain = provider.scan(&environment, &guard);
         let mut spans = Vec::new();
-        let profiled = provider.scan_with_spans(
+        let profiled = provider.scan_in(
             &environment,
             &guard,
-            "test.brew",
-            &crate::models::NeverCancelled,
+            &super::super::OwnerScanContext::unscanned("test.brew", &crate::models::NeverCancelled),
             &mut spans,
         );
         assert_eq!(plain, profiled);

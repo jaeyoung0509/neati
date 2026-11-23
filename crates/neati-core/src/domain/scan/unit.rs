@@ -191,6 +191,19 @@ impl CleanupUnitIdentity {
             && own.len() >= outer.len()
             && own[..outer.len()] == outer[..]
     }
+
+    /// Every key this one is strictly [`within`](Self::is_within), nearest
+    /// first: `a/b/c` yields `a/b` and then `a`. An empty key has none.
+    ///
+    /// `self.is_within(other)` holds exactly when `other` is `self` (and not
+    /// empty) or one of these, so a lookup by these keys answers the same
+    /// question as comparing against every key in turn.
+    pub fn ancestors(&self) -> impl Iterator<Item = CleanupUnitIdentity> + '_ {
+        let components: Vec<&str> = self.components().collect();
+        (1..components.len())
+            .rev()
+            .map(move |length| CleanupUnitIdentity(components[..length].join("/")))
+    }
 }
 
 impl std::fmt::Display for CleanupUnitIdentity {

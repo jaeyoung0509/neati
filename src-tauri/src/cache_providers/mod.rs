@@ -486,6 +486,7 @@ impl CacheProviderRegistry {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             entry_kind: EntryKind::Directory,
             gate: EligibilityGate::Open,
             owner_running: false,

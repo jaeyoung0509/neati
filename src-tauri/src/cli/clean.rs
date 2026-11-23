@@ -67,6 +67,9 @@ impl CleanRun<'_> {
             projects: options.projects,
             only: options.only.clone(),
             skip: options.skip.clone(),
+            // A terminal run is its own process: there is nothing to reuse,
+            // and the preview it shows is the one it executes.
+            reuse_current: false,
         };
         let preview =
             tauri::async_runtime::block_on(self.use_case.preview(request, self.progress.clone()));

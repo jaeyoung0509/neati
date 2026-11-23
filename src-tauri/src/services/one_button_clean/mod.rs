@@ -10,6 +10,7 @@
 pub mod adapters;
 pub mod ports;
 pub mod selection;
+pub mod sessions;
 #[cfg(test)]
 mod tests;
 
@@ -43,7 +44,14 @@ impl OneButtonClean {
         let mut review = ReviewSummary::default();
 
         let caches = if request.caches {
-            let scan = self.caches.scan(activity.clone()).await?;
+            let scan = match request
+                .reuse_current
+                .then(|| self.caches.current())
+                .flatten()
+            {
+                Some(scan) => scan,
+                None => self.caches.scan(activity.clone()).await?,
+            };
             let chosen = self.caches.one_button_ids(&scan)?;
             candidates.extend(cache_candidates(&scan, &chosen));
             review.items += scan.eligibility.items(CleanupEligibility::Reviewable);
@@ -56,7 +64,14 @@ impl OneButtonClean {
         };
 
         let projects = if request.projects {
-            let inventory = self.projects.scan(activity).await?;
+            let inventory = match request
+                .reuse_current
+                .then(|| self.projects.current())
+                .flatten()
+            {
+                Some(inventory) => inventory,
+                None => self.projects.scan(activity).await?,
+            };
             if let Some(result) = &inventory.result {
                 for item in result.items.iter().filter(|item| !item.selected_by_default) {
                     review.items += 1;

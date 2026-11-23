@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { observeWhileVisible } from '../../lib/utils/visiblePolling';
-  import { onMount, tick } from 'svelte';
+  import { onMount } from 'svelte';
   import type {
     LargeFileItem,
     LargeFileFilter,
@@ -12,7 +11,11 @@
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
-  import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
+  import LoadingState from '../../lib/components/LoadingState.svelte';
+  import RemovalPlanCard from '../../lib/components/RemovalPlanCard.svelte';
+  import { formatBytes, formatTimeAgo } from '../../lib/utils/format';
+  import { countLabel, planSizeLabel } from '../../lib/utils/removalPlan';
+  import type { LoadPhase } from '../../lib/utils/loadPhase';
   import { getVirtualWindow } from '../../lib/utils/virtualList';
   import {
     LARGE_FILE_DEFAULT_THRESHOLD_BYTES,
@@ -68,6 +71,8 @@
   let plan = $state<RemovalPlanPreview | null>(null);
   let removalResult = $state<RemovalResult | null>(null);
   let isScanning = $state(false);
+  /** Each scan replaces the inventory, so only a finished one is a result (#491). */
+  let scanPhase = $state<LoadPhase>('idle');
   let isPreparing = $state(false);
   let isExecuting = $state(false);
   let activeScanId = $state<string | null>(null);
@@ -78,7 +83,6 @@
   let selectedBytes = $state(0);
   let selectedIdSet = $derived(new Set(selectedIds));
   let thresholdBytes = $derived(clampLargeFileThreshold(thresholdMb * MIB, scanFilter));
-  let now = $state(Date.now());
   const RESULT_ROW_HEIGHT = 72;
   let resultsScrollTop = $state(0);
   let resultsViewportHeight = $state(480);
@@ -87,27 +91,6 @@
   );
   let visibleItems = $derived(items.slice(resultWindow.start, resultWindow.end));
 
-  let remainingSecs = $derived(
-    plan ? ttlRemaining(plan.expires_at, now) : 0
-  );
-  let isExpiringSoon = $derived(remainingSecs > 0 && remainingSecs <= 60);
-  let isExpired = $derived(plan ? remainingSecs === 0 : false);
-  let expiryActionFocused = $state(false);
-
-  $effect(() => {
-    if (!isExpired) {
-      expiryActionFocused = false;
-      return;
-    }
-    if (expiryActionFocused) return;
-    expiryActionFocused = true;
-    void tick().then(() => document.getElementById('large-files-expiry-action')?.focus());
-  });
-
-  $effect(() => {
-    if (!plan) return;
-    return observeWhileVisible(() => { now = Date.now(); }, 1000);
-  });
   function resetReview() {
     plan = null;
     removalResult = null;
@@ -126,6 +109,7 @@
     resetReview();
     error = null;
     scanResult = null;
+    scanPhase = 'idle';
     items = [];
     selectedIds = [];
     selectedBytes = 0;
@@ -203,6 +187,7 @@
     }
 
     isScanning = true;
+    scanPhase = 'loading';
     error = null;
     plan = null;
     removalResult = null;
@@ -228,8 +213,10 @@
       itemBytesById = new Map(items.map((item) => [item.id, item.allocated_size]));
       entriesScanned = result.entries_scanned;
       matchesFound = result.items.length;
+      scanPhase = 'ready';
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
+      scanPhase = 'error';
     } finally {
       isScanning = false;
       isStopping = false;
@@ -432,43 +419,23 @@
   {/if}
 
   {#if plan}
-    <Card class={`p-5 space-y-3 ${isExpired ? 'status-panel-destructive' : isExpiringSoon ? 'status-chip-warning' : 'status-panel-warning'}`}>
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div class="text-sm font-semibold flex items-center gap-2">
-            Permanent deletion review ready
-            <span class={`text-caption px-1.5 py-0.5 rounded font-mono border ${isExpired ? 'bg-destructive/15 text-destructive border-destructive/30' : isExpiringSoon ? 'bg-warning/15 text-warning border-warning/30' : 'bg-secondary text-muted-foreground border-border'}`}>
-              {formatCountdown(remainingSecs)}
-            </span>
-          </div>
-          <p class="text-meta text-muted-foreground mt-1">
-            These files cannot be restored from Trash. {plan.item_count} selected item{plan.item_count === 1 ? '' : 's'} · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)} allocated
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" disabled={isExecuting} onclick={() => (plan = null)}>Cancel</Button>
-          <Button variant="destructive" size="md" onclick={executeRemoval} disabled={isExecuting || isExpired} class="gap-1.5" title={isExpired ? 'Plan expired — prepare again' : ''}>
-            <LoadingActionContent busy={isExecuting} busyLabel="Deleting…" word="cleaning">
-              <Trash2 size={14} />
-              {isExpired ? 'Expired' : 'Permanently delete files'}
-            </LoadingActionContent>
-          </Button>
-        </div>
-      </div>
-      {#if isExpired}
-        <div role="alert" class="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-meta text-destructive flex items-center justify-between gap-2">
-          <span>Plan expired. Inventory is valid for 15 min — scan again to refresh.</span>
-          <div class="flex gap-1.5">
-            <Button id="large-files-expiry-action" variant="ghost" size="sm" onclick={() => { plan = null; void scanFiles(); }}>Scan again</Button>
-            <Button variant="ghost" size="sm" onclick={() => (plan = null)} class="text-destructive">Dismiss</Button>
-          </div>
-        </div>
-      {:else}
-        <p class="text-meta text-muted-foreground">
-          One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). neati revalidates file identity and scope before each permanent deletion.
-        </p>
-      {/if}
-    </Card>
+    <RemovalPlanCard
+      {plan}
+      title="Permanent deletion review ready"
+      summary={`These files cannot be restored from Trash. ${countLabel(plan.item_count, 'selected item')} · ${planSizeLabel(plan)} allocated`}
+      confirmLabel="Permanently delete files"
+      note="neati revalidates file identity and scope before each permanent deletion."
+      showExpiryTime
+      expiredMessage="Plan expired. Inventory is valid for 15 min — scan again to refresh."
+      expiryActionId="large-files-expiry-action"
+      expiryActionLabel="Scan again"
+      onExpiryAction={() => { plan = null; void scanFiles(); }}
+      onDismiss={() => (plan = null)}
+      expiredTitle="Plan expired — prepare again"
+      executing={isExecuting}
+      onConfirm={executeRemoval}
+      onCancel={() => (plan = null)}
+    />
   {/if}
 
   <div class="flex flex-wrap items-center justify-between gap-3">
@@ -478,6 +445,8 @@
         {#if scanResult}
           {items.length} files · {entriesScanned.toLocaleString()} entries inspected
           {scanResult.cancelled ? ' · scan cancelled' : ''}
+        {:else if scanPhase === 'loading'}
+          Scanning · {matchesFound} {matchesFound === 1 ? 'match' : 'matches'} so far
         {:else}
           Run a scan to inspect large files in approved personal folders.
         {/if}
@@ -501,8 +470,9 @@
           disabled={isScanning || selectedIds.length === 0 || isPreparing || isExecuting}
           class="gap-1.5 ml-1"
         >
-          <Trash2 size={14} />
-          {isPreparing ? 'Reviewing…' : `Review ${formatBytes(selectedBytes)}`}
+          <LoadingActionContent busy={isPreparing} busyLabel="Reviewing…" word="working">
+            <Trash2 size={14} aria-hidden="true" />Review {formatBytes(selectedBytes)}
+          </LoadingActionContent>
         </Button>
       </div>
     {/if}
@@ -570,11 +540,14 @@
       </div>
       <div style={`height: ${resultWindow.offsetBottom}px`}></div>
     </div>
-  {:else if !isScanning}
+  {:else if scanPhase === 'loading'}
+    <!-- No match yet is not "no files matched" until the scan finishes (#491). -->
+    <LoadingState word="scanning" message={`Looking for large files in ${activeRoot || 'the selected folders'}…`} detail="Matches appear here as they are found." />
+  {:else}
     <Card class="py-14 text-center">
       <FileSearch size={26} class="mx-auto text-muted-foreground/50" />
       <p class="mt-3 text-meta text-muted-foreground">
-        {scanResult ? 'No files matched this size threshold.' : 'No large-file scan yet.'}
+        {scanPhase === 'error' ? 'The scan did not finish, so there are no results to show.' : scanResult ? 'No files matched this size threshold.' : 'No large-file scan yet.'}
       </p>
     </Card>
   {/if}

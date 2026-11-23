@@ -45,6 +45,17 @@ impl HomebrewDownloadsProvider {
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
+        self.read_store_with(environment, guard, self.process.as_ref())
+    }
+
+    /// [`Self::read_store`] with the process evidence stated: the live table,
+    /// or a scan's snapshot for an inventory the scan runs (#493).
+    fn read_store_with(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+        processes: &dyn RunningProcessProbe,
+    ) -> OwnerStoreObservation {
         let Some(root) = Self::root(environment) else {
             return OwnerStoreObservation::refused(
                 ProviderStatus::Unsupported,
@@ -52,7 +63,7 @@ impl HomebrewDownloadsProvider {
                 "This environment has no user home for the Homebrew cache",
             );
         };
-        match self.process.running(guard) {
+        match processes.running(guard) {
             None => {
                 return OwnerStoreObservation::refused(
                     ProviderStatus::Blocked,
@@ -345,6 +356,19 @@ impl OwnerScopedProvider for HomebrewDownloadsProvider {
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
         self.read_store(environment, guard)
+    }
+    fn scan_in(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+        context: &super::OwnerScanContext<'_>,
+        _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+    ) -> OwnerStoreObservation {
+        self.read_store_with(
+            environment,
+            guard,
+            &context.processes(self.process.as_ref()),
+        )
     }
     fn prepare(
         &self,

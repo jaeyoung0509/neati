@@ -9,11 +9,12 @@ use std::sync::Arc;
 
 use crate::models::{
     AiProviderUsage, AiUsageSnapshot, CleanupHistoryEntry, DevelopmentListener, DiskMetrics,
-    MemoryMetrics,
+    DockerStatus, InstalledAppInventory, LargeFileScanEvent, LargeFileScanRequest,
+    LargeFileScanResult, MemoryMetrics,
 };
 use crate::services::ports::{Activity, ActivityPort, PortFuture};
-use crate::services::progress::ProviderUsageSink;
-use crate::services::{AiService, CleanupService, SystemService};
+use crate::services::progress::{LargeFileScanSink, ProviderUsageSink};
+use crate::services::{AiService, CleanupService, StorageService, SystemService};
 
 /// Disk, memory and the most recent cleanup, read together.
 #[derive(Debug, Clone)]
@@ -33,11 +34,22 @@ pub trait InsightQueries: Send + Sync {
         refresh: bool,
         activity: Arc<dyn ActivityPort>,
     ) -> PortFuture<'_, Result<AiUsageSnapshot, String>>;
+    /// Large files under the stated roots. Reading only: removal stays a
+    /// reviewed workflow in the window.
+    fn large_files(
+        &self,
+        request: LargeFileScanRequest,
+        activity: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<LargeFileScanResult, String>>;
+    /// Installed applications. Reading only: uninstalling stays in the window.
+    fn installed_apps(&self) -> PortFuture<'_, Result<InstalledAppInventory, String>>;
+    fn docker(&self) -> PortFuture<'_, Result<DockerStatus, String>>;
 }
 
 pub struct MachineInsights {
     system: Arc<SystemService>,
     cleanup: Arc<CleanupService>,
+    storage: Arc<StorageService>,
     ai: Arc<AiService>,
 }
 
@@ -45,11 +57,13 @@ impl MachineInsights {
     pub fn new(
         system: Arc<SystemService>,
         cleanup: Arc<CleanupService>,
+        storage: Arc<StorageService>,
         ai: Arc<AiService>,
     ) -> Self {
         Self {
             system,
             cleanup,
+            storage,
             ai,
         }
     }
@@ -93,6 +107,35 @@ impl InsightQueries for MachineInsights {
             let sink: Arc<dyn ProviderUsageSink> = Arc::new(ProviderActivity(activity));
             self.ai.usage_snapshot(refresh, sink).await
         })
+    }
+
+    fn large_files(
+        &self,
+        request: LargeFileScanRequest,
+        activity: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<LargeFileScanResult, String>> {
+        Box::pin(async move {
+            let sink: Arc<dyn LargeFileScanSink> = Arc::new(LargeFileActivity(activity));
+            self.storage.scan_large_files(request, sink).await
+        })
+    }
+
+    fn installed_apps(&self) -> PortFuture<'_, Result<InstalledAppInventory, String>> {
+        Box::pin(self.storage.installed_apps())
+    }
+
+    fn docker(&self) -> PortFuture<'_, Result<DockerStatus, String>> {
+        Box::pin(self.system.docker_status())
+    }
+}
+
+struct LargeFileActivity(Arc<dyn ActivityPort>);
+
+impl LargeFileScanSink for LargeFileActivity {
+    fn emit(&self, event: LargeFileScanEvent) {
+        if let LargeFileScanEvent::RootStarted { root, .. } = event {
+            self.0.report(Activity::Scanning { location: root });
+        }
     }
 }
 

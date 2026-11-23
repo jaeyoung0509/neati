@@ -4,35 +4,31 @@
   import { settingsStore } from '../../lib/stores/settings.svelte';
   import { formatTimeUntil } from '../../lib/utils/format';
   import AwakeRuleEditor from '../../lib/components/AwakeRuleEditor.svelte';
+  import AwakeRuleActions from '../../lib/components/AwakeRuleActions.svelte';
+  import AwakeManualDurations from '../../lib/components/AwakeManualDurations.svelte';
+  import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
+  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
+  import { awaitingFirstAnswer } from '../../lib/utils/loadPhase';
   import { observeWhileVisible } from '../../lib/utils/visiblePolling';
   import {
     awakeAgentLabel,
     awakeRuleSummary,
     typedAwakeRule,
   } from '../../lib/utils/awake';
-  import type {
-    AwakeBehavior,
-    AwakeRule,
-    AwakeRuleStatus,
-    PowerCondition,
-  } from '../../lib/models/types';
+  import type { AwakeRule, AwakeRuleStatus } from '../../lib/models/types';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
   import Badge from '../../lib/components/Badge.svelte';
-  import Switch from '../../lib/components/Switch.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import {
     AlertCircle,
     AppWindow,
     Battery,
-    Clock,
     Moon,
-    Pencil,
     Plus,
     Power,
     Shield,
-    Trash2,
     Zap,
   } from '@lucide/svelte';
 
@@ -58,12 +54,10 @@
   let typedRules = $derived(rules.filter(typedAwakeRule));
   let legacyRules = $derived(rules.filter((rule) => !typedAwakeRule(rule)));
   let activeRule = $derived(rules.find((rule) => rule.id === awakeState.active_rule_id) ?? null);
-  // Manual timer behavior is intentionally separate from automatic rules.
-  let manualBehavior = $state<AwakeBehavior>('prevent_system_sleep');
-
-  function handleSetTimer(minutes: number | null) {
-    void awakeStore.setManual(minutes === null ? null : minutes * 60, manualBehavior);
-  }
+  // Before the first state read answers, "Normal sleep is active" is not a result (#491).
+  let checking = $derived(awaitingFirstAnswer(awakeStore.loadPhase));
+  let unread = $derived(awakeStore.loadPhase === 'error');
+  let pending = $derived(awakeStore.pending);
 
   function openBasicEditor(rule?: AwakeRule) {
     editor = { mode: 'basic', rule: rule ?? null };
@@ -104,15 +98,6 @@
     return 'border-border bg-secondary/50 text-muted-foreground';
   }
 
-  async function handleEnableRecommendedRules() {
-    const updatedRules = rules.map((rule) => {
-      if (['rule.codex', 'rule.claude', 'rule.docker'].includes(rule.id)) {
-        return { ...rule, enabled: true, power_condition: 'ac_power_only' as PowerCondition };
-      }
-      return rule;
-    });
-    await settingsStore.save({ awake_rules: updatedRules });
-  }
 </script>
 
 <div class="space-y-6">
@@ -122,7 +107,11 @@
     icon={Moon}
   >
     {#snippet badge()}
-      {#if awakeState.is_active}
+      {#if checking}
+        <Badge variant="secondary">Checking</Badge>
+      {:else if unread}
+        <Badge variant="secondary">Unknown</Badge>
+      {:else if awakeState.is_active}
         <Badge variant="warning" class="gap-1.5 font-medium">
           <span class="relative flex h-1.5 w-1.5" aria-hidden="true">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75"></span>
@@ -173,6 +162,14 @@
     />
   {/if}
 
+  {#if awakeStore.error}
+    <InlineNotice
+      variant="destructive"
+      title="Keep Awake change not applied"
+      message={awakeStore.error}
+    />
+  {/if}
+
   {#if settingsStore.error}
     <InlineNotice
       variant="destructive"
@@ -185,9 +182,17 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div class="space-y-1.5">
         <div class="flex items-center gap-2">
-          <Power size={16} class={awakeState.is_active ? 'text-warning' : 'text-muted-foreground'} aria-hidden="true" />
-          <h2 class="text-sm font-semibold text-foreground">
-            {#if awakeState.is_active}
+          {#if checking}
+            <LoadingIndicator size="xs" class="text-primary" />
+          {:else}
+            <Power size={16} class={awakeState.is_active ? 'text-warning' : 'text-muted-foreground'} aria-hidden="true" />
+          {/if}
+          <h2 class="text-sm font-semibold text-foreground" role={checking ? 'status' : undefined}>
+            {#if checking}
+              Checking Keep Awake…
+            {:else if unread}
+              Keep Awake state unknown
+            {:else if awakeState.is_active}
               {#if awakeState.manual_expires_at != null || awakeState.trigger_source?.includes('Manual')}
                 Keep Awake Active (Manual Session)
               {:else if activeRule}
@@ -202,7 +207,11 @@
         </div>
 
         <p class="text-meta text-muted-foreground leading-relaxed">
-          {#if awakeState.is_active}
+          {#if checking}
+            Reading the current session and rule evaluation.
+          {:else if unread}
+            {awakeStore.readError ?? 'The current session could not be read.'} neati tries again while this page is open.
+          {:else if awakeState.is_active}
             {#if awakeState.manual_expires_at != null}
               Manual session · <strong class="text-foreground font-mono">{formatCountdown(awakeState.manual_expires_at)}</strong> · {awakeState.behavior === 'keep_display_awake' ? 'Display stays awake.' : 'Display may sleep.'}
             {:else if awakeState.trigger_source?.includes('Manual')}
@@ -218,67 +227,22 @@
         </p>
       </div>
 
-      {#if awakeState.is_active}
+      {#if !checking && !unread && awakeState.is_active}
         {#if awakeState.manual_expires_at != null || awakeState.trigger_source?.includes('Manual')}
-          <Button variant="destructive" size="sm" onclick={() => void awakeStore.disableManual()}>
-            Stop Manual Session
+          <Button variant="destructive" size="sm" disabled={pending !== null} aria-busy={pending?.kind === 'stop-manual'} onclick={() => void awakeStore.disableManual()}>
+            <LoadingActionContent busy={pending?.kind === 'stop-manual'} busyLabel="Stopping…">Stop Manual Session</LoadingActionContent>
           </Button>
         {:else if activeRule}
-          <Button variant="outline" size="sm" class="text-meta border-warning/40 hover:bg-warning/20" onclick={() => void awakeStore.toggleRule(activeRule.id)}>
-            Disable {activeRule.app_name} Rule
+          {@const disabling = pending?.kind === 'rule' && pending.ruleId === activeRule.id}
+          <Button variant="outline" size="sm" class="text-meta border-warning/40 hover:bg-warning/20" disabled={pending !== null || !settingsStore.hasLoaded} aria-busy={disabling} onclick={() => void awakeStore.toggleRule(activeRule.id)}>
+            <LoadingActionContent busy={disabling} busyLabel="Disabling…">Disable {activeRule.app_name} Rule</LoadingActionContent>
           </Button>
         {/if}
       {/if}
     </div>
   </Card>
 
-  <section class="space-y-3" aria-labelledby="manual-heading">
-    <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-      <div>
-        <h2 id="manual-heading" class="text-sm font-semibold tracking-tight text-foreground">Quick Manual Duration</h2>
-        <p class="text-meta text-muted-foreground mt-0.5">Temporarily keep the computer awake regardless of automatic rules.</p>
-      </div>
-      <div class="flex items-center gap-1.5 p-1 rounded-lg bg-card/80 border border-border/70 text-meta" role="group" aria-label="Manual sleep behavior">
-        <button
-          type="button"
-          aria-pressed={manualBehavior === 'prevent_system_sleep'}
-          onclick={() => (manualBehavior = 'prevent_system_sleep')}
-          class="px-2.5 py-1 rounded text-meta font-medium transition-colors {manualBehavior === 'prevent_system_sleep' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}"
-          title="Work continues while you are away; the display may turn off"
-        >
-          Computer awake
-        </button>
-        <button
-          type="button"
-          aria-pressed={manualBehavior === 'keep_display_awake'}
-          onclick={() => (manualBehavior = 'keep_display_awake')}
-          class="px-2.5 py-1 rounded text-meta font-medium transition-colors {manualBehavior === 'keep_display_awake' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}"
-          title="Keeps both the computer and display awake while idle"
-        >
-          Computer + display
-        </button>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(30)} class="flex-col h-auto py-3 text-meta gap-1">
-        <Clock size={16} class="text-muted-foreground" aria-hidden="true" />
-        <span class="font-medium text-foreground">30 Minutes</span>
-      </Button>
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(60)} class="flex-col h-auto py-3 text-meta gap-1">
-        <Clock size={16} class="text-muted-foreground" aria-hidden="true" />
-        <span class="font-medium text-foreground">1 Hour</span>
-      </Button>
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(120)} class="flex-col h-auto py-3 text-meta gap-1">
-        <Clock size={16} class="text-muted-foreground" aria-hidden="true" />
-        <span class="font-medium text-foreground">2 Hours</span>
-      </Button>
-      <Button variant="outline" size="md" onclick={() => handleSetTimer(null)} class="flex-col h-auto py-3 text-meta gap-1">
-        <Moon size={16} class="text-warning" aria-hidden="true" />
-        <span class="font-medium text-foreground">Indefinite</span>
-      </Button>
-    </div>
-  </section>
+  <AwakeManualDurations />
 
   {#if rules.length > 0 && rules.every((rule) => !rule.enabled)}
     <Card class="p-4 status-panel-ai space-y-3">
@@ -292,8 +256,8 @@
             Rules are saved disabled to protect battery life. Review the rule summary, then enable only the rules you explicitly want to run.
           </p>
           <div class="pt-2">
-            <Button variant="primary" size="sm" onclick={() => void handleEnableRecommendedRules()}>
-              Enable recommended AC-only rules
+            <Button variant="primary" size="sm" disabled={pending !== null || !settingsStore.hasLoaded} aria-busy={pending?.kind === 'recommended-rules'} onclick={() => void awakeStore.enableRecommendedRules()}>
+              <LoadingActionContent busy={pending?.kind === 'recommended-rules'} busyLabel="Enabling…">Enable recommended AC-only rules</LoadingActionContent>
             </Button>
           </div>
         </div>
@@ -367,15 +331,7 @@
                 {/if}
               </div>
 
-              <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick={() => openBasicEditor(rule)} class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={`Edit ${rule.app_name} rule`} aria-label={`Edit ${rule.app_name} rule`}>
-                  <Pencil size={14} aria-hidden="true" />
-                </button>
-                <button type="button" onclick={() => void awakeStore.deleteRule(rule.id)} class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={`Delete ${rule.app_name} rule`} aria-label={`Delete ${rule.app_name} rule`}>
-                  <Trash2 size={14} aria-hidden="true" />
-                </button>
-                <Switch checked={rule.enabled} onchange={() => void awakeStore.toggleRule(rule.id)} ariaLabel={`Toggle ${rule.app_name} rule`} />
-              </div>
+              <AwakeRuleActions {rule} label={`${rule.app_name} rule`} onEdit={() => openBasicEditor(rule)} />
             </div>
           </Card>
         {/each}
@@ -416,15 +372,7 @@
                   <p class="font-mono text-caption text-muted-foreground break-all">Also require: {rule.requires_process_pattern}</p>
                 {/if}
               </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick={() => openAdvancedEditor(rule)} class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={`Edit ${rule.app_name} legacy rule`} aria-label={`Edit ${rule.app_name} legacy rule`}>
-                  <Pencil size={14} aria-hidden="true" />
-                </button>
-                <button type="button" onclick={() => void awakeStore.deleteRule(rule.id)} class="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={`Delete ${rule.app_name} legacy rule`} aria-label={`Delete ${rule.app_name} legacy rule`}>
-                  <Trash2 size={14} aria-hidden="true" />
-                </button>
-                <Switch checked={rule.enabled} onchange={() => void awakeStore.toggleRule(rule.id)} ariaLabel={`Toggle ${rule.app_name} legacy rule`} />
-              </div>
+              <AwakeRuleActions {rule} label={`${rule.app_name} legacy rule`} onEdit={() => openAdvancedEditor(rule)} />
             </div>
           {/each}
         </div>

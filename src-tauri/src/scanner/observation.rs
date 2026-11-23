@@ -188,6 +188,10 @@ pub struct WalkContext<'a> {
     /// policy permits bundles (owner-guarded build output), where a built
     /// product is the content being measured rather than a protected app.
     pub permit_application_bundles: bool,
+    /// The measurements this scan already took, so a root two rules name
+    /// with the same parameters is walked once (#493). `None` measures every
+    /// root afresh.
+    pub measurements: Option<&'a super::measurement_memo::MeasurementMemo>,
 }
 
 impl<'a> WalkContext<'a> {
@@ -205,7 +209,17 @@ impl<'a> WalkContext<'a> {
             counters,
             progress,
             permit_application_bundles: false,
+            measurements: None,
         }
+    }
+
+    /// Lets this walk reuse the measurements its scan already took.
+    pub fn with_measurement_memo(
+        mut self,
+        memo: &'a super::measurement_memo::MeasurementMemo,
+    ) -> Self {
+        self.measurements = Some(memo);
+        self
     }
 
     /// Applies a signature's structured-state policy to this walk.

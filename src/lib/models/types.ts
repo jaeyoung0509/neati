@@ -193,7 +193,23 @@ import type {
   Recommendation_Serialize,
   RecommendationPreview_Serialize,
   NeatiSettings_Serialize,
+  OneButtonItem_Serialize,
+  OneButtonOutcome_Serialize,
+  OneButtonPreview_Serialize,
 } from '../bindings/tauri';
+
+export type { OneButtonActivity, OneButtonFailure, OneButtonSource } from '../bindings/tauri';
+export type {
+  AgentSkillInstall,
+  AgentSkillState,
+  AgentSkillStatus,
+  AgentSkillTarget,
+  CommandLineStatus,
+} from '../bindings/tauri';
+// One-button Clean (#500): the window only ever receives these shapes.
+export type OneButtonItem = OneButtonItem_Serialize;
+export type OneButtonOutcome = OneButtonOutcome_Serialize;
+export type OneButtonPreview = OneButtonPreview_Serialize;
 
 // In the frontend runtime, settings, snapshots, and provider structures are always fully resolved/serialized shapes
 export type NeatiSettings = NeatiSettings_Serialize;

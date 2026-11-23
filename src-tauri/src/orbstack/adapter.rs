@@ -95,6 +95,7 @@ impl OrbStackAdapter {
             stale: None,
             structured_state: None,
             provider_restriction: None,
+            retained: None,
             entry_kind: EntryKind::File,
             gate: EligibilityGate::Open,
             owner_running: false,

@@ -19,6 +19,12 @@ import type {
   Category,
   CleanEvent,
   CleanResult,
+  OneButtonActivity,
+  AgentSkillInstall,
+  AgentSkillTarget,
+  CommandLineStatus,
+  OneButtonOutcome,
+  OneButtonPreview,
   CleanupFailure,
   CpuMetrics,
   DevelopmentListener,
@@ -292,6 +298,23 @@ export const nativeApi = {
     return await unwrap(commands.reviewedQuickCleanSafe(scanId, selectedItemIds, channel));
   },
 
+  async previewOneButtonClean(
+    onEvent: (event: OneButtonActivity) => void
+  ): Promise<OneButtonPreview> {
+    const channel = new Channel<OneButtonActivity>();
+    channel.onmessage = onEvent;
+    return (await unwrap(commands.previewOneButtonClean(channel))) as OneButtonPreview;
+  },
+
+  async executeOneButtonClean(
+    previewId: string,
+    onEvent: (event: OneButtonActivity) => void
+  ): Promise<OneButtonOutcome> {
+    const channel = new Channel<OneButtonActivity>();
+    channel.onmessage = onEvent;
+    return (await unwrap(commands.executeOneButtonClean(previewId, channel))) as OneButtonOutcome;
+  },
+
   async getMemoryMetrics(): Promise<MemoryMetrics> {
     return await unwrap(commands.getMemoryMetrics());
   },
@@ -428,6 +451,14 @@ export const nativeApi = {
 
   async getLaunchAtLogin(): Promise<LaunchAtLogin> {
     return await unwrap(commands.getLaunchAtLogin());
+  },
+
+  async getCommandLineStatus(): Promise<CommandLineStatus> {
+    return await unwrap(commands.getCommandLineStatus());
+  },
+
+  async installAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
+    return await unwrap(commands.installAgentSkill(target));
   },
 
   async setLaunchAtLogin(enabled: boolean): Promise<LaunchAtLogin> {

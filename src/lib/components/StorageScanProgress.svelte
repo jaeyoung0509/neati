@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isFilesystemRoot } from '../utils/scanRoots';
   import { onMount } from 'svelte';
   import { Square } from '@lucide/svelte';
   import { scanStore } from '../stores/scan.svelte';
@@ -57,7 +58,7 @@
     </div>
     <p class="text-meta font-mono tabular-nums text-muted-foreground self-end">{elapsedLabel}</p>
   </div>
-  {#if scanStore.currentRoot}
+  {#if scanStore.currentRoot && isFilesystemRoot(scanStore.currentRoot.path)}
     <details class="relative mt-4 text-caption text-muted-foreground">
       <summary class="w-fit cursor-pointer rounded-sm underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Show current path</summary>
       <code class="mt-2 block break-all rounded-lg bg-secondary p-2 font-mono">{scanStore.currentRoot.path}</code>

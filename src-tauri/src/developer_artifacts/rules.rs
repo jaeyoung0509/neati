@@ -2,14 +2,14 @@
 //! Order is significant when ecosystems share an artifact directory.
 use super::*;
 
-struct Rule {
-    discovery_name: Option<&'static str>,
-    relative: &'static str,
-    kind: DeveloperArtifactKind,
-    recognition: Recognition,
+pub(super) struct Rule {
+    pub(super) discovery_name: Option<&'static str>,
+    pub(super) relative: &'static str,
+    pub(super) kind: DeveloperArtifactKind,
+    pub(super) recognition: Recognition,
 }
 
-enum Recognition {
+pub(super) enum Recognition {
     Marker {
         names: &'static [&'static str],
         extensions: &'static [&'static str],
@@ -326,9 +326,14 @@ const RULES: &[Rule] = &[
     },
 ];
 
+/// Every rule: the build-output and dependency catalog above, then the
+/// project-local caches (#479). No discovery name appears in both.
+fn all_rules() -> impl Iterator<Item = &'static Rule> {
+    RULES.iter().chain(super::project_caches::RULES.iter())
+}
+
 pub(super) fn recognize(root: &Path, name: &str) -> Option<ArtifactMatch> {
-    RULES
-        .iter()
+    all_rules()
         .filter(|rule| rule.discovery_name == Some(name))
         .find_map(|rule| {
             let found = match &rule.recognition {
@@ -489,21 +494,21 @@ pub(super) fn framework_custom_matches(project: &Path) -> Vec<ArtifactMatch> {
 }
 
 pub(super) fn is_artifact_directory(name: &str) -> bool {
-    RULES.iter().any(|rule| {
-        rule.discovery_name == Some(name)
-            && !matches!(rule.recognition, Recognition::Framework { .. })
-    })
+    // A generic name (`Library`, `Temp`, `Logs`) that no rule recognized may
+    // hold nested projects, so the walk still descends into it.
+    !super::project_caches::TRAVERSE_UNLESS_RECOGNIZED.contains(&name)
+        && all_rules().any(|rule| {
+            rule.discovery_name == Some(name)
+                && !matches!(rule.recognition, Recognition::Framework { .. })
+        })
 }
 
 pub(crate) fn artifact_relative_is_allowed(relative: &Path, kind: DeveloperArtifactKind) -> bool {
-    RULES
-        .iter()
-        .any(|rule| rule.kind == kind && relative == Path::new(rule.relative))
+    all_rules().any(|rule| rule.kind == kind && relative == Path::new(rule.relative))
 }
 
 pub(crate) fn artifact_is_framework_parent(kind: DeveloperArtifactKind) -> bool {
-    RULES
-        .iter()
+    all_rules()
         .any(|rule| rule.kind == kind && matches!(rule.recognition, Recognition::Framework { .. }))
 }
 
@@ -581,7 +586,7 @@ mod tests {
     #[test]
     fn marker_rules_require_direct_evidence_and_authorize_only_their_relative_path() {
         for (rule, names, extensions, ecosystem, hint) in
-            RULES.iter().filter_map(|rule| match &rule.recognition {
+            all_rules().filter_map(|rule| match &rule.recognition {
                 Recognition::Marker {
                     names,
                     extensions,
@@ -611,7 +616,11 @@ mod tests {
                 assert_eq!(found.ecosystem, *ecosystem);
                 assert_eq!(found.rebuild_hint.as_deref(), Some(*hint));
                 assert_eq!(found.marker_paths, vec![root.join(&marker_name)]);
-                assert!(is_artifact_directory(name));
+                assert_eq!(
+                    is_artifact_directory(name),
+                    !super::super::project_caches::TRAVERSE_UNLESS_RECOGNIZED.contains(&name),
+                    "{name}"
+                );
                 assert!(artifact_relative_is_allowed(
                     &found.artifact_relative,
                     found.kind

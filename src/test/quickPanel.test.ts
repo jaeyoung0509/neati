@@ -6,6 +6,7 @@ import QuickUsageGauges from '../lib/components/QuickUsageGauges.svelte';
 import QuickPanel from '../routes/quick/QuickPanel.svelte';
 import { settingsStore } from '../lib/stores/settings.svelte';
 import { usageStore } from '../lib/stores/usage.svelte';
+import { oneButtonCleanStore } from '../lib/stores/oneButtonClean.svelte';
 import { scanStore } from '../lib/stores/scan.svelte';
 import { platformCapabilitiesStore } from '../lib/stores/platformCapabilities.svelte';
 import { goldenCapabilitiesByPlatform } from '../lib/models/platformCapabilities';
@@ -491,7 +492,8 @@ describe('quick cleanup state', () => {
       scanStore.isScanning = false;
       scanStore.isCleaning = true;
       const cleaningBody = render(QuickPanel).body;
-      expect(cleaningBody).toContain('Cleaning caches');
+      // Clean covers caches and project build output together now (#500).
+      expect(cleaningBody).toContain('Cleaning');
       expect(cleaningBody).not.toContain('Old caches');
     } finally {
       settingsStore.settings = previousSettings;
@@ -534,8 +536,10 @@ describe('quick cleanup state', () => {
     }
   });
 
-  it('offers direct Clean for a verified rebuild cache in a partial scan', () => {
+  it('offers direct Clean for the backend preview of a partial scan', () => {
     const previousScan = scanStore.lastScan;
+    const previousPreview = oneButtonCleanStore.preview;
+    const previousPhase = oneButtonCleanStore.phase;
     const previousSettings = settingsStore.settings;
     const previousCapabilities = platformCapabilitiesStore.capabilities;
     const now = Math.floor(Date.now() / 1000);
@@ -560,6 +564,18 @@ describe('quick cleanup state', () => {
         quality: 'partial', incomplete_reasons: ['Another location was inaccessible'],
       };
       scanStore.updateFreshness();
+      // The total and the Clean action come from the backend's one-button
+      // preview (#500), not from a rule the panel re-derives.
+      oneButtonCleanStore.preview = {
+        id: '00000000-0000-4000-8000-000000000001',
+        items: [{
+          reference: 'cache', source: 'cache', name: 'Application Cache', kind: 'system',
+          path: '/fixture/cache', bytes: 1048576,
+        }],
+        total_bytes: 1048576, cache_bytes: 1048576, project_bytes: 0,
+        review_items: 0, review_bytes: 0, project_folders: 0,
+      };
+      oneButtonCleanStore.phase = 'ready';
       const body = render(QuickPanel).body;
       expect(body).toContain('1 MB');
       expect(body).toContain('available · Partial scan');
@@ -569,6 +585,8 @@ describe('quick cleanup state', () => {
       expect(button).not.toContain('disabled=""');
       expect(body).not.toContain('Review Safe');
     } finally {
+      oneButtonCleanStore.preview = previousPreview;
+      oneButtonCleanStore.phase = previousPhase;
       scanStore.lastScan = previousScan;
       settingsStore.settings = previousSettings;
       platformCapabilitiesStore.capabilities = previousCapabilities;

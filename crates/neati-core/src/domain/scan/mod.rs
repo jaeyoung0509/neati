@@ -26,8 +26,8 @@ pub mod overlap;
 pub mod unit;
 
 pub use overlap::{
-    resolve_unit_overlaps, resolve_unit_overlaps_with, CleanupOverlap, OverlapReport,
-    OverlappedDiscovery, UnitRelationship,
+    resolve_unit_overlaps, resolve_unit_overlaps_indexed, resolve_unit_overlaps_with,
+    CleanupOverlap, OverlapAnchors, OverlapReport, OverlappedDiscovery, UnitRelationship,
 };
 pub use unit::{
     AgeObservation, CleanupOwnership, CleanupUnit, CleanupUnitIdentity, CleanupUnitKind,

@@ -4,9 +4,9 @@ use crate::cleaner::LifecycleProviderRegistry;
 use crate::docker::DockerAdapter;
 use crate::execution_budget::shared_scan_pool;
 use crate::models::{
-    resolve_unit_overlaps_with, Category, CategoryResult, EligibilitySummary, ObservationQuality,
-    PathIdentity, RiskTier, ScanEvent, ScanGap, ScanGapKind, ScanItem, ScanResult,
-    UnitRelationship,
+    resolve_unit_overlaps_indexed, Category, CategoryResult, EligibilitySummary,
+    ObservationQuality, PathIdentity, RiskTier, ScanEvent, ScanGap, ScanGapKind, ScanItem,
+    ScanResult, UnitRelationship,
 };
 use crate::orbstack::OrbStackAdapter;
 use crate::scanner::DirectoryScanner;
@@ -19,7 +19,7 @@ use std::path::Path;
 use std::time::{Instant, SystemTime};
 use uuid::Uuid;
 
-use crate::scanner::relationship::ScanRelationships;
+use crate::scanner::relationship::{ScanAnchors, ScanRelationships};
 
 pub struct ScanEngine;
 
@@ -55,6 +55,29 @@ fn route_exact_owner_observations(
                     == UnitRelationship::Equivalent
         },
     );
+}
+
+/// Routes exact owner observations and folds overlapping units, with one
+/// relationship snapshot for the whole pass.
+///
+/// The fold asks only the retained units a candidate shares a path or an
+/// identity with (#493); every other retained unit is one the relationship
+/// would call distinct, so the verdicts are those of asking every unit.
+fn resolve_scan_overlaps(
+    categories: &mut [CategoryResult],
+    registry: &SignatureRegistry,
+) -> neati_core::domain::scan::OverlapReport {
+    let relationships = RefCell::new(ScanRelationships::default());
+    route_exact_owner_observations(categories, registry, &relationships);
+    resolve_unit_overlaps_indexed(
+        categories,
+        &[],
+        PathIdentity::CaseSensitive,
+        |candidate, container| {
+            scan_unit_relationship(candidate, container, registry, &relationships)
+        },
+        &ScanAnchors(&relationships),
+    )
 }
 
 /// The relationship two units have, together with the cleanup policy the scan
@@ -708,16 +731,7 @@ impl ScanEngine {
         // restated before any number derived from them is reported.
         let overlap_started = Instant::now();
         super::coverage::route_to_owners(&mut category_results);
-        let relationships = RefCell::new(ScanRelationships::default());
-        route_exact_owner_observations(&mut category_results, registry, &relationships);
-        let overlap = resolve_unit_overlaps_with(
-            &mut category_results,
-            &[],
-            PathIdentity::CaseSensitive,
-            |candidate, container| {
-                scan_unit_relationship(candidate, container, registry, &relationships)
-            },
-        );
+        let overlap = resolve_scan_overlaps(&mut category_results, registry);
         spans.push(ScanSpan {
             source_id: "scan.overlap_resolution".into(),
             duration_ms: overlap_started
@@ -874,16 +888,7 @@ impl ScanEngine {
             category.ambiguous_overlap_bytes = 0;
         }
         super::coverage::route_to_owners(&mut categories);
-        let relationships = RefCell::new(ScanRelationships::default());
-        route_exact_owner_observations(&mut categories, registry, &relationships);
-        let overlap = resolve_unit_overlaps_with(
-            &mut categories,
-            &[],
-            PathIdentity::CaseSensitive,
-            |candidate, container| {
-                scan_unit_relationship(candidate, container, registry, &relationships)
-            },
-        );
+        let overlap = resolve_scan_overlaps(&mut categories, registry);
         let physical = super::shared_storage::audit(&mut categories, environment);
         let overlap_duration_ms = overlap_started
             .elapsed()
@@ -1033,3 +1038,6 @@ impl<F: FnMut(ScanEvent)> RootProgressSink for ScanEvents<'_, F> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod overlap_tests;

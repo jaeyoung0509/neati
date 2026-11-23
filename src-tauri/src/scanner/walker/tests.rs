@@ -424,7 +424,7 @@ fn child_signature(root: &std::path::Path, min_age_days: u32) -> Signature {
 }
 
 /// Backdates an entry so the age policy sees it as inactive.
-fn age_entry(path: &std::path::Path, days: u64) {
+pub(super) fn age_entry(path: &std::path::Path, days: u64) {
     let when = std::time::SystemTime::now()
         .checked_sub(std::time::Duration::from_secs(days * 86_400))
         .expect("the fixture clock has a past");

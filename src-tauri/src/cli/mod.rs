@@ -18,6 +18,7 @@ mod folders;
 mod inventories;
 pub mod output;
 mod scan;
+mod sessions;
 pub mod skill;
 mod system;
 #[cfg(test)]
@@ -60,6 +61,11 @@ COMMANDS:
   skill print         Print the agent skill
   skill install [--target claude|codex] [--dir PATH] [--force]
                       Install the agent skill for Claude Code or Codex
+  sessions            Claude Code and Codex sessions by project, read-only
+  sessions export --out FILE [--only KEY,…] [--allow-secrets]
+                      Write chosen sessions to one bundle (never replaces FILE)
+  sessions import FILE [--remap OLD=NEW]
+                      Verify a bundle and add its sessions (never replaces a file)
   help | version
 
 OPTIONS:
@@ -162,7 +168,31 @@ fn dispatch(
 ) -> Result<i32, String> {
     let ports = &context.ports;
     let home = context.home.as_deref();
+    // A relative path is the person's working folder, observed once here.
+    let working_directory = std::env::current_dir().ok();
     match command {
+        Command::Sessions => sessions::list(ports.sessions.as_ref(), progress, home, json),
+        Command::SessionsExport(options) => {
+            let destination = sessions::absolute(&options.out, working_directory.as_deref())?;
+            sessions::export(
+                ports.sessions.as_ref(),
+                progress,
+                options,
+                destination,
+                json,
+            )
+        }
+        Command::SessionsImport(options) => {
+            let bundle = sessions::absolute(&options.bundle, working_directory.as_deref())?;
+            sessions::import(
+                ports.sessions.as_ref(),
+                progress,
+                options,
+                bundle,
+                working_directory.as_deref(),
+                json,
+            )
+        }
         Command::Status => system::status(ports.insights.as_ref(), json),
         Command::Ports => system::ports(ports.insights.as_ref(), home, json),
         Command::History => system::history(ports.insights.as_ref(), json),
@@ -230,5 +260,6 @@ fn command_name(command: &Command) -> &'static str {
         Command::History => "history",
         Command::Doctor => "doctor",
         Command::SkillPrint | Command::SkillInstall { .. } => "skill",
+        Command::Sessions | Command::SessionsExport(_) | Command::SessionsImport(_) => "sessions",
     }
 }

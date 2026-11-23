@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-prepare-session-export"
+description = "Enables the prepare_session_export command without any pre-configured scope."
+commands.allow = ["prepare_session_export"]
+
+[[permission]]
+identifier = "deny-prepare-session-export"
+description = "Denies the prepare_session_export command without any pre-configured scope."
+commands.deny = ["prepare_session_export"]

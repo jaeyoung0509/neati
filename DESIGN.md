@@ -342,7 +342,7 @@ Settings. Every feature is a tab inside its section; none was removed.
 Home              Overview: status and the next useful action
 Clean             Caches · Projects · Large Files · Apps · Containers · Models · Disks
 System            Performance · Ports · Keep Awake
-AI                Activity · Controls
+AI                Activity · Sessions · Controls
 
 Settings          anchored at the bottom
 ```
@@ -367,7 +367,7 @@ Settings          anchored at the bottom
 - A view never repeats its section's tabs as a selector or a cross-link button.
 - One name per view (#462): a view's page title is its section tab label
   (Caches, Projects, Large Files, Apps, Containers, Models, Disks; Performance,
-  Ports, Keep Awake; Activity, Controls; Home). Copy that sends someone to the
+  Ports, Keep Awake; Activity, Sessions, Controls; Home). Copy that sends someone to the
   cleanup views says **Clean**, the section's name.
 - A view starts at the top: the content column scrolls to 0 whenever the open
   view changes.
@@ -786,6 +786,26 @@ plain-language status per tool; raw evidence, versions and paths are optional
 technical details. Process observation never establishes inference or task
 progress. Keep legacy-marker removal available without implying plugin setup.
 Control Center retains its budget, manual-usage and advisory controls.
+
+### Agent sessions
+
+Sessions (#508, #509) is a Beta tab in the AI section. It lists Claude Code
+and Codex sessions grouped by project in one bordered surface per project.
+Each project shows a header row with a select-all checkbox, the folder path
+in monospace, the session count and the size. Each session row shows a
+checkbox, the capped first prompt (or a short id), the tool, the last
+activity, the file count and the size. A project whose folder is gone carries
+a `Folder gone` warning badge. A file date stands in for a missing record date
+and is labelled as such. Loading, empty, missing-folder and failed reads are
+separate states.
+
+Export is the page's one primary action. Its dialog states the session, file
+and byte counts and lists likely secrets as counts per kind. An
+acknowledgement checkbox is required before the save dialog opens. Import
+opens the file dialog, then a review that names the verified bundle and the
+files that are kept rather than replaced. For a folder that is not on this
+Mac, a `Choose folder…` action offers a remap. Both dialogs offer Stop while
+they run. The view never offers to delete a session.
 
 ### Containers (Docker)
 

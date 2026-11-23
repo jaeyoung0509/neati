@@ -207,6 +207,12 @@
           "markdownDescription": "Enables the cancel_scan command without any pre-configured scope."
         },
         {
+          "description": "Enables the cancel_session_operation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-session-operation",
+          "markdownDescription": "Enables the cancel_session_operation command without any pre-configured scope."
+        },
+        {
           "description": "Enables the cancel_temporary_storage_review command without any pre-configured scope.",
           "type": "string",
           "const": "allow-cancel-temporary-storage-review",
@@ -303,6 +309,12 @@
           "markdownDescription": "Enables the execute_worktree_removal command without any pre-configured scope."
         },
         {
+          "description": "Enables the export_session_bundle command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-export-session-bundle",
+          "markdownDescription": "Enables the export_session_bundle command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_agent_integrations command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-agent-integrations",
@@ -313,6 +325,12 @@
           "type": "string",
           "const": "allow-get-agent-quick-summary",
           "markdownDescription": "Enables the get_agent_quick_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_agent_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-agent-sessions",
+          "markdownDescription": "Enables the get_agent_sessions command without any pre-configured scope."
         },
         {
           "description": "Enables the get_ai_control_center command without any pre-configured scope.",
@@ -477,6 +495,12 @@
           "markdownDescription": "Enables the get_settings command without any pre-configured scope."
         },
         {
+          "description": "Enables the import_session_bundle command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-import-session-bundle",
+          "markdownDescription": "Enables the import_session_bundle command without any pre-configured scope."
+        },
+        {
           "description": "Enables the inspect_app_uninstall command without any pre-configured scope.",
           "type": "string",
           "const": "allow-inspect-app-uninstall",
@@ -525,6 +549,12 @@
           "markdownDescription": "Enables the open_project_in_terminal command without any pre-configured scope."
         },
         {
+          "description": "Enables the open_session_bundle command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-open-session-bundle",
+          "markdownDescription": "Enables the open_session_bundle command without any pre-configured scope."
+        },
+        {
           "description": "Enables the open_storage_settings command without any pre-configured scope.",
           "type": "string",
           "const": "allow-open-storage-settings",
@@ -541,6 +571,12 @@
           "type": "string",
           "const": "allow-pick-keep-awake-application",
           "markdownDescription": "Enables the pick_keep_awake_application command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the pick_session_project_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-pick-session-project-folder",
+          "markdownDescription": "Enables the pick_session_project_folder command without any pre-configured scope."
         },
         {
           "description": "Enables the post_agent_event command without any pre-configured scope.",
@@ -565,6 +601,12 @@
           "type": "string",
           "const": "allow-prepare-large-file-removal",
           "markdownDescription": "Enables the prepare_large_file_removal command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the prepare_session_export command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-prepare-session-export",
+          "markdownDescription": "Enables the prepare_session_export command without any pre-configured scope."
         },
         {
           "description": "Enables the prepare_temporary_storage_review command without any pre-configured scope.",
@@ -807,6 +849,12 @@
           "markdownDescription": "Denies the cancel_scan command without any pre-configured scope."
         },
         {
+          "description": "Denies the cancel_session_operation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-session-operation",
+          "markdownDescription": "Denies the cancel_session_operation command without any pre-configured scope."
+        },
+        {
           "description": "Denies the cancel_temporary_storage_review command without any pre-configured scope.",
           "type": "string",
           "const": "deny-cancel-temporary-storage-review",
@@ -903,6 +951,12 @@
           "markdownDescription": "Denies the execute_worktree_removal command without any pre-configured scope."
         },
         {
+          "description": "Denies the export_session_bundle command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-export-session-bundle",
+          "markdownDescription": "Denies the export_session_bundle command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_agent_integrations command without any pre-configured scope.",
           "type": "string",
           "const": "deny-get-agent-integrations",
@@ -913,6 +967,12 @@
           "type": "string",
           "const": "deny-get-agent-quick-summary",
           "markdownDescription": "Denies the get_agent_quick_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_agent_sessions command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-agent-sessions",
+          "markdownDescription": "Denies the get_agent_sessions command without any pre-configured scope."
         },
         {
           "description": "Denies the get_ai_control_center command without any pre-configured scope.",
@@ -1077,6 +1137,12 @@
           "markdownDescription": "Denies the get_settings command without any pre-configured scope."
         },
         {
+          "description": "Denies the import_session_bundle command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-import-session-bundle",
+          "markdownDescription": "Denies the import_session_bundle command without any pre-configured scope."
+        },
+        {
           "description": "Denies the inspect_app_uninstall command without any pre-configured scope.",
           "type": "string",
           "const": "deny-inspect-app-uninstall",
@@ -1125,6 +1191,12 @@
           "markdownDescription": "Denies the open_project_in_terminal command without any pre-configured scope."
         },
         {
+          "description": "Denies the open_session_bundle command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-open-session-bundle",
+          "markdownDescription": "Denies the open_session_bundle command without any pre-configured scope."
+        },
+        {
           "description": "Denies the open_storage_settings command without any pre-configured scope.",
           "type": "string",
           "const": "deny-open-storage-settings",
@@ -1141,6 +1213,12 @@
           "type": "string",
           "const": "deny-pick-keep-awake-application",
           "markdownDescription": "Denies the pick_keep_awake_application command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the pick_session_project_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-pick-session-project-folder",
+          "markdownDescription": "Denies the pick_session_project_folder command without any pre-configured scope."
         },
         {
           "description": "Denies the post_agent_event command without any pre-configured scope.",
@@ -1165,6 +1243,12 @@
           "type": "string",
           "const": "deny-prepare-large-file-removal",
           "markdownDescription": "Denies the prepare_large_file_removal command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the prepare_session_export command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-prepare-session-export",
+          "markdownDescription": "Denies the prepare_session_export command without any pre-configured scope."
         },
         {
           "description": "Denies the prepare_temporary_storage_review command without any pre-configured scope.",

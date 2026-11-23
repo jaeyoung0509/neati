@@ -9,11 +9,11 @@ describe('v1 core and beta destinations', () => {
   });
 
   it('labels tool observers as beta without removing them from navigation', () => {
-    const beta = ['projects', 'usage', 'ai_control', 'docker', 'models', 'development_servers'];
+    const beta = ['projects', 'usage', 'sessions', 'ai_control', 'docker', 'models', 'development_servers'];
     for (const tab of beta) expect(dashboardStage(tab), tab).toBe('beta');
     // Beta is a label, not a visibility rule: every beta view is still a tab.
     const tabs = SECTIONS.flatMap((section) => section.routes.map((entry) => entry.route));
-    for (const tab of ['projects', 'ai_control', 'docker', 'models', 'development_servers']) {
+    for (const tab of ['projects', 'sessions', 'ai_control', 'docker', 'models', 'development_servers']) {
       expect(tabs).toContain(tab);
     }
   });

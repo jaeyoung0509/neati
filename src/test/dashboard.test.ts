@@ -112,6 +112,7 @@ describe('Dashboard sidebar affordances', () => {
       Disks: ['DiskView', /title="Disks"/],
       Ports: ['DevelopmentServersView', /title="Ports"/],
       Activity: ['ProjectCockpitView', /title="Activity"/],
+      Sessions: ['AgentSessionsView', /title="Sessions"/],
       Controls: ['AiControlCenterView', /title="Controls"/],
     };
     const tabLabels = SECTIONS.flatMap((section) => section.routes.map((entry) => entry.label));
@@ -205,6 +206,7 @@ describe('Cleanup-first navigation', () => {
       ['awake', 'system', 'awake'],
       ['projects', 'ai', 'projects'],
       ['usage', 'ai', 'projects'],
+      ['sessions', 'ai', 'sessions'],
       ['ai_control', 'ai', 'ai_control'],
       ['settings', 'settings', 'settings'],
     ];

@@ -18,6 +18,7 @@
 mod cleanup_quit;
 pub use cleanup_quit::*;
 pub mod agent_activity;
+pub mod agent_sessions;
 pub mod ai_control_center;
 pub mod ai_profiles;
 pub mod ai_usage;
@@ -40,6 +41,7 @@ pub mod update;
 pub mod worktrees;
 
 pub use agent_activity::*;
+pub use agent_sessions::*;
 pub use ai_control_center::*;
 pub use ai_profiles::*;
 pub use ai_usage::*;

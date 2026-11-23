@@ -1,4 +1,5 @@
 pub mod agent_activity;
+pub mod agent_sessions;
 pub mod ai_control_center;
 pub mod ai_providers;
 pub mod ai_snapshots;
@@ -703,6 +704,13 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::execute_one_button_clean,
             commands::get_command_line_status,
             commands::install_agent_skill,
+            commands::get_agent_sessions,
+            commands::prepare_session_export,
+            commands::export_session_bundle,
+            commands::open_session_bundle,
+            commands::pick_session_project_folder,
+            commands::import_session_bundle,
+            commands::cancel_session_operation,
             commands::get_memory_metrics,
             commands::get_cpu_metrics,
             commands::get_battery_metrics,

@@ -65,7 +65,7 @@ person's choice.
 The CLI is the app's own `Neati` executable. `main.rs` hands the arguments to
 `cli::run` before Tauri starts. Only a recognised command word (`status`,
 `scan`, `projects`, `clean`, `ports`, `ai`, `history`, `doctor`, `skill`,
-`help`, `version`) is the CLI's. Any other launch is the app's, including no
+`sessions`, `help`, `version`) is the CLI's. Any other launch is the app's, including no
 arguments, the login item's `--background` and `--doctor`.
 
 - With Homebrew, the cask links the executable onto `PATH` as `neati`.
@@ -94,6 +94,9 @@ console, and Windows support is paused (#445).
 | `history` | Completed cleanups as counts |
 | `doctor` | `Neati --doctor` |
 | `skill print` / `skill install` | The agent skill |
+| `sessions` | Claude Code and Codex sessions by project. Read-only |
+| `sessions export --out FILE [--only KEY,…] [--allow-secrets]` | Writes one new bundle file. Never replaces FILE |
+| `sessions import FILE [--remap OLD=NEW]` | Verifies a bundle and adds its sessions. Never replaces a file |
 
 `--json` prints one object with `"schema": "neati.cli/1"`. Progress goes to
 stderr, and only when stderr is a terminal and `--quiet` is absent.
@@ -150,6 +153,49 @@ The CLI never accepts a path to remove. Reviewable, recent, advisory and
 protected items are reported and left alone. The same goes for Large Files,
 App Uninstaller, Temporary Folders, home Trash, Docker, local models, and
 memory and port actions. Those keep the app's confirmation flows.
+
+## Agent sessions (#508, #509)
+
+`sessions` runs through its own driving port, `SessionLibrary`
+(`services/agent_sessions/ports.rs`). `AgentSessionLibrary` serves it from
+`agent_sessions/`, with the home folder from the injected
+`PlatformEnvironment`. The window uses the same port through `SessionDesk`,
+which holds one-shot previews and opens the system file dialogs; the window
+never submits a path.
+
+- **Inventory.** Claude Code `~/.claude/projects/<folder>/<id>.jsonl` (plus
+  the `<id>/` side folder of subagents and tool results) and Codex
+  `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` and
+  `~/.codex/archived_sessions`. Links are never followed. At most 5,000
+  sessions per tool are read, newest first. Each file gives 64 KiB of head,
+  growing to 1 MiB until a typed prompt is found, and 64 KiB of tail, within
+  a 512 MiB budget for the whole inventory. A whole transcript is never
+  parsed. The title is the first typed prompt, capped at 120 characters.
+  It is shown locally and never logged. A project folder that is gone is
+  flagged. A network location (`/net`, `/Network`) is never checked.
+- **Export.** `--only` takes inventory keys or session ids. An unknown or
+  ambiguous reference refuses the whole export. Without `--only`, every
+  session is exported. Every byte is checked for likely secrets first:
+  private key blocks, `sk-ant-`, `sk-`, `ghp_`, `github_pat_`, `AKIA`,
+  `xoxb-`/`xoxp-`. Findings are counts per kind. With findings and no
+  `--allow-secrets`, nothing is written and the command exits 1.
+- **Bundle.** A zip (`.neati-sessions`) holding each file byte for byte under
+  `<tool>/<path relative to the tool folder>`, plus `manifest.json`: schema
+  `neati.sessions/1`, the neati version, and for each session the tool, id,
+  original `cwd`, and each file's relative path, size and SHA-256. No machine
+  name or account is recorded. The file is written beside the destination
+  and moved into place without replacing anything.
+- **Import.** The manifest and every checksum are verified before anything is
+  written. Absolute paths, `..`, links, encrypted or unlisted entries and paths
+  outside the tool's session layout are refused. Files go to this machine's
+  session folders with the original layout, never through a link and never
+  over an existing file; a collision is kept and reported.
+  `--remap OLD=NEW` applies only when OLD is missing here and NEW exists. It
+  rewrites every `cwd` field that is OLD or inside it, and nothing else. A
+  Claude Code session also moves to the folder named after NEW: every
+  character other than an ASCII letter or digit becomes `-`. That rule was
+  checked against real folder names. A path that would give a folder name
+  over 200 characters is refused, because that rule is not verified.
 
 ## Settings
 

@@ -61,6 +61,10 @@ pub enum DeveloperEcosystem {
     Julia,
     Lua,
     Terraform,
+    Unity,
+    Unreal,
+    Godot,
+    Elm,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, specta::Type)]
@@ -93,6 +97,29 @@ pub enum DeveloperArtifactKind {
     HaskellDistNewstyle,
     ZigCache,
     TerraformCache,
+    // Project-local caches kondo and npkill find (#479). Each is recognized
+    // only with direct project evidence, stays reviewable, and is never a
+    // one-button build output (`preselection::is_build_output`).
+    PythonBytecodeCache,
+    PytestCache,
+    MypyCache,
+    RuffCache,
+    ToxEnvironments,
+    NoxEnvironments,
+    TurboCache,
+    AngularCache,
+    NxCache,
+    UnityLibrary,
+    UnityTemp,
+    UnityObj,
+    UnityLogs,
+    UnrealIntermediate,
+    UnrealDerivedDataCache,
+    GodotCache,
+    ElmStuff,
+    ClojureCpcache,
+    BloopCache,
+    MetalsCache,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, specta::Type)]

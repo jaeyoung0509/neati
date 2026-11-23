@@ -1,7 +1,11 @@
 #[cfg(test)]
 mod framework_tests;
 pub mod preselection;
+mod project_caches;
+#[cfg(test)]
+mod project_caches_tests;
 mod rules;
+pub(crate) use project_caches::is_inner_cache_tag;
 pub(crate) use rules::artifact_is_framework_parent;
 pub(crate) use rules::artifact_relative_is_allowed;
 pub(crate) use rules::recheck_framework_metadata;

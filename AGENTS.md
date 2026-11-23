@@ -469,7 +469,12 @@ safety conventions below when changing neati.
   stores (`node_modules`, Python environments, `vendor`, bundles, deps, Go
   module cache, Flutter tooling), framework outputs, Terraform and .NET `bin`
   are never preselected and stay reviewable. Do not widen `is_build_output`
-  without the same evidence.
+  without the same evidence. The project-local caches kondo and npkill find
+  (#479: Python tool caches, tox/nox, Turborepo, Angular, Nx, Unity, Unreal
+  `Intermediate`/`DerivedDataCache`, Godot, Elm, `.cpcache`, Bloop, Metals) live
+  in `developer_artifacts::project_caches`, need a direct marker (or, for the
+  Python tool caches, a valid `CACHEDIR.TAG` inside), and are never
+  preselected. `.ipynb_checkpoints` and Unreal `Saved` stay unrecognized.
 
 - Extra AI tool profiles (#451) are directories the person confirmed in
   Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They

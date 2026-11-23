@@ -335,17 +335,20 @@ feedback remain. Nothing animates in a hidden window.
 
 ### Navigation
 
-Owner decision #450 (November 22, 2026): the sidebar holds four sections and
-Settings. Every feature is a tab inside its section; none was removed.
+Owner direction #519 (November 24, 2026, superseding #450): the sidebar holds
+three sections and Settings. Each section shows at most two primary tabs; the
+rest sit in one More menu. Every feature is still reachable; none was removed.
 
 ```text
-Home              Overview: status and the next useful action
-Clean             Caches · Projects · Large Files · Apps · Containers · Models · Disks
-System            Performance · Ports · Keep Awake
-AI                Activity · Sessions · Controls
+Home              Overview                    More: Performance · Disks
+Clean             Caches · Projects           More: Large Files · Apps · Containers · Models
+Agents            Activity · Sessions         More: Ports · Keep Awake · Controls
 
-Settings          anchored at the bottom
+Settings          anchored at the bottom; Cleanup · Agents · App groups
 ```
+
+- A More view opened from the menu or a deep link shows as the active tab.
+- Home always opens on Overview, the one main path.
 
 - A section opens on the view it last showed, or its first available view.
   The app opens on Clean → Caches when cleanup is supported.

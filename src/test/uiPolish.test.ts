@@ -81,7 +81,8 @@ describe('accessible action contracts', () => {
   });
 
   it('offers keyboard-operable ordering controls in Settings', () => {
-    const rendered = render(SettingsView);
+    // The Quick Panel order lives in the App group (#519).
+    const rendered = render(SettingsView, { props: { group: 'app' } });
 
     // The sidebar is fixed since #450; only Quick Panel and provider order remain.
     expect(rendered.body).not.toContain('Sidebar order');

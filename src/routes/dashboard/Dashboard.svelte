@@ -28,7 +28,8 @@
   import SettingsView from './SettingsView.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
   import { formatBytes } from '../../lib/utils/format';
-  import { SECTIONS, sectionForRoute, sectionTabForRoute, sectionEntryRoute, dashboardNavigationOwner, dashboardStage, BETA_NOTE, initialDashboardRoute, normalizeDashboardTab, type SectionDef, type SectionId } from '../../lib/utils/dashboardNavigation';
+  import { SECTIONS, sectionForRoute, sectionTabForRoute, sectionEntryRoute, dashboardNavigationOwner, dashboardStage, BETA_NOTE, initialDashboardRoute, normalizeDashboardTab, visibleSectionRoutes, moreSectionRoutes, type SectionDef, type SectionId, type SectionRoute } from '../../lib/utils/dashboardNavigation';
+  import SectionMoreMenu from '../../lib/components/SectionMoreMenu.svelte';
   import SegmentedTabs from '../../lib/components/SegmentedTabs.svelte';
   import { isTauri, tauriStartWindowDrag, tauriTakePendingNavigation, observeDashboardNavigation } from '../../lib/utils/tauri';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
@@ -40,7 +41,6 @@
     Brush,
     ChevronsLeft,
     ChevronsRight,
-    Gauge,
     House,
     RotateCw,
     Settings,
@@ -87,7 +87,6 @@
   const sectionIcons: Record<SectionId, typeof House> = {
     home: House,
     clean: Brush,
-    system: Gauge,
     ai: Sparkles,
     settings: Settings,
   };
@@ -111,15 +110,18 @@
   let showSectionTabs = $derived(
     currentSection.routes.length > 1 && !selectedCategory && currentTab !== 'memory'
   );
-  let sectionTabs = $derived(
-    currentSection.routes.map((entry) => ({
+  function sectionTabItem(entry: SectionRoute) {
+    return {
       id: entry.route,
       label: entry.label,
       badge: dashboardStage(entry.route) === 'beta' ? 'Beta' : undefined,
       disabled: !isRouteAvailable(entry.route),
       title: routeUnavailableReason(entry.route) ?? (dashboardStage(entry.route) === 'beta' ? BETA_NOTE : undefined),
-    }))
-  );
+    };
+  }
+  // At most two primary tabs; the rest wait in one More menu (#519).
+  let sectionTabs = $derived(visibleSectionRoutes(currentSection, currentSectionTab).map(sectionTabItem));
+  let sectionMoreItems = $derived(moreSectionRoutes(currentSection).map(sectionTabItem));
 
   /**
    * One capability per destination. A route whose adapter is missing stays
@@ -242,7 +244,6 @@
     if (tab === 'memory') {
       currentTab = 'memory';
       selectedCategory = null;
-      lastRouteBySection.system = 'memory';
       return;
     }
 
@@ -450,14 +451,24 @@
     {:else}
       <div class="p-4 @2xl:p-6">
         {#if showSectionTabs}
-          <SegmentedTabs
-            tabs={sectionTabs}
-            activeTab={currentSectionTab}
-            onSelect={(route) => selectTab(route)}
-            ariaLabel={`${currentSection.label} views`}
-            appearance="underline"
-            class="mb-4"
-          />
+          <div class="mb-4 flex items-end gap-2">
+            <SegmentedTabs
+              tabs={sectionTabs}
+              activeTab={currentSectionTab}
+              onSelect={(route) => selectTab(route)}
+              ariaLabel={`${currentSection.label} views`}
+              appearance="underline"
+              class="min-w-0 flex-1"
+            />
+            {#if sectionMoreItems.length > 0}
+              <SectionMoreMenu
+                items={sectionMoreItems}
+                activeId={currentSectionTab}
+                sectionLabel={currentSection.label}
+                onSelect={(route) => selectTab(route)}
+              />
+            {/if}
+          </div>
         {/if}
         {#key selectedCategory ? selectedCategory.category : dashboardNavigationOwner(currentTab) === 'storage' ? 'storage' : currentTab}
           <div in:fade={{ duration: fadeDuration, easing: cubicOut }}>

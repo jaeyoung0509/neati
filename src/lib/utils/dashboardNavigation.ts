@@ -1,14 +1,18 @@
 /**
- * Navigation model (#450): four sections plus Settings. A section owns one or
- * more routes, shown as tabs inside it. Route ids are unchanged, so the tray,
- * the Quick Panel and saved deep links keep working.
+ * Navigation model (#519, owner direction 2026-11-24; supersedes #450): three
+ * sections plus Settings. A section shows at most two primary tabs; its other
+ * routes sit in one "More" menu and appear as a tab while open. Route ids are
+ * unchanged, so the tray, the Quick Panel and saved deep links keep working,
+ * and nothing is hidden.
  */
-export type SectionId = 'home' | 'clean' | 'system' | 'ai' | 'settings';
+export type SectionId = 'home' | 'clean' | 'ai' | 'settings';
 
 export interface SectionRoute {
   /** The route a section tab opens. */
   route: string;
   label: string;
+  /** Listed under the section's More menu instead of as a tab. */
+  more?: boolean;
 }
 
 export interface SectionDef {
@@ -17,41 +21,54 @@ export interface SectionDef {
   routes: readonly SectionRoute[];
 }
 
+/** Most primary tabs a section shows (#519). */
+export const MAX_PRIMARY_TABS = 2;
+
 export const SECTIONS: readonly SectionDef[] = [
-  { id: 'home', label: 'Home', routes: [{ route: 'overview', label: 'Overview' }] },
+  {
+    id: 'home',
+    label: 'Home',
+    routes: [
+      { route: 'overview', label: 'Overview' },
+      { route: 'performance', label: 'Performance', more: true },
+      { route: 'disks', label: 'Disks', more: true },
+    ],
+  },
   {
     id: 'clean',
     label: 'Clean',
     routes: [
       { route: 'storage', label: 'Caches' },
       { route: 'developer-artifacts', label: 'Projects' },
-      { route: 'large-files', label: 'Large Files' },
-      { route: 'applications', label: 'Apps' },
-      { route: 'docker', label: 'Containers' },
-      { route: 'models', label: 'Models' },
-      { route: 'disks', label: 'Disks' },
-    ],
-  },
-  {
-    id: 'system',
-    label: 'System',
-    routes: [
-      { route: 'performance', label: 'Performance' },
-      { route: 'development_servers', label: 'Ports' },
-      { route: 'awake', label: 'Keep Awake' },
+      { route: 'large-files', label: 'Large Files', more: true },
+      { route: 'applications', label: 'Apps', more: true },
+      { route: 'docker', label: 'Containers', more: true },
+      { route: 'models', label: 'Models', more: true },
     ],
   },
   {
     id: 'ai',
-    label: 'AI',
+    label: 'Agents',
     routes: [
       { route: 'projects', label: 'Activity' },
       { route: 'sessions', label: 'Sessions' },
-      { route: 'ai_control', label: 'Controls' },
+      { route: 'development_servers', label: 'Ports', more: true },
+      { route: 'awake', label: 'Keep Awake', more: true },
+      { route: 'ai_control', label: 'Controls', more: true },
     ],
   },
   { id: 'settings', label: 'Settings', routes: [{ route: 'settings', label: 'Settings' }] },
 ];
+
+/** The tabs a section shows: its primary routes, plus the open More route. */
+export function visibleSectionRoutes(section: SectionDef, activeRoute: string): SectionRoute[] {
+  return section.routes.filter((entry) => !entry.more || entry.route === activeRoute);
+}
+
+/** The routes a section lists under More. */
+export function moreSectionRoutes(section: SectionDef): SectionRoute[] {
+  return section.routes.filter((entry) => entry.more);
+}
 
 /** Detail routes that live inside a section tab's view. */
 const ROUTE_TAB_OWNER: Readonly<Record<string, string>> = {
@@ -82,7 +99,10 @@ export function sectionEntryRoute(
   lastRoute: string | undefined,
   isAvailable: (route: string) => boolean,
 ): string | null {
-  if (lastRoute && sectionForRoute(lastRoute).id === section.id && isAvailable(lastRoute)) return lastRoute;
+  // Home is the one main path (#519): it always opens on its overview.
+  if (section.id !== 'home' && lastRoute && sectionForRoute(lastRoute).id === section.id && isAvailable(lastRoute)) {
+    return lastRoute;
+  }
   return section.routes.find((entry) => isAvailable(entry.route))?.route ?? null;
 }
 

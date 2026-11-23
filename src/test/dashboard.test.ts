@@ -9,7 +9,7 @@ import { platformContextStore } from '../lib/stores/platformContext.svelte';
 import { settingsStore } from '../lib/stores/settings.svelte';
 import { goldenCapabilitiesByPlatform } from '../lib/models/platformCapabilities';
 import { mockApi } from '../lib/api/mock';
-import { SECTIONS, dashboardNavigationOwner, initialDashboardRoute, sectionEntryRoute, sectionForRoute, sectionTabForRoute } from '../lib/utils/dashboardNavigation';
+import { MAX_PRIMARY_TABS, SECTIONS, dashboardNavigationOwner, initialDashboardRoute, moreSectionRoutes, sectionEntryRoute, sectionForRoute, sectionTabForRoute, visibleSectionRoutes } from '../lib/utils/dashboardNavigation';
 
 beforeEach(() => {
   scanStore.lastScan = {
@@ -84,10 +84,11 @@ describe('Dashboard sidebar affordances', () => {
     expect(memorySource).not.toContain('Development Servers Section');
   });
 
-  it('shows four sections plus Settings instead of one entry per feature', () => {
+  it('shows three sections plus Settings instead of one entry per feature (#519)', () => {
     const rendered = render(Dashboard);
     const sections = [...rendered.body.matchAll(/data-section="([a-z]+)"/g)].map((match) => match[1]);
-    expect(sections).toEqual(['home', 'clean', 'system', 'ai']);
+    expect(sections).toEqual(['home', 'clean', 'ai']);
+    expect(rendered.body).toContain('aria-label="Agents"');
     expect(rendered.body).toContain('aria-label="Settings"');
     // Old per-feature sidebar entries and group headings are gone.
     for (const label of ['Containers', 'Local Models', 'Dev Servers', 'Keep Awake', 'Memory']) {
@@ -128,14 +129,22 @@ describe('Dashboard sidebar affordances', () => {
     expect(rendered.body).toMatch(/aria-label="Clean, 14 MB reclaimable"/);
   });
 
-  it('opens on Clean with its views as tabs, Beta labelled where data is advisory', () => {
+  it('opens on Clean with two tabs and the rest under More, Beta labelled where data is advisory (#519)', () => {
     const rendered = render(Dashboard);
     expect(rendered.body).toContain('aria-label="Clean views"');
     const tablist = rendered.body.split('aria-label="Clean views"')[1]?.split('</div>')[0] ?? '';
-    for (const label of ['Caches', 'Projects', 'Large Files', 'Apps', 'Containers', 'Models', 'Disks']) {
+    for (const label of ['Caches', 'Projects']) {
       expect(tablist).toContain(`<span>${label}</span>`);
     }
-    expect(tablist.match(/>\s*Beta\s*</g)).toHaveLength(2);
+    for (const label of ['Large Files', 'Apps', 'Containers', 'Models', 'Disks']) {
+      expect(tablist).not.toContain(`<span>${label}</span>`);
+    }
+    const more = rendered.body.split('<ul')[1]?.split('</ul>')[0] ?? '';
+    expect(rendered.body).toContain('aria-label="More Clean views"');
+    for (const label of ['Large Files', 'Apps', 'Containers', 'Models']) {
+      expect(more).toContain(`<span>${label}</span>`);
+    }
+    expect(more.match(/>\s*Beta\s*</g)).toHaveLength(2);
   });
 });
 
@@ -156,20 +165,22 @@ describe('Cleanup-first navigation', () => {
   });
 
   it('closes the Apps tab only when installed apps cannot be inspected', () => {
-    const appsTab = (body: string) => body.match(/<button[^>]*role="tab"[^>]*>(?:(?!<\/button>).)*<span>Apps<\/span>/s)?.[0] ?? '';
+    // Apps lives in the Clean section's More menu (#519).
+    const appsTab = (body: string) => body.match(/<button[^>]*>(?:(?!<\/button>).)*<span>Apps<\/span>/s)?.[0] ?? '';
     platformCapabilitiesStore.capabilities = {
       ...goldenCapabilitiesByPlatform.macos,
       installed_apps: { status: 'unavailable', reason: 'Application inventory is not supported here.' },
     };
     const closed = appsTab(render(Dashboard).body);
-    expect(closed).toContain('disabled');
+    expect(closed).toMatch(/\sdisabled(=|\s|>)/);
     expect(closed).toContain('Application inventory is not supported here.');
 
     for (const installed_apps of [{ status: 'available' as const }, { status: 'read_only' as const, reason: 'Inspection only' }]) {
       platformCapabilitiesStore.capabilities = { ...goldenCapabilitiesByPlatform.macos, installed_apps };
       const open = appsTab(render(Dashboard).body);
       expect(open).toContain('<span>Apps</span>');
-      expect(open).not.toMatch(/\sdisabled/);
+      // The attribute, not the `disabled:` styling variants in the class list.
+      expect(open).not.toMatch(/\sdisabled(=|\s|>)/);
     }
   });
 
@@ -191,19 +202,19 @@ describe('Cleanup-first navigation', () => {
     const cases: Array<[string, string, string]> = [
       ['overview', 'home', 'overview'],
       ['storage', 'clean', 'storage'],
-      ['disk', 'clean', 'disks'],
-      ['disks', 'clean', 'disks'],
+      ['disk', 'home', 'disks'],
+      ['disks', 'home', 'disks'],
       ['large-files', 'clean', 'large-files'],
       ['applications', 'clean', 'applications'],
       ['developer-artifacts', 'clean', 'developer-artifacts'],
       ['docker', 'clean', 'docker'],
       ['models', 'clean', 'models'],
-      ['performance', 'system', 'performance'],
-      ['memory', 'system', 'performance'],
-      ['cpu', 'system', 'performance'],
-      ['battery', 'system', 'performance'],
-      ['development_servers', 'system', 'development_servers'],
-      ['awake', 'system', 'awake'],
+      ['performance', 'home', 'performance'],
+      ['memory', 'home', 'performance'],
+      ['cpu', 'home', 'performance'],
+      ['battery', 'home', 'performance'],
+      ['development_servers', 'ai', 'development_servers'],
+      ['awake', 'ai', 'awake'],
       ['projects', 'ai', 'projects'],
       ['usage', 'ai', 'projects'],
       ['sessions', 'ai', 'sessions'],
@@ -214,6 +225,31 @@ describe('Cleanup-first navigation', () => {
       expect(sectionForRoute(route).id, route).toBe(section);
       expect(sectionTabForRoute(route), route).toBe(tab);
     }
+  });
+
+  it('shows at most two primary tabs per section and lists the rest under More (#519)', () => {
+    const seen = new Map<string, string>();
+    for (const section of SECTIONS) {
+      const primary = section.routes.filter((entry) => !entry.more);
+      expect(primary.length, section.id).toBeGreaterThan(0);
+      expect(primary.length, section.id).toBeLessThanOrEqual(MAX_PRIMARY_TABS);
+      for (const entry of section.routes) {
+        expect(seen.has(entry.route), `${entry.route} belongs to one section`).toBe(false);
+        seen.set(entry.route, section.id);
+      }
+    }
+    const clean = SECTIONS.find((section) => section.id === 'clean')!;
+    expect(visibleSectionRoutes(clean, 'storage').map((entry) => entry.route)).toEqual(['storage', 'developer-artifacts']);
+    // A More route opened from a deep link shows as the active tab.
+    expect(visibleSectionRoutes(clean, 'models').map((entry) => entry.route)).toEqual([
+      'storage',
+      'developer-artifacts',
+      'models',
+    ]);
+    expect(moreSectionRoutes(clean).map((entry) => entry.route)).toEqual(['large-files', 'applications', 'docker', 'models']);
+    // Home is the main path: it always opens on its overview.
+    const home = SECTIONS.find((section) => section.id === 'home')!;
+    expect(sectionEntryRoute(home, 'performance', () => true)).toBe('overview');
   });
 
   it('returns to the route a section last showed, when it is still available', () => {

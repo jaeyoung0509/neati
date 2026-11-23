@@ -7,9 +7,9 @@
 //! the second rule reads what the first one measured instead. The overlap
 //! pass still sees both rows and still folds them exactly as before.
 //!
-//! The memo belongs to one scan and is dropped with it. It holds observations,
-//! never authorization: planning and execution measure and verify the live
-//! filesystem themselves. A measurement the scan's cancellation cut short is
+//! The memo belongs to one scan and is dropped with it. It holds observations
+//! and grants no cleanup authority; planning and execution measure and verify
+//! the live filesystem themselves. A measurement the scan's cancellation cut short is
 //! not kept, so a stopped scan never hands its partial walk to another rule.
 
 use super::observation::ScanLimits;

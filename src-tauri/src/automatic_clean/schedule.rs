@@ -25,12 +25,18 @@ pub fn decide(
     if !settings.enabled {
         return Err(AutomaticCleanWait::Disabled);
     }
+    // A recorded run in the future means the clock moved back: due now.
+    let last_run_at = last_run_at.filter(|last| *last <= now);
     if let Some(due) = next_due_at(settings, last_run_at) {
         if now < due {
             return Err(AutomaticCleanWait::NotDue);
         }
     }
-    let (on_ac, idle) = observe();
+    ready(observe())
+}
+
+/// Whether the observed conditions allow removal now.
+pub fn ready((on_ac, idle): (Option<bool>, Option<u64>)) -> Result<(), AutomaticCleanWait> {
     match on_ac {
         Some(true) => {}
         Some(false) => return Err(AutomaticCleanWait::OnBattery),

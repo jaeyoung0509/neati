@@ -540,7 +540,10 @@ safety conventions below when changing neati.
   run, the Mac is on AC power and the person has not used keyboard or mouse
   for 10 minutes (`neati_platform::input_idle`); unknown power or idleness
   waits. A run that removes nothing or fails still counts as the interval's
-  run, so nothing retries in a loop. Only the desktop app schedules checks (a
+  run, so nothing retries in a loop; the conditions are checked again between
+  the preview and removal, and a person who came back stops the run without
+  counting it. Turning it on asks for notification permission so a run is
+  always announced. Only the desktop app schedules checks (a
   15-minute timer that reads the setting); the CLI never does. It adds no
   selection rule of its own, and changing its default to on is an owner
   decision.

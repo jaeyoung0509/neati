@@ -59,6 +59,14 @@ fn the_schedule_waits_for_every_condition() {
         Ok(())
     );
     assert_eq!(next_due_at(weekly, Some(NOW)), Some(NOW + 7 * DAY));
+    // The clock moved back after a run: due now rather than weeks away.
+    assert_eq!(
+        decide(NOW, weekly, Some(NOW + 30 * DAY), || (
+            Some(true),
+            Some(idle)
+        )),
+        Ok(())
+    );
     assert_eq!(
         next_due_at(AutomaticCleanSettings::default(), Some(NOW)),
         None
@@ -120,6 +128,20 @@ impl Conditions for Ready {
 
     fn idle_seconds(&self) -> Option<u64> {
         Some(MIN_IDLE_SECONDS * 2)
+    }
+}
+
+/// Idle at the first look, back at the Mac by the second.
+struct Returns(AtomicU32);
+
+impl Conditions for Returns {
+    fn on_ac_power(&self) -> Option<bool> {
+        Some(true)
+    }
+
+    fn idle_seconds(&self) -> Option<u64> {
+        let look = self.0.fetch_add(1, Ordering::SeqCst);
+        Some(if look == 0 { MIN_IDLE_SECONDS * 2 } else { 5 })
     }
 }
 
@@ -244,4 +266,36 @@ fn an_empty_set_or_a_refusal_still_counts_as_the_intervals_run() {
     assert_eq!(clean.executes.load(Ordering::SeqCst), 0);
     assert_eq!(notes.0.lock().unwrap()[0].0, "Automatic Clean did not run");
     assert!(tick(&refused, NOW + 60).is_none(), "no retry loop");
+}
+
+#[test]
+fn a_person_who_returns_during_the_scan_stops_the_removal() {
+    let settings = Arc::new(SettingsAuthority::new(NeatiSettings {
+        automatic_clean: on(AutomaticCleanInterval::Weekly),
+        ..NeatiSettings::default()
+    }));
+    let clean = Arc::new(FakeClean {
+        previews: AtomicU32::new(0),
+        executes: AtomicU32::new(0),
+        chosen: vec![candidate(10)],
+        refuse: None,
+    });
+    let automatic = AutomaticClean::new(
+        clean.clone(),
+        settings,
+        Arc::new(Returns(AtomicU32::new(0))),
+        Arc::new(NoNotifier),
+        None,
+    );
+    assert!(tick(&automatic, NOW).is_none());
+    assert_eq!(clean.previews.load(Ordering::SeqCst), 1);
+    assert_eq!(clean.executes.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        automatic.status().waiting,
+        Some(AutomaticCleanWait::PersonActive)
+    );
+    assert!(
+        automatic.status().last_run.is_none(),
+        "not counted as a run"
+    );
 }

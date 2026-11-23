@@ -166,6 +166,15 @@ impl AutomaticClean {
         }
         let run = self.run(now).await;
         self.running.store(false, Ordering::SeqCst);
+        let run = match run {
+            Ok(run) => run,
+            Err(wait) => {
+                // The person came back or unplugged during the scan: nothing
+                // was removed, and the next check tries again.
+                self.inner().waiting = Some(wait);
+                return None;
+            }
+        };
         {
             let mut inner = self.inner();
             inner.last_run = Some(run.clone());
@@ -176,22 +185,28 @@ impl AutomaticClean {
         Some(run)
     }
 
-    async fn run(&self, now: u64) -> AutomaticCleanRun {
+    async fn run(&self, now: u64) -> Result<AutomaticCleanRun, AutomaticCleanWait> {
         let request = CleanRequest::default();
         let preview = match self.clean.preview(request, Arc::new(Silent)).await {
             Ok(preview) => preview,
-            Err(error) => return failed_run(now, error.to_string()),
+            Err(error) => return Ok(failed_run(now, error.to_string())),
         };
         if preview.chosen.is_empty() {
-            return AutomaticCleanRun {
+            return Ok(AutomaticCleanRun {
                 at: now,
                 reclaimed_bytes: 0,
                 removed: 0,
                 failed: 0,
                 error: None,
-            };
+            });
         }
-        match self.clean.execute(&preview, Arc::new(Silent)).await {
+        // A scan takes minutes: the conditions must still hold right before
+        // anything is removed.
+        schedule::ready((
+            self.conditions.on_ac_power(),
+            self.conditions.idle_seconds(),
+        ))?;
+        Ok(match self.clean.execute(&preview, Arc::new(Silent)).await {
             Ok(outcome) => AutomaticCleanRun {
                 at: now,
                 reclaimed_bytes: outcome.reclaimed_bytes,
@@ -200,7 +215,7 @@ impl AutomaticClean {
                 error: None,
             },
             Err(error) => failed_run(now, error.to_string()),
-        }
+        })
     }
 
     fn persist(&self, run: &AutomaticCleanRun) {

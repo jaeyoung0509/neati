@@ -158,6 +158,20 @@ macro_rules! impl_provider {
                 self.0.read_store(environment, guard)
             }
 
+            fn scan_in(
+                &self,
+                environment: &PlatformEnvironment,
+                guard: &RunningProcessPolicy,
+                context: &crate::cleaner::OwnerScanContext<'_>,
+                _spans: &mut Vec<neati_core::domain::scan::ScanSpan>,
+            ) -> OwnerStoreObservation {
+                self.0.read_store_with(
+                    environment,
+                    guard,
+                    &context.processes(self.0.process.as_ref()),
+                )
+            }
+
             fn prepare(
                 &self,
                 environment: &PlatformEnvironment,
@@ -215,6 +229,17 @@ impl CargoStoreProvider {
         environment: &PlatformEnvironment,
         guard: &RunningProcessPolicy,
     ) -> OwnerStoreObservation {
+        self.read_store_with(environment, guard, self.process.as_ref())
+    }
+
+    /// [`Self::read_store`] with the process evidence stated: the live table,
+    /// or a scan's snapshot for an inventory the scan runs (#493).
+    fn read_store_with(
+        &self,
+        environment: &PlatformEnvironment,
+        guard: &RunningProcessPolicy,
+        processes: &dyn RunningProcessProbe,
+    ) -> OwnerStoreObservation {
         let roots = match self.resolved_roots(environment) {
             Ok(roots) => roots,
             Err(detail) => {
@@ -224,7 +249,7 @@ impl CargoStoreProvider {
         let primary = roots.first().cloned();
         // The owner's own state decides whether its store may be read at all:
         // a cache Cargo is writing right now is not a set of stale archives.
-        match self.process.running(guard) {
+        match processes.running(guard) {
             None => {
                 return OwnerStoreObservation::refused(
                     ProviderStatus::Blocked,
@@ -1374,5 +1399,72 @@ mod tests {
             .expect_err("the archive provider does not own the source store");
         assert_eq!(refusal.refusals.len(), 1);
         assert!(refusal.detail.contains("no longer part of the store"));
+    }
+
+    /// Only the scan reuses its process snapshot (#493): the inventory a scan
+    /// runs answers from the snapshot it is lent, while preparation and an
+    /// inventory outside a scan read the provider's own live port.
+    #[test]
+    fn a_scan_reads_its_snapshot_while_preparation_reads_the_live_table() {
+        use crate::applications::RunningApplications;
+        use crate::cleaner::owner_providers::{scan_context::NoProviderProgress, OwnerScan};
+        let fixture = tempdir().unwrap();
+        let environment = environment(fixture.path());
+        let archive = fixture_archive(
+            fixture.path(),
+            "index.crates.io-1949cf8c6b5b557f",
+            "good-1.0.0.crate",
+            b"payload",
+        );
+        let guard = RunningProcessPolicy::guarding(vec!["cargo".into()]);
+        // The live table says Cargo is running.
+        let provider = archive_provider(Arc::new(StatedProcess(Some(vec!["cargo".into()]))));
+        assert_eq!(
+            provider.scan(&environment, &guard).status,
+            ProviderStatus::PrerequisiteNotMet
+        );
+
+        let idle_snapshot = RunningApplications::from_process_names(["zsh".into()]);
+        let scan = OwnerScan::of_scan(&idle_snapshot, &crate::models::NeverCancelled, None);
+        let lent = provider.scan_in(
+            &environment,
+            &guard,
+            &scan.context("dev.cargo.registry.cache", &NoProviderProgress),
+            &mut Vec::new(),
+        );
+        assert!(
+            lent.status.is_ready(),
+            "the scan's snapshot says Cargo is idle"
+        );
+        assert_eq!(lent.units.len(), 1);
+
+        let busy_snapshot = RunningApplications::from_process_names(["cargo".into()]);
+        let scan = OwnerScan::of_scan(&busy_snapshot, &crate::models::NeverCancelled, None);
+        assert_eq!(
+            provider
+                .scan_in(
+                    &environment,
+                    &guard,
+                    &scan.context("dev.cargo.registry.cache", &NoProviderProgress),
+                    &mut Vec::new(),
+                )
+                .status,
+            ProviderStatus::PrerequisiteNotMet,
+            "a busy snapshot refuses the store as the live table would"
+        );
+
+        let refusal = provider
+            .prepare(
+                &environment,
+                &guard,
+                &[OwnerProviderSelection {
+                    item_id: "dev.cargo.registry.cache.index".to_string(),
+                    name: "Cargo Registry Cache (index)".to_string(),
+                    path: archive.parent().unwrap().to_path_buf(),
+                    expected_bytes: lent.units[0].allocated_bytes,
+                }],
+            )
+            .expect_err("preparation reads the live table, which says Cargo is running");
+        assert_eq!(refusal.status, ProviderStatus::PrerequisiteNotMet);
     }
 }

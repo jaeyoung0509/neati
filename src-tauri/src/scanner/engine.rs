@@ -677,15 +677,23 @@ impl ScanEngine {
             //    semantics only its owner knows. Their candidates are
             //    discovered here — in the category their catalog entry declares
             //    — and every one of them is offered for explicit selection.
+            //    They read the scan's own process snapshot and open-file
+            //    verdicts, run side by side on the shared pool, and name the
+            //    store they are reading while they read it (#493).
             if !was_cancelled {
-                for item in owner_providers.scan_items_with_cancellation_and_spans(
+                for item in owner_providers.scan_items_in(
                     registry,
                     category,
                     intensive_cleanup,
                     excluded_signatures,
                     environment,
-                    cancellation,
+                    &crate::cleaner::OwnerScan::of_scan(
+                        &running_apps,
+                        cancellation,
+                        directory_pool,
+                    ),
                     &mut spans,
+                    &events,
                 ) {
                     if cancellation.is_cancelled() {
                         was_cancelled = true;

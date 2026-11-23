@@ -381,7 +381,11 @@ fn cancelled_browser_inventory_starts_no_use_probes_and_qualifies_unknown_scope(
         Arc::new(NoProbe),
         Arc::new(FixtureTrash::default()),
     );
-    let result = provider.read_store_with_cancellation(&environment, &Cancelled);
+    let result = provider.read_store_with_cancellation(
+        &environment,
+        &Cancelled,
+        crate::cleaner::ProcessView::Live(&NoProbe),
+    );
     assert!(result.units.is_empty());
     assert_eq!(
         result.inspection_issue,
@@ -556,6 +560,7 @@ fn offline_probe_fanout_is_bounded_and_keeps_each_unit_verdict() {
                     &browser_root,
                     unit.path.clone(),
                     &BrowserOwnerState::Idle,
+                    &crate::cleaner::ProcessView::Live(provider.process.as_ref()),
                 )
                 .unwrap()
         })
@@ -1035,4 +1040,62 @@ fn replacement_after_review_is_refused() {
     let result = provider.execute(&environment, &plan);
     assert_eq!(result.units[0].status, ProviderStatus::Blocked);
     assert!(cache.exists());
+}
+
+/// Paired timing of one offline-cache inventory read through the live port
+/// (a process-table pass and an `lsof` per unit) and through a scan's lent
+/// snapshot (one batched `lsof`), on fixture units only (#493). Every unit
+/// gets the same verdict either way. Run with
+/// `cargo test -p neati-desktop --lib offline_inventory_timing -- --ignored --nocapture`.
+#[test]
+#[ignore = "timing evidence, not a CI threshold"]
+fn offline_inventory_timing() {
+    use crate::applications::RunningApplications;
+    use crate::cleaner::owner_providers::{scan_context::NoProviderProgress, OwnerScan};
+    let (_temp, environment, guard) = mac_fixture();
+    let root = ChromiumCacheProvider::base(&environment)
+        .unwrap()
+        .join("Google/Chrome/Default/Service Worker/CacheStorage");
+    for origin in 0..12 {
+        for cache in 0..4 {
+            let path = root.join(format!("origin-{origin:02}/cache-{cache}"));
+            fs::create_dir_all(&path).unwrap();
+            fs::write(path.join("payload"), vec![1; 4096]).unwrap();
+        }
+    }
+    let provider = provider(
+        BrowserCacheKind::OfflineCacheStorage,
+        Arc::new(crate::cleaner::SysinfoProcessProbe),
+        Arc::new(FixtureTrash::default()),
+    );
+    let verdicts = |observation: &OwnerStoreObservation| {
+        let mut verdicts: Vec<_> = observation
+            .units
+            .iter()
+            .map(|unit| (unit.unit_key.clone(), unit.state))
+            .collect();
+        verdicts.sort_by(|left, right| left.0.cmp(&right.0));
+        verdicts
+    };
+    for _ in 0..3 {
+        let started = std::time::Instant::now();
+        let live = provider.scan(&environment, &guard);
+        let live_ms = started.elapsed().as_secs_f64() * 1_000.0;
+
+        let started = std::time::Instant::now();
+        let snapshot = RunningApplications::probe();
+        let scan = OwnerScan::of_scan(&snapshot, &crate::models::NeverCancelled, None);
+        let lent = provider.scan_in(
+            &environment,
+            &guard,
+            &scan.context("system.chromium.offline", &NoProviderProgress),
+            &mut Vec::new(),
+        );
+        let scan_ms = started.elapsed().as_secs_f64() * 1_000.0;
+        assert_eq!(live.units.len(), 48);
+        assert_eq!(verdicts(&lent), verdicts(&live));
+        println!(
+            "{{\"offline_units\":48,\"live_ms\":{live_ms:.1},\"scan_snapshot_ms\":{scan_ms:.1}}}"
+        );
+    }
 }

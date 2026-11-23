@@ -32,6 +32,31 @@ The app has four sections and Settings:
 Containers, Models, Ports and the AI views are labelled **Beta**: they work, but
 their data depends on tools neati only observes and may be incomplete.
 
+### After the coding agents
+
+Developing with coding agents leaves things behind: build output and
+dependencies in projects nobody opens any more, a Git worktree per task, and
+session records spread over each tool's folder. neati reclaims what can be
+recreated and keeps what cannot:
+
+- **Cleanup rules** (Settings): keep build output of projects you worked on
+  recently, and, if you turn it on, include `node_modules`, Python
+  environments and other dependency folders of projects you have not touched
+  for a while, only when a lockfile can reinstall them. Every project item says
+  why it is in Clean or not.
+- **Finished worktrees** (Clean → Projects): worktrees whose work is committed
+  and on a branch, that nothing uses, are removed through `git worktree
+  remove`. Branches and commits stay. Worktrees with uncommitted or untracked
+  files are never touched.
+- **Automatic Clean** (Settings, off by default): the same Clean, daily or
+  weekly, only on AC power while you are away from the Mac.
+- **Agent sessions** (AI → Sessions): Claude Code and Codex sessions by
+  project. Export them to one bundle with checksums and a secret check, and
+  import them on another Mac; nothing is ever overwritten or deleted.
+- **Project folders** are suggested from where your agents actually worked.
+
+New removal rules start off; you turn each on.
+
 What those sections cover:
 
 - Storage cleanup for Claude Code, Cursor, Antigravity (and legacy Gemini CLI caches), Codex,

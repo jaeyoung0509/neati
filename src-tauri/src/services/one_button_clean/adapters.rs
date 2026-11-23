@@ -253,6 +253,10 @@ impl ServiceWorktreeCleanup {
 }
 
 impl super::ports::WorktreeCleanup for ServiceWorktreeCleanup {
+    fn rule_enabled(&self) -> bool {
+        self.worktrees.rule_enabled()
+    }
+
     fn current(&self) -> Option<crate::models::WorktreeInventory> {
         self.worktrees.current()
     }

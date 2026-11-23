@@ -96,29 +96,30 @@ impl OneButtonClean {
             None
         };
 
-        let worktrees = if request.worktrees {
-            let inventory = match request
-                .reuse_current
-                .then(|| self.worktrees.current())
-                .flatten()
-            {
-                Some(inventory) => inventory,
-                None => self.worktrees.scan(activity).await?,
+        let worktrees =
+            if request.worktrees && (request.worktree_inventory || self.worktrees.rule_enabled()) {
+                let inventory = match request
+                    .reuse_current
+                    .then(|| self.worktrees.current())
+                    .flatten()
+                {
+                    Some(inventory) => inventory,
+                    None => self.worktrees.scan(activity).await?,
+                };
+                // Finished worktrees the rule leaves out are waiting for review.
+                for item in inventory
+                    .items
+                    .iter()
+                    .filter(|item| item.is_removable() && !item.selected_by_default)
+                {
+                    review.items += 1;
+                    review.bytes += item.allocated_bytes;
+                }
+                candidates.extend(worktree_candidates(&inventory));
+                Some(inventory)
+            } else {
+                None
             };
-            // Finished worktrees the rule leaves out are waiting for review.
-            for item in inventory
-                .items
-                .iter()
-                .filter(|item| item.is_removable() && !item.selected_by_default)
-            {
-                review.items += 1;
-                review.bytes += item.allocated_bytes;
-            }
-            candidates.extend(worktree_candidates(&inventory));
-            Some(inventory)
-        } else {
-            None
-        };
 
         let chosen = narrow(candidates, &request.only, &request.skip)
             .map_err(OneButtonError::UnknownReferences)?;
@@ -163,11 +164,28 @@ impl OneButtonClean {
 
         let worktree_ids = backend_ids(&preview.chosen, Source::Worktree);
         if let (Some(inventory), false) = (&preview.worktrees, worktree_ids.is_empty()) {
-            let report = self
+            // Earlier parts already removed units: a refusal here becomes a
+            // failure per worktree instead of hiding what was reclaimed.
+            match self
                 .worktrees
                 .remove(inventory.scan_id.clone(), worktree_ids, activity)
-                .await?;
-            merge(&mut outcome, report, &preview.chosen, Source::Worktree);
+                .await
+            {
+                Ok(report) => merge(&mut outcome, report, &preview.chosen, Source::Worktree),
+                Err(message) => {
+                    for candidate in preview
+                        .chosen
+                        .iter()
+                        .filter(|candidate| candidate.source == Source::Worktree)
+                    {
+                        outcome.failed.push(UnitFailure {
+                            reference: candidate.reference.clone(),
+                            name: candidate.name.clone(),
+                            message: message.clone(),
+                        });
+                    }
+                }
+            }
         }
         Ok(outcome)
     }

@@ -67,6 +67,7 @@ impl CleanRun<'_> {
             projects: options.projects,
             // Finished worktrees belong to the project part of the set.
             worktrees: options.projects,
+            worktree_inventory: false,
             only: options.only.clone(),
             skip: options.skip.clone(),
             // A terminal run is its own process: there is nothing to reuse,

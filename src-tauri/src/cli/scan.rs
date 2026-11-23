@@ -352,6 +352,7 @@ impl Inventory<'_> {
             caches: false,
             projects: false,
             worktrees: true,
+            worktree_inventory: true,
             ..CleanRequest::default()
         })?;
         let inventory = preview

@@ -56,9 +56,16 @@ impl CacheCleanup for FakeCaches {
 struct FakeWorktrees {
     inventory: crate::models::WorktreeInventory,
     removals: Calls,
+    enabled: bool,
+    scans: Mutex<u32>,
+    refuse: Option<String>,
 }
 
 impl WorktreeCleanup for FakeWorktrees {
+    fn rule_enabled(&self) -> bool {
+        self.enabled
+    }
+
     fn current(&self) -> Option<crate::models::WorktreeInventory> {
         None
     }
@@ -67,7 +74,10 @@ impl WorktreeCleanup for FakeWorktrees {
         &self,
         _: Arc<dyn ActivityPort>,
     ) -> PortFuture<'_, Result<crate::models::WorktreeInventory, String>> {
-        Box::pin(async move { Ok(self.inventory.clone()) })
+        Box::pin(async move {
+            *self.scans.lock().unwrap() += 1;
+            Ok(self.inventory.clone())
+        })
     }
 
     fn remove(
@@ -78,6 +88,9 @@ impl WorktreeCleanup for FakeWorktrees {
     ) -> PortFuture<'_, Result<RemovalReport, String>> {
         Box::pin(async move {
             self.removals.lock().unwrap().push((scan_id, ids.clone()));
+            if let Some(message) = &self.refuse {
+                return Err(message.clone());
+            }
             Ok(RemovalReport {
                 reclaimed_bytes: 5000,
                 removed: ids,
@@ -122,6 +135,9 @@ fn no_worktrees() -> Arc<FakeWorktrees> {
             rule_enabled: false,
         },
         removals: Mutex::new(Vec::new()),
+        enabled: false,
+        scans: Mutex::new(0),
+        refuse: None,
     })
 }
 
@@ -572,6 +588,9 @@ fn finished_worktrees_join_the_set_only_when_the_rule_selected_them() {
             rule_enabled: true,
         },
         removals: Mutex::new(Vec::new()),
+        enabled: true,
+        scans: Mutex::new(0),
+        refuse: None,
     });
     world.use_case = OneButtonClean::new(
         world.caches.clone(),
@@ -622,4 +641,81 @@ fn preview_with_skip(world: &World, reference: &str) -> CleanPreview {
         },
     )
     .expect("narrowed preview")
+}
+
+fn finished_worktrees(enabled: bool, refuse: Option<&str>) -> Arc<FakeWorktrees> {
+    use crate::models::WorktreeState;
+    Arc::new(FakeWorktrees {
+        inventory: crate::models::WorktreeInventory {
+            scan_id: "worktrees-1".into(),
+            repositories: 1,
+            items: vec![worktree(
+                "worktree:aaaaaaaaaaaa",
+                WorktreeState::Finished,
+                enabled,
+            )],
+            refused: Vec::new(),
+            idle_days: 14,
+            rule_enabled: enabled,
+        },
+        removals: Mutex::new(Vec::new()),
+        enabled,
+        scans: Mutex::new(0),
+        refuse: refuse.map(str::to_string),
+    })
+}
+
+#[test]
+fn worktrees_are_not_scanned_for_clean_while_the_rule_is_off() {
+    let mut world = world();
+    let worktrees = finished_worktrees(false, None);
+    world.use_case = OneButtonClean::new(
+        world.caches.clone(),
+        world.projects.clone(),
+        worktrees.clone(),
+    );
+    let preview = preview(&world, CleanRequest::default()).expect("preview");
+    assert!(preview.worktrees.is_none());
+    assert_eq!(*worktrees.scans.lock().unwrap(), 0);
+
+    // Listing them is still possible.
+    let listed = preview_inventory(&world);
+    assert!(listed.worktrees.is_some());
+    assert!(listed.chosen.is_empty());
+    assert_eq!(*worktrees.scans.lock().unwrap(), 1);
+}
+
+fn preview_inventory(world: &World) -> CleanPreview {
+    preview(
+        world,
+        CleanRequest {
+            caches: false,
+            projects: false,
+            worktree_inventory: true,
+            ..CleanRequest::default()
+        },
+    )
+    .expect("listing")
+}
+
+#[test]
+fn a_worktree_refusal_keeps_what_earlier_parts_removed() {
+    let mut world = world();
+    let worktrees = finished_worktrees(
+        true,
+        Some("These worktrees were found by an older scan. Scan again."),
+    );
+    world.use_case = OneButtonClean::new(
+        world.caches.clone(),
+        world.projects.clone(),
+        worktrees.clone(),
+    );
+    let preview = preview(&world, CleanRequest::default()).expect("preview");
+    let outcome =
+        tauri::async_runtime::block_on(world.use_case.execute(&preview, Arc::new(Silent)))
+            .expect("the run reports instead of failing");
+    assert!(outcome.removed > 0, "caches and projects still count");
+    assert_eq!(outcome.failed.len(), 1);
+    assert_eq!(outcome.failed[0].reference, "worktree:aaaaaaaaaaaa");
+    assert!(outcome.failed[0].message.contains("older scan"));
 }

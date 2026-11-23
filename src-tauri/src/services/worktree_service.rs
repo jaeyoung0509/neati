@@ -118,6 +118,14 @@ impl WorktreeService {
         .await
     }
 
+    /// Whether the person's worktree rule puts finished worktrees in Clean.
+    pub fn rule_enabled(&self) -> bool {
+        self.settings
+            .snapshot()
+            .map(|settings| settings.cleanup_rules.worktrees.enabled)
+            .unwrap_or(false)
+    }
+
     /// The published scan, while it is recent and decided with today's rules.
     pub fn current(&self) -> Option<WorktreeInventory> {
         let rules = self.settings.snapshot().ok()?.cleanup_rules;

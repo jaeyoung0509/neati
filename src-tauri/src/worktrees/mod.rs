@@ -187,6 +187,9 @@ pub fn repositories(
         for depth in 0..3 {
             let mut next = Vec::new();
             for directory in &level {
+                if found.len() >= MAX_REPOSITORIES {
+                    break;
+                }
                 if is_main_checkout(directory) {
                     if seen.insert(directory.clone()) {
                         found.push(directory.clone());

@@ -1,7 +1,6 @@
 <script lang="ts">
   import LoadingState from '../../lib/components/LoadingState.svelte';
-  import { observeWhileVisible } from '../../lib/utils/visiblePolling';
-  import { onMount, tick } from 'svelte';
+  import { onMount } from 'svelte';
   import type {
     AppRelatedConfidence,
     AppUninstallInspection,
@@ -15,7 +14,10 @@
   import Card from '../../lib/components/Card.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import AppLeftoverReview from '../../lib/components/AppLeftoverReview.svelte';
-  import { formatBytes, formatCountdown, formatTimeAgo, ttlRemaining } from '../../lib/utils/format';
+  import RemovalPlanCard from '../../lib/components/RemovalPlanCard.svelte';
+  import { formatBytes, formatTimeAgo } from '../../lib/utils/format';
+  import { planSizeLabel } from '../../lib/utils/removalPlan';
+  import { awaitingFirstAnswer, loadFailed, loadStarted, type LoadPhase } from '../../lib/utils/loadPhase';
   import { getVirtualWindow } from '../../lib/utils/virtualList';
   import {
     defaultRelatedIds,
@@ -42,11 +44,11 @@
     Search,
     ShieldAlert,
     ShieldCheck,
-    Trash2,
   } from '@lucide/svelte';
 
   interface Props {
     onBack: () => void;
+    /** A seeded inventory counts as an answer; without one the first read is pending. */
     initialApps?: InstalledApp[];
     initialInventoryQuality?: ObservationQuality;
     initialSkippedEntryCount?: number;
@@ -58,7 +60,7 @@
 
   let {
     onBack,
-    initialApps = [],
+    initialApps,
     initialInventoryQuality = 'fresh',
     initialSkippedEntryCount = 0,
     initialIncompleteReasons = [],
@@ -68,7 +70,10 @@
   }: Props = $props();
 
   // svelte-ignore state_referenced_locally
-  let apps = $state<InstalledApp[]>(initialApps);
+  let apps = $state<InstalledApp[]>(initialApps ?? []);
+  // An empty list is "No applications found" only after the inventory answers (#491).
+  // svelte-ignore state_referenced_locally
+  let appsPhase = $state<LoadPhase>(initialApps ? 'ready' : 'idle');
   // svelte-ignore state_referenced_locally
   let inventoryQuality = $state<ObservationQuality>(initialInventoryQuality);
   // svelte-ignore state_referenced_locally
@@ -102,6 +107,16 @@
       'Installed application inventory is not supported on this platform.'
   );
 
+  // Capabilities decide whether the inventory is read at all; until they and
+  // the first read answer, the list is waiting, not empty.
+  let waitingForApps = $derived(
+    isLoading || (awaitingFirstAnswer(appsPhase) && (
+      platformCapabilitiesStore.capabilities === null
+        ? platformCapabilitiesStore.error === null
+        : isInstalledAppsInspectable
+    ))
+  );
+
   let isUninstallAvailable = $derived(
     platformCapabilitiesStore.isAvailable('app_uninstall')
   );
@@ -109,22 +124,6 @@
     platformCapabilitiesStore.feature('app_uninstall')?.reason ??
       'Application uninstallation is not supported on this platform.'
   );
-
-  let now = $state(Date.now());
-  let remainingSecs = $derived(plan ? ttlRemaining(plan.expires_at, now) : 0);
-  let isExpiringSoon = $derived(remainingSecs > 0 && remainingSecs <= 60);
-  let isExpired = $derived(plan ? remainingSecs === 0 : false);
-  let expiryActionFocused = $state(false);
-
-  $effect(() => {
-    if (!isExpired) {
-      expiryActionFocused = false;
-      return;
-    }
-    if (expiryActionFocused) return;
-    expiryActionFocused = true;
-    void tick().then(() => document.getElementById('applications-expiry-action')?.focus());
-  });
 
   let filteredApps = $derived(
     apps.filter((app) => {
@@ -184,6 +183,7 @@
 
   async function loadApps() {
     isLoading = true;
+    appsPhase = loadStarted(appsPhase);
     error = null;
     inspection = null;
     plan = null;
@@ -194,8 +194,10 @@
       inventoryQuality = inventory.quality;
       skippedEntryCount = inventory.skipped_entry_count;
       incompleteReasons = inventory.incomplete_reasons;
+      appsPhase = 'ready';
     } catch (cause) {
       error = cause instanceof Error ? cause.message : String(cause);
+      appsPhase = loadFailed(appsPhase);
     } finally {
       isLoading = false;
     }
@@ -292,11 +294,6 @@
         void loadApps();
       }
     });
-  });
-
-  $effect(() => {
-    if (!plan) return;
-    return observeWhileVisible(() => { now = Date.now(); }, 1000);
   });
 </script>
 
@@ -414,10 +411,16 @@
         aria-label="Installed applications"
         tabindex="0"
       >
-        {#if isLoading}
-          <div class="py-10 text-center text-meta text-muted-foreground">Loading applications…</div>
+        {#if waitingForApps}
+          <LoadingState message="Loading applications…" />
         {:else if filteredApps.length === 0}
-          {#if inventoryQuality === 'unavailable'}
+          {#if appsPhase === 'error'}
+            <div class="py-10 text-center text-meta text-destructive">The application inventory could not be read.</div>
+          {:else if appsPhase === 'idle'}
+            <div class="py-10 text-center text-meta text-muted-foreground">
+              {platformCapabilitiesStore.capabilities === null ? 'Applications are read once platform capabilities load.' : installedAppsReason}
+            </div>
+          {:else if inventoryQuality === 'unavailable'}
             <div class="py-10 text-center text-meta text-destructive">
               Application discovery failed. Could not read application directories.
             </div>
@@ -551,43 +554,24 @@
           {#if !isUninstallAvailable}
             <p class="text-meta text-muted-foreground">Application details are available for inspection only.</p>
           {:else if plan}
-            <div class={`rounded-xl border p-4 space-y-3 ${isExpired ? 'status-panel-destructive' : isExpiringSoon ? 'status-chip-warning' : 'status-panel-warning'}`}>
-              <div class="flex flex-col gap-3">
-                <div>
-                  <div class="text-sm font-semibold flex items-center gap-2">
-                    Uninstall review ready
-                    <span class={`text-caption px-1.5 py-0.5 rounded font-mono border ${isExpired ? 'bg-destructive/15 text-destructive border-destructive/30' : isExpiringSoon ? 'bg-warning/15 text-warning border-warning/30' : 'bg-secondary text-muted-foreground border-border'}`}>
-                      {formatCountdown(remainingSecs)}
-                    </span>
-                  </div>
-                  <p class="text-meta text-muted-foreground mt-1">
-                    This cannot be undone from Trash. App bundle plus reviewed data: {plan.item_count} items · {plan.size_is_lower_bound ? '≥ ' : ''}{formatBytes(plan.allocated_size)}
-                  </p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <Button variant="ghost" size="sm" disabled={isExecuting} onclick={() => (plan = null)}>Cancel</Button>
-                  <Button variant="destructive" size="md" onclick={executeUninstall} disabled={isExecuting || isExpired} class="gap-1.5" title={isExpired ? 'Plan expired — review again' : ''}>
-                    <LoadingActionContent busy={isExecuting} busyLabel="Deleting…" word="cleaning">
-                      <Trash2 size={14} />
-                      {isExpired ? 'Expired' : 'Permanently delete app'}
-                    </LoadingActionContent>
-                  </Button>
-                </div>
-              </div>
-              {#if isExpired}
-                <div role="alert" class="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-meta text-destructive flex flex-col gap-2">
-                  <span>Plan expired — refresh and re-inspect to create a new 5 min review window.</span>
-                  <div class="flex flex-wrap gap-1.5">
-                    <Button id="applications-expiry-action" variant="ghost" size="sm" onclick={() => void recoverExpiredUninstallPlan()}>Refresh and re-inspect</Button>
-                    <Button variant="ghost" size="sm" onclick={() => (plan = null)} class="text-destructive">Dismiss</Button>
-                  </div>
-                </div>
-              {:else}
-                <p class="text-meta text-muted-foreground">
-                  One-shot, expires at {new Date(plan.expires_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({formatCountdown(remainingSecs)}). neati rechecks the app and each selected {platformContextStore.appDataLabel} item immediately before permanently deleting them. This cannot be undone from Trash.
-                </p>
-              {/if}
-            </div>
+            <RemovalPlanCard
+              {plan}
+              compact
+              title="Uninstall review ready"
+              summary={`This cannot be undone from Trash. App bundle plus reviewed data: ${plan.item_count} items · ${planSizeLabel(plan)}`}
+              confirmLabel="Permanently delete app"
+              note={`neati rechecks the app and each selected ${platformContextStore.appDataLabel} item immediately before permanently deleting them. This cannot be undone from Trash.`}
+              showExpiryTime
+              expiredMessage="Plan expired — refresh and re-inspect to create a new 5 min review window."
+              expiryActionId="applications-expiry-action"
+              expiryActionLabel="Refresh and re-inspect"
+              onExpiryAction={() => void recoverExpiredUninstallPlan()}
+              onDismiss={() => (plan = null)}
+              expiredTitle="Plan expired — review again"
+              executing={isExecuting}
+              onConfirm={executeUninstall}
+              onCancel={() => (plan = null)}
+            />
           {:else}
             <div class="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-3">
               <div>

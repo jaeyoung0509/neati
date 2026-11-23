@@ -6,11 +6,15 @@
   import ProgressBar from './ProgressBar.svelte';
   import AnimatedValue from './AnimatedValue.svelte';
   import LoadingIndicator from './LoadingIndicator.svelte';
+  import LoadingActionContent from './LoadingActionContent.svelte';
+  import ElapsedTime from './ElapsedTime.svelte';
+  import { openRouterWaitHint, type OpenRouterAction } from '../utils/providerSignIn';
 
   interface Props {
     providers: readonly AiProviderUsage[];
     isProviderLoading?: (id: string) => boolean;
-    connectingProvider?: string | null;
+    /** The OpenRouter sign-in or disconnect in flight, if any. */
+    openRouterAction?: { kind: OpenRouterAction; startedAt: number } | null;
     onConnectOpenRouter?: () => void | Promise<void>;
     onDisconnectOpenRouter?: () => void | Promise<void>;
   }
@@ -18,7 +22,7 @@
   let {
     providers,
     isProviderLoading = () => false,
-    connectingProvider = null,
+    openRouterAction = null,
     onConnectOpenRouter,
     onDisconnectOpenRouter,
   }: Props = $props();
@@ -139,15 +143,27 @@
       {/if}
 
       {#if !loading && provider.id === 'openrouter' && !provider.connected && onConnectOpenRouter}
-        <Button
-          variant="outline"
-          size="sm"
-          class="mt-auto w-full gap-1.5"
-          disabled={connectingProvider === 'openrouter'}
-          onclick={onConnectOpenRouter}
-        >
-          {connectingProvider === 'openrouter' ? 'Waiting for browser…' : 'Connect with OpenRouter'}
-        </Button>
+        <div class="mt-auto space-y-1.5">
+          {#if openRouterAction?.kind === 'connecting'}
+            <p class="text-caption text-muted-foreground" data-openrouter-wait>
+              <span role="status">Waiting for OpenRouter…</span>
+              <ElapsedTime since={openRouterAction.startedAt} />
+              <span class="block">{openRouterWaitHint()}</span>
+            </p>
+          {/if}
+          <Button
+            variant="outline"
+            size="sm"
+            class="w-full gap-1.5"
+            disabled={openRouterAction !== null}
+            aria-busy={openRouterAction?.kind === 'connecting'}
+            onclick={onConnectOpenRouter}
+          >
+            <LoadingActionContent busy={openRouterAction?.kind === 'connecting'} busyLabel="Waiting for browser…" word="working">
+              Connect with OpenRouter
+            </LoadingActionContent>
+          </Button>
+        </div>
       {:else if !loading && provider.id === 'openrouter' && provider.connected && onDisconnectOpenRouter}
         <div class="mt-auto space-y-1.5">
           <p class="text-caption text-muted-foreground">
@@ -157,10 +173,13 @@
             variant="outline"
             size="sm"
             class="w-full gap-1.5"
-            disabled={connectingProvider === 'openrouter'}
+            disabled={openRouterAction !== null}
+            aria-busy={openRouterAction?.kind === 'disconnecting'}
             onclick={onDisconnectOpenRouter}
           >
-            {connectingProvider === 'openrouter' ? 'Disconnecting…' : 'Disconnect OpenRouter'}
+            <LoadingActionContent busy={openRouterAction?.kind === 'disconnecting'} busyLabel="Disconnecting…" word="working">
+              Disconnect OpenRouter
+            </LoadingActionContent>
           </Button>
         </div>
       {/if}

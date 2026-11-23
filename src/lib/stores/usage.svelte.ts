@@ -9,6 +9,8 @@ import {
 } from '../utils/tauri';
 import { settingsStore } from './settings.svelte';
 import { observeWhileVisible } from '../utils/visiblePolling';
+import { loadFailed, loadStarted, type LoadPhase } from '../utils/loadPhase';
+import type { OpenRouterAction } from '../utils/providerSignIn';
 
 const USAGE_CACHE_TTL_MS = 60_000;
 const USAGE_RECHECK_INTERVAL_MS = 10_000;
@@ -84,8 +86,11 @@ export class UsageStore {
   descriptors = $state<ProviderDescriptor[]>([]);
   loadingProviders = $state<ProviderId[]>([]);
   isLoading = $state(false);
+  /** Until the first snapshot answers, an empty provider list is not final (#491). */
+  loadPhase = $state<LoadPhase>('idle');
   error = $state<string | null>(null);
-  connectingProvider = $state<string | null>(null);
+  /** One OpenRouter sign-in or disconnect at a time, with when it started. */
+  openRouterAction = $state<{ kind: OpenRouterAction; startedAt: number } | null>(null);
   private refreshPromise: Promise<void> | null = null;
   private autoRefreshSubscribers = 0;
   private stopAutoRefresh: (() => void) | null = null;
@@ -189,6 +194,7 @@ export class UsageStore {
       selection.length === settingsStore.settings.ai_accounts_quota_providers.length &&
       selection.every((id, index) => id === settingsStore.settings.ai_accounts_quota_providers[index]);
     this.isLoading = true;
+    this.loadPhase = loadStarted(this.loadPhase);
     this.error = null;
     void this.loadDescriptors();
     this.loadingProviders = [...settingsStore.settings.ai_accounts_quota_providers];
@@ -220,16 +226,24 @@ export class UsageStore {
       });
       if (isCurrent()) this.snapshot = snapshot;
       this.providerReceivedAt = {};
+      this.loadPhase = 'ready';
     } catch (error) {
       this.error = describeError(error, 'Could not load AI usage');
+      this.loadPhase = loadFailed(this.loadPhase);
     } finally {
       this.loadingProviders = [];
       this.isLoading = false;
     }
   }
 
+  /**
+   * Waits for the browser OAuth callback. The backend owns the wait and its
+   * timeout; a second request while one is open is ignored rather than
+   * starting another listener.
+   */
   async connectOpenRouter() {
-    this.connectingProvider = 'openrouter';
+    if (this.openRouterAction) return;
+    this.openRouterAction = { kind: 'connecting', startedAt: Date.now() };
     this.error = null;
     try {
       await tauriConnectOpenRouter();
@@ -237,17 +251,18 @@ export class UsageStore {
     } catch (error) {
       this.error = describeError(error, 'OpenRouter sign-in failed');
     } finally {
-      this.connectingProvider = null;
+      this.openRouterAction = null;
     }
   }
 
   async disconnectOpenRouter() {
+    if (this.openRouterAction) return;
     const refusal = refusalForPreview('Disconnecting a provider');
     if (refusal) {
       this.error = refusal;
       return;
     }
-    this.connectingProvider = 'openrouter';
+    this.openRouterAction = { kind: 'disconnecting', startedAt: Date.now() };
     this.error = null;
     try {
       await tauriDisconnectAiProvider('openrouter');
@@ -258,7 +273,7 @@ export class UsageStore {
       this.error = describeError(error, 'OpenRouter disconnect failed');
       await this.refresh(true);
     } finally {
-      this.connectingProvider = null;
+      this.openRouterAction = null;
     }
   }
 }

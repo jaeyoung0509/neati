@@ -429,18 +429,19 @@
     </div>
     <div class="flex items-center gap-2 shrink-0">
       {#if awakeAvailable && awake.is_active}
-        <Button variant="secondary" size="sm" onclick={() => void awakeStore.disableManual()} aria-label="Stop keeping this Mac awake">
-          <span>Stop</span>
+        <Button variant="secondary" size="sm" disabled={awakeStore.isLoading} aria-busy={awakeStore.pending?.kind === 'stop-manual'} onclick={() => void awakeStore.disableManual()} aria-label="Stop keeping this Mac awake">
+          <LoadingActionContent busy={awakeStore.pending?.kind === 'stop-manual'} busyLabel="Stopping…"><span>Stop</span></LoadingActionContent>
         </Button>
       {:else}
         <Button
           variant="secondary"
           size="sm"
           disabled={!awakeAvailable || awakeStore.isLoading}
-          onclick={() => void awakeStore.setManual(3600, 'prevent_system_sleep')}
+          aria-busy={awakeStore.pending?.kind === 'manual'}
+          onclick={() => void awakeStore.setManual(3600, 'prevent_system_sleep').catch(() => undefined)}
           aria-label="Keep this Mac awake for one hour"
         >
-          <span>Keep awake 1 h</span>
+          <LoadingActionContent busy={awakeStore.pending?.kind === 'manual'} busyLabel="Starting…"><span>Keep awake 1 h</span></LoadingActionContent>
         </Button>
       {/if}
       <Button variant="ghost" size="sm" onclick={() => onNavigateTab?.('awake')} aria-label="Open Keep Awake">

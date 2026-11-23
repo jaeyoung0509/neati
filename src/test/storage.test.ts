@@ -797,7 +797,14 @@ describe('StorageView CTA and responsive toolbar layout', () => {
 
     expect(storageView).toContain('motion="paint"');
     expect(storageTools).toContain('motion="paint"');
-    expect(storageView).toContain('<LoadingIndicator');
+    // The cleaning dots moved into the shared progress card (#491).
+    const cleanProgressCard = readFileSync(
+      new URL('../lib/components/CleanProgressCard.svelte', import.meta.url),
+      'utf-8'
+    );
+    expect(storageView).toContain('<CleanProgressCard');
+    expect(cleanProgressCard).toContain('<LoadingIndicator');
+    expect(cleanProgressCard).not.toContain('animate-gentle-spin');
     expect(storageTools).toContain('<LoadingActionContent');
     expect(quickPanel).toContain('<LoadingIndicator');
     expect(storageView).not.toContain('animate-gentle-spin');

@@ -5,7 +5,8 @@
   import Button from './Button.svelte';
   import InlineNotice from './InlineNotice.svelte';
   import Switch from './Switch.svelte';
-  import { updateStatusCopy } from '../utils/updateCopy';
+  import ElapsedTime from './ElapsedTime.svelte';
+  import { UPDATE_INSTALL_PHASE, updateStatusCopy } from '../utils/updateCopy';
 
   let { releasesUrl = null }: { releasesUrl?: string | null } = $props();
   let enabled = $derived(settingsStore.settings.check_updates_on_launch);
@@ -43,11 +44,19 @@
       <p class="text-muted-foreground">
         neati downloads the update, verifies its signature, replaces this copy and restarts. Save any open work in the Quick Panel first.
       </p>
-      <Button size="sm" disabled={busy} onclick={() => void updateStore.installAvailable()}>
-        <LoadingActionContent busy={updateStore.phase === 'installing'} busyLabel="Downloading and verifying…" word="working">
-          Install and restart
-        </LoadingActionContent>
-      </Button>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button size="sm" disabled={busy} aria-busy={updateStore.phase === 'installing'} onclick={() => void updateStore.installAvailable()}>
+          <LoadingActionContent busy={updateStore.phase === 'installing'} busyLabel="Downloading and verifying…" word="working">
+            Install and restart
+          </LoadingActionContent>
+        </Button>
+        {#if updateStore.phase === 'installing' && updateStore.phaseStartedAt !== null}
+          <!-- The install command reports no steps, so only its elapsed time is shown (#491). -->
+          <p class="text-muted-foreground" data-update-install-progress>
+            <span role="status">{UPDATE_INSTALL_PHASE}</span> · <ElapsedTime since={updateStore.phaseStartedAt} />
+          </p>
+        {/if}
+      </div>
     </div>
   {/if}
 

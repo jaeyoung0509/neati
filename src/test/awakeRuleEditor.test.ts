@@ -20,7 +20,8 @@ describe('AwakeRuleEditor', () => {
     const { body } = render(AwakeRuleEditor, { props: { mode: 'basic', rule: null, onClose: () => undefined } });
     expect(body).toContain('Build an app rule');
     expect(body).toContain('Choose from installed applications');
-    expect(body).toMatch(/<button[^>]*disabled[^>]*>(?:<!--[^>]*-->)*Save rule/);
+    // The label sits inside LoadingActionContent; the button itself is disabled.
+    expect(body).toMatch(/<button[^>]*disabled[^>]*>(?:(?!<\/button>)[\s\S])*Save rule/);
   });
 
   it('seeds a legacy rule draft from the rule it was opened with', () => {

@@ -6,8 +6,19 @@ import {
   tauriSetManualAwake,
 } from '../utils/tauri';
 import { settingsStore } from './settings.svelte';
+import { loadFailed, loadStarted, type LoadPhase } from '../utils/loadPhase';
 
-class AwakeStore {
+/** The one Keep Awake change in flight; the state changes only after the backend confirms it. */
+export type AwakeChange =
+  | { kind: 'manual'; durationSecs: number | null }
+  | { kind: 'stop-manual' }
+  | { kind: 'rule'; ruleId: string; action: 'toggle' | 'delete' | 'save' }
+  | { kind: 'recommended-rules' };
+
+/** Rules the "Enable recommended AC-only rules" action turns on. */
+export const RECOMMENDED_AWAKE_RULE_IDS: readonly string[] = ['rule.codex', 'rule.claude', 'rule.docker'];
+
+export class AwakeStore {
   state = $state<AwakeState>({
     is_active: false,
     behavior: null,
@@ -26,74 +37,117 @@ class AwakeStore {
       last_failure_reason: null,
     },
   });
-  isLoading = $state(false);
+  /** Until the first state read answers, "Normal sleep is active" is not a result (#491). */
+  loadPhase = $state<LoadPhase>('idle');
+  pending = $state<AwakeChange | null>(null);
+  /** Why the last manual change failed; cleared when the next one starts. */
   error = $state<string | null>(null);
+  /** Why the latest state read failed; cleared by the next successful read. */
+  readError = $state<string | null>(null);
+
+  /** A Keep Awake change is being saved; every other change waits for it. */
+  get isLoading(): boolean {
+    return this.pending !== null;
+  }
 
   async refresh() {
+    this.loadPhase = loadStarted(this.loadPhase);
     try {
       this.state = await tauriGetAwakeState();
+      this.loadPhase = 'ready';
+      this.readError = null;
     } catch (e) {
-      this.error = describeError(e) || null;
+      this.readError = describeError(e) || 'Keep Awake state could not be read.';
+      this.loadPhase = loadFailed(this.loadPhase);
     }
   }
 
-  async toggleRule(ruleId: string) {
-    const current = settingsStore.settings.awake_rules;
-    const updated = current.map((r) =>
-      r.id === ruleId ? { ...r, enabled: !r.enabled } : r
-    ) as typeof current;
-    const saved = await settingsStore.save({ awake_rules: updated });
+  /**
+   * Runs one change at a time. A second request while one is saving is
+   * ignored (`null`) instead of racing the first, so a double click cannot
+   * save twice or apply an older rule list over a newer one.
+   */
+  private async change<T>(change: AwakeChange, work: () => Promise<T>): Promise<T | null> {
+    if (this.pending) return null;
+    this.pending = change;
+    try {
+      return await work();
+    } finally {
+      this.pending = null;
+    }
+  }
+
+  private async saveRules(rules: AwakeRule[]): Promise<boolean> {
+    const saved = await settingsStore.save({ awake_rules: rules as typeof settingsStore.settings.awake_rules });
     if (saved) await this.refresh();
     return saved;
   }
 
-  async addRule(rule: AwakeRule) {
-    const updated = [...settingsStore.settings.awake_rules, rule] as typeof settingsStore.settings.awake_rules;
-    const saved = await settingsStore.save({ awake_rules: updated });
-    if (saved) await this.refresh();
-    return saved;
+  async toggleRule(ruleId: string): Promise<boolean> {
+    const saved = await this.change({ kind: 'rule', ruleId, action: 'toggle' }, () =>
+      this.saveRules(settingsStore.settings.awake_rules.map((r) =>
+        r.id === ruleId ? { ...r, enabled: !r.enabled } : r
+      ))
+    );
+    return saved ?? false;
   }
 
-  async deleteRule(ruleId: string) {
-    const current = settingsStore.settings.awake_rules;
-    const updated = current.filter((r) => r.id !== ruleId) as typeof current;
-    const saved = await settingsStore.save({ awake_rules: updated });
-    if (saved) await this.refresh();
-    return saved;
+  async addRule(rule: AwakeRule): Promise<boolean> {
+    const saved = await this.change({ kind: 'rule', ruleId: rule.id, action: 'save' }, () =>
+      this.saveRules([...settingsStore.settings.awake_rules, rule])
+    );
+    return saved ?? false;
   }
 
-  async updateRule(rule: AwakeRule) {
-    const current = settingsStore.settings.awake_rules;
-    const updated = current.map((r) => (r.id === rule.id ? rule : r)) as typeof current;
-    const saved = await settingsStore.save({ awake_rules: updated });
-    if (saved) await this.refresh();
-    return saved;
+  async deleteRule(ruleId: string): Promise<boolean> {
+    const saved = await this.change({ kind: 'rule', ruleId, action: 'delete' }, () =>
+      this.saveRules(settingsStore.settings.awake_rules.filter((r) => r.id !== ruleId))
+    );
+    return saved ?? false;
+  }
+
+  async updateRule(rule: AwakeRule): Promise<boolean> {
+    const saved = await this.change({ kind: 'rule', ruleId: rule.id, action: 'save' }, () =>
+      this.saveRules(settingsStore.settings.awake_rules.map((r) => (r.id === rule.id ? rule : r)))
+    );
+    return saved ?? false;
+  }
+
+  /** Turns on the reviewed recommended rules, plugged in only. */
+  async enableRecommendedRules(): Promise<boolean> {
+    const saved = await this.change({ kind: 'recommended-rules' }, () =>
+      this.saveRules(settingsStore.settings.awake_rules.map((rule) =>
+        RECOMMENDED_AWAKE_RULE_IDS.includes(rule.id)
+          ? { ...rule, enabled: true, power_condition: 'ac_power_only' as const }
+          : rule
+      ))
+    );
+    return saved ?? false;
   }
 
   async setManual(durationSecs: number | null, behavior: AwakeBehavior = 'prevent_system_sleep') {
-    this.isLoading = true;
-    try {
-      await tauriSetManualAwake(durationSecs, behavior);
-      await this.refresh();
-    } catch (e) {
-      this.error = describeError(e) || null;
-      throw e;
-    } finally {
-      this.isLoading = false;
-    }
+    await this.change({ kind: 'manual', durationSecs }, async () => {
+      this.error = null;
+      try {
+        await tauriSetManualAwake(durationSecs, behavior);
+        await this.refresh();
+      } catch (e) {
+        this.error = describeError(e) || null;
+        throw e;
+      }
+    });
   }
 
   async disableManual() {
-    this.isLoading = true;
-    this.error = null;
-    try {
-      await tauriDisableManualAwake();
-      await this.refresh();
-    } catch (e) {
-      this.error = describeError(e) || null;
-    } finally {
-      this.isLoading = false;
-    }
+    await this.change({ kind: 'stop-manual' }, async () => {
+      this.error = null;
+      try {
+        await tauriDisableManualAwake();
+        await this.refresh();
+      } catch (e) {
+        this.error = describeError(e) || null;
+      }
+    });
   }
 }
 

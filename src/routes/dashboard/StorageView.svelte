@@ -14,9 +14,8 @@
     tauriOpenStorageSettings, tauriPreviewCleanupQuit, tauriTerminateMemoryGroup,
   } from '../../lib/utils/tauri';
   import Button from '../../lib/components/Button.svelte';
-  import Card from '../../lib/components/Card.svelte';
   import PageHeader from '../../lib/components/PageHeader.svelte';
-  import ProgressBar from '../../lib/components/ProgressBar.svelte';
+  import CleanProgressCard from '../../lib/components/CleanProgressCard.svelte';
   import CategoryCard from '../../lib/components/CategoryCard.svelte';
   import Checkbox from '../../lib/components/Checkbox.svelte';
   import StorageSummary from '../../lib/components/StorageSummary.svelte';
@@ -26,7 +25,6 @@
   import EmptyState from '../../lib/components/EmptyState.svelte';
   import { cleanupView } from '../../lib/utils/cleanupView';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
-  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import SelectionToolbar from '../../lib/components/SelectionToolbar.svelte';
   import ProjectBuildOutputCard from '../../lib/components/ProjectBuildOutputCard.svelte';
@@ -345,20 +343,7 @@
 
     <!-- Cleaning In Progress Bar -->
     {#if scanStore.isCleaning}
-      <Card class="p-4 bg-secondary/60 border-primary/40 transition-colors duration-normal">
-        <div class="space-y-2" role="status" aria-live="polite">
-          <div class="flex flex-wrap items-center justify-between gap-3 text-meta">
-            <span class="min-w-0 font-medium text-foreground flex items-center gap-2">
-              <LoadingIndicator word="cleaning" size="xs" />
-              <span class="min-w-0 break-words">Cleaning: {scanStore.cleanProgress.currentItem}</span>
-            </span>
-            <span class="shrink-0 font-mono text-muted-foreground font-semibold">
-              {scanStore.cleanProgress.index} / {scanStore.cleanProgress.total} ({scanStore.cleanProgress.percent}%)
-            </span>
-          </div>
-          <ProgressBar value={scanStore.cleanProgress.percent} height="h-2" color="bg-primary" />
-        </div>
-      </Card>
+      <CleanProgressCard progress={scanStore.cleanProgress} startedAt={scanStore.cleanStartedAt} />
     {/if}
 
     <!-- Error Alert -->

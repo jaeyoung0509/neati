@@ -11,6 +11,8 @@ export type UpdatePhase = 'idle' | 'checking' | 'installing';
  */
 export class UpdateStore {
   phase = $state<UpdatePhase>('idle');
+  /** When the current phase began, for its elapsed time (#491); `null` while idle. */
+  phaseStartedAt = $state<number | null>(null);
   result = $state<UpdateCheck | null>(null);
   error = $state('');
   private launchCheckStarted = false;
@@ -26,14 +28,14 @@ export class UpdateStore {
 
   async checkNow(): Promise<void> {
     if (this.phase !== 'idle') return;
-    this.phase = 'checking';
+    this.enter('checking');
     this.error = '';
     try {
       this.result = await this.check();
     } catch (cause) {
       this.result = { status: 'failed', message: String(cause) };
     } finally {
-      this.phase = 'idle';
+      this.enter('idle');
     }
   }
 
@@ -48,15 +50,20 @@ export class UpdateStore {
   async installAvailable(): Promise<void> {
     const update = this.available;
     if (!update || this.phase !== 'idle') return;
-    this.phase = 'installing';
+    this.enter('installing');
     this.error = '';
     try {
       await this.install(update.version);
     } catch (cause) {
       this.error = String(cause);
     } finally {
-      this.phase = 'idle';
+      this.enter('idle');
     }
+  }
+
+  private enter(phase: UpdatePhase) {
+    this.phase = phase;
+    this.phaseStartedAt = phase === 'idle' ? null : Date.now();
   }
 }
 

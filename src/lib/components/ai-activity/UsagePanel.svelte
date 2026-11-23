@@ -2,8 +2,9 @@
   import { onMount } from 'svelte';
   import AiUsageCards from '../AiUsageCards.svelte';
   import Card from '../Card.svelte';
-  import LoadingIndicator from '../LoadingIndicator.svelte';
+  import LoadingState from '../LoadingState.svelte';
   import { usageStore } from '../../stores/usage.svelte';
+  import { awaitingFirstAnswer } from '../../utils/loadPhase';
 
   // Revalidate the TTL cache while this tab stays open; hidden panels never poll.
   onMount(() => usageStore.observeAutoRefresh());
@@ -34,7 +35,7 @@
 
   {#if usageStore.error}
     <div role="alert" class="rounded-xl border status-panel-destructive px-4 py-3 text-meta text-destructive">
-      Usage refresh failed. The last successful usage snapshot remains visible. {usageStore.error}
+      {usageSnapshot ? 'Usage refresh failed. The last successful usage snapshot remains visible.' : 'Usage could not be loaded.'} {usageStore.error}
     </div>
   {/if}
 
@@ -42,18 +43,14 @@
     <AiUsageCards
       providers={providers}
       isProviderLoading={(id) => usageStore.isProviderLoading(id)}
-      connectingProvider={usageStore.connectingProvider}
+      openRouterAction={usageStore.openRouterAction}
       onConnectOpenRouter={() => usageStore.connectOpenRouter()}
       onDisconnectOpenRouter={() => usageStore.disconnectOpenRouter()}
     />
-  {:else if usageStore.isLoading}
-    <div role="status" aria-label="Loading usage metadata">
-      <Card class="p-8 text-center">
-        <LoadingIndicator size="md" class="text-primary" />
-        <p class="mt-3 text-meta text-muted-foreground">Checking account usage…</p>
-      </Card>
-    </div>
-  {:else}
+  {:else if usageStore.isLoading || awaitingFirstAnswer(usageStore.loadPhase)}
+    <!-- Before the first snapshot answers, no providers is not a result (#491). -->
+    <LoadingState message="Checking account usage…" />
+  {:else if usageStore.loadPhase === 'ready'}
     <Card class="p-4 text-meta text-muted-foreground">
       No AI account usage metadata is available yet.
     </Card>

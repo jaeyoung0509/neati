@@ -18,6 +18,7 @@
     PowerCondition,
   } from '../models/types';
   import Button from './Button.svelte';
+  import LoadingActionContent from './LoadingActionContent.svelte';
   import Dialog from './Dialog.svelte';
   import { AppWindow, Check, FolderOpen, X } from '@lucide/svelte';
 
@@ -91,7 +92,7 @@
   }
 
   async function saveRule() {
-    if (isSavingRule || !isEditorValid()) return;
+    if (isSavingRule || awakeStore.isLoading || !isEditorValid()) return;
     isSavingRule = true;
     pickerError = null;
     const existing = editingRule;
@@ -259,6 +260,9 @@
 
     <div class="flex justify-end gap-2 border-t border-border/60 pt-4 mt-5">
       <Button variant="ghost" size="sm" onclick={closeRuleEditor} disabled={isSavingRule}>Cancel</Button>
-      <Button variant="primary" size="sm" onclick={() => void saveRule()} disabled={!isEditorValid() || isSavingRule}>{isSavingRule ? 'Saving…' : editingRuleId ? 'Save changes' : 'Save rule'}</Button>
+      <!-- Another Keep Awake change must finish before this one is saved (#491). -->
+      <Button variant="primary" size="sm" onclick={() => void saveRule()} disabled={!isEditorValid() || isSavingRule || awakeStore.isLoading} aria-busy={isSavingRule}>
+        <LoadingActionContent busy={isSavingRule} busyLabel="Saving…">{editingRuleId ? 'Save changes' : 'Save rule'}</LoadingActionContent>
+      </Button>
     </div>
 </Dialog>

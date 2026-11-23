@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CategoryResult, PlanPreview } from '../../lib/models/types';
+  import CleanProgressCard from '../../lib/components/CleanProgressCard.svelte';
   import { scanStore } from '../../lib/stores/scan.svelte';
   import { formatBytes } from '../../lib/utils/format';
   import { cleanupEstimateLabels } from '../../lib/utils/cleanupView';
@@ -16,10 +17,7 @@
   import ItemRow from '../../lib/components/ItemRow.svelte';
   import CleanResultModal from '../../lib/components/CleanResultModal.svelte';
   import CleanupReviewDialog from '../../lib/components/CleanupReviewDialog.svelte';
-  import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
-  import ProgressBar from '../../lib/components/ProgressBar.svelte';
-  import Card from '../../lib/components/Card.svelte';
   import ScanFreshnessNotice from '../../lib/components/ScanFreshnessNotice.svelte';
   import {
     ArrowLeft,
@@ -216,20 +214,7 @@
 
   <!-- Cleaning In Progress Bar -->
   {#if scanStore.isCleaning}
-    <Card class="p-3.5 bg-secondary/60 border-primary/40 transition-colors duration-normal">
-      <div class="space-y-1.5" role="status">
-        <div class="flex items-center justify-between gap-3 text-meta">
-          <span class="min-w-0 font-medium text-foreground flex items-center gap-2">
-            <LoadingIndicator size="xs" word="cleaning" motion="flow" />
-            <span class="min-w-0 break-words">Cleaning: {scanStore.cleanProgress.currentItem}</span>
-          </span>
-          <span class="shrink-0 font-mono text-muted-foreground font-semibold">
-            {scanStore.cleanProgress.percent}%
-          </span>
-        </div>
-        <ProgressBar value={scanStore.cleanProgress.percent} height="h-2" color="bg-primary" />
-      </div>
-    </Card>
+    <CleanProgressCard progress={scanStore.cleanProgress} startedAt={scanStore.cleanStartedAt} compact />
   {/if}
 
   <!-- Error Alert -->

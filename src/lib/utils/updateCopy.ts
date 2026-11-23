@@ -14,3 +14,10 @@ export function updateStatusCopy(result: UpdateCheck | null): string {
       return result.message;
   }
 }
+
+/**
+ * The install command downloads, verifies and replaces neati in one backend
+ * call without step events. The busy button names the phase; this line says
+ * how it ends rather than guessing which step is running.
+ */
+export const UPDATE_INSTALL_PHASE = 'neati restarts once the signed update is installed';

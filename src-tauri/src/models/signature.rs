@@ -110,8 +110,41 @@ pub struct Signature {
 /// sets are removable under their existing rule (inactive for 30 days, Xcode
 /// and Simulator closed). They consist of `.dylib` symbol files that Xcode
 /// downloads again when the device reconnects.
-pub const OWNER_GUARDED_BUILD_OUTPUT: [&str; 2] =
-    ["dev.xcode.derived_data", "system.xcode_device_support"];
+///
+/// #480 adds the watchOS, tvOS, visionOS and macOS DeviceSupport folders on
+/// the same evidence: Xcode writes the same per-OS-version symbol-set layout
+/// beside the iOS folder, downloads it again when that device connects, and
+/// the entries carry the same rule, unit, strategy and process guard. Each is
+/// also listed in [`RETAIN_NEWEST_VERSION`], so the newest set per platform
+/// stays.
+pub const OWNER_GUARDED_BUILD_OUTPUT: [&str; 6] = [
+    "dev.xcode.derived_data",
+    "system.xcode_device_support",
+    "system.xcode_watchos_device_support",
+    "system.xcode_tvos_device_support",
+    "system.xcode_visionos_device_support",
+    "system.xcode_macos_device_support",
+];
+
+/// Signatures whose newest enumerated unit per parent folder is kept (#480).
+///
+/// Xcode needs the symbol set for the OS version of the device in hand, which
+/// is the newest one in its platform folder; DevCleaner keeps it for the same
+/// reason. The rule is granted by id so the scan, the planner and the
+/// execution guard (which knows only a target's signature id) read one list,
+/// and a plan cannot be built that omits it.
+pub const RETAIN_NEWEST_VERSION: [&str; 5] = [
+    "system.xcode_device_support",
+    "system.xcode_watchos_device_support",
+    "system.xcode_tvos_device_support",
+    "system.xcode_visionos_device_support",
+    "system.xcode_macos_device_support",
+];
+
+/// Whether a signature keeps the newest version among its enumerated units.
+pub fn retains_newest_version(signature_id: &str) -> bool {
+    RETAIN_NEWEST_VERSION.contains(&signature_id)
+}
 
 impl Signature {
     pub fn cache_metadata(&self) -> CacheMetadata {

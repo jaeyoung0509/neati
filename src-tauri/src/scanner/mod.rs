@@ -2,6 +2,7 @@ mod coverage;
 pub mod engine;
 pub mod observation;
 pub mod relationship;
+pub mod retention;
 mod shared_storage;
 pub mod size;
 pub mod walker;

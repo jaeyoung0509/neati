@@ -3262,6 +3262,21 @@ export type ResourceAttribution_Serialize = {
 	mutable_actions_allowed: boolean,
 };
 
+/**  Why the keep-newest rule retains a unit. */
+export type RetentionReason =
+/**  Its name carries the newest version among its siblings. */
+"newest_version" |
+/**
+ *  A sibling name carries no version, so the most recently modified unit
+ *  is kept as well.
+ */
+"newest_modified" |
+/**
+ *  The siblings could not be listed completely, so no unit can be shown
+ *  not to be the newest.
+ */
+"siblings_unverified";
+
 export type RiskSummary = RiskSummary_Serialize | RiskSummary_Deserialize;
 
 export type RiskSummary_Deserialize = {
@@ -3467,6 +3482,14 @@ export type ScanItem_Deserialize = {
 	/**  A complete provider observation refused by its own age or layout policy. */
 	provider_restriction?: ProviderRestriction | null,
 	/**
+	 *  Why a keep-newest rule retains this unit among its siblings (#480).
+	 *
+	 *  Recorded at discovery so the displayed verdict can be re-derived. The
+	 *  planner and the execution guard observe the siblings again instead of
+	 *  trusting it.
+	 */
+	retained?: RetentionReason | null,
+	/**
 	 *  What the scan found at the path: a file, a directory, or neither.
 	 *
 	 *  The plan carries this observation forward so execution can tell "the
@@ -3560,6 +3583,14 @@ export type ScanItem_Serialize = {
 	structured_state: StructuredStateKind | null,
 	/**  A complete provider observation refused by its own age or layout policy. */
 	provider_restriction: ProviderRestriction | null,
+	/**
+	 *  Why a keep-newest rule retains this unit among its siblings (#480).
+	 *
+	 *  Recorded at discovery so the displayed verdict can be re-derived. The
+	 *  planner and the execution guard observe the siblings again instead of
+	 *  trusting it.
+	 */
+	retained?: RetentionReason | null,
 	/**
 	 *  What the scan found at the path: a file, a directory, or neither.
 	 *

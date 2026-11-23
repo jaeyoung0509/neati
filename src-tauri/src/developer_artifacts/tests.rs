@@ -1170,7 +1170,7 @@ fn suggestions_name_project_roots_only_and_skip_saved_folders() {
     #[cfg(unix)]
     std::os::unix::fs::symlink(home.join("Developer"), home.join("code")).unwrap();
 
-    let suggestions = suggest_workspaces(&environment, &[]);
+    let suggestions = suggest_workspaces(&environment, &[], &[]);
     let found: Vec<(String, u32)> = suggestions
         .iter()
         .map(|suggestion| (suggestion.path.clone(), suggestion.project_count))
@@ -1184,9 +1184,66 @@ fn suggestions_name_project_roots_only_and_skip_saved_folders() {
     );
 
     let saved = [home.join("Myproject").to_string_lossy().into_owned()];
-    let remaining = suggest_workspaces(&environment, &saved);
+    let remaining = suggest_workspaces(&environment, &saved, &[]);
     assert_eq!(remaining.len(), 1);
     assert!(remaining[0].path.ends_with("Developer"));
+}
+
+#[test]
+fn folders_agents_worked_in_are_suggested_first() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = fs::canonicalize(temp.path()).unwrap();
+    let environment = environment_with_home(&home);
+    // An agent worked deep inside a project under an unusual folder name.
+    project(&home.join("work/clients/acme"), "package.json");
+    fs::create_dir_all(home.join("work/clients/acme/src/lib")).unwrap();
+    project(&home.join("Developer/one"), ".git");
+    // A project directly in home is suggested as itself.
+    project(&home.join("solo"), "Cargo.toml");
+    // Hidden tool folders, linked worktrees, scratch folders and gone folders
+    // are not suggested.
+    project(&home.join(".codex/worktrees/abc/app"), "Cargo.toml");
+    let worktree = home.join("work/clients/acme-wt");
+    fs::create_dir_all(&worktree).unwrap();
+    fs::write(worktree.join(".git"), "gitdir: /elsewhere\n").unwrap();
+    fs::create_dir_all(home.join("scratch")).unwrap();
+
+    let sessions = vec![
+        (home.join("work/clients/acme/src/lib"), 5),
+        (home.join("work/clients/acme"), 2),
+        (home.join("solo"), 1),
+        (home.join(".codex/worktrees/abc/app"), 9),
+        (worktree.clone(), 4),
+        (home.join("scratch"), 3),
+        (home.join("gone/project"), 7),
+        (home.clone(), 6),
+    ];
+    let suggestions = suggest_workspaces(&environment, &[], &sessions);
+    let found: Vec<(String, u32)> = suggestions
+        .iter()
+        .map(|suggestion| (suggestion.path.clone(), suggestion.agent_sessions))
+        .collect();
+    assert_eq!(
+        found,
+        [
+            (home.join("work/clients").to_string_lossy().into_owned(), 7),
+            (home.join("solo").to_string_lossy().into_owned(), 1),
+            (home.join("Developer").to_string_lossy().into_owned(), 0),
+        ]
+    );
+
+    // A saved folder that covers a session folder hides it.
+    let saved = [home.join("work").to_string_lossy().into_owned()];
+    let remaining = suggest_workspaces(&environment, &saved, &sessions);
+    assert!(remaining
+        .iter()
+        .all(|suggestion| !suggestion.path.contains("/work")));
+
+    // Adding re-derives the suggestions, sessions included.
+    let store = Mutex::new(HashMap::new());
+    let clients = home.join("work/clients").to_string_lossy().into_owned();
+    assert!(register_suggested_workspace(&environment, &clients, &[], &[], &store).is_err());
+    assert!(register_suggested_workspace(&environment, &clients, &[], &sessions, &store).is_ok());
 }
 
 #[test]
@@ -1199,11 +1256,12 @@ fn only_a_current_suggestion_can_be_added_by_path() {
     let store = Mutex::new(HashMap::new());
 
     let elsewhere = home.join("elsewhere").to_string_lossy().into_owned();
-    assert!(register_suggested_workspace(&environment, &elsewhere, &[], &store).is_err());
+    assert!(register_suggested_workspace(&environment, &elsewhere, &[], &[], &store).is_err());
     assert!(store.lock().unwrap().is_empty());
 
     let suggested = home.join("Myproject").to_string_lossy().into_owned();
-    let workspace = register_suggested_workspace(&environment, &suggested, &[], &store).unwrap();
+    let workspace =
+        register_suggested_workspace(&environment, &suggested, &[], &[], &store).unwrap();
     assert_eq!(workspace.path, suggested);
     assert_eq!(store.lock().unwrap().len(), 1);
 }

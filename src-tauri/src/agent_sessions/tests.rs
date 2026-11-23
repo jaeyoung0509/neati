@@ -844,3 +844,25 @@ fn a_stopped_export_leaves_no_file() {
     .is_err());
     assert_eq!(std::fs::read_dir(out.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn recent_working_directories_count_sessions_per_folder() {
+    let home = Home::populated();
+    let environment =
+        neati_platform::PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(&home.root);
+    let folders = super::recent_working_directories(&environment);
+    // Both the present and the missing project are named; existence is the
+    // suggestion's concern, not this reader's.
+    assert!(folders
+        .iter()
+        .any(|(path, count)| path == &home.present && *count >= 1));
+    assert!(folders.iter().any(|(path, _)| path == &home.missing));
+    assert!(folders.iter().all(|(path, _)| path.is_absolute()));
+
+    let empty = Home::empty();
+    let environment =
+        neati_platform::PlatformEnvironment::simulated(neati_platform::PathFlavor::current())
+            .with_home(&empty.root);
+    assert!(super::recent_working_directories(&environment).is_empty());
+}

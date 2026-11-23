@@ -247,7 +247,7 @@ const mockDeveloperWorkspaces: DeveloperWorkspace[] = [
 ];
 
 const mockDeveloperWorkspaceSuggestions: DeveloperWorkspaceSuggestion[] = [
-  { path: '/Users/mock/Myproject', display_path: '/Users/mock/Myproject', project_count: 6 },
+  { path: '/Users/mock/Myproject', display_path: '/Users/mock/Myproject', project_count: 6, agent_sessions: 12 },
 ];
 
 /** The preview keeps settings in localStorage, as the mock settings API does. */

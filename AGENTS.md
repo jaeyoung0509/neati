@@ -568,6 +568,16 @@ safety conventions below when changing neati.
   selection rule of its own, and changing its default to on is an owner
   decision.
 
+- Project folder suggestions (#486, #506) are hints, never scan scope. Besides
+  common home-relative names, the folders recent coding-agent sessions worked
+  in are suggested (`agent_sessions::recent_working_directories`: the newest
+  300 sessions per tool, a small head per file, only `cwd` kept). A session's
+  directory maps to the parent of its nearest project root (the project
+  itself when that parent is home); hidden folders, linked worktrees, gone or
+  non-project folders and folders a saved folder covers are skipped. Adding a
+  suggestion re-derives the suggestions, so the window cannot submit another
+  path.
+
 - Extra AI tool profiles (#451) are directories the person confirmed in
   Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They
   widen measurement only: `signatures::profiles` projects the ids listed in

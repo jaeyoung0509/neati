@@ -41,6 +41,16 @@ impl ServiceCacheCleanup {
 }
 
 impl CacheCleanup for ServiceCacheCleanup {
+    fn current(&self) -> Option<ScanResult> {
+        let published = self.cleanup.get_last_scan()?.result;
+        // The same window the reviewed quick-clean intent enforces, so a
+        // reused scan is never one the execution would then refuse.
+        published
+            .validate_for_cleanup(&published.scan_id, crate::services::ports::unix_now())
+            .is_ok()
+            .then_some(published)
+    }
+
     fn scan(&self, activity: Arc<dyn ActivityPort>) -> PortFuture<'_, Result<ScanResult, String>> {
         Box::pin(async move {
             if let Some(refusal) = &self.catalog_failure {
@@ -131,6 +141,18 @@ impl ServiceProjectCleanup {
 }
 
 impl ProjectCleanup for ServiceProjectCleanup {
+    fn current(&self) -> Option<ProjectInventory> {
+        let folders = self.settings.snapshot().ok()?.project_folders;
+        let result = self.storage.current_developer_artifacts()?;
+        Some(ProjectInventory {
+            folders,
+            // The refusals belong to the restore that ran with that scan; a
+            // reused inventory does not repeat them.
+            refused: Vec::new(),
+            result: Some(result),
+        })
+    }
+
     fn scan(
         &self,
         activity: Arc<dyn ActivityPort>,

@@ -35,6 +35,8 @@ fn main() {
         "execute_clean",
         "quick_clean_safe",
         "reviewed_quick_clean_safe",
+        "preview_one_button_clean",
+        "execute_one_button_clean",
         "get_memory_metrics",
         "get_cpu_metrics",
         "get_battery_metrics",

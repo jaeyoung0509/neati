@@ -8,13 +8,17 @@ use tauri::ipc::Channel;
 use tauri::{State, Window};
 
 use super::state::DesktopState;
+use crate::composition::ApplicationPorts;
 use crate::events::cleanup::TauriCleanupProgress;
+use crate::events::one_button::TauriOneButtonActivity;
 use crate::events::scan::TauriScanProgress;
 use crate::models::{
     Category, CleanEvent, CleanResult, CleanupFailure, CleanupHistoryEntry, CleanupProgressSink,
-    PlanPreview, PublishedScan, ResumeScanRequest, ScanDiscovery, ScanEvent, ScanProgressSink,
-    ScanRequest,
+    OneButtonActivity, OneButtonOutcome, OneButtonPreview, PlanPreview, PublishedScan,
+    ResumeScanRequest, ScanDiscovery, ScanEvent, ScanProgressSink, ScanRequest,
 };
+use crate::services::one_button_clean::ports::CleanRequest;
+use crate::services::ports::ActivityPort;
 
 pub use crate::services::select_quick_clean_safe_candidates;
 
@@ -144,6 +148,46 @@ pub async fn reviewed_quick_clean_safe(
         .cleanup
         .reviewed_quick_clean_safe(scan_id, selected_item_ids, &settings, progress)
         .await
+}
+
+/// Previews the one-button set (#500): the verified caches of the current
+/// scan plus the idle, verified build output in saved project folders. The
+/// preview is held backend-side; the window receives it with an opaque id.
+#[tauri::command]
+#[specta::specta]
+pub async fn preview_one_button_clean(
+    on_event: Channel<OneButtonActivity>,
+    ports: State<'_, ApplicationPorts>,
+) -> Result<OneButtonPreview, String> {
+    let request = CleanRequest {
+        reuse_current: true,
+        ..CleanRequest::default()
+    };
+    let activity: Arc<dyn ActivityPort> = Arc::new(TauriOneButtonActivity::new(on_event));
+    let (id, preview) = ports
+        .clean_sessions
+        .preview(request, activity)
+        .await
+        .map_err(|error| error.to_string())?;
+    Ok(OneButtonPreview::project(id, &preview))
+}
+
+/// Executes, once, exactly the preview `preview_id` names. The window cannot
+/// submit a path, an item id or a strategy.
+#[tauri::command]
+#[specta::specta]
+pub async fn execute_one_button_clean(
+    preview_id: uuid::Uuid,
+    on_event: Channel<OneButtonActivity>,
+    ports: State<'_, ApplicationPorts>,
+) -> Result<OneButtonOutcome, String> {
+    let activity: Arc<dyn ActivityPort> = Arc::new(TauriOneButtonActivity::new(on_event));
+    ports
+        .clean_sessions
+        .execute(preview_id, activity)
+        .await
+        .map(OneButtonOutcome::from)
+        .map_err(|error| error.to_string())
 }
 
 /// Completed cleanups as de-identified counts, newest first.

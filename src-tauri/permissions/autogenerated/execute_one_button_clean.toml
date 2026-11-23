@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-execute-one-button-clean"
+description = "Enables the execute_one_button_clean command without any pre-configured scope."
+commands.allow = ["execute_one_button_clean"]
+
+[[permission]]
+identifier = "deny-execute-one-button-clean"
+description = "Denies the execute_one_button_clean command without any pre-configured scope."
+commands.deny = ["execute_one_button_clean"]

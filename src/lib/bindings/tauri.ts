@@ -63,6 +63,17 @@ export const commands = {
 	 *  The panel cannot submit a path or a cleanup strategy.
 	 */
 	reviewedQuickCleanSafe: (scanId: string, selectedItemIds: string[], onEvent: Channel<CleanEvent_Deserialize>) => typedError<CleanResult_Serialize, CleanupFailure>(__TAURI_INVOKE("reviewed_quick_clean_safe", { scanId, selectedItemIds, onEvent })),
+	/**
+	 *  Previews the one-button set (#500): the verified caches of the current
+	 *  scan plus the idle, verified build output in saved project folders. The
+	 *  preview is held backend-side; the window receives it with an opaque id.
+	 */
+	previewOneButtonClean: (onEvent: Channel<OneButtonActivity>) => typedError<OneButtonPreview_Serialize, string>(__TAURI_INVOKE("preview_one_button_clean", { onEvent })),
+	/**
+	 *  Executes, once, exactly the preview `preview_id` names. The window cannot
+	 *  submit a path, an item id or a strategy.
+	 */
+	executeOneButtonClean: (previewId: string, onEvent: Channel<OneButtonActivity>) => typedError<OneButtonOutcome_Serialize, string>(__TAURI_INVOKE("execute_one_button_clean", { previewId, onEvent })),
 	getMemoryMetrics: () => typedError<MemoryMetrics_Serialize, string>(__TAURI_INVOKE("get_memory_metrics")),
 	/**  The system-wide CPU share, with the state that says how current it is. */
 	getCpuMetrics: () => typedError<CpuMetrics_Serialize, string>(__TAURI_INVOKE("get_cpu_metrics")),
@@ -2683,6 +2694,91 @@ export type ObservationQuality =
 export type ObservationScope = "subscription" | "api_key" | "project" | "organization" | "local_sessions";
 
 export type ObservationSourceKind = "live_authoritative" | "live_quota" | "local_estimate" | "credential_validated" | "manual";
+
+/**  What the use case is doing, streamed to the window. */
+export type OneButtonActivity = { type: "scanning"; location: string } | { type: "measuring"; project: string; kind: string } | { type: "removing"; name: string; index: number; total: number } | { type: "checking"; source: string };
+
+export type OneButtonFailure = {
+	reference: string,
+	name: string,
+	message: string,
+};
+
+export type OneButtonItem = OneButtonItem_Serialize | OneButtonItem_Deserialize;
+
+export type OneButtonItem_Deserialize = {
+	/**  A display key; the window never submits it back. */
+	reference: string,
+	source: OneButtonSource,
+	name: string,
+	kind: string,
+	path: string,
+	bytes: number,
+};
+
+export type OneButtonItem_Serialize = {
+	/**  A display key; the window never submits it back. */
+	reference: string,
+	source: OneButtonSource,
+	name: string,
+	kind: string,
+	path: string,
+	bytes: number,
+};
+
+export type OneButtonOutcome = OneButtonOutcome_Serialize | OneButtonOutcome_Deserialize;
+
+export type OneButtonOutcome_Deserialize = {
+	reclaimed_bytes: number,
+	removed: number,
+	skipped: number,
+	failed: OneButtonFailure[],
+};
+
+export type OneButtonOutcome_Serialize = {
+	reclaimed_bytes: number,
+	removed: number,
+	skipped: number,
+	failed: OneButtonFailure[],
+};
+
+export type OneButtonPreview = OneButtonPreview_Serialize | OneButtonPreview_Deserialize;
+
+export type OneButtonPreview_Deserialize = {
+	/**  The one-shot id `execute_one_button_clean` accepts. */
+	id: string,
+	items: OneButtonItem_Deserialize[],
+	total_bytes: number,
+	cache_bytes: number,
+	project_bytes: number,
+	/**  Found but left for review in the main window. */
+	review_items: number,
+	review_bytes: number,
+	/**
+	 *  Saved project folders, so the interface can say build output was not
+	 *  checked rather than that there is none.
+	 */
+	project_folders: number,
+};
+
+export type OneButtonPreview_Serialize = {
+	/**  The one-shot id `execute_one_button_clean` accepts. */
+	id: string,
+	items: OneButtonItem_Serialize[],
+	total_bytes: number,
+	cache_bytes: number,
+	project_bytes: number,
+	/**  Found but left for review in the main window. */
+	review_items: number,
+	review_bytes: number,
+	/**
+	 *  Saved project folders, so the interface can say build output was not
+	 *  checked rather than that there is none.
+	 */
+	project_folders: number,
+};
+
+export type OneButtonSource = "cache" | "project";
 
 /**
  *  Who is expected to own a discovered unit, and how strongly that is known.

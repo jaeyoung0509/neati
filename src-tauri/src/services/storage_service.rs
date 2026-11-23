@@ -572,6 +572,18 @@ impl StorageService {
         .await
     }
 
+    /// The last developer-artifact inventory while it is still fresh enough
+    /// to plan from, as the result the scan returned.
+    pub fn current_developer_artifacts(&self) -> Option<DeveloperArtifactScanResult> {
+        self.state
+            .developer_artifact_inventory
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_ref()
+            .filter(|inventory| inventory.is_fresh())
+            .map(crate::developer_artifacts::result_from_inventory)
+    }
+
     /// Asks a running developer-artifact scan to stop.
     pub fn cancel_developer_artifact_scan(&self, scan_id: &str) -> Result<(), String> {
         let cancel = self

@@ -41,3 +41,12 @@ pub struct Silent;
 impl ActivityPort for Silent {
     fn report(&self, _activity: Activity) {}
 }
+
+/// Seconds since the Unix epoch, for comparing against backend validity
+/// windows. A clock before 1970 reads as zero, which expires everything.
+pub fn unix_now() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0)
+}

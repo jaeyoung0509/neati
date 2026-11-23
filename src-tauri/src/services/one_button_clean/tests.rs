@@ -16,6 +16,8 @@ use super::OneButtonClean;
 type Calls = Mutex<Vec<(String, Vec<String>)>>;
 
 struct FakeCaches {
+    current: Option<ScanResult>,
+    scans: Mutex<u32>,
     scan: ScanResult,
     chosen: Vec<String>,
     report: RemovalReport,
@@ -23,8 +25,15 @@ struct FakeCaches {
 }
 
 impl CacheCleanup for FakeCaches {
+    fn current(&self) -> Option<ScanResult> {
+        self.current.clone()
+    }
+
     fn scan(&self, _: Arc<dyn ActivityPort>) -> PortFuture<'_, Result<ScanResult, String>> {
-        Box::pin(async move { Ok(self.scan.clone()) })
+        Box::pin(async move {
+            *self.scans.lock().unwrap() += 1;
+            Ok(self.scan.clone())
+        })
     }
 
     fn one_button_ids(&self, _: &ScanResult) -> Result<Vec<String>, String> {
@@ -52,6 +61,10 @@ struct FakeProjects {
 }
 
 impl ProjectCleanup for FakeProjects {
+    fn current(&self) -> Option<ProjectInventory> {
+        None
+    }
+
     fn scan(&self, _: Arc<dyn ActivityPort>) -> PortFuture<'_, Result<ProjectInventory, String>> {
         Box::pin(async move {
             *self.scans.lock().unwrap() += 1;
@@ -173,6 +186,8 @@ struct World {
 /// output and one dependency folder the backend did not preselect.
 fn world() -> World {
     let caches = Arc::new(FakeCaches {
+        current: None,
+        scans: Mutex::new(0),
         scan: scan(vec![item("a", 100), item("b", 200), item("c", 300)]),
         chosen: vec!["a".to_string(), "c".to_string()],
         report: RemovalReport {
@@ -299,6 +314,8 @@ fn failures_come_back_named_by_reference() {
             skipped: 1,
             failed: vec![("a".to_string(), "Locked by its owner.".to_string())],
         },
+        current: None,
+        scans: Mutex::new(0),
         scan: world.caches.scan.clone(),
         chosen: vec!["a".to_string()],
         removals: Mutex::new(Vec::new()),
@@ -363,4 +380,98 @@ fn an_empty_selection_executes_nothing() {
     assert_eq!(outcome, CleanOutcome::default());
     assert!(world.caches.removals.lock().unwrap().is_empty());
     assert!(world.projects.removals.lock().unwrap().is_empty());
+}
+
+#[test]
+fn reuse_takes_the_current_scan_and_only_then() {
+    let mut world = world();
+    let mut held = world.caches.scan.clone();
+    held.scan_id = "held-scan".to_string();
+    let caches = Arc::new(FakeCaches {
+        current: Some(held),
+        scans: Mutex::new(0),
+        scan: world.caches.scan.clone(),
+        chosen: vec!["a".to_string()],
+        report: RemovalReport::default(),
+        removals: Mutex::new(Vec::new()),
+    });
+    world.use_case = OneButtonClean::new(caches.clone(), world.projects.clone());
+
+    let reused = preview(
+        &world,
+        CleanRequest {
+            reuse_current: true,
+            ..CleanRequest::default()
+        },
+    )
+    .expect("preview");
+    assert_eq!(reused.caches.expect("caches").scan_id, "held-scan");
+    assert_eq!(
+        *caches.scans.lock().unwrap(),
+        0,
+        "a valid held scan is reused"
+    );
+
+    let fresh = preview(&world, CleanRequest::default()).expect("preview");
+    assert_eq!(fresh.caches.expect("caches").scan_id, "cache-scan");
+    assert_eq!(*caches.scans.lock().unwrap(), 1, "without reuse it scans");
+}
+
+fn sessions(ttl: std::time::Duration) -> (Arc<FakeCaches>, super::sessions::OneButtonSessions) {
+    let World {
+        caches, use_case, ..
+    } = world();
+    (
+        caches,
+        super::sessions::OneButtonSessions::with_ttl(Arc::new(use_case), ttl),
+    )
+}
+
+fn caches_request() -> CleanRequest {
+    CleanRequest {
+        projects: false,
+        ..CleanRequest::default()
+    }
+}
+
+#[test]
+fn a_held_preview_runs_once() {
+    let (caches, sessions) = sessions(super::sessions::PREVIEW_TTL);
+    let (id, shown) =
+        tauri::async_runtime::block_on(sessions.preview(caches_request(), Arc::new(Silent)))
+            .expect("preview");
+    assert_eq!(shown.chosen.len(), 2);
+    tauri::async_runtime::block_on(sessions.execute(id, Arc::new(Silent))).expect("first run");
+    assert_eq!(
+        tauri::async_runtime::block_on(sessions.execute(id, Arc::new(Silent))),
+        Err(OneButtonError::PreviewExpired),
+        "a replayed id must not run again"
+    );
+    assert_eq!(caches.removals.lock().unwrap().len(), 1);
+    assert_eq!(sessions.held_count(), 0);
+}
+
+#[test]
+fn an_expired_or_unknown_preview_removes_nothing() {
+    let (caches, sessions) = sessions(std::time::Duration::ZERO);
+    let (id, _) =
+        tauri::async_runtime::block_on(sessions.preview(caches_request(), Arc::new(Silent)))
+            .expect("preview");
+    for submitted in [id, uuid::Uuid::new_v4()] {
+        assert_eq!(
+            tauri::async_runtime::block_on(sessions.execute(submitted, Arc::new(Silent))),
+            Err(OneButtonError::PreviewExpired)
+        );
+    }
+    assert!(caches.removals.lock().unwrap().is_empty());
+}
+
+#[test]
+fn the_preview_store_is_capped() {
+    let (_, sessions) = sessions(super::sessions::PREVIEW_TTL);
+    for _ in 0..(super::sessions::PREVIEW_CAP + 3) {
+        tauri::async_runtime::block_on(sessions.preview(caches_request(), Arc::new(Silent)))
+            .expect("preview");
+    }
+    assert_eq!(sessions.held_count(), super::sessions::PREVIEW_CAP);
 }

@@ -11,12 +11,16 @@ use crate::commands::DesktopState;
 use crate::services::insights::{InsightQueries, MachineInsights};
 use crate::services::one_button_clean::adapters::{ServiceCacheCleanup, ServiceProjectCleanup};
 use crate::services::one_button_clean::ports::CleanUseCase;
+use crate::services::one_button_clean::sessions::OneButtonSessions;
 use crate::services::one_button_clean::OneButtonClean;
 
 /// The driving ports an interface adapter is given.
 #[derive(Clone)]
 pub struct ApplicationPorts {
     pub clean: Arc<dyn CleanUseCase>,
+    /// The same use case for an interface that shows a preview and executes
+    /// it later by id (the window and the Quick Panel).
+    pub clean_sessions: Arc<OneButtonSessions>,
     pub insights: Arc<dyn InsightQueries>,
 }
 
@@ -30,8 +34,10 @@ pub fn application_ports(state: &DesktopState) -> ApplicationPorts {
         state.storage.clone(),
         state.settings.clone(),
     ));
+    let clean: Arc<dyn CleanUseCase> = Arc::new(OneButtonClean::new(caches, projects));
     ApplicationPorts {
-        clean: Arc::new(OneButtonClean::new(caches, projects)),
+        clean_sessions: Arc::new(OneButtonSessions::new(clean.clone())),
+        clean,
         insights: Arc::new(MachineInsights::new(
             state.system.clone(),
             state.cleanup.clone(),

@@ -279,6 +279,12 @@
           "markdownDescription": "Enables the execute_empty_trash command without any pre-configured scope."
         },
         {
+          "description": "Enables the execute_one_button_clean command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-execute-one-button-clean",
+          "markdownDescription": "Enables the execute_one_button_clean command without any pre-configured scope."
+        },
+        {
           "description": "Enables the execute_removal_plan command without any pre-configured scope.",
           "type": "string",
           "const": "allow-execute-removal-plan",
@@ -561,6 +567,12 @@
           "markdownDescription": "Enables the preview_empty_trash command without any pre-configured scope."
         },
         {
+          "description": "Enables the preview_one_button_clean command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-preview-one-button-clean",
+          "markdownDescription": "Enables the preview_one_button_clean command without any pre-configured scope."
+        },
+        {
           "description": "Enables the prune_docker_target command without any pre-configured scope.",
           "type": "string",
           "const": "allow-prune-docker-target",
@@ -829,6 +841,12 @@
           "type": "string",
           "const": "deny-execute-empty-trash",
           "markdownDescription": "Denies the execute_empty_trash command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the execute_one_button_clean command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-execute-one-button-clean",
+          "markdownDescription": "Denies the execute_one_button_clean command without any pre-configured scope."
         },
         {
           "description": "Denies the execute_removal_plan command without any pre-configured scope.",
@@ -1111,6 +1129,12 @@
           "type": "string",
           "const": "deny-preview-empty-trash",
           "markdownDescription": "Denies the preview_empty_trash command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the preview_one_button_clean command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-preview-one-button-clean",
+          "markdownDescription": "Denies the preview_one_button_clean command without any pre-configured scope."
         },
         {
           "description": "Denies the prune_docker_target command without any pre-configured scope.",

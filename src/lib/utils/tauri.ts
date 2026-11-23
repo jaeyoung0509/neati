@@ -18,6 +18,9 @@ import type {
   Category,
   CleanEvent,
   CleanResult,
+  OneButtonActivity,
+  OneButtonOutcome,
+  OneButtonPreview,
   ControlCenterQuickSummary,
   DevelopmentListener,
   DeveloperArtifactScanEvent,
@@ -243,6 +246,21 @@ export function tauriReviewedQuickCleanSafe(
   onEvent: (event: CleanEvent) => void
 ): Promise<CleanResult> {
   return api.reviewedQuickCleanSafe(scanId, selectedItemIds, onEvent);
+}
+
+/** Previews the one-button set; the backend holds it behind the returned id. */
+export function tauriPreviewOneButtonClean(
+  onEvent: (event: OneButtonActivity) => void
+): Promise<OneButtonPreview> {
+  return api.previewOneButtonClean(onEvent);
+}
+
+/** Executes, once, exactly the preview the id names. */
+export function tauriExecuteOneButtonClean(
+  previewId: string,
+  onEvent: (event: OneButtonActivity) => void
+): Promise<OneButtonOutcome> {
+  return api.executeOneButtonClean(previewId, onEvent);
 }
 
 export function tauriGetMemoryMetrics(): Promise<MemoryMetrics> {

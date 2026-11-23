@@ -74,6 +74,13 @@ export const commands = {
 	 *  submit a path, an item id or a strategy.
 	 */
 	executeOneButtonClean: (previewId: string, onEvent: Channel<OneButtonActivity>) => typedError<OneButtonOutcome_Serialize, string>(__TAURI_INVOKE("execute_one_button_clean", { previewId, onEvent })),
+	/**  Where `neati` resolves and which agents have the skill installed (#500). */
+	getCommandLineStatus: () => typedError<CommandLineStatus, string>(__TAURI_INVOKE("get_command_line_status")),
+	/**
+	 *  Installs the bundled agent skill for one agent; never replaces a file
+	 *  neati did not write (#500).
+	 */
+	installAgentSkill: (target: AgentSkillTarget) => typedError<AgentSkillInstall, string>(__TAURI_INVOKE("install_agent_skill", { target })),
 	getMemoryMetrics: () => typedError<MemoryMetrics_Serialize, string>(__TAURI_INVOKE("get_memory_metrics")),
 	/**  The system-wide CPU share, with the state that says how current it is. */
 	getCpuMetrics: () => typedError<CpuMetrics_Serialize, string>(__TAURI_INVOKE("get_cpu_metrics")),
@@ -422,6 +429,36 @@ export type AgentSession_Serialize = {
 	can_stop: boolean,
 	stop_lease_id: string | null,
 };
+
+export type AgentSkillInstall = {
+	target: AgentSkillTarget,
+	path: string,
+	/**  An earlier neati copy was replaced. */
+	replaced: boolean,
+};
+
+export type AgentSkillState =
+/**  No skill file there. */
+"missing" |
+/**  neati's own copy, matching this version. */
+"current" |
+/**  neati's own copy from another version; installing replaces it. */
+"outdated" |
+/**  A file neati did not write; installing never replaces it. */
+"foreign";
+
+export type AgentSkillStatus = {
+	target: AgentSkillTarget,
+	path: string,
+	state: AgentSkillState,
+};
+
+/**  Where an agent loads skills from. */
+export type AgentSkillTarget =
+/**  `~/.claude/skills` */
+"claude" |
+/**  `~/.codex/skills` */
+"codex";
 
 export type AiControlCenterSnapshot = AiControlCenterSnapshot_Serialize | AiControlCenterSnapshot_Deserialize;
 
@@ -1522,6 +1559,18 @@ export type CleanupUnitKind =
 "provider_action" |
 /**  No host path: a container runtime prunes the resources it owns. */
 "container_resource";
+
+export type CommandLineStatus = {
+	/**  This app's executable, which is the `neati` command. */
+	executable: string | null,
+	/**  Where `neati` resolves on the stated PATH, when it does. */
+	command_path: string | null,
+	/**  Whether that `neati` is this app. */
+	linked_here: boolean,
+	/**  A command that links this app as `neati`, for a person to run. */
+	link_command: string | null,
+	skills: AgentSkillStatus[],
+};
 
 export type ControlCenterQuickSummary = ControlCenterQuickSummary_Serialize | ControlCenterQuickSummary_Deserialize;
 

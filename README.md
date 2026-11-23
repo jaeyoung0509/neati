@@ -241,6 +241,8 @@ neati status          # free space, memory, last cleanup
 neati clean           # preview what one-button Clean would remove
 neati clean --yes     # permanently remove that set
 neati projects --folder ~/code
+neati projects add ~/code   # remember it (quit neati first)
+neati large-files           # read-only; remove them in the app
 neati ports
 neati ai
 ```
@@ -261,7 +263,8 @@ neati skill install --target codex   # ~/.codex/skills/neati
 ```
 
 The skill makes the agent preview first and ask before anything is removed.
-See [docs/CLI.md](docs/CLI.md).
+**Settings → Command line and agents** shows whether `neati` is on your PATH
+and installs the skill with one click. See [docs/CLI.md](docs/CLI.md).
 
 ## Privacy & Local Diagnostics
 

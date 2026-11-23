@@ -29,6 +29,10 @@ verified compiler build output in the user's saved project folders.
 | `neati clean --yes --only REF,REF --json` | Permanently removes exactly those references |
 | `neati scan --json` | Cache inventory; `--all` adds items that need review and why |
 | `neati projects --json` | Build output in saved project folders; `--folder PATH` adds one for this run |
+| `neati projects add PATH --json` | Saves a project folder for future runs (refuses while the neati app is open) |
+| `neati large-files --json` | Large files in Downloads, Desktop, Documents, Movies (`--min-size 1G`, `--root downloads`), read-only |
+| `neati apps --json` | Installed apps by size, read-only |
+| `neati docker --json` | Docker engine status, images, containers, volumes, read-only |
 | `neati ports --json` | Development servers listening (port, pid, project) |
 | `neati ai --json` | AI tool usage windows and token counts |
 | `neati history --json` | Past cleanups |
@@ -56,7 +60,8 @@ fails, it prints `{"error": "..."}` and exits 1. A usage error exits 2.
 
 If `project_folders.saved` is empty, the user has no saved project folder, so
 build output was not checked. Ask which folder holds their code, then pass it
-with `--folder ~/code` on both the preview and the `--yes` run.
+with `--folder ~/code` on both the preview and the `--yes` run. To remember it,
+`neati projects add ~/code` saves it, but only while the neati app is closed.
 
 ## Rules
 
@@ -65,8 +70,9 @@ with `--folder ~/code` on both the preview and the `--yes` run.
 - Never delete paths from neati's output yourself with `rm`, `trash` or
   `find -delete`. neati checks ownership, open files and links right before
   removal; a manual delete skips all of that.
-- Items that need review, large files, apps, Docker data, local models and
-  the Trash stay in the app. Tell the user to open neati for those rather
-  than working around it.
+- Removing items that need review, large files, apps, Docker data, local
+  models and the Trash stays in the app. The CLI can list large files, apps
+  and Docker data so you can point the user at them; never delete them
+  yourself.
 - Do not run `clean` repeatedly to "make sure". Preview once, remove once.
 - neati only lists dev servers (`ports`); it does not stop them from the CLI.

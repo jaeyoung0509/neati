@@ -30,15 +30,36 @@ pub enum Command {
     Help,
     Version,
     Status,
-    Scan { all: bool },
-    Projects { folders: Vec<String>, all: bool },
+    Scan {
+        all: bool,
+    },
+    Projects {
+        folders: Vec<String>,
+        all: bool,
+    },
+    /// Saves a project folder in the app's settings.
+    ProjectsAdd {
+        path: String,
+    },
+    /// Forgets a saved project folder.
+    ProjectsRemove {
+        path: String,
+    },
+    LargeFiles(LargeFileOptions),
+    Apps,
+    Docker,
     Clean(CleanOptions),
     Ports,
-    Ai { refresh: bool },
+    Ai {
+        refresh: bool,
+    },
     History,
     Doctor,
     SkillPrint,
-    SkillInstall { target: SkillTarget, force: bool },
+    SkillInstall {
+        target: SkillTarget,
+        force: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,6 +94,30 @@ impl Default for CleanOptions {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LargeFileOptions {
+    /// Smallest file reported, in bytes. The backend clamps it to its own
+    /// minimum for the chosen filter.
+    pub min_size_bytes: u64,
+    /// `downloads`, `desktop`, `documents`, `movies`; empty means all four.
+    pub roots: Vec<String>,
+    pub installers: bool,
+}
+
+impl Default for LargeFileOptions {
+    fn default() -> Self {
+        Self {
+            // The app's default threshold.
+            min_size_bytes: 500 * 1024 * 1024,
+            roots: Vec::new(),
+            installers: false,
+        }
+    }
+}
+
+/// The large-file roots the backend recognises.
+pub const LARGE_FILE_ROOTS: [&str; 4] = ["downloads", "desktop", "documents", "movies"];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SkillTarget {
     /// `~/.claude/skills`
     Claude,
@@ -93,6 +138,9 @@ pub fn parse(args: &[String]) -> Parsed {
         "status" => no_options(rest, Command::Status),
         "scan" => parse_scan(rest),
         "projects" => parse_projects(rest),
+        "large-files" => parse_large_files(rest),
+        "apps" => no_options(rest, Command::Apps),
+        "docker" => no_options(rest, Command::Docker),
         "clean" => parse_clean(rest),
         "ports" => no_options(rest, Command::Ports),
         "ai" => parse_ai(rest),
@@ -157,6 +205,10 @@ fn parse_scan(rest: &[String]) -> Result<Invocation, String> {
 }
 
 fn parse_projects(rest: &[String]) -> Result<Invocation, String> {
+    match rest.first().map(String::as_str) {
+        Some("add") | Some("remove") => return parse_project_edit(rest),
+        _ => {}
+    }
     let mut globals = Globals::default();
     let mut all = false;
     let mut folders = Vec::new();
@@ -170,6 +222,80 @@ fn parse_projects(rest: &[String]) -> Result<Invocation, String> {
         }
     }
     Ok(globals.finish(Command::Projects { folders, all }))
+}
+
+/// `projects add PATH` / `projects remove PATH`.
+fn parse_project_edit(rest: &[String]) -> Result<Invocation, String> {
+    let mut globals = Globals::default();
+    let mut path = None;
+    for argument in &rest[1..] {
+        if globals.take(argument) {
+            continue;
+        }
+        if argument.starts_with("--") || path.is_some() {
+            return Err(unknown(argument));
+        }
+        path = Some(argument.clone());
+    }
+    let path = path.ok_or_else(|| format!("projects {} needs a folder path.", rest[0]))?;
+    Ok(globals.finish(if rest[0] == "add" {
+        Command::ProjectsAdd { path }
+    } else {
+        Command::ProjectsRemove { path }
+    }))
+}
+
+fn parse_large_files(rest: &[String]) -> Result<Invocation, String> {
+    let mut globals = Globals::default();
+    let mut options = LargeFileOptions::default();
+    let mut arguments = rest.iter();
+    while let Some(argument) = arguments.next() {
+        match argument.as_str() {
+            "--min-size" => {
+                options.min_size_bytes = parse_size(&value(&mut arguments, "--min-size")?)?
+            }
+            "--root" => {
+                let root = value(&mut arguments, "--root")?.to_lowercase();
+                if !LARGE_FILE_ROOTS.contains(&root.as_str()) {
+                    return Err(format!(
+                        "Unknown root {root}. Use one of: {}.",
+                        LARGE_FILE_ROOTS.join(", ")
+                    ));
+                }
+                if !options.roots.contains(&root) {
+                    options.roots.push(root);
+                }
+            }
+            "--installers" => options.installers = true,
+            other if globals.take(other) => {}
+            other => return Err(unknown(other)),
+        }
+    }
+    Ok(globals.finish(Command::LargeFiles(options)))
+}
+
+/// `500M`, `1G`, `1.5GB`, `750mb` or a byte count.
+pub fn parse_size(text: &str) -> Result<u64, String> {
+    let trimmed = text.trim();
+    let split = trimmed
+        .find(|character: char| !(character.is_ascii_digit() || character == '.'))
+        .unwrap_or(trimmed.len());
+    let (number, unit) = trimmed.split_at(split);
+    let number: f64 = number
+        .parse()
+        .map_err(|_| format!("{text} is not a size. Try 500M or 1G."))?;
+    let multiplier: u64 = match unit.trim().to_ascii_uppercase().as_str() {
+        "" | "B" => 1,
+        "K" | "KB" => 1024,
+        "M" | "MB" => 1024 * 1024,
+        "G" | "GB" => 1024 * 1024 * 1024,
+        _ => return Err(format!("{text} is not a size. Try 500M or 1G.")),
+    };
+    let bytes = number * multiplier as f64;
+    if !bytes.is_finite() || bytes < 0.0 || bytes > u64::MAX as f64 {
+        return Err(format!("{text} is not a size. Try 500M or 1G."));
+    }
+    Ok(bytes as u64)
 }
 
 fn parse_clean(rest: &[String]) -> Result<Invocation, String> {
@@ -405,6 +531,56 @@ mod tests {
                 force: true
             }
         );
+    }
+
+    #[test]
+    fn project_folders_are_added_and_removed_by_path() {
+        assert_eq!(
+            run(&["projects", "add", "~/code", "--json"]).command,
+            Command::ProjectsAdd {
+                path: "~/code".to_string()
+            }
+        );
+        assert_eq!(
+            run(&["projects", "remove", "/Users/me/code"]).command,
+            Command::ProjectsRemove {
+                path: "/Users/me/code".to_string()
+            }
+        );
+        assert!(matches!(
+            parse_words(&["projects", "add"]),
+            Parsed::Usage(_)
+        ));
+        assert!(matches!(
+            parse_words(&["projects", "add", "a", "b"]),
+            Parsed::Usage(_)
+        ));
+    }
+
+    #[test]
+    fn large_file_options_parse_sizes_and_known_roots() {
+        let Command::LargeFiles(options) = run(&[
+            "large-files",
+            "--min-size",
+            "1.5G",
+            "--root",
+            "Downloads",
+            "--installers",
+        ])
+        .command
+        else {
+            panic!("large-files did not parse");
+        };
+        assert_eq!(options.min_size_bytes, 1024 * 1024 * 1024 * 3 / 2);
+        assert_eq!(options.roots, ["downloads"]);
+        assert!(options.installers);
+        assert_eq!(parse_size("500M"), Ok(500 * 1024 * 1024));
+        assert_eq!(parse_size("2048"), Ok(2048));
+        assert!(parse_size("lots").is_err());
+        assert!(matches!(
+            parse_words(&["large-files", "--root", "/"]),
+            Parsed::Usage(_)
+        ));
     }
 
     #[test]

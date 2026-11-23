@@ -8,6 +8,7 @@
 use std::sync::Arc;
 
 use crate::commands::DesktopState;
+use crate::services::command_line::CommandLineService;
 use crate::services::insights::{InsightQueries, MachineInsights};
 use crate::services::one_button_clean::adapters::{ServiceCacheCleanup, ServiceProjectCleanup};
 use crate::services::one_button_clean::ports::CleanUseCase;
@@ -22,6 +23,8 @@ pub struct ApplicationPorts {
     /// it later by id (the window and the Quick Panel).
     pub clean_sessions: Arc<OneButtonSessions>,
     pub insights: Arc<dyn InsightQueries>,
+    /// The `neati` command and the agent skill (#500).
+    pub command_line: Arc<CommandLineService>,
 }
 
 pub fn application_ports(state: &DesktopState) -> ApplicationPorts {
@@ -41,7 +44,14 @@ pub fn application_ports(state: &DesktopState) -> ApplicationPorts {
         insights: Arc::new(MachineInsights::new(
             state.system.clone(),
             state.cleanup.clone(),
+            state.storage.clone(),
             state.ai.clone(),
+        )),
+        // The running executable is a process fact observed here, once, as
+        // the login item observes it.
+        command_line: Arc::new(CommandLineService::new(
+            state.environment.clone(),
+            std::env::current_exe().ok(),
         )),
     }
 }

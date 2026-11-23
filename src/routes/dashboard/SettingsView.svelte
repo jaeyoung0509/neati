@@ -25,6 +25,7 @@
   import SettingsQuickPanel from '../../lib/components/settings/SettingsQuickPanel.svelte';
   import SettingsAiAccounts from '../../lib/components/settings/SettingsAiAccounts.svelte';
   import SettingsAgentNotifications from '../../lib/components/settings/SettingsAgentNotifications.svelte';
+  import SettingsCommandLine from '../../lib/components/settings/SettingsCommandLine.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
@@ -159,6 +160,8 @@
       <UpdateSettings {releasesUrl} />
     </Card>
   </div>
+
+  <SettingsCommandLine />
 
   <!-- AI tool profiles -->
   <div class="space-y-3">

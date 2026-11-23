@@ -19,6 +19,9 @@ import type {
   CleanEvent,
   CleanResult,
   OneButtonActivity,
+  AgentSkillInstall,
+  AgentSkillTarget,
+  CommandLineStatus,
   OneButtonOutcome,
   OneButtonPreview,
   ControlCenterQuickSummary,
@@ -413,6 +416,16 @@ export function tauriGetCleanupHistory(): Promise<CleanupHistoryEntry[]> {
 
 export function tauriSuggestAiToolProfiles(): Promise<AiToolProfileSuggestion[]> {
   return api.suggestAiToolProfiles();
+}
+
+/** Where `neati` resolves and which agent skills are installed (#500). */
+export function tauriGetCommandLineStatus(): Promise<CommandLineStatus> {
+  return api.getCommandLineStatus();
+}
+
+/** Installs neati's agent skill; never replaces a file neati did not write. */
+export function tauriInstallAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
+  return api.installAgentSkill(target);
 }
 
 export function tauriGetLaunchAtLogin(): Promise<LaunchAtLogin> {

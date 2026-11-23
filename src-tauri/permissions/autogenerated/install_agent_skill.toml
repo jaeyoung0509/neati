@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-install-agent-skill"
+description = "Enables the install_agent_skill command without any pre-configured scope."
+commands.allow = ["install_agent_skill"]
+
+[[permission]]
+identifier = "deny-install-agent-skill"
+description = "Denies the install_agent_skill command without any pre-configured scope."
+commands.deny = ["install_agent_skill"]

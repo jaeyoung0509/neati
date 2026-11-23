@@ -37,6 +37,8 @@ fn main() {
         "reviewed_quick_clean_safe",
         "preview_one_button_clean",
         "execute_one_button_clean",
+        "get_command_line_status",
+        "install_agent_skill",
         "get_memory_metrics",
         "get_cpu_metrics",
         "get_battery_metrics",

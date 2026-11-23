@@ -58,7 +58,7 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 22] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 53] = [
+const READ_ONLY_PERMISSIONS: [&str; 54] = [
     "allow-suggest-developer-workspaces",
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
@@ -117,6 +117,8 @@ const READ_ONLY_PERMISSIONS: [&str; 53] = [
     "allow-get-cleanup-history",
     // Scans and holds a preview; removes nothing (#500).
     "allow-preview-one-button-clean",
+    // Reads where `neati` resolves and which agent skills exist (#500).
+    "allow-get-command-line-status",
 ];
 
 /// Command permissions that change machine or persistent state, spawn a
@@ -129,7 +131,7 @@ const READ_ONLY_PERMISSIONS: [&str; 53] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 41] = [
+const MUTATING_PERMISSIONS: [&str; 42] = [
     "allow-restore-developer-workspaces",
     "allow-add-suggested-developer-workspace",
     "allow-connect-openrouter-oauth",
@@ -174,6 +176,8 @@ const MUTATING_PERMISSIONS: [&str; 41] = [
     "allow-set-launch-at-login",
     // Permanently removes exactly a held one-button preview (#500).
     "allow-execute-one-button-clean",
+    // Writes neati's own agent skill file under the home folder (#500).
+    "allow-install-agent-skill",
 ];
 
 /// The quick panel's deliberately narrow mutating use case. The backend

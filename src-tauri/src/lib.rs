@@ -676,6 +676,8 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::reviewed_quick_clean_safe,
             commands::preview_one_button_clean,
             commands::execute_one_button_clean,
+            commands::get_command_line_status,
+            commands::install_agent_skill,
             commands::get_memory_metrics,
             commands::get_cpu_metrics,
             commands::get_battery_metrics,

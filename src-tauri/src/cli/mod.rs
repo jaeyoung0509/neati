@@ -14,6 +14,8 @@ mod ai;
 pub mod args;
 mod clean;
 pub mod context;
+mod folders;
+mod inventories;
 pub mod output;
 mod scan;
 pub mod skill;
@@ -37,12 +39,18 @@ COMMANDS:
   scan [--all]        Caches neati found; --all includes ones that need review
   projects [--all]    Build output in your saved project folders
       --folder PATH   Also scan this folder for this run (repeatable)
+  projects add PATH   Save a project folder (quit neati first)
+  projects remove PATH
   clean               Preview what one-button Clean removes (nothing is removed)
       --yes           Permanently remove the previewed set
       --only REF      Remove only these references (repeatable, comma-separated)
       --skip REF      Leave these references out
       --folder PATH   Include this project folder for this run
       --caches-only | --projects-only
+  large-files [--min-size 500M] [--root downloads|desktop|documents|movies] [--installers]
+                      Large files, read-only (remove them in the app)
+  apps                Installed apps by size, read-only
+  docker              Docker engine status and data, read-only
   ports               Development servers listening on this Mac
   ai [--refresh]      AI tool usage (Claude, Codex, Gemini, …)
   history             Past cleanups
@@ -57,8 +65,9 @@ OPTIONS:
   --quiet   No progress on stderr
 
 `neati clean` only ever removes the set the app's Clean button would: idle,
-regenerable caches and idle, verified build output. Items that need review,
-large files, apps and Docker data stay in the app. Removal is permanent.
+regenerable caches and idle, verified build output. Removing items that need
+review, large files, apps and Docker data stays in the app. Removal is
+permanent.
 
 EXIT CODES:
   0  success (a preview is a success)
@@ -103,6 +112,8 @@ pub fn run(args: &[String]) -> Option<i32> {
             Ok(crate::diagnostics::doctor::run_cli(&doctor).unwrap_or(1))
         }
         Command::SkillPrint => Ok(skill::print()),
+        Command::ProjectsAdd { path } => folders::run(folders::Edit::Add, path, json),
+        Command::ProjectsRemove { path } => folders::run(folders::Edit::Remove, path, json),
         Command::SkillInstall { target, force } => {
             let home = neati_platform::PlatformEnvironment::native().user_home();
             skill::install(home.as_deref(), target, *force, json)
@@ -152,6 +163,11 @@ fn dispatch(
         Command::Ports => system::ports(ports.insights.as_ref(), home, json),
         Command::History => system::history(ports.insights.as_ref(), json),
         Command::Ai { refresh } => ai::ai(ports.insights.as_ref(), progress, *refresh, json),
+        Command::LargeFiles(options) => {
+            inventories::large_files(ports.insights.as_ref(), progress, options, json)
+        }
+        Command::Apps => inventories::apps(ports.insights.as_ref(), json),
+        Command::Docker => inventories::docker(ports.insights.as_ref(), json),
         Command::Scan { all } => scan::Inventory {
             use_case: ports.clean.as_ref(),
             progress,
@@ -178,7 +194,9 @@ fn dispatch(
         | Command::Version
         | Command::Doctor
         | Command::SkillPrint
-        | Command::SkillInstall { .. } => Ok(0),
+        | Command::SkillInstall { .. }
+        | Command::ProjectsAdd { .. }
+        | Command::ProjectsRemove { .. } => Ok(0),
     }
 }
 
@@ -188,7 +206,12 @@ fn command_name(command: &Command) -> &'static str {
         Command::Version => "version",
         Command::Status => "status",
         Command::Scan { .. } => "scan",
-        Command::Projects { .. } => "projects",
+        Command::Projects { .. } | Command::ProjectsAdd { .. } | Command::ProjectsRemove { .. } => {
+            "projects"
+        }
+        Command::LargeFiles(_) => "large-files",
+        Command::Apps => "apps",
+        Command::Docker => "docker",
         Command::Clean(_) => "clean",
         Command::Ports => "ports",
         Command::Ai { .. } => "ai",

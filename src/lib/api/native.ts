@@ -20,6 +20,9 @@ import type {
   CleanEvent,
   CleanResult,
   OneButtonActivity,
+  AgentSkillInstall,
+  AgentSkillTarget,
+  CommandLineStatus,
   OneButtonOutcome,
   OneButtonPreview,
   CleanupFailure,
@@ -448,6 +451,14 @@ export const nativeApi = {
 
   async getLaunchAtLogin(): Promise<LaunchAtLogin> {
     return await unwrap(commands.getLaunchAtLogin());
+  },
+
+  async getCommandLineStatus(): Promise<CommandLineStatus> {
+    return await unwrap(commands.getCommandLineStatus());
+  },
+
+  async installAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {
+    return await unwrap(commands.installAgentSkill(target));
   },
 
   async setLaunchAtLogin(enabled: boolean): Promise<LaunchAtLogin> {

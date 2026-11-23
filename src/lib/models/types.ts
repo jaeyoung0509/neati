@@ -199,6 +199,13 @@ import type {
 } from '../bindings/tauri';
 
 export type { OneButtonActivity, OneButtonFailure, OneButtonSource } from '../bindings/tauri';
+export type {
+  AgentSkillInstall,
+  AgentSkillState,
+  AgentSkillStatus,
+  AgentSkillTarget,
+  CommandLineStatus,
+} from '../bindings/tauri';
 // One-button Clean (#500): the window only ever receives these shapes.
 export type OneButtonItem = OneButtonItem_Serialize;
 export type OneButtonOutcome = OneButtonOutcome_Serialize;

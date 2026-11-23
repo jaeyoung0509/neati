@@ -216,11 +216,23 @@ safety conventions below when changing neati.
   references narrow that set, and an unknown reference refuses the whole run.
   Without `--yes` it is a preview unless a person answers the terminal prompt;
   `--json` without `--yes` never removes.
-- Reviewed workflows (Large Files, App Uninstaller, Temporary Folders, home
-  Trash, Docker, local models, memory and port actions, Keep Awake) stay
-  app-only until each gets its own CLI confirmation design in its own change.
-- The CLI reads the app's settings and never writes them; unparsable settings
-  refuse the run instead of falling back to defaults.
+- Removal in reviewed workflows (Large Files, App Uninstaller, Temporary
+  Folders, home Trash, Docker, local models, memory and port actions, Keep
+  Awake) stays app-only until each gets its own CLI confirmation design in
+  its own change. The CLI may list them read-only through `InsightQueries`.
+- The CLI reads the app's settings. Its only write is `projects add|remove`,
+  which refuses while another neati process runs and writes every other
+  setting back unchanged. Unparsable settings refuse the run instead of
+  falling back to defaults.
+- The Quick Panel's Clean goes through `CleanUseCase` (#500):
+  `preview_one_button_clean` holds the preview in `OneButtonSessions` (one-shot
+  id, TTL, cap) and `execute_one_button_clean` runs exactly that preview.
+  Both are granted to the quick window only. The panel must not re-derive
+  eligibility in the frontend.
+- Settings → Command line and agents reports where `neati` resolves and offers
+  a link command to copy; the app never writes a PATH folder. Skill installs go
+  through `services::command_line` and never replace a file neati did not
+  write.
 - `skills/neati/SKILL.md` is compiled into the binary and must keep teaching
   preview → explicit user approval → `clean --yes --only <refs>`, and that an
   agent never deletes neati's paths itself. `skill install` replaces only its

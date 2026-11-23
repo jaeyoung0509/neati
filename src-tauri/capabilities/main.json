@@ -32,6 +32,8 @@
     "allow-get-ai-control-git-diff",
     "allow-connect-openrouter-oauth",
     "allow-start-scan",
+    "allow-get-command-line-status",
+    "allow-install-agent-skill",
     "allow-resume-scan",
     "allow-cancel-scan",
     "allow-get-last-scan",

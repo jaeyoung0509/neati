@@ -22,6 +22,7 @@ import type {
   AgentSkillInstall,
   AgentSkillTarget,
   CommandLineStatus,
+  AutomaticCleanStatus,
   OneButtonOutcome,
   OneButtonPreview,
   ControlCenterQuickSummary,
@@ -421,6 +422,11 @@ export function tauriSuggestAiToolProfiles(): Promise<AiToolProfileSuggestion[]>
 /** Where `neati` resolves and which agent skills are installed (#500). */
 export function tauriGetCommandLineStatus(): Promise<CommandLineStatus> {
   return api.getCommandLineStatus();
+}
+
+/** What automatic Clean last did and when it may run next (#507). */
+export function tauriGetAutomaticCleanStatus(): Promise<AutomaticCleanStatus> {
+  return api.getAutomaticCleanStatus();
 }
 
 /** Installs neati's agent skill; never replaces a file neati did not write. */

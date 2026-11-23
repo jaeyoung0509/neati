@@ -27,6 +27,7 @@
   import SettingsAgentNotifications from '../../lib/components/settings/SettingsAgentNotifications.svelte';
   import SettingsCommandLine from '../../lib/components/settings/SettingsCommandLine.svelte';
   import SettingsCleanupRules from '../../lib/components/settings/SettingsCleanupRules.svelte';
+  import SettingsAutomaticClean from '../../lib/components/settings/SettingsAutomaticClean.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
@@ -234,6 +235,8 @@
   {/if}
 
   <SettingsCleanupRules />
+
+  <SettingsAutomaticClean />
 
   <!-- Cleaning Categories Defaults -->
   <div class="space-y-3">

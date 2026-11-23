@@ -251,7 +251,9 @@ neati ai
 regenerable caches and idle, verified build output in your project folders,
 plus dependency folders of inactive projects and finished Git worktrees if you
 turn on those cleanup rules in Settings. `neati worktrees` lists the worktrees
-in your project folders and whether each is finished.
+in your project folders and whether each is finished. Settings → Automatic
+Clean (off by default) can run the same Clean daily or weekly, only on AC power
+while you are away from the Mac.
 Without `--yes` it only previews, unless you answer its prompt in a terminal.
 Add `--json` to any command for machine-readable output.
 

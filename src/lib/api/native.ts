@@ -23,6 +23,7 @@ import type {
   AgentSkillInstall,
   AgentSkillTarget,
   CommandLineStatus,
+  AutomaticCleanStatus,
   OneButtonOutcome,
   OneButtonPreview,
   CleanupFailure,
@@ -455,6 +456,10 @@ export const nativeApi = {
 
   async getCommandLineStatus(): Promise<CommandLineStatus> {
     return await unwrap(commands.getCommandLineStatus());
+  },
+
+  async getAutomaticCleanStatus(): Promise<AutomaticCleanStatus> {
+    return await commands.getAutomaticCleanStatus();
   },
 
   async installAgentSkill(target: AgentSkillTarget): Promise<AgentSkillInstall> {

@@ -93,6 +93,7 @@
     "allow-cancel-developer-artifact-scan",
     "allow-prepare-developer-artifact-cleanup",
     "allow-scan-worktrees",
+    "allow-get-automatic-clean-status",
     "allow-prepare-worktree-removal",
     "allow-execute-worktree-removal",
     "allow-get-installed-apps",

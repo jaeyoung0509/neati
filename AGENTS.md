@@ -531,6 +531,20 @@ safety conventions below when changing neati.
   with it off, finished worktrees are removed only through the Projects view's
   explicit selection and confirmation. `git worktree prune` is not run.
 
+- Owner direction #507 (November 24, 2026): Automatic Clean
+  (`automatic_clean`) is a driving adapter that runs the one-button
+  `CleanUseCase` (preview, then exactly that preview) on a schedule. It is off
+  by default (`NeatiSettings.automatic_clean`), and turning it on asks for a
+  confirmation that names permanent removal without a click. A run starts
+  only when it is on, its interval (daily or weekly) has passed since the last
+  run, the Mac is on AC power and the person has not used keyboard or mouse
+  for 10 minutes (`neati_platform::input_idle`); unknown power or idleness
+  waits. A run that removes nothing or fails still counts as the interval's
+  run, so nothing retries in a loop. Only the desktop app schedules checks (a
+  15-minute timer that reads the setting); the CLI never does. It adds no
+  selection rule of its own, and changing its default to on is an owner
+  decision.
+
 - Extra AI tool profiles (#451) are directories the person confirmed in
   Settings for Claude, Codex, Gemini/Antigravity, OpenCode or Cursor. They
   widen measurement only: `signatures::profiles` projects the ids listed in

@@ -40,3 +40,30 @@ impl DesktopNotifications for TauriNotifications {
         )
     }
 }
+
+/// What automatic Clean (#507) tells the person, through the same plugin.
+pub struct TauriAutomaticCleanNotifier {
+    app: AppHandle,
+}
+
+impl TauriAutomaticCleanNotifier {
+    pub fn new(app: AppHandle) -> Self {
+        Self { app }
+    }
+}
+
+impl crate::automatic_clean::Notifier for TauriAutomaticCleanNotifier {
+    fn notify(&self, title: &str, body: &str) {
+        use tauri_plugin_notification::{NotificationExt, PermissionState};
+        let notification = self.app.notification();
+        if notification.permission_state().ok() != Some(PermissionState::Granted) {
+            return;
+        }
+        if let Err(error) = notification.builder().title(title).body(body).show() {
+            crate::diagnostics::log_error(
+                "automatic-clean",
+                &format!("Native notification failed: {error}"),
+            );
+        }
+    }
+}

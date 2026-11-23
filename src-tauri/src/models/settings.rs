@@ -192,6 +192,8 @@ pub struct NeatiSettings {
     pub include_rebuild_caches: bool,
     /// Rules for project leftovers in one-button Clean (#504).
     pub cleanup_rules: crate::models::CleanupRules,
+    /// Automatic Clean (#507). Off by default.
+    pub automatic_clean: crate::models::AutomaticCleanSettings,
     pub intensive_cleanup: bool,
     pub theme: String,
     pub excluded_signatures: Vec<String>,
@@ -231,6 +233,7 @@ impl Default for NeatiSettings {
             clean_docker: true,
             include_rebuild_caches: false,
             cleanup_rules: crate::models::CleanupRules::default(),
+            automatic_clean: crate::models::AutomaticCleanSettings::default(),
             intensive_cleanup: true,
             theme: "light".to_string(),
             excluded_signatures: Vec::new(),

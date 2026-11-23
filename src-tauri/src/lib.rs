@@ -4,6 +4,7 @@ pub mod ai_providers;
 pub mod ai_snapshots;
 pub mod ai_usage;
 pub mod applications;
+pub mod automatic_clean;
 pub mod blocking;
 pub mod cache_providers;
 pub mod cleaner;
@@ -512,6 +513,28 @@ pub fn run() {
                 }
                 state.ai.restore_audit(&config_dir);
             }
+            // Automatic Clean (#507): a driving adapter over the same
+            // one-button use case, checked on a timer only by the app.
+            {
+                let ports = app.state::<composition::ApplicationPorts>();
+                let state = app.state::<DesktopState>();
+                let automatic = Arc::new(automatic_clean::AutomaticClean::new(
+                    ports.clean.clone(),
+                    state.settings.clone(),
+                    Arc::new(automatic_clean::NativeConditions::new(Arc::new(
+                        crate::power::SystemBatteryProvider::new(),
+                    ))),
+                    Arc::new(events::notifications::TauriAutomaticCleanNotifier::new(
+                        app.handle().clone(),
+                    )),
+                    app.path()
+                        .app_config_dir()
+                        .ok()
+                        .map(|directory| directory.join(automatic_clean::STATE_FILE_NAME)),
+                ));
+                app.manage(automatic.clone());
+                automatic_clean::spawn(automatic);
+            }
             let open_dashboard =
                 MenuItem::with_id(app, "open_dashboard", "Open neati", true, None::<&str>)?;
             let toggle_quick = MenuItem::with_id(
@@ -676,6 +699,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::quick_clean_safe,
             commands::reviewed_quick_clean_safe,
             commands::preview_one_button_clean,
+            commands::get_automatic_clean_status,
             commands::execute_one_button_clean,
             commands::get_command_line_status,
             commands::install_agent_skill,

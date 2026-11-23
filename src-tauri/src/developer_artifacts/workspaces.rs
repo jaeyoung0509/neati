@@ -180,25 +180,52 @@ pub(super) fn canonical_home(environment: &PlatformEnvironment) -> Option<PathBu
 /// Discovery is not permission (#486): a suggestion is a valid workspace root
 /// that holds at least one project, and nothing is scanned until the person
 /// adds it. Names that resolve to the same folder are reported once.
+///
+/// `session_folders` are the working directories recent coding-agent sessions
+/// recorded (#506), with their session counts. Each maps to the folder that
+/// holds its project; folders agents worked in come first.
 pub fn suggest_workspaces(
     environment: &PlatformEnvironment,
     saved: &[String],
+    session_folders: &[(PathBuf, u32)],
 ) -> Vec<DeveloperWorkspaceSuggestion> {
     let Some(home) = canonical_home(environment) else {
         return Vec::new();
     };
-    let saved: HashSet<PathBuf> = saved
+    let saved: Vec<PathBuf> = saved
         .iter()
         .filter_map(|folder| fs::canonicalize(folder).ok())
         .collect();
-    let mut seen = HashSet::new();
-    let mut suggestions = Vec::new();
+    let covered = |candidate: &Path| {
+        saved
+            .iter()
+            .any(|folder| candidate.starts_with(folder) || folder.starts_with(candidate))
+    };
+    let mut by_path: HashMap<PathBuf, DeveloperWorkspaceSuggestion> = HashMap::new();
+    for (cwd, sessions) in session_folders {
+        let Some(candidate) = session_workspace(environment, &home, cwd) else {
+            continue;
+        };
+        if covered(&candidate) {
+            continue;
+        }
+        let entry = by_path.entry(candidate.clone()).or_insert_with(|| {
+            let path = candidate.to_string_lossy().into_owned();
+            DeveloperWorkspaceSuggestion {
+                display_path: path.clone(),
+                path,
+                project_count: project_count(&candidate),
+                agent_sessions: 0,
+            }
+        });
+        entry.agent_sessions = entry.agent_sessions.saturating_add(*sessions);
+    }
     for name in SUGGESTED_PROJECT_ROOTS {
         let candidate = home.join(name);
         let Ok(canonical) = validate_workspace_root(environment, &candidate) else {
             continue;
         };
-        if saved.contains(&canonical) || !seen.insert(canonical.clone()) {
+        if covered(&canonical) || by_path.contains_key(&canonical) {
             continue;
         }
         let count = project_count(&canonical);
@@ -206,19 +233,76 @@ pub fn suggest_workspaces(
             continue;
         }
         let path = canonical.to_string_lossy().into_owned();
-        suggestions.push(DeveloperWorkspaceSuggestion {
-            display_path: path.clone(),
-            path,
-            project_count: count,
-        });
+        by_path.insert(
+            canonical,
+            DeveloperWorkspaceSuggestion {
+                display_path: path.clone(),
+                path,
+                project_count: count,
+                agent_sessions: 0,
+            },
+        );
     }
+    let mut suggestions: Vec<DeveloperWorkspaceSuggestion> = by_path.into_values().collect();
     suggestions.sort_by(|left, right| {
         right
-            .project_count
-            .cmp(&left.project_count)
+            .agent_sessions
+            .cmp(&left.agent_sessions)
+            .then_with(|| right.project_count.cmp(&left.project_count))
             .then_with(|| left.path.cmp(&right.path))
     });
     suggestions
+}
+
+/// Deepest folders a session's working directory is walked up through while
+/// looking for its project.
+const SESSION_PROJECT_DEPTH: usize = 8;
+
+/// The folder that holds the project an agent worked in: the parent of the
+/// nearest project root at or above `cwd`, or the project itself when that
+/// parent is the home folder or not a valid workspace. `None` for a folder
+/// that is gone, outside home, hidden, a linked worktree, or not a project.
+pub(super) fn session_workspace(
+    environment: &PlatformEnvironment,
+    home: &Path,
+    cwd: &Path,
+) -> Option<PathBuf> {
+    let cwd = fs::canonicalize(cwd).ok()?;
+    if cwd == home || !cwd.starts_with(home) {
+        return None;
+    }
+    let relative = cwd.strip_prefix(home).ok()?;
+    if relative
+        .components()
+        .any(|part| part.as_os_str().to_string_lossy().starts_with('.'))
+    {
+        // Tool folders (`~/.codex`, `~/.claude`) and other hidden places are
+        // not where a person keeps projects.
+        return None;
+    }
+    let mut project = None;
+    for folder in cwd.ancestors().take(SESSION_PROJECT_DEPTH) {
+        if folder == home || !folder.starts_with(home) {
+            break;
+        }
+        if has_project_marker(folder) {
+            project = Some(folder.to_path_buf());
+            break;
+        }
+    }
+    let project = project?;
+    if fs::symlink_metadata(project.join(".git")).is_ok_and(|metadata| metadata.is_file()) {
+        // A linked worktree: its repository and the worktree review cover it.
+        return None;
+    }
+    if let Some(parent) = project.parent() {
+        if parent != home {
+            if let Ok(parent) = validate_workspace_root(environment, parent) {
+                return Some(parent);
+            }
+        }
+    }
+    validate_workspace_root(environment, &project).ok()
 }
 
 /// Registers a folder the person accepted from the current suggestions.
@@ -229,9 +313,10 @@ pub fn register_suggested_workspace(
     environment: &PlatformEnvironment,
     path: &str,
     saved: &[String],
+    session_folders: &[(PathBuf, u32)],
     workspaces_store: &Mutex<HashMap<String, DeveloperWorkspaceRecord>>,
 ) -> Result<DeveloperWorkspace, String> {
-    if !suggest_workspaces(environment, saved)
+    if !suggest_workspaces(environment, saved, session_folders)
         .iter()
         .any(|suggestion| suggestion.path == path)
     {

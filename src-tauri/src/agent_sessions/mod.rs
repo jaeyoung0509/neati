@@ -136,3 +136,32 @@ pub fn folder_may_be_checked(path: &str) -> bool {
             .iter()
             .any(|prefix| path.starts_with(prefix))
 }
+
+/// The working directories recent sessions recorded, each with how many
+/// sessions named it (#506). A narrow read: the newest sessions of each tool,
+/// a small head of each file, and only the `cwd` value is kept.
+pub fn recent_working_directories(environment: &PlatformEnvironment) -> Vec<(PathBuf, u32)> {
+    let Some(roots) = SessionRoots::from_environment(environment) else {
+        return Vec::new();
+    };
+    let limits = inventory::InventoryLimits {
+        max_sessions_per_tool: 300,
+        max_companion_files: 0,
+        head_bytes: 64 * 1024,
+        extended_head_bytes: 64 * 1024,
+        tail_bytes: 4 * 1024,
+        read_budget: 48 * 1024 * 1024,
+    };
+    let discovery = inventory::discover(&roots, &limits, &SessionCancel::new());
+    let mut counts: std::collections::BTreeMap<PathBuf, u32> = std::collections::BTreeMap::new();
+    for cwd in discovery
+        .sessions
+        .iter()
+        .filter_map(|session| session.cwd.as_deref())
+    {
+        if folder_may_be_checked(cwd) {
+            *counts.entry(PathBuf::from(cwd)).or_default() += 1;
+        }
+    }
+    counts.into_iter().collect()
+}

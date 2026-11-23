@@ -586,11 +586,16 @@
             onclick={() => addSuggestedFolder(suggestion.path)}
             disabled={isScanning}
             class="max-w-full gap-1.5"
-            title={`Add ${suggestion.display_path} and scan it`}
+            title={suggestion.agent_sessions > 0
+              ? `Coding agents worked here in ${suggestion.agent_sessions} recent ${suggestion.agent_sessions === 1 ? 'session' : 'sessions'}. Add ${suggestion.display_path} and scan it`
+              : `Add ${suggestion.display_path} and scan it`}
           >
             <FolderOpen size={13} aria-hidden="true" />
             <span class="truncate font-mono">{suggestion.display_path}</span>
             <span class="shrink-0 text-muted-foreground">· {suggestion.project_count} {suggestion.project_count === 1 ? 'project' : 'projects'}</span>
+            {#if suggestion.agent_sessions > 0}
+              <span class="shrink-0 text-muted-foreground">· {suggestion.agent_sessions} agent {suggestion.agent_sessions === 1 ? 'session' : 'sessions'}</span>
+            {/if}
           </Button>
         {/each}
       </div>

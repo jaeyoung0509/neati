@@ -2211,6 +2211,11 @@ export type DeveloperWorkspaceSuggestion = {
 	display_path: string,
 	/**  Direct children that carry a project marker, capped by the probe. */
 	project_count: number,
+	/**
+	 *  Recent coding-agent sessions that worked inside this folder (#506).
+	 *  Zero for a folder suggested only by its name.
+	 */
+	agent_sessions: number,
 };
 
 export type DevelopmentListener = DevelopmentListener_Serialize | DevelopmentListener_Deserialize;

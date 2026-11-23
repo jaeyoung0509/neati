@@ -444,9 +444,13 @@ impl StorageService {
         let environment = self.environment.clone();
         crate::blocking::run_blocking(
             move || {
+                // Folders recent agent sessions worked in (#506): only their
+                // recorded working directories are read.
+                let sessions = crate::agent_sessions::recent_working_directories(&environment);
                 Ok(crate::developer_artifacts::suggest_workspaces(
                     &environment,
                     &saved,
+                    &sessions,
                 ))
             },
             "Developer workspace suggestion worker panicked",
@@ -464,10 +468,12 @@ impl StorageService {
         let worker_state = self.state.clone();
         crate::blocking::run_blocking(
             move || {
+                let sessions = crate::agent_sessions::recent_working_directories(&environment);
                 crate::developer_artifacts::register_suggested_workspace(
                     &environment,
                     &path,
                     &saved,
+                    &sessions,
                     &worker_state.workspaces,
                 )
             },

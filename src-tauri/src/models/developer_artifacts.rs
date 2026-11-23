@@ -18,6 +18,9 @@ pub struct DeveloperWorkspaceSuggestion {
     pub display_path: String,
     /// Direct children that carry a project marker, capped by the probe.
     pub project_count: u32,
+    /// Recent coding-agent sessions that worked inside this folder (#506).
+    /// Zero for a folder suggested only by its name.
+    pub agent_sessions: u32,
 }
 
 /// The saved project folders that were registered again at launch, and the

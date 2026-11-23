@@ -7,6 +7,7 @@ pub mod applications;
 pub mod blocking;
 pub mod cache_providers;
 pub mod cleaner;
+pub mod cli;
 pub mod collection;
 pub mod commands;
 pub mod composition;

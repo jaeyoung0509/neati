@@ -72,6 +72,18 @@ module that knows the transport is a Tauri `Channel` or the notification plugin.
 executor: commands and services both hand blocking work to it, so a worker that
 died reports what it died with through one redacting sink.
 
+The command line (`src-tauri/src/cli`, #498) is the first adapter that reaches
+the application only through explicit ports.
+
+- `composition::application_ports` binds the driving ports (`CleanUseCase`,
+  `InsightQueries`) to the interface-agnostic `OneButtonClean` use case and
+  to `MachineInsights`. It also binds the use case's driven ports
+  (`CacheCleanup`, `ProjectCleanup`) to adapters over `CleanupService` and
+  `StorageService`.
+- The handlers own grammar, approval, terminal progress and JSON, and nothing
+  else.
+- `tests/port_boundary_tests.rs` keeps it that way. See [CLI.md](CLI.md).
+
 Ask three questions of new code:
 
 ```text
@@ -217,6 +229,18 @@ because no other crate has to name them.
 - `src-tauri/src/composition`: the composition root. It builds the environment,
   the catalog, the shared handles, and the four services, and it is the only
   place that binds a port to a concrete native or Tauri adapter.
+- `src-tauri/src/services/ports.rs`, `services/one_button_clean/`,
+  `services/insights.rs`: interface-agnostic use cases and their ports (#498).
+  The one-button core (`mod.rs`, `ports.rs`, `selection.rs`) names no service
+  and no interface; only `adapters.rs` adapts a service to a driven port.
+- `src-tauri/src/composition/interfaces.rs`: binds those ports into
+  `ApplicationPorts`, the only handle an interface adapter receives.
+- `src-tauri/src/cli`: the command-line driving adapter (#498).
+  - `args.rs` is the grammar.
+  - `context.rs` is the CLI composition root.
+  - One module per command family handles approval, progress and the
+    `neati.cli/1` JSON.
+  - `skill.rs` ships the agent skill compiled from `skills/neati/SKILL.md`.
 - `src-tauri/src/events`: Tauri transport adapters. Scan, cleanup,
   reviewed-storage, and provider progress become `Channel` sinks here, and the
   desktop-notification port is implemented here, so a service can be exercised

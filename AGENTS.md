@@ -194,6 +194,41 @@ safety conventions below when changing neati.
   `current()` through it or delete it. Signatures whose paths resolve under a
   platform-specific root must declare `platforms`.
 
+## Command line and agent skill (#498)
+
+- Ports and adapters: `src-tauri/src/cli` is a driving adapter that receives
+  only `composition::ApplicationPorts` (`CleanUseCase`, `InsightQueries`). The
+  one-button use case lives in `services/one_button_clean`, and its core
+  (`mod.rs`, `ports.rs`, `selection.rs`) names no service, no Tauri and no
+  stdout. Driven ports (`CacheCleanup`, `ProjectCleanup`) are adapted to
+  services only in `adapters.rs` and bound only in `composition/interfaces.rs`.
+  `tests/port_boundary_tests.rs` enforces this. A new interface gets a new
+  driving adapter, and a new workflow gets a use case with its own ports; do
+  not let a handler call a service. Keep one module per command family and do
+  not grow `cli/mod.rs` beyond dispatch. See `docs/CLI.md`.
+- `main.rs` hands arguments to `cli::run` first. Only a recognised command
+  word is the CLI's; any other launch, including none and `--background`,
+  starts the app unchanged.
+- `CleanUseCase` removes only the one-button set: caches from
+  `select_quick_clean_safe_candidates` through `reviewed_quick_clean_safe`,
+  and `developer_artifacts::preselection` build output through a one-shot
+  developer-artifact plan. It never accepts a path. `--only`/`--skip`
+  references narrow that set, and an unknown reference refuses the whole run.
+  Without `--yes` it is a preview unless a person answers the terminal prompt;
+  `--json` without `--yes` never removes.
+- Reviewed workflows (Large Files, App Uninstaller, Temporary Folders, home
+  Trash, Docker, local models, memory and port actions, Keep Awake) stay
+  app-only until each gets its own CLI confirmation design in its own change.
+- The CLI reads the app's settings and never writes them; unparsable settings
+  refuse the run instead of falling back to defaults.
+- `skills/neati/SKILL.md` is compiled into the binary and must keep teaching
+  preview → explicit user approval → `clean --yes --only <refs>`, and that an
+  agent never deletes neati's paths itself. `skill install` replaces only its
+  own marked copy and never writes through a link.
+- The `--json` contract is `neati.cli/1`, and its types belong to the CLI
+  adapter, never to a use case. A breaking field change bumps the schema name
+  and the skill in the same change.
+
 ## Platform environment and verification
 
 - Platform facts have one source: `neati_platform::PlatformEnvironment` (built in

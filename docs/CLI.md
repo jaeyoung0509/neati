@@ -86,6 +86,7 @@ console, and Windows support is paused (#445).
 | `large-files [--min-size SIZE] [--root NAME] [--installers]` | Large files under the app's roots. Read-only |
 | `apps` | Installed apps by size. Read-only |
 | `docker` | Docker engine status and data. Read-only |
+| `worktrees [--folder PATH]` | Linked Git worktrees in the project folders and whether each is finished (#505). Read-only |
 | `clean` | Preview of the one-button Clean set. Read-only |
 | `clean --yes [--only REF] [--skip REF]` | Permanently removes the previewed set |
 | `ports` | Development listeners. Read-only; stopping stays in the app |
@@ -103,6 +104,11 @@ folders of inactive projects can be included. `projects --json` items carry
 `clean_inclusion` (why an item is in the set or left for review) and, when a
 rule needed it, `project_last_activity`. Both fields are additive; the schema
 stays `neati.cli/1`. The CLI reads the rules and never changes them.
+
+When the worktree rule is on, `clean` also lists finished worktrees with
+`"source": "worktree"` and a `worktree:` reference; `--only`/`--skip` accept
+those references like any other. Removing one runs `git worktree remove`
+after every fact is checked again; the branch stays.
 
 | Exit code | Meaning |
 | --- | --- |

@@ -63,6 +63,17 @@ impl PlanLifecycle {
         }
     }
 
+    /// Reviewed worktree removals (#505): the cleanup window, a small bound,
+    /// because one plan already covers every selected worktree.
+    pub fn worktrees() -> Self {
+        Self {
+            ttl_seconds: 300,
+            capacity: 8,
+            not_found: "Worktree selection is no longer available. Review it again.",
+            expired: "Worktree selection expired. Review it again.",
+        }
+    }
+
     /// Reviewed Trash plans: the same window and bound as cleanup plans, so one
     /// reviewed workflow cannot outlive another.
     pub fn trash() -> Self {

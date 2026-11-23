@@ -36,6 +36,7 @@ pub mod one_button;
 pub mod settings;
 pub mod signature;
 pub mod update;
+pub mod worktrees;
 
 pub use agent_activity::*;
 pub use ai_control_center::*;
@@ -57,6 +58,7 @@ pub use one_button::*;
 pub use settings::*;
 pub use signature::*;
 pub use update::*;
+pub use worktrees::*;
 
 // ---------------------------------------------------------------------------
 // neati domain semantics, re-exported from `neati_core`.

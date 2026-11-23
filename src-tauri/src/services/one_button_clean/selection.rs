@@ -9,12 +9,13 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use crate::models::{DeveloperArtifactScanResult, ScanResult};
+use crate::models::{DeveloperArtifactScanResult, ScanResult, WorktreeInventory};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Source {
     Cache,
     Project,
+    Worktree,
 }
 
 /// One unit the run would remove.
@@ -76,6 +77,25 @@ pub fn project_candidates(result: &DeveloperArtifactScanResult) -> Vec<Candidate
             source: Source::Project,
             name: item.project_name.clone(),
             kind: kind_label(&item.kind),
+            path: item.path.clone(),
+            bytes: item.allocated_bytes,
+            backend_id: item.id.clone(),
+        })
+        .collect()
+}
+
+/// The finished worktrees the person's rule includes. Their ids are already
+/// location-derived (`worktree:` + digest), so they are the references.
+pub fn worktree_candidates(inventory: &WorktreeInventory) -> Vec<Candidate> {
+    inventory
+        .items
+        .iter()
+        .filter(|item| item.selected_by_default && item.is_removable())
+        .map(|item| Candidate {
+            reference: item.id.clone(),
+            source: Source::Worktree,
+            name: item.name.clone(),
+            kind: "worktree".to_string(),
             path: item.path.clone(),
             bytes: item.allocated_bytes,
             backend_id: item.id.clone(),

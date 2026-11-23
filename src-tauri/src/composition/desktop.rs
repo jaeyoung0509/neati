@@ -205,7 +205,7 @@ pub fn desktop_state_with_catalog(
             container_host,
             platform_capabilities,
             operation_gate.clone(),
-            budgets,
+            budgets.clone(),
             memory_sampler,
             memory_termination_store,
             cpu_sampler,
@@ -226,6 +226,10 @@ pub fn desktop_state_with_catalog(
         std::env::current_exe().ok(),
     ));
 
+    let environment_for_worktrees = environment.clone();
+    let settings_for_worktrees = settings.clone();
+    let operation_gate_for_worktrees = operation_gate.clone();
+    let budgets_for_worktrees = budgets.clone();
     DesktopState::new(
         environment,
         registry,
@@ -233,6 +237,12 @@ pub fn desktop_state_with_catalog(
         settings,
         cleanup_service,
         storage_service,
+        Arc::new(crate::services::WorktreeService::new(
+            environment_for_worktrees,
+            settings_for_worktrees,
+            operation_gate_for_worktrees,
+            budgets_for_worktrees,
+        )),
         ai_service,
         system_service,
         Arc::new(UpdateService::new()),

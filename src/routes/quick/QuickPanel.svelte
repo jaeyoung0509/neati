@@ -116,7 +116,10 @@
 
   let quickCleanableBytes = $derived(oneButton.totalBytes);
   let quickItemCount = $derived(oneButton.itemCount);
-  let projectBuildBytes = $derived(oneButton.preview?.project_bytes ?? 0);
+  // Project leftovers and finished worktrees (#504, #505), both from projects.
+  let projectBuildBytes = $derived(
+    (oneButton.preview?.project_bytes ?? 0) + (oneButton.preview?.worktree_bytes ?? 0)
+  );
 
   let cleanupState = $derived(cleanupSummaryState({
     available: cleanupAvailable,

@@ -18,7 +18,11 @@ import type {
   LargeFileScanResult,
   RemovalPlanPreview,
   RemovalResult,
+  WorktreeInventory,
+  WorktreeRemovalPreview,
+  WorktreeRemovalResult,
 } from '../models/types';
+import { createWorktreesMock } from './mocks/worktrees';
 import { isSelectedAppTrashLowerBound } from '../utils/storageManagement';
 import { mockAppLeftoversForPlatform } from './mocks/appLeftovers';
 import { previewPlatform } from './mocks/previewPlatform';
@@ -71,6 +75,12 @@ export interface StorageManagementApi {
     selectedRelatedIds: string[]
   ): Promise<RemovalPlanPreview>;
   executeRemovalPlan(planId: string): Promise<RemovalResult>;
+  /** Linked Git worktrees of the saved project folders (#505). */
+  scanWorktrees(): Promise<WorktreeInventory>;
+  /** Holds the selected finished worktrees as a one-shot plan. */
+  prepareWorktreeRemoval(scanId: string, selectedItemIds: string[]): Promise<WorktreeRemovalPreview>;
+  /** Removes exactly that plan's worktrees through Git. */
+  executeWorktreeRemoval(planId: string): Promise<WorktreeRemovalResult>;
 }
 
 const nativeStorageApi: StorageManagementApi = {
@@ -144,6 +154,18 @@ const nativeStorageApi: StorageManagementApi = {
 
   async executeRemovalPlan(planId) {
     return await unwrap(commands.executeRemovalPlan(planId));
+  },
+
+  async scanWorktrees() {
+    return await unwrap(commands.scanWorktrees());
+  },
+
+  async prepareWorktreeRemoval(scanId, selectedItemIds) {
+    return await unwrap(commands.prepareWorktreeRemoval(scanId, selectedItemIds));
+  },
+
+  async executeWorktreeRemoval(planId) {
+    return await unwrap(commands.executeWorktreeRemoval(planId));
   },
 };
 
@@ -535,7 +557,16 @@ function inspectionFor(app: InstalledApp): AppUninstallInspection {
   return inspection;
 }
 
+// The browser preview never pretends to remove a checkout.
+const worktreesMock = createWorktreesMock(
+  () => 'The browser preview does not remove worktrees. Use the neati app.'
+);
+
 const mockStorageApi: StorageManagementApi = {
+  scanWorktrees: () => worktreesMock.scan(),
+  prepareWorktreeRemoval: (scanId, selectedItemIds) => worktreesMock.prepare(scanId, selectedItemIds),
+  executeWorktreeRemoval: (planId) => worktreesMock.execute(planId),
+
   async startLargeFileScan(request, onEvent) {
     const scanId = `mock-large-scan-${Date.now()}`;
     activeMockScanId = scanId;

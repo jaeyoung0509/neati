@@ -26,11 +26,15 @@ pub struct Inventory<'a> {
 
 impl Inventory<'_> {
     fn preview(&self, caches: bool) -> Result<CleanPreview, String> {
-        let request = CleanRequest {
+        self.preview_parts(CleanRequest {
             caches,
             projects: !caches,
+            worktrees: false,
             ..CleanRequest::default()
-        };
+        })
+    }
+
+    fn preview_parts(&self, request: CleanRequest) -> Result<CleanPreview, String> {
         let preview =
             tauri::async_runtime::block_on(self.use_case.preview(request, self.progress.clone()));
         self.progress.clear();
@@ -327,5 +331,116 @@ fn inclusion_reason(inclusion: crate::models::CleanInclusion) -> &'static str {
         Inclusion::ActivityUnknown => "When the project was last worked on could not be observed.",
         Inclusion::InUse => "A running process has files open in it.",
         Inclusion::UseUnknown => "neati could not confirm that nothing is using it.",
+    }
+}
+
+#[derive(Serialize)]
+struct WorktreesJson<'a> {
+    repositories: u32,
+    idle_days: u16,
+    /// Whether finished worktrees are in `neati clean`.
+    in_clean: bool,
+    refused: &'a [String],
+    items: &'a [crate::models::WorktreeItem],
+}
+
+impl Inventory<'_> {
+    /// Linked worktrees and their state. Removal stays in the app or in
+    /// `neati clean` when the person's worktree rule is on.
+    pub fn worktrees(&self) -> Result<i32, String> {
+        let preview = self.preview_parts(CleanRequest {
+            caches: false,
+            projects: false,
+            worktrees: true,
+            worktree_inventory: true,
+            ..CleanRequest::default()
+        })?;
+        let inventory = preview
+            .worktrees
+            .ok_or_else(|| "The worktree check did not run.".to_string())?;
+        if self.json {
+            print_json(
+                "worktrees",
+                WorktreesJson {
+                    repositories: inventory.repositories,
+                    idle_days: inventory.idle_days,
+                    in_clean: inventory.rule_enabled,
+                    refused: &inventory.refused,
+                    items: &inventory.items,
+                },
+            )?;
+            return Ok(0);
+        }
+        if inventory.repositories == 0 {
+            println!(
+                "No repository found in the saved project folders. Add one in neati (Clean → Projects), or pass --folder ~/code."
+            );
+            return Ok(0);
+        }
+        let finished: Vec<_> = inventory
+            .items
+            .iter()
+            .filter(|item| item.is_removable())
+            .collect();
+        println!(
+            "{} {} in {} {}; {} finished ({}).",
+            inventory.items.len(),
+            plural(inventory.items.len() as u64, "worktree", "worktrees"),
+            inventory.repositories,
+            plural(
+                u64::from(inventory.repositories),
+                "repository",
+                "repositories"
+            ),
+            finished.len(),
+            format_bytes(finished.iter().map(|item| item.allocated_bytes).sum()),
+        );
+        for reason in &inventory.refused {
+            println!("  not read: {reason}");
+        }
+        if !inventory.items.is_empty() {
+            println!();
+        }
+        for item in &inventory.items {
+            println!(
+                "  {:>9}  {:<17} {} · {}",
+                format_bytes(item.allocated_bytes),
+                worktree_state_label(item.state),
+                item.name,
+                item.branch.as_deref().unwrap_or("detached"),
+            );
+            println!(
+                "                               {}  [{}]",
+                display_path(&item.path, self.home),
+                item.id
+            );
+        }
+        println!(
+            "\nFinished means no uncommitted or untracked change, a reachable commit, nothing using it, and no work for {} days.",
+            inventory.idle_days
+        );
+        if inventory.rule_enabled {
+            println!("Your worktree rule is on: `neati clean` includes finished worktrees.");
+        } else {
+            println!("Remove finished worktrees in the app (Clean → Projects), or turn on the worktree rule in Settings.");
+        }
+        Ok(0)
+    }
+}
+
+fn worktree_state_label(state: crate::models::WorktreeState) -> &'static str {
+    use crate::models::WorktreeState as State;
+    match state {
+        State::Finished => "finished",
+        State::RecentlyActive => "recently active",
+        State::ActivityUnknown => "activity unknown",
+        State::HasChanges => "has changes",
+        State::HasSubmodules => "has submodules",
+        State::Locked => "locked",
+        State::CommitsOnlyHere => "commits only here",
+        State::InUse => "in use",
+        State::UseUnknown => "use unknown",
+        State::Missing => "missing",
+        State::Refused => "not checked",
     }
 }

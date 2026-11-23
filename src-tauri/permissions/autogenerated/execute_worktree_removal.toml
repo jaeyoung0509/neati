@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-execute-worktree-removal"
+description = "Enables the execute_worktree_removal command without any pre-configured scope."
+commands.allow = ["execute_worktree_removal"]
+
+[[permission]]
+identifier = "deny-execute-worktree-removal"
+description = "Denies the execute_worktree_removal command without any pre-configured scope."
+commands.deny = ["execute_worktree_removal"]

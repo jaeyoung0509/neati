@@ -11,6 +11,7 @@
    */
   const BUILD_OUTPUT_DAYS = [0, 3, 7, 14, 30, 60, 90];
   const DEPENDENCY_DAYS = [7, 14, 30, 60, 90, 180];
+  const WORKTREE_DAYS = [1, 3, 7, 14, 30, 60];
 
   let rules = $derived<ResolvedCleanupRules>(resolveCleanupRules(settingsStore.settings.cleanup_rules));
 
@@ -92,6 +93,38 @@
         checked={rules.dependency_stores.enabled}
         onchange={(enabled) => save({ ...rules, dependency_stores: { ...rules.dependency_stores, enabled } })}
         ariaLabel="Dependency folders of inactive projects"
+      />
+    </div>
+
+    <div class="flex items-start justify-between gap-5 text-meta pt-3">
+      <div class="min-w-0">
+        <div class="font-medium text-foreground">Finished Git worktrees</div>
+        <div class="text-meta text-muted-foreground mt-0.5">
+          Checkouts whose work is committed and on a branch, that nothing uses. Git removes them; branches and commits
+          stay. Worktrees with uncommitted or untracked files, locks or submodules are never included.
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <label for="cleanup-worktree-days" class="text-muted-foreground">Finished after</label>
+          <select
+            id="cleanup-worktree-days"
+            value={String(rules.worktrees.idle_days)}
+            onchange={(event) =>
+              save({
+                ...rules,
+                worktrees: { ...rules.worktrees, idle_days: Number((event.target as HTMLSelectElement).value) },
+              })}
+            class="h-8 rounded-md border border-border-strong bg-card px-2 text-meta text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {#each WORKTREE_DAYS as days (days)}
+              <option value={String(days)}>{days} {days === 1 ? 'day' : 'days'} without work</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+      <Switch
+        checked={rules.worktrees.enabled}
+        onchange={(enabled) => save({ ...rules, worktrees: { ...rules.worktrees, enabled } })}
+        ariaLabel="Finished Git worktrees"
       />
     </div>
   </Card>

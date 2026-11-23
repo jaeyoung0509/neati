@@ -1,8 +1,9 @@
 //! One-button Clean as an interface-agnostic use case (#498).
 //!
 //! The app's Clean button and `neati clean` remove the same set: the caches
-//! the backend marks `AutoCleanable` and the build output it preselects in the
-//! saved project folders. This use case owns the orchestration — scan both
+//! the backend marks `AutoCleanable`, the project artifacts it preselects in
+//! the saved project folders, and the finished worktrees the person's rule
+//! includes (#505). This use case owns the orchestration — scan both
 //! inventories, choose the backend's set, narrow it by reference, remove the
 //! chosen units, merge the reports — behind ports, so a terminal, a window or
 //! a test drives it the same way and none of them re-implements a rule.
@@ -21,18 +22,29 @@ use crate::services::ports::{ActivityPort, PortFuture};
 
 use ports::{
     CacheCleanup, CleanOutcome, CleanPreview, CleanRequest, CleanUseCase, OneButtonError,
-    ProjectCleanup, RemovalReport, ReviewSummary, UnitFailure,
+    ProjectCleanup, RemovalReport, ReviewSummary, UnitFailure, WorktreeCleanup,
 };
-use selection::{cache_candidates, narrow, project_candidates, Candidate, Source};
+use selection::{
+    cache_candidates, narrow, project_candidates, worktree_candidates, Candidate, Source,
+};
 
 pub struct OneButtonClean {
     caches: Arc<dyn CacheCleanup>,
     projects: Arc<dyn ProjectCleanup>,
+    worktrees: Arc<dyn WorktreeCleanup>,
 }
 
 impl OneButtonClean {
-    pub fn new(caches: Arc<dyn CacheCleanup>, projects: Arc<dyn ProjectCleanup>) -> Self {
-        Self { caches, projects }
+    pub fn new(
+        caches: Arc<dyn CacheCleanup>,
+        projects: Arc<dyn ProjectCleanup>,
+        worktrees: Arc<dyn WorktreeCleanup>,
+    ) -> Self {
+        Self {
+            caches,
+            projects,
+            worktrees,
+        }
     }
 
     async fn preview_inner(
@@ -70,7 +82,7 @@ impl OneButtonClean {
                 .flatten()
             {
                 Some(inventory) => inventory,
-                None => self.projects.scan(activity).await?,
+                None => self.projects.scan(activity.clone()).await?,
             };
             if let Some(result) = &inventory.result {
                 for item in result.items.iter().filter(|item| !item.selected_by_default) {
@@ -84,6 +96,31 @@ impl OneButtonClean {
             None
         };
 
+        let worktrees =
+            if request.worktrees && (request.worktree_inventory || self.worktrees.rule_enabled()) {
+                let inventory = match request
+                    .reuse_current
+                    .then(|| self.worktrees.current())
+                    .flatten()
+                {
+                    Some(inventory) => inventory,
+                    None => self.worktrees.scan(activity).await?,
+                };
+                // Finished worktrees the rule leaves out are waiting for review.
+                for item in inventory
+                    .items
+                    .iter()
+                    .filter(|item| item.is_removable() && !item.selected_by_default)
+                {
+                    review.items += 1;
+                    review.bytes += item.allocated_bytes;
+                }
+                candidates.extend(worktree_candidates(&inventory));
+                Some(inventory)
+            } else {
+                None
+            };
+
         let chosen = narrow(candidates, &request.only, &request.skip)
             .map_err(OneButtonError::UnknownReferences)?;
         Ok(CleanPreview {
@@ -92,6 +129,7 @@ impl OneButtonClean {
             review,
             caches,
             projects,
+            worktrees,
         })
     }
 
@@ -119,9 +157,35 @@ impl OneButtonClean {
         if let (Some(result), false) = (project_scan, project_ids.is_empty()) {
             let report = self
                 .projects
-                .remove(result.scan_id.clone(), project_ids, activity)
+                .remove(result.scan_id.clone(), project_ids, activity.clone())
                 .await?;
             merge(&mut outcome, report, &preview.chosen, Source::Project);
+        }
+
+        let worktree_ids = backend_ids(&preview.chosen, Source::Worktree);
+        if let (Some(inventory), false) = (&preview.worktrees, worktree_ids.is_empty()) {
+            // Earlier parts already removed units: a refusal here becomes a
+            // failure per worktree instead of hiding what was reclaimed.
+            match self
+                .worktrees
+                .remove(inventory.scan_id.clone(), worktree_ids, activity)
+                .await
+            {
+                Ok(report) => merge(&mut outcome, report, &preview.chosen, Source::Worktree),
+                Err(message) => {
+                    for candidate in preview
+                        .chosen
+                        .iter()
+                        .filter(|candidate| candidate.source == Source::Worktree)
+                    {
+                        outcome.failed.push(UnitFailure {
+                            reference: candidate.reference.clone(),
+                            name: candidate.name.clone(),
+                            message: message.clone(),
+                        });
+                    }
+                }
+            }
         }
         Ok(outcome)
     }

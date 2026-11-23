@@ -14,6 +14,10 @@ pub const MIN_DEPENDENCY_IDLE_DAYS: u16 = 7;
 pub const MAX_RULE_IDLE_DAYS: u16 = 365;
 /// Default idle period for dependency stores.
 pub const DEFAULT_DEPENDENCY_IDLE_DAYS: u16 = 30;
+/// Fewest idle days the worktree rule accepts.
+pub const MIN_WORKTREE_IDLE_DAYS: u16 = 1;
+/// Default idle period for finished worktrees (#505).
+pub const DEFAULT_WORKTREE_IDLE_DAYS: u16 = 14;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(default)]
@@ -25,6 +29,18 @@ pub struct CleanupRules {
     /// Dependency stores of inactive projects (`node_modules`, Python
     /// environments, `vendor`, bundles, `deps`).
     pub dependency_stores: IdleRule,
+    /// Finished Git worktrees (#505): clean, reachable, unused and inactive
+    /// for the rule's period. The period also decides what the Projects view
+    /// calls finished when the rule is off.
+    #[serde(default = "default_worktree_rule")]
+    pub worktrees: IdleRule,
+}
+
+fn default_worktree_rule() -> IdleRule {
+    IdleRule {
+        enabled: false,
+        idle_days: DEFAULT_WORKTREE_IDLE_DAYS,
+    }
 }
 
 impl Default for CleanupRules {
@@ -35,6 +51,7 @@ impl Default for CleanupRules {
                 enabled: false,
                 idle_days: DEFAULT_DEPENDENCY_IDLE_DAYS,
             },
+            worktrees: default_worktree_rule(),
         }
     }
 }
@@ -64,6 +81,10 @@ impl CleanupRules {
             .dependency_stores
             .idle_days
             .clamp(MIN_DEPENDENCY_IDLE_DAYS, MAX_RULE_IDLE_DAYS);
+        self.worktrees.idle_days = self
+            .worktrees
+            .idle_days
+            .clamp(MIN_WORKTREE_IDLE_DAYS, MAX_RULE_IDLE_DAYS);
         self
     }
 }
@@ -78,6 +99,8 @@ mod tests {
         assert_eq!(rules, CleanupRules::default());
         assert!(!rules.dependency_stores.enabled);
         assert_eq!(rules.build_output_min_idle_days, 0);
+        assert!(!rules.worktrees.enabled);
+        assert_eq!(rules.worktrees.idle_days, DEFAULT_WORKTREE_IDLE_DAYS);
 
         let partial: CleanupRules =
             serde_json::from_str(r#"{"dependency_stores":{"enabled":true}}"#).unwrap();
@@ -96,8 +119,13 @@ mod tests {
                 enabled: true,
                 idle_days: 1,
             },
+            worktrees: IdleRule {
+                enabled: true,
+                idle_days: 0,
+            },
         }
         .sanitize();
+        assert_eq!(rules.worktrees.idle_days, MIN_WORKTREE_IDLE_DAYS);
         assert_eq!(rules.build_output_min_idle_days, MAX_RULE_IDLE_DAYS);
         assert_eq!(rules.dependency_stores.idle_days, MIN_DEPENDENCY_IDLE_DAYS);
 
@@ -107,6 +135,7 @@ mod tests {
                 enabled: false,
                 idle_days: 4_000,
             },
+            ..CleanupRules::default()
         }
         .sanitize();
         assert_eq!(long.build_output_min_idle_days, 3);

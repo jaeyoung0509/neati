@@ -2,6 +2,7 @@
   import LoadingState from '../../lib/components/LoadingState.svelte';
   import { onMount, untrack } from 'svelte';
   import TemporaryStorageView from './TemporaryStorageView.svelte';
+  import WorktreeReview from '../../lib/components/WorktreeReview.svelte';
   import type {
     DeveloperArtifact,
     DeveloperArtifactStatus,
@@ -892,5 +893,7 @@
       {/each}
     </div>
   {/if}
+
+  <WorktreeReview />
 </div>
 {/if}

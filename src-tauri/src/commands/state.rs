@@ -35,6 +35,8 @@ pub struct DesktopState {
     pub settings: Arc<SettingsAuthority>,
     pub cleanup: Arc<CleanupService>,
     pub storage: Arc<StorageService>,
+    /// Finished Git worktrees (#505).
+    pub worktrees: Arc<crate::services::WorktreeService>,
     pub ai: Arc<AiService>,
     pub system: Arc<SystemService>,
     /// The checked self-update an install request may act on.
@@ -61,6 +63,7 @@ impl DesktopState {
         settings: Arc<SettingsAuthority>,
         cleanup: Arc<CleanupService>,
         storage: Arc<StorageService>,
+        worktrees: Arc<crate::services::WorktreeService>,
         ai: Arc<AiService>,
         system: Arc<SystemService>,
         updates: Arc<UpdateService>,
@@ -73,6 +76,7 @@ impl DesktopState {
             settings,
             cleanup,
             storage,
+            worktrees,
             ai,
             system,
             updates,

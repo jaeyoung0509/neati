@@ -102,6 +102,7 @@ fn age(root: &Path, when: SystemTime) {
 fn caches_only() -> CleanRequest {
     CleanRequest {
         projects: false,
+        worktrees: false,
         ..CleanRequest::default()
     }
 }

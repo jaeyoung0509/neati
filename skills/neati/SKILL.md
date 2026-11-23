@@ -14,7 +14,10 @@ user turned on the dependency rule in neati's Settings, it also includes the
 dependency folders (`node_modules`, Python environments, `vendor`) of projects
 they have not worked on for a while, when a lockfile can reinstall them. Each
 `neati projects --all --json` item says why it is or is not included
-(`clean_inclusion`). Change those rules only in the app; never edit neati's
+(`clean_inclusion`). With the worktree rule on, the set also includes finished
+Git worktrees (`"source": "worktree"`): everything committed and on a branch,
+nothing using them. Git removes them and keeps the branch. Name them as
+worktrees when you show the preview. Change those rules only in the app; never edit neati's
 settings file.
 
 ## Before you start
@@ -35,6 +38,7 @@ settings file.
 | `neati clean --yes --only REF,REF --json` | Permanently removes exactly those references |
 | `neati scan --json` | Cache inventory; `--all` adds items that need review and why |
 | `neati projects --json` | Build output in saved project folders; `--folder PATH` adds one for this run |
+| `neati worktrees --json` | Git worktrees in saved project folders and whether each is finished (read-only) |
 | `neati projects add PATH --json` | Saves a project folder for future runs (refuses while the neati app is open) |
 | `neati large-files --json` | Large files in Downloads, Desktop, Documents, Movies (`--min-size 1G`, `--root downloads`), read-only |
 | `neati apps --json` | Installed apps by size, read-only |

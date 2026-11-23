@@ -58,7 +58,7 @@ const QUICK_WINDOW_PERMISSIONS: [&str; 22] = [
 /// surface. Together with [`MUTATING_PERMISSIONS`] this is an exhaustive
 /// partition of the generated command surface, so a new command cannot enter a
 /// capability file before its authority is classified here.
-const READ_ONLY_PERMISSIONS: [&str; 54] = [
+const READ_ONLY_PERMISSIONS: [&str; 55] = [
     "allow-suggest-developer-workspaces",
     "allow-cancel-developer-artifact-scan",
     "allow-cancel-large-file-scan",
@@ -104,6 +104,7 @@ const READ_ONLY_PERMISSIONS: [&str; 54] = [
     "allow-resume-scan",
     "allow-show-in-file-manager",
     "allow-start-developer-artifact-scan",
+    "allow-scan-worktrees",
     "allow-start-temporary-storage-scan",
     "allow-start-scan",
     "allow-take-pending-navigation",
@@ -131,7 +132,7 @@ const READ_ONLY_PERMISSIONS: [&str; 54] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 42] = [
+const MUTATING_PERMISSIONS: [&str; 44] = [
     "allow-restore-developer-workspaces",
     "allow-add-suggested-developer-workspace",
     "allow-connect-openrouter-oauth",
@@ -152,6 +153,8 @@ const MUTATING_PERMISSIONS: [&str; 42] = [
     "allow-execute-removal-plan",
     "allow-prepare-app-uninstall",
     "allow-prepare-developer-artifact-cleanup",
+    "allow-prepare-worktree-removal",
+    "allow-execute-worktree-removal",
     "allow-prepare-large-file-removal",
     "allow-preview-ai-recommendation",
     "allow-prune-docker-target",

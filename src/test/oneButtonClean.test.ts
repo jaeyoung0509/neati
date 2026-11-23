@@ -15,6 +15,7 @@ function preview(id: string, bytes = 2048): OneButtonPreview {
     total_bytes: bytes,
     cache_bytes: bytes,
     project_bytes: 0,
+    worktree_bytes: 0,
     review_items: 0,
     review_bytes: 0,
     project_folders: 0,

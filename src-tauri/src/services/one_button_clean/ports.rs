@@ -7,7 +7,9 @@
 
 use std::sync::Arc;
 
-use crate::models::{DeveloperArtifactScanResult, DeveloperWorkspaceRefusal, ScanResult};
+use crate::models::{
+    DeveloperArtifactScanResult, DeveloperWorkspaceRefusal, ScanResult, WorktreeInventory,
+};
 use crate::services::ports::{ActivityPort, PortFuture};
 
 use super::selection::Candidate;
@@ -17,6 +19,11 @@ use super::selection::Candidate;
 pub struct CleanRequest {
     pub caches: bool,
     pub projects: bool,
+    /// Finished worktrees the person's rule includes (#505). Scanned only
+    /// while that rule is on, unless `worktree_inventory` asks for the list.
+    pub worktrees: bool,
+    /// Scan worktrees even with the rule off, to list them (`neati worktrees`).
+    pub worktree_inventory: bool,
     /// Use an inventory the process already holds while it is still valid for
     /// cleanup, instead of scanning again. The window sets this, because its
     /// own scan just ran; a terminal run starts with nothing to reuse.
@@ -32,6 +39,8 @@ impl Default for CleanRequest {
         Self {
             caches: true,
             projects: true,
+            worktrees: true,
+            worktree_inventory: false,
             reuse_current: false,
             only: Vec::new(),
             skip: Vec::new(),
@@ -65,6 +74,7 @@ pub struct CleanPreview {
     pub caches: Option<ScanResult>,
     /// The whole project inventory the set was chosen from, when scanned.
     pub projects: Option<ProjectInventory>,
+    pub worktrees: Option<WorktreeInventory>,
 }
 
 /// One unit the run did not remove, and why.
@@ -178,6 +188,29 @@ pub trait ProjectCleanup: Send + Sync {
 
     /// Removes exactly `ids` through a one-shot plan; the executor repeats the
     /// ownership and open-file checks before each removal.
+    fn remove(
+        &self,
+        scan_id: String,
+        ids: Vec<String>,
+        activity: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<RemovalReport, String>>;
+}
+
+/// Driven port: linked Git worktrees of the saved project folders (#505).
+pub trait WorktreeCleanup: Send + Sync {
+    /// Whether the person's worktree rule puts finished worktrees in Clean.
+    fn rule_enabled(&self) -> bool;
+
+    /// The published inventory, while it is recent and decided with the rules
+    /// in force; `None` asks the caller to scan.
+    fn current(&self) -> Option<WorktreeInventory>;
+
+    fn scan(
+        &self,
+        activity: Arc<dyn ActivityPort>,
+    ) -> PortFuture<'_, Result<WorktreeInventory, String>>;
+
+    /// Removes the finished worktrees `ids` of scan `scan_id` through Git.
     fn remove(
         &self,
         scan_id: String,

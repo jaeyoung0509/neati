@@ -58,7 +58,7 @@ pub fn run(edit: Edit, folder: &str, json: bool) -> Result<i32, String> {
             "{}",
             match (edit, changed) {
                 (Edit::Add, true) =>
-                    format!("Saved {shown}. `neati clean` now includes its idle build output."),
+                    format!("Saved {shown}. `neati clean` now includes what your cleanup rules allow there."),
                 (Edit::Add, false) => format!("{shown} was already saved."),
                 (Edit::Remove, true) => format!("Forgot {shown}."),
                 (Edit::Remove, false) => format!("{shown} was not saved."),

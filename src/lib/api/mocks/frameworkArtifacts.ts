@@ -5,6 +5,7 @@ const MIB = 1024 * 1024;
 const base = {
   workspace_id: 'workspace-myproject', ecosystem: 'node' as const,
   ownership: { state: 'verified_generated' as const }, selected_by_default: false,
+  project_last_activity: null, clean_inclusion: 'not_offered' as const,
   newest_mtime: null, incomplete_reason: null, status: 'complete' as const,
 };
 

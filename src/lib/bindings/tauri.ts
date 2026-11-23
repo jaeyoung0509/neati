@@ -1141,6 +1141,33 @@ export type CleanFailureReason = "permission_denied" | "changed_since_scan" |
  */
 "provider_refused" | "unknown";
 
+/**
+ *  Why one-button Clean includes a project artifact or leaves it for review
+ *  (#494, #504). `Included` is the only state with `selected_by_default`.
+ */
+export type CleanInclusion =
+/**  Included: every rule and the exact use check passed. */
+"included" |
+/**  This kind is always reviewed by a person. */
+"not_offered" |
+/**  Measurement or generated-only ownership is not verified. */
+"not_verified" |
+/**  A dependency store, and the dependency rule is off. */
+"rule_off" |
+/**  A dependency store without its ecosystem's lockfile beside it. */
+"no_lockfile" |
+/**
+ *  The project was worked on more recently than the rule allows, or a
+ *  running process works inside it.
+ */
+"recently_active" |
+/**  The project's last activity could not be observed. */
+"activity_unknown" |
+/**  A running process has files open in it. */
+"in_use" |
+/**  The open-file check could not prove it idle. */
+"use_unknown";
+
 export type CleanItemResult = CleanItemResult_Serialize | CleanItemResult_Deserialize;
 
 export type CleanItemResult_Deserialize = {
@@ -1522,6 +1549,20 @@ export type CleanupQuitPreview = {
 	unavailable: string[],
 };
 
+export type CleanupRules = {
+	/**
+	 *  One-button Clean leaves a project's compiler build output alone until
+	 *  the project has been inactive this many days. `0` keeps the #494
+	 *  behavior: any build output nothing has open is included.
+	 */
+	build_output_min_idle_days?: number,
+	/**
+	 *  Dependency stores of inactive projects (`node_modules`, Python
+	 *  environments, `vendor`, bundles, `deps`).
+	 */
+	dependency_stores?: IdleRule,
+};
+
 /**
  *  One deletable object, with the root it was discovered under.
  *
@@ -1854,6 +1895,13 @@ export type DeveloperArtifact_Deserialize = {
 	status: DeveloperArtifactStatus,
 	incomplete_reason: string | null,
 	selected_by_default: boolean,
+	/**
+	 *  When the project that owns this artifact was last worked on, from
+	 *  cheap metadata (#504). `None` when it was not observed.
+	 */
+	project_last_activity: number | null,
+	/**  Why one-button Clean includes this artifact or leaves it for review. */
+	clean_inclusion: CleanInclusion,
 };
 
 export type DeveloperArtifact_Serialize = {
@@ -1873,6 +1921,13 @@ export type DeveloperArtifact_Serialize = {
 	status: DeveloperArtifactStatus,
 	incomplete_reason: string | null,
 	selected_by_default: boolean,
+	/**
+	 *  When the project that owns this artifact was last worked on, from
+	 *  cheap metadata (#504). `None` when it was not observed.
+	 */
+	project_last_activity: number | null,
+	/**  Why one-button Clean includes this artifact or leaves it for review. */
+	clean_inclusion: CleanInclusion,
 };
 
 export type DeveloperEcosystem = "rust" | "node" | "python" | "go" | "java" | "kotlin" | "php" | "ruby" | "dotnet" | "c" | "cpp" | "swift" | "dart" | "elixir" | "erlang" | "scala" | "clojure" | "haskell" | "zig" | "objective_c" | "r" | "julia" | "lua" | "terraform" | "unity" | "unreal" | "godot" | "elm";
@@ -2303,6 +2358,12 @@ export type GitChangeSummary_Serialize = {
 	status_message: string,
 };
 
+/**  A rule that includes a kind once its project has been inactive long enough. */
+export type IdleRule = {
+	enabled?: boolean,
+	idle_days?: number,
+};
+
 export type IngestedAgentEvent = IngestedAgentEvent_Serialize | IngestedAgentEvent_Deserialize;
 
 export type IngestedAgentEvent_Deserialize = {
@@ -2642,6 +2703,8 @@ export type NeatiSettings_Deserialize = {
 	clean_developer_tools?: boolean,
 	clean_docker?: boolean,
 	include_rebuild_caches?: boolean,
+	/**  Rules for project leftovers in one-button Clean (#504). */
+	cleanup_rules?: CleanupRules,
 	intensive_cleanup?: boolean,
 	theme?: string,
 	excluded_signatures?: string[],
@@ -2687,6 +2750,8 @@ export type NeatiSettings_Serialize = {
 	clean_developer_tools: boolean,
 	clean_docker: boolean,
 	include_rebuild_caches: boolean,
+	/**  Rules for project leftovers in one-button Clean (#504). */
+	cleanup_rules: CleanupRules,
 	intensive_cleanup: boolean,
 	theme: string,
 	excluded_signatures: string[],

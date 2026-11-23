@@ -258,6 +258,10 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: true,
+
+    project_last_activity: null,
+
+    clean_inclusion: 'included',
   },
   {
     id: 'artifact-node-modules',
@@ -276,6 +280,10 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: false,
+
+    project_last_activity: null,
+
+    clean_inclusion: 'rule_off',
   },
   {
     id: 'artifact-gradle',
@@ -294,6 +302,10 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: true,
+
+    project_last_activity: null,
+
+    clean_inclusion: 'included',
   },
   {
     id: 'artifact-php-vendor',
@@ -312,6 +324,10 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'complete',
     incomplete_reason: null,
     selected_by_default: false,
+
+    project_last_activity: null,
+
+    clean_inclusion: 'rule_off',
   },
   {
     id: 'artifact-python-incomplete',
@@ -330,6 +346,10 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'measurement_incomplete',
     incomplete_reason: 'Permission denied while reading one or more entries',
     selected_by_default: false,
+
+    project_last_activity: null,
+
+    clean_inclusion: 'not_verified',
   },
   {
     id: 'artifact-node-safety-blocked',
@@ -348,6 +368,10 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'safety_blocked',
     incomplete_reason: 'Project markers could not be verified; cleanup is blocked.',
     selected_by_default: false,
+
+    project_last_activity: null,
+
+    clean_inclusion: 'not_verified',
   },
   ...(['svelte_kit_output', 'next_output'] as const).map((kind): DeveloperArtifact => ({
     id: `artifact-${kind}`,
@@ -366,6 +390,10 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     status: 'observation_only',
     incomplete_reason: 'Framework output is observed only; cleanup is unavailable until build/dev use and deployment/offline ownership can be verified.',
     selected_by_default: false,
+
+    project_last_activity: null,
+
+    clean_inclusion: 'not_offered',
   })),
   ...(['svelte_kit_types', 'next_webpack_cache'] as const).map((kind): DeveloperArtifact => ({
     id: `artifact-${kind}`, workspace_id: 'workspace-work',
@@ -375,6 +403,7 @@ const mockDeveloperArtifacts: DeveloperArtifact[] = [
     rebuild_hint: 'Only this verified generated subtree is permanently removed; parent deployment and offline output stay. The framework regenerates it.',
     evidence: ['Browser fixture: positive supported file contract and completed negative project-use observation; native execution rechecks both.'],
     ownership: { state: 'verified_generated' }, status: 'complete', incomplete_reason: null, selected_by_default: false,
+    project_last_activity: null, clean_inclusion: 'not_offered',
   })),
 ];
 

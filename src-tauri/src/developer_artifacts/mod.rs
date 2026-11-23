@@ -1,3 +1,4 @@
+mod activity;
 #[cfg(test)]
 mod framework_tests;
 mod measurement;
@@ -83,9 +84,18 @@ pub struct DeveloperArtifactInventory {
     pub cancelled: bool,
     pub truncated: bool,
     pub uninspected: Vec<DeveloperArtifactUninspected>,
+    /// The cleanup rules one-button inclusion was decided with (#504). An
+    /// inventory decided with other rules is never reused for Clean.
+    pub rules: crate::models::CleanupRules,
 }
 
 impl DeveloperArtifactInventory {
+    /// Whether one-button Clean may act on this inventory's inclusion: it is
+    /// fresh and was decided with the rules in force now (#504).
+    pub fn is_current_for(&self, rules: &crate::models::CleanupRules) -> bool {
+        self.is_fresh() && self.rules == *rules
+    }
+
     pub fn is_fresh(&self) -> bool {
         self.is_fresh_at(unix_timestamp())
     }
@@ -261,13 +271,38 @@ impl DeveloperArtifactScanner {
     where
         F: FnMut(DeveloperArtifactScanEvent),
     {
-        Self::scan_workspaces_with_use_probe(
+        Self::scan_workspaces_with_rules(
             environment,
             workspaces,
             downloads_access,
             cancel,
             on_event,
-            &neati_platform::open_files::observe_open_files_batch,
+            crate::models::CleanupRules::default(),
+        )
+    }
+
+    /// As [`Self::scan_workspaces`], deciding one-button inclusion with the
+    /// person's cleanup rules and the native activity and use observations.
+    pub fn scan_workspaces_with_rules<F>(
+        environment: &PlatformEnvironment,
+        workspaces: &[DeveloperWorkspaceRecord],
+        downloads_access: FolderAccess,
+        cancel: Arc<AtomicBool>,
+        on_event: F,
+        rules: crate::models::CleanupRules,
+    ) -> Result<DeveloperArtifactInventory, String>
+    where
+        F: FnMut(DeveloperArtifactScanEvent),
+    {
+        let activity = preselection::native_activity(environment);
+        let selection = preselection::Selection::native(rules, &activity);
+        Self::scan_workspaces_with_selection(
+            environment,
+            workspaces,
+            downloads_access,
+            cancel,
+            on_event,
+            &selection,
         )
     }
 
@@ -278,8 +313,38 @@ impl DeveloperArtifactScanner {
         workspaces: &[DeveloperWorkspaceRecord],
         downloads_access: FolderAccess,
         cancel: Arc<AtomicBool>,
-        mut on_event: F,
+        on_event: F,
         use_probe: &preselection::UseProbe<'_>,
+    ) -> Result<DeveloperArtifactInventory, String>
+    where
+        F: FnMut(DeveloperArtifactScanEvent),
+    {
+        let activity = preselection::native_activity(environment);
+        let selection = preselection::Selection {
+            rules: crate::models::CleanupRules::default(),
+            now: unix_timestamp(),
+            use_probe,
+            activity: &activity,
+            working_directories: &Vec::new,
+        };
+        Self::scan_workspaces_with_selection(
+            environment,
+            workspaces,
+            downloads_access,
+            cancel,
+            on_event,
+            &selection,
+        )
+    }
+
+    /// The scan itself, with every observation the selection needs supplied.
+    pub fn scan_workspaces_with_selection<F>(
+        environment: &PlatformEnvironment,
+        workspaces: &[DeveloperWorkspaceRecord],
+        downloads_access: FolderAccess,
+        cancel: Arc<AtomicBool>,
+        mut on_event: F,
+        selection: &preselection::Selection<'_>,
     ) -> Result<DeveloperArtifactInventory, String>
     where
         F: FnMut(DeveloperArtifactScanEvent),
@@ -316,6 +381,7 @@ impl DeveloperArtifactScanner {
                         truncated,
                         uninspected,
                     },
+                    selection.rules,
                     &mut on_event,
                 );
             }
@@ -371,6 +437,7 @@ impl DeveloperArtifactScanner {
                         truncated,
                         uninspected,
                     },
+                    selection.rules,
                     &mut on_event,
                 );
             }
@@ -469,7 +536,7 @@ impl DeveloperArtifactScanner {
 
         let cancelled = cancel.load(Ordering::Relaxed);
         if !cancelled {
-            preselection::apply(&mut records, use_probe, &|| cancel.load(Ordering::Relaxed));
+            preselection::apply(&mut records, selection, &|| cancel.load(Ordering::Relaxed));
         }
         Self::finish(
             scan_id,
@@ -483,6 +550,7 @@ impl DeveloperArtifactScanner {
                 truncated,
                 uninspected,
             },
+            selection.rules,
             &mut on_event,
         )
     }
@@ -492,6 +560,7 @@ impl DeveloperArtifactScanner {
         workspace_ids: &[String],
         records: HashMap<String, DeveloperArtifactRecord>,
         progress: ScanProgress,
+        rules: crate::models::CleanupRules,
         on_event: &mut F,
     ) -> Result<DeveloperArtifactInventory, String>
     where
@@ -511,6 +580,7 @@ impl DeveloperArtifactScanner {
             }
         }
         let inventory = DeveloperArtifactInventory {
+            rules,
             scan_id: scan_id.clone(),
             records,
             workspace_ids: workspace_ids.to_vec(),

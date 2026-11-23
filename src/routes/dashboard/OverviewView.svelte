@@ -285,13 +285,13 @@
     </div>
     {#if !projectFoldersUnscanned && projectCleanupStore.phase === 'ready' && projectCleanupStore.selectedBytes > 0}
       <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted-foreground">
-        <span>Project build output · <span class="font-medium tabular-nums text-foreground">{formatBytes(projectCleanupStore.selectedBytes)}</span> ready, cleaned with the caches.</span>
+        <span>Project folders · <span class="font-medium tabular-nums text-foreground">{formatBytes(projectCleanupStore.selectedBytes)}</span> ready, cleaned with the caches.</span>
         <Button variant="ghost" size="sm" onclick={() => onNavigateTab?.('storage')}>Review in Clean</Button>
       </div>
     {:else if !projectFoldersUnscanned && projectCleanupStore.phase === 'scanning'}
       <p class="flex items-center gap-1.5 text-meta text-muted-foreground" role="status">
         <LoadingIndicator size="xs" word="scanning" class="text-primary" />
-        Checking project build output…
+        Checking project folders…
       </p>
     {/if}
     {#if projectFoldersUnscanned && !cleanupBusy}

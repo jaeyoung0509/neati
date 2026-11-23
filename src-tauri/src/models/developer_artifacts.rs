@@ -172,6 +172,39 @@ pub struct DeveloperArtifact {
     pub status: DeveloperArtifactStatus,
     pub incomplete_reason: Option<String>,
     pub selected_by_default: bool,
+    /// When the project that owns this artifact was last worked on, from
+    /// cheap metadata (#504). `None` when it was not observed.
+    #[serde(with = "crate::ipc_numeric::option_u64")]
+    #[specta(type = Option<u64>)]
+    pub project_last_activity: Option<u64>,
+    /// Why one-button Clean includes this artifact or leaves it for review.
+    pub clean_inclusion: CleanInclusion,
+}
+
+/// Why one-button Clean includes a project artifact or leaves it for review
+/// (#494, #504). `Included` is the only state with `selected_by_default`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+pub enum CleanInclusion {
+    /// Included: every rule and the exact use check passed.
+    Included,
+    /// This kind is always reviewed by a person.
+    NotOffered,
+    /// Measurement or generated-only ownership is not verified.
+    NotVerified,
+    /// A dependency store, and the dependency rule is off.
+    RuleOff,
+    /// A dependency store without its ecosystem's lockfile beside it.
+    NoLockfile,
+    /// The project was worked on more recently than the rule allows, or a
+    /// running process works inside it.
+    RecentlyActive,
+    /// The project's last activity could not be observed.
+    ActivityUnknown,
+    /// A running process has files open in it.
+    InUse,
+    /// The open-file check could not prove it idle.
+    UseUnknown,
 }
 
 /// Why a directory the scan wanted to inspect was left uninspected.

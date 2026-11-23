@@ -39,7 +39,7 @@
         indeterminate={!allSelected && someSelected}
         disabled={disabled}
         onchange={toggleAll}
-        ariaLabel="Select all project build output"
+        ariaLabel="Select all project leftovers"
       />
       </div>
     {:else}
@@ -49,9 +49,9 @@
       <Hammer size={16} />
     </div>
     <div class="min-w-0 flex-1">
-      <p class="text-body font-medium text-foreground">Project build output</p>
+      <p class="text-body font-medium text-foreground">Project folders</p>
       {#if !store.hasSavedFolders}
-        <p class="text-meta text-muted-foreground">Not scanned · add your projects folder once and Clean includes idle build output.</p>
+        <p class="text-meta text-muted-foreground">Not scanned · add your projects folder once and Clean includes what your cleanup rules allow there.</p>
       {:else if store.phase === 'scanning'}
         <p class="flex items-center gap-1.5 text-meta text-muted-foreground" role="status" aria-live="polite">
           <LoadingIndicator size="xs" word="scanning" class="text-primary" />
@@ -60,12 +60,12 @@
       {:else if store.phase === 'cleaning'}
         <p class="flex items-center gap-1.5 text-meta text-muted-foreground" role="status" aria-live="polite">
           <LoadingIndicator size="xs" word="cleaning" class="text-primary" />
-          <span>Removing build output…</span>
+          <span>Removing project leftovers…</span>
         </p>
       {:else if store.phase === 'error'}
         <p class="text-meta text-destructive" role="alert">{store.error}</p>
       {:else if items.length === 0}
-        <p class="text-meta text-muted-foreground">No idle build output in your project folders.</p>
+        <p class="text-meta text-muted-foreground">Nothing in your project folders matches your cleanup rules right now.</p>
       {:else}
         <p class="text-meta text-muted-foreground">{items.length} {items.length === 1 ? 'folder' : 'folders'} · rebuilt by the next build</p>
       {/if}
@@ -79,7 +79,7 @@
     {/if}
   </div>
   {#if store.phase === 'ready' && items.length > 0}
-    <ul class="mt-2 space-y-1 pl-11" aria-label="Project build output">
+    <ul class="mt-2 space-y-1 pl-11" aria-label="Project leftovers">
       {#each items as item (item.id)}
         <li class="flex items-center gap-3">
           <Checkbox

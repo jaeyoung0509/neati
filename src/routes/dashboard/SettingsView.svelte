@@ -26,6 +26,7 @@
   import SettingsAiAccounts from '../../lib/components/settings/SettingsAiAccounts.svelte';
   import SettingsAgentNotifications from '../../lib/components/settings/SettingsAgentNotifications.svelte';
   import SettingsCommandLine from '../../lib/components/settings/SettingsCommandLine.svelte';
+  import SettingsCleanupRules from '../../lib/components/settings/SettingsCleanupRules.svelte';
   import StorageAccessSetup from '../../lib/components/StorageAccessSetup.svelte';
   import ToolDetectionDisclosure from '../../lib/components/ai-activity/ToolDetectionDisclosure.svelte';
   import { APP_VERSION, formatVersion } from '../../lib/utils/version';
@@ -231,6 +232,8 @@
   {#if scanStore.lastScan}
     <CleanupGuidanceList scan={scanStore.lastScan} {onCategory} {onNavigate} current={scanStore.canClean} />
   {/if}
+
+  <SettingsCleanupRules />
 
   <!-- Cleaning Categories Defaults -->
   <div class="space-y-3">

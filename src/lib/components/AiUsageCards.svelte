@@ -92,7 +92,7 @@
             <div class="space-y-1.5">
               <div class="flex justify-between gap-3 text-meta">
                 <span class="truncate text-muted-foreground">{usageWindow.label}</span>
-                <span class="shrink-0 font-mono tabular-nums">
+                <span class="shrink-0 tabular-nums">
                   <AnimatedValue value={hasReading ? `${Math.round(usageWindow.used_percent!)}% used` : '—'} />
                 </span>
               </div>
@@ -116,22 +116,22 @@
         <div class="mt-4 grid grid-cols-2 gap-2">
           <div class="rounded-lg bg-secondary p-2.5">
             <p class="text-caption text-muted-foreground">7d sessions</p>
-            <p class="text-title font-mono font-semibold tabular-nums"><AnimatedValue value={String(provider.summary.local_sessions ?? '—')} /></p>
+            <p class="text-title font-semibold tabular-nums"><AnimatedValue value={String(provider.summary.local_sessions ?? '—')} /></p>
           </div>
           <div class="rounded-lg bg-secondary p-2.5">
             <p class="text-caption text-muted-foreground">Local cost</p>
-            <p class="text-title font-mono font-semibold tabular-nums"><AnimatedValue value={provider.summary.local_cost_usd == null ? '—' : `$${provider.summary.local_cost_usd.toFixed(2)}`} /></p>
+            <p class="text-title font-semibold tabular-nums"><AnimatedValue value={provider.summary.local_cost_usd == null ? '—' : `$${provider.summary.local_cost_usd.toFixed(2)}`} /></p>
           </div>
         </div>
       {:else if provider.id === 'openrouter' && provider.connected}
         <div class="mt-4 grid grid-cols-2 gap-2">
           <div class="rounded-lg bg-secondary p-2.5">
             <p class="text-caption text-muted-foreground">Total usage</p>
-            <p class="text-title font-mono font-semibold tabular-nums"><AnimatedValue value={provider.summary.usage_usd == null ? '—' : `$${provider.summary.usage_usd.toFixed(2)}`} /></p>
+            <p class="text-title font-semibold tabular-nums"><AnimatedValue value={provider.summary.usage_usd == null ? '—' : `$${provider.summary.usage_usd.toFixed(2)}`} /></p>
           </div>
           <div class="rounded-lg bg-secondary p-2.5">
             <p class="text-caption text-muted-foreground">Limit remaining</p>
-            <p class="text-title font-mono font-semibold tabular-nums">
+            <p class="text-title font-semibold tabular-nums">
               <AnimatedValue value={provider.summary.limit_remaining_usd == null ? '—' : `$${provider.summary.limit_remaining_usd.toFixed(2)}`} />
             </p>
           </div>
@@ -186,9 +186,9 @@
 
       {#if !loading && provider.id === 'codex' && provider.summary.lifetime_tokens != null}
         <div class="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
-          <div><p class="text-caption text-muted-foreground">Lifetime</p><p class="text-meta font-mono font-medium tabular-nums">{formatTokens(provider.summary.lifetime_tokens)}</p></div>
-          <div><p class="text-caption text-muted-foreground">Recent 7 days</p><p class="text-meta font-mono font-medium tabular-nums">{formatTokens(provider.summary.last_7d_tokens)}</p></div>
-          <div><p class="text-caption text-muted-foreground">Streak</p><p class="text-meta font-mono font-medium tabular-nums">{provider.summary.current_streak_days ?? '—'}d</p></div>
+          <div><p class="text-caption text-muted-foreground">Lifetime</p><p class="text-meta font-medium tabular-nums">{formatTokens(provider.summary.lifetime_tokens)}</p></div>
+          <div><p class="text-caption text-muted-foreground">Recent 7 days</p><p class="text-meta font-medium tabular-nums">{formatTokens(provider.summary.last_7d_tokens)}</p></div>
+          <div><p class="text-caption text-muted-foreground">Streak</p><p class="text-meta font-medium tabular-nums">{provider.summary.current_streak_days ?? '—'}d</p></div>
         </div>
       {/if}
     </Card>

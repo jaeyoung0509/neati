@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 describe('Switch component SSR / visual contracts', () => {
-  it('renders input with required aria-label and default emerald styling', () => {
+  it('renders input with required aria-label and default brand styling', () => {
     const rendered = render(Switch, {
       props: {
         checked: true,
@@ -21,7 +21,7 @@ describe('Switch component SSR / visual contracts', () => {
     });
 
     expect(rendered.body).toContain('aria-label="Enable AI Assistant Caches"');
-    expect(rendered.body).toContain('peer-checked:bg-success');
+    expect(rendered.body).toContain('peer-checked:bg-control');
     expect(rendered.body).toContain('peer-focus-visible:ring-ring');
     expect(rendered.body).toContain('translate-x-4');
   });
@@ -48,9 +48,9 @@ describe('Checkbox component SSR / visual contracts', () => {
     const { body } = render(Checkbox, { props: { checked: false, indeterminate: true, label: 'Select all', ariaLabel: 'Select all available cleanup items' } });
     expect(body).toMatch(/<label[\s\S]*Select all[\s\S]*<\/label>/);
     expect(body).toContain('lucide-minus');
-    expect(body).toContain('bg-success');
+    expect(body).toContain('bg-control');
   });
-  it('renders checked checkbox with emerald styling and white checkmark icon', () => {
+  it('renders checked checkbox with brand styling and a contrasting checkmark icon', () => {
     const rendered = render(Checkbox, {
       props: {
         checked: true,
@@ -59,12 +59,12 @@ describe('Checkbox component SSR / visual contracts', () => {
     });
 
     expect(rendered.body).toContain('aria-label="Select Storage"');
-    expect(rendered.body).toContain('bg-success');
-    expect(rendered.body).toContain('border-success');
+    expect(rendered.body).toContain('bg-control');
+    expect(rendered.body).toContain('border-control');
     expect(rendered.body).toContain('peer-focus-visible:ring-ring');
     // The check has an explicit paired foreground in both themes.
     expect(rendered.body).toContain('<svg');
-    expect(rendered.body).toContain('stroke-success-foreground');
+    expect(rendered.body).toContain('stroke-control-foreground');
   });
 
   it('renders unchecked and disabled checkbox accurately', () => {
@@ -80,7 +80,7 @@ describe('Checkbox component SSR / visual contracts', () => {
     expect(rendered.body).toContain('disabled');
     expect(rendered.body).toContain('opacity-50');
     expect(rendered.body).toContain('cursor-not-allowed');
-    expect(rendered.body).not.toContain('bg-success');
+    expect(rendered.body).not.toContain('bg-control ');
     expect(rendered.body).not.toContain('<svg');
   });
 });

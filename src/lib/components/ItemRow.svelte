@@ -125,7 +125,7 @@
     {#if revealError}
       <span role="alert" class="text-meta text-destructive">{revealError}</span>
     {/if}
-    <span class="w-[12ch] shrink-0 whitespace-nowrap text-right text-body font-mono tabular-nums font-semibold text-foreground">
+    <span class="w-[12ch] shrink-0 whitespace-nowrap text-right text-body tabular-nums font-semibold text-foreground">
       {unestimated ? 'Not estimated' : sizeLabel}
     </span>
 

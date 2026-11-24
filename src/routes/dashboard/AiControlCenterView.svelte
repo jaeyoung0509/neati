@@ -157,10 +157,10 @@
 
     {#if selectedSection === 'overview'}
       <div class="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
-        <Card><p class="text-meta text-muted-foreground">Observed sessions</p><p class="mt-1 font-mono text-metric font-semibold">{snapshot.resources.length}</p><p class="mt-0.5 text-micro text-muted-foreground">{snapshot.resources.filter((r) => r.mutable_actions_allowed).length} verified</p></Card>
-        <Card><p class="text-meta text-muted-foreground">Provider sources</p><p class="mt-1 font-mono text-metric font-semibold">{snapshot.providers.filter((p) => p.quality !== 'unavailable').length}</p></Card>
-        <Card><p class="text-meta text-muted-foreground">neati alerts</p><p class="mt-1 font-mono text-metric font-semibold">{snapshot.quick_summary.budget_alerts}</p></Card>
-        <Card><p class="text-meta text-muted-foreground">Safety findings</p><p class="mt-1 font-mono text-metric font-semibold">{snapshot.quick_summary.safety_findings}</p></Card>
+        <Card><p class="text-meta text-muted-foreground">Observed sessions</p><p class="mt-1 tabular-nums text-metric font-semibold">{snapshot.resources.length}</p><p class="mt-0.5 text-micro text-muted-foreground">{snapshot.resources.filter((r) => r.mutable_actions_allowed).length} verified</p></Card>
+        <Card><p class="text-meta text-muted-foreground">Provider sources</p><p class="mt-1 tabular-nums text-metric font-semibold">{snapshot.providers.filter((p) => p.quality !== 'unavailable').length}</p></Card>
+        <Card><p class="text-meta text-muted-foreground">neati alerts</p><p class="mt-1 tabular-nums text-metric font-semibold">{snapshot.quick_summary.budget_alerts}</p></Card>
+        <Card><p class="text-meta text-muted-foreground">Safety findings</p><p class="mt-1 tabular-nums text-metric font-semibold">{snapshot.quick_summary.safety_findings}</p></Card>
       </div>
       <div class="grid grid-cols-1 gap-3 @2xl:grid-cols-2">
         <Card class="space-y-3"><h3 class="text-sm font-semibold">Recommendations</h3>

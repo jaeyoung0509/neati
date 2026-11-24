@@ -49,7 +49,7 @@
     <div class="flex min-h-16 flex-wrap items-center gap-x-3 gap-y-1">
       {#if percent != null}
         <!-- The value is only ever a measured pair of readings; the state stays beside it. -->
-        <span class="text-metric font-mono font-semibold tabular-nums text-foreground">
+        <span class="text-metric font-semibold tabular-nums text-foreground">
           <AnimatedValue value={percent.toFixed(1)} class="min-w-[4ch]" /><span class="text-body font-normal text-muted-foreground">%</span>
         </span>
         <span class="rounded-full border border-border px-2 py-0.5 text-caption text-muted-foreground">{stateLabel}</span>
@@ -80,7 +80,7 @@
       </div>
       <div class="flex items-center gap-1.5">
         <dt>Last reading</dt>
-        <dd class="font-mono text-foreground">{sampledAgo ?? 'No reading yet'}</dd>
+        <dd class="text-foreground">{sampledAgo ?? 'No reading yet'}</dd>
       </div>
     </dl>
 

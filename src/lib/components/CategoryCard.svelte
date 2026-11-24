@@ -109,7 +109,7 @@
       data-region="metrics"
       class="shrink-0 text-right category-amount"
     >
-      <span class="block whitespace-nowrap text-body font-semibold font-mono tabular-nums text-foreground">
+      <span class="block whitespace-nowrap text-body font-semibold tabular-nums text-foreground">
         {formatBytes(availability.ready)}
       </span>
       <span class="block whitespace-nowrap text-caption text-muted-foreground">

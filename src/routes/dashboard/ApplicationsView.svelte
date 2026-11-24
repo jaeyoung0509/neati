@@ -372,7 +372,7 @@
             · {removalResult.failed_count + removalResult.skipped_count} not fully removed
           {/if}
         </span>
-        <span class="font-mono text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
+        <span class="tabular-nums text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
       </div>
     </Card>
   {/if}
@@ -620,7 +620,7 @@
                         checked={selectedRelatedIds.includes(item.id)}
                         onchange={() => toggleRelated(item.id)}
                         disabled={isExecuting}
-                        class="mt-0.5 accent-success"
+                        class="mt-0.5 accent-control"
                       />
                       <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">

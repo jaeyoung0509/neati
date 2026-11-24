@@ -45,14 +45,14 @@
     class="sr-only peer"
   />
   <div
-    class="h-4 w-4 rounded-[4px] border transition-colors duration-fast flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background {checked || indeterminate
-      ? 'bg-success border-success text-success-foreground'
-      : 'border-border-strong bg-card hover:border-foreground text-transparent'}"
+    class="h-4 w-4 rounded-[5px] border transition-colors duration-fast flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background {checked || indeterminate
+      ? 'bg-control border-control text-control-foreground shadow-sm'
+      : 'border-border-strong bg-card hover:border-control text-transparent'}"
   >
     {#if indeterminate}
       <Minus size={11} strokeWidth={3} aria-hidden="true" />
     {:else if checked}
-      <Check size={11} strokeWidth={3} class="stroke-success-foreground" />
+      <Check size={11} strokeWidth={3} class="stroke-control-foreground" />
     {/if}
   </div>
   {#if label}<span class="text-body font-medium">{label}</span>{/if}

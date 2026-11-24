@@ -171,7 +171,11 @@ describe('design-system source contracts', () => {
         const badgeSurface = surface.map((channel, i) => .9 * channel + .1 * success[i]) as [number, number, number];
         expect(contrastRatio(success, badgeSurface), `${selector} success badge text`).toBeGreaterThanOrEqual(4.5);
       }
-      expect(contrastFor('success-foreground', 'success'), `${selector} checked control mark`).toBeGreaterThanOrEqual(4.5);
+      // Checked controls use the brand blue, not success green (#521).
+      expect(contrastFor('control-foreground', 'control'), `${selector} checked control mark`).toBeGreaterThanOrEqual(4.5);
+      for (const surfaceName of ['background', 'card']) {
+        expect(contrastFor('control', surfaceName), `${selector} checked control against ${surfaceName}`).toBeGreaterThanOrEqual(3);
+      }
       expect(contrastFor('muted-foreground', 'secondary'), `${selector} unchecked switch marker`).toBeGreaterThanOrEqual(3);
       expect(contrastFor('border-strong', 'card')).toBeGreaterThanOrEqual(3);
     }

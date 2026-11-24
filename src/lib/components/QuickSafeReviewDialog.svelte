@@ -60,7 +60,7 @@
             checked={selected[item.id]}
             disabled={disabled}
             onchange={(event) => (selected[item.id] = event.currentTarget.checked)}
-            class="mt-0.5 size-4 shrink-0 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            class="mt-0.5 size-4 shrink-0 accent-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           />
           <span class="min-w-0 flex-1">
             <span class="block truncate text-meta font-medium" title={item.name}>{item.name}</span>

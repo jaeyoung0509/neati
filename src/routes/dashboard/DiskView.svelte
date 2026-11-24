@@ -107,7 +107,7 @@
           <p class="mt-0.5 text-caption font-mono text-muted-foreground">{primary.mount_point} · {primary.file_system} · {primary.disk_type}</p>
         </div>
         <div class="text-right">
-          <p class="font-mono text-metric font-semibold">{formatBytes(primary.available_bytes)}</p>
+          <p class="tabular-nums text-metric font-semibold">{formatBytes(primary.available_bytes)}</p>
           <p class="text-caption text-muted-foreground">available of {formatBytes(primary.total_bytes)}</p>
         </div>
       </div>
@@ -159,7 +159,7 @@
             </div>
             <div class="mt-4 space-y-1.5">
               <div class="flex justify-between text-caption">
-                <span class="font-mono">{formatBytes(volume.used_bytes)} / {formatBytes(volume.total_bytes)}</span>
+                <span class="tabular-nums">{formatBytes(volume.used_bytes)} / {formatBytes(volume.total_bytes)}</span>
                 <span class="text-muted-foreground">{volume.percent_used != null ? `${volume.percent_used.toFixed(1)}%` : '—'}</span>
               </div>
               <ProgressBar value={volume.percent_used ?? 0} height="h-1.5" />

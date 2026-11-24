@@ -70,5 +70,5 @@
     {/each}
   </div>
 {:else}
-  <span class="shrink-0 whitespace-nowrap font-mono tabular-nums text-caption text-muted-foreground">{fallback}</span>
+  <span class="shrink-0 whitespace-nowrap tabular-nums text-caption text-muted-foreground">{fallback}</span>
 {/if}

@@ -71,7 +71,7 @@
       {/if}
     </div>
     {#if store.phase === 'ready' && items.length > 0}
-      <span class="shrink-0 font-mono text-body font-semibold tabular-nums text-foreground">{formatBytes(totalBytes)}</span>
+      <span class="shrink-0 text-body font-semibold tabular-nums text-foreground">{formatBytes(totalBytes)}</span>
     {:else if !store.hasSavedFolders || items.length === 0}
       <Button variant="ghost" size="sm" class="shrink-0" onclick={() => onOpenProjects?.()}>
         {store.hasSavedFolders ? 'Review in Projects' : 'Add folder'}
@@ -93,7 +93,7 @@
             <p class="truncate text-meta font-medium text-foreground">{item.project_name} · {developerArtifactKindLabel(item.kind)}</p>
             <p class="truncate font-mono text-caption text-muted-foreground">{item.path}</p>
           </div>
-          <span class="shrink-0 font-mono text-meta tabular-nums text-muted-foreground">{formatBytes(item.allocated_bytes)}</span>
+          <span class="shrink-0 text-meta tabular-nums text-muted-foreground">{formatBytes(item.allocated_bytes)}</span>
         </li>
       {/each}
     </ul>

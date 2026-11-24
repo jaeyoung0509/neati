@@ -205,7 +205,7 @@
           <legend class="text-meta font-semibold text-foreground">Power</legend>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newPowerCondition === 'ac_power_only' ? 'status-panel-success' : 'border-border/70 hover:bg-secondary/40'}">
-              <input type="radio" name="rule-power" value="ac_power_only" bind:group={newPowerCondition} class="mt-0.5 accent-success" />
+              <input type="radio" name="rule-power" value="ac_power_only" bind:group={newPowerCondition} class="mt-0.5 accent-control" />
               <span><span class="block text-meta font-medium">Plugged in only</span><span class="mt-0.5 block text-caption text-muted-foreground">Recommended to avoid battery drain. Unknown power is ineligible.</span></span>
             </label>
             <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newPowerCondition === 'always' ? 'status-panel-warning' : 'border-border/70 hover:bg-secondary/40'}">
@@ -219,11 +219,11 @@
           <legend class="text-meta font-semibold text-foreground">Sleep behavior</legend>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newBehavior === 'prevent_system_sleep' ? 'border-primary/40 bg-primary/5' : 'border-border/70 hover:bg-secondary/40'}">
-              <input type="radio" name="rule-behavior" value="prevent_system_sleep" bind:group={newBehavior} class="mt-0.5 accent-primary" />
+              <input type="radio" name="rule-behavior" value="prevent_system_sleep" bind:group={newBehavior} class="mt-0.5 accent-control" />
               <span><span class="block text-meta font-medium">Computer awake</span><span class="mt-0.5 block text-caption text-muted-foreground">Work continues; the display may sleep.</span></span>
             </label>
             <label class="flex cursor-pointer gap-2 rounded-lg border p-3 transition-colors {newBehavior === 'keep_display_awake' ? 'border-primary/40 bg-primary/5' : 'border-border/70 hover:bg-secondary/40'}">
-              <input type="radio" name="rule-behavior" value="keep_display_awake" bind:group={newBehavior} class="mt-0.5 accent-primary" />
+              <input type="radio" name="rule-behavior" value="keep_display_awake" bind:group={newBehavior} class="mt-0.5 accent-control" />
               <span><span class="block text-meta font-medium">Computer + display awake</span><span class="mt-0.5 block text-caption text-muted-foreground">Use when the visible display must remain on.</span></span>
             </label>
           </div>
@@ -244,12 +244,12 @@
         <div class="space-y-1.5"><label for="legacy-primary" class="text-meta font-medium text-muted-foreground">Executable fragments</label><input id="legacy-primary" type="text" bind:value={newExecutable} placeholder="custom process fragment" class="h-9 w-full rounded-lg border border-border bg-background px-3 font-mono text-meta text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
         <div class="space-y-1.5"><label for="legacy-required" class="text-meta font-medium text-muted-foreground">Also require process (optional)</label><input id="legacy-required" type="text" bind:value={newRequiresPattern} placeholder="secondary fragment or pipe-separated OR values" class="h-9 w-full rounded-lg border border-border bg-background px-3 font-mono text-meta text-foreground focus:outline-none focus:ring-1 focus:ring-ring" /></div>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-power" value="ac_power_only" bind:group={newPowerCondition} class="mt-0.5 accent-success" /><span class="text-meta">Plugged in only</span></label>
+          <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-power" value="ac_power_only" bind:group={newPowerCondition} class="mt-0.5 accent-control" /><span class="text-meta">Plugged in only</span></label>
           <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-power" value="always" bind:group={newPowerCondition} class="mt-0.5 accent-warning" /><span class="text-meta">AC or battery</span></label>
         </div>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="prevent_system_sleep" bind:group={newBehavior} class="mt-0.5 accent-primary" /><span class="text-meta">Computer awake; display may sleep</span></label>
-          <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="keep_display_awake" bind:group={newBehavior} class="mt-0.5 accent-primary" /><span class="text-meta">Computer + display awake</span></label>
+          <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="prevent_system_sleep" bind:group={newBehavior} class="mt-0.5 accent-control" /><span class="text-meta">Computer awake; display may sleep</span></label>
+          <label class="flex cursor-pointer gap-2 rounded-lg border border-border/70 p-3"><input type="radio" name="legacy-behavior" value="keep_display_awake" bind:group={newBehavior} class="mt-0.5 accent-control" /><span class="text-meta">Computer + display awake</span></label>
         </div>
       </div>
     {/if}

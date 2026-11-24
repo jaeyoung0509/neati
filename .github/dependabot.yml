@@ -34,6 +34,12 @@ updates:
   # lockfile at the repository root.
   - package-ecosystem: npm
     directory: "/"
+    # The framework fixtures under src-tauri/tests/fixtures are recorded
+    # project snapshots, not packages neati installs. Without this, the pnpm
+    # updater added them as lockfile importers and their pinned framework
+    # versions failed `pnpm audit` on every weekly PR (#511).
+    exclude-paths:
+      - "src-tauri/tests/fixtures/**"
     schedule:
       interval: weekly
       day: monday

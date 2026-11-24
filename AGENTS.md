@@ -486,10 +486,14 @@ safety conventions below when changing neati.
   precisely whether data is live, local, or manual instead of implying a quota
   is available.
 - Keep unrelated user changes intact and avoid destructive Git commands.
-- Navigation is four sections plus Settings (owner decision #450): Home, Clean,
-  System, AI. The model lives in `SECTIONS`
-  (`src/lib/utils/dashboardNavigation.ts`); a feature is a tab in its section,
-  not a sidebar entry. Keep route ids stable so tray, Quick Panel and deep
+- Navigation is three sections plus Settings (owner direction #519, November
+  24, 2026, superseding #450): Home, Clean, Agents. The model lives in
+  `SECTIONS` (`src/lib/utils/dashboardNavigation.ts`); a feature is a route in
+  its section, not a sidebar entry. A section shows at most
+  `MAX_PRIMARY_TABS` (two) primary tabs; its other routes are `more` entries in
+  one More menu and appear as a tab while open. Home always opens on Overview.
+  Settings shows one of three groups (Cleanup, Agents, App) at a time; add a
+  new setting to the group it belongs to rather than as a new top-level block. Keep route ids stable so tray, Quick Panel and deep
   links keep working, and do not reintroduce sidebar order or visibility
   customization. Beta is presentation only (`dashboardStage`): it must not hide
   a view or gate a capability.

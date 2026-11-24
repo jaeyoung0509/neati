@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { settingsGroupStore } from '../../lib/stores/settingsGroup.svelte';
   import { onMount } from 'svelte';
   import { FolderGit2, RefreshCw } from '@lucide/svelte';
   import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
@@ -182,8 +183,8 @@
   {#if onNavigateTab}
     <p class="text-meta text-muted-foreground">
       Missing a tool?
-      <button type="button" class="rounded-sm text-primary underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring" onclick={() => onNavigateTab('settings')}>
-        Check tool detection in Settings → Diagnostics.
+      <button type="button" class="rounded-sm text-primary underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring" onclick={() => { settingsGroupStore.current = 'app'; onNavigateTab('settings'); }}>
+        Check tool detection in Settings → App → Diagnostics.
       </button>
     </p>
   {/if}

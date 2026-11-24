@@ -41,10 +41,11 @@ function reset() {
 afterEach(reset);
 
 describe('Sessions navigation (#508)', () => {
-  it('is a Beta tab in the AI section, not a sidebar entry', () => {
+  it('is a Beta tab in the Agents section, not a sidebar entry', () => {
     const ai = SECTIONS.find((section) => section.id === 'ai')!;
-    expect(ai.routes.map((entry) => entry.label)).toEqual(['Activity', 'Sessions', 'Controls']);
-    expect(SECTIONS.map((section) => section.id)).toEqual(['home', 'clean', 'system', 'ai', 'settings']);
+    expect(ai.label).toBe('Agents');
+    expect(ai.routes.filter((entry) => !entry.more).map((entry) => entry.label)).toEqual(['Activity', 'Sessions']);
+    expect(SECTIONS.map((section) => section.id)).toEqual(['home', 'clean', 'ai', 'settings']);
     expect(sectionForRoute('sessions').id).toBe('ai');
     expect(sectionTabForRoute('sessions')).toBe('sessions');
     expect(dashboardStage('sessions')).toBe('beta');

@@ -1,4 +1,5 @@
 import type {
+  WorktreeForgetResult,
   WorktreeInventory,
   WorktreeItem,
   WorktreeRemovalPreview,
@@ -75,6 +76,22 @@ function fixtureItems(now: number): WorktreeItem[] {
       reason: null,
       selected_by_default: false,
     },
+    {
+      id: 'worktree:4a5b6c7d8e9f',
+      repository: '/Users/mock/Myproject/letterpress',
+      path: '/private/tmp/letterpress-issue23-2EQs',
+      name: 'letterpress-issue23-2EQs',
+      branch: 'codex/feature/23-export',
+      head: '9a8b7c6',
+      agent: null,
+      allocated_bytes: 0,
+      file_count: 0,
+      measurement_complete: false,
+      last_activity: null,
+      state: 'missing',
+      reason: null,
+      selected_by_default: false,
+    },
   ];
 }
 
@@ -110,6 +127,16 @@ export function createWorktreesMock(refusal: () => string | null) {
         total_bytes: items.reduce((sum, item) => sum + item.allocated_bytes, 0),
         expires_in_seconds: 300,
       };
+    },
+    async forgetMissing(scanId: string): Promise<WorktreeForgetResult> {
+      if (!inventory || inventory.scan_id !== scanId) {
+        throw new Error('These worktrees were found by an older scan. Scan again.');
+      }
+      const refused = refusal();
+      if (refused) throw new Error(refused);
+      const gone = inventory.items.filter((item) => item.state === 'missing');
+      inventory = { ...inventory, items: inventory.items.filter((item) => item.state !== 'missing') };
+      return { repositories: new Set(gone.map((item) => item.repository)).size, forgotten: gone.length };
     },
     async execute(planId: string): Promise<WorktreeRemovalResult> {
       const refused = refusal();

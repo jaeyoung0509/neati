@@ -553,7 +553,10 @@ safety conventions below when changing neati.
   `rm -rf` and the generic deleter are never used for a checkout, and
   branches and commits are never touched. The worktree rule defaults **off**;
   with it off, finished worktrees are removed only through the Projects view's
-  explicit selection and confirmation. `git worktree prune` is not run.
+  explicit selection and confirmation. Worktrees whose folders are gone are
+  `Missing`; only the person's explicit "Forget N gone" action runs
+  fixed-argument `git worktree prune` for the repositories that have them
+  (#523), which removes Git's own records and keeps locked entries and branches.
 
 - Owner direction #507 (November 24, 2026): Automatic Clean
   (`automatic_clean`) is a driving adapter that runs the one-button

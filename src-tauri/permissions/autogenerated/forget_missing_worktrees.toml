@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-forget-missing-worktrees"
+description = "Enables the forget_missing_worktrees command without any pre-configured scope."
+commands.allow = ["forget_missing_worktrees"]
+
+[[permission]]
+identifier = "deny-forget-missing-worktrees"
+description = "Denies the forget_missing_worktrees command without any pre-configured scope."
+commands.deny = ["forget_missing_worktrees"]

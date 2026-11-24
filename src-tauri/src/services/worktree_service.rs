@@ -12,7 +12,8 @@ use uuid::Uuid;
 use crate::developer_artifacts::preselection::{ActivityProbe, UseProbe, WorkingDirectories};
 use crate::execution_budget::ExecutionBudgets;
 use crate::models::{
-    WorktreeInventory, WorktreeRemovalFailure, WorktreeRemovalPreview, WorktreeRemovalResult,
+    WorktreeForgetResult, WorktreeInventory, WorktreeRemovalFailure, WorktreeRemovalPreview,
+    WorktreeRemovalResult, WorktreeState,
 };
 use crate::operation_gate::StorageOperationGate;
 use crate::services::{OneShotPlan, PlanLifecycle, PlanStore, SettingsAuthority};
@@ -250,6 +251,55 @@ impl WorktreeService {
                 })
             },
             "Worktree removal panicked",
+        )
+        .await
+    }
+
+    /// Forgets Git's records of the gone worktrees scan `scan_id` reported,
+    /// one `git worktree prune` per repository that has any (#523).
+    pub async fn forget_missing(&self, scan_id: &str) -> Result<WorktreeForgetResult, String> {
+        let repositories: Vec<std::path::PathBuf> = {
+            let guard = self
+                .current
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let scan = guard
+                .as_ref()
+                .filter(|scan| scan.inventory.scan_id == scan_id)
+                .ok_or_else(|| {
+                    "These worktrees were found by an older scan. Scan again.".to_string()
+                })?;
+            let mut repositories: Vec<std::path::PathBuf> = scan
+                .records
+                .values()
+                .filter(|record| record.item.state == WorktreeState::Missing)
+                .map(|record| record.repository.clone())
+                .collect();
+            repositories.sort();
+            repositories.dedup();
+            repositories
+        };
+        let environment = self.environment.clone();
+        let gate = self.operation_gate.clone();
+        let current = self.current.clone();
+        crate::blocking::run_blocking(
+            move || -> Result<WorktreeForgetResult, String> {
+                gate.run_write(|| {
+                    let mut result = WorktreeForgetResult::default();
+                    for repository in &repositories {
+                        let forgotten = crate::worktrees::forget_missing(&environment, repository)?;
+                        if forgotten > 0 {
+                            result.repositories += 1;
+                            result.forgotten += forgotten;
+                        }
+                    }
+                    *current
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+                    Ok(result)
+                })
+            },
+            "Worktree record pruning panicked",
         )
         .await
     }

@@ -26,6 +26,7 @@ function store(refusal: string | null = null) {
     scanWorktrees: () => mock.scan(),
     prepareWorktreeRemoval: (scanId, ids) => mock.prepare(scanId, ids),
     executeWorktreeRemoval: (planId) => mock.execute(planId),
+    forgetMissingWorktrees: (scanId) => mock.forgetMissing(scanId),
   });
 }
 
@@ -84,5 +85,17 @@ describe('Finished Git worktrees (#505)', () => {
     expect(body).toContain('Codex');
     expect(body).toContain('turn on the worktree rule in Settings');
     expect(body).toContain('aria-label="Select worktree clean1"');
+  });
+
+  it('forgets gone worktrees through one explicit action (#523)', async () => {
+    const worktrees = store();
+    await worktrees.scan();
+    expect(worktrees.missing).toHaveLength(1);
+    const body = render(WorktreeReview, { props: { store: worktrees } }).body;
+    expect(body).toContain('Forget 1 gone');
+    expect(body).toContain('nothing on disk changes');
+    await worktrees.forgetMissing();
+    expect(worktrees.forgotten).toBe(1);
+    expect(worktrees.error).toBeNull();
   });
 });

@@ -260,6 +260,8 @@ export const commands = {
 	prepareWorktreeRemoval: (scanId: string, selectedItemIds: string[]) => typedError<WorktreeRemovalPreview_Serialize, string>(__TAURI_INVOKE("prepare_worktree_removal", { scanId, selectedItemIds })),
 	/**  Removes exactly the worktrees of a prepared plan, through Git. */
 	executeWorktreeRemoval: (planId: string) => typedError<WorktreeRemovalResult_Serialize, string>(__TAURI_INVOKE("execute_worktree_removal", { planId })),
+	/**  Forgets Git's records of worktrees whose folders are gone (#523). */
+	forgetMissingWorktrees: (scanId: string) => typedError<WorktreeForgetResult, string>(__TAURI_INVOKE("forget_missing_worktrees", { scanId })),
 	getInstalledApps: () => typedError<InstalledAppInventory_Serialize, string>(__TAURI_INVOKE("get_installed_apps")),
 	getAppLeftovers: () => typedError<AppLeftoverInventory_Serialize, string>(__TAURI_INVOKE("get_app_leftovers")),
 	inspectAppUninstall: (appId: string) => typedError<AppUninstallInspection_Serialize, string>(__TAURI_INVOKE("inspect_app_uninstall", { appId })),
@@ -4782,6 +4784,14 @@ export type UsageWindow_Serialize = {
 
 /**  The coding agent whose worktree folder this is, when the path says so. */
 export type WorktreeAgent = "codex" | "claude_code";
+
+/**  What forgetting gone worktrees did (#523). */
+export type WorktreeForgetResult = {
+	/**  Repositories whose records Git pruned. */
+	repositories: number,
+	/**  Worktree records Git forgot. */
+	forgotten: number,
+};
 
 export type WorktreeInventory = WorktreeInventory_Serialize | WorktreeInventory_Deserialize;
 

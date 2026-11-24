@@ -282,3 +282,13 @@ pub async fn execute_worktree_removal(
 ) -> Result<crate::models::WorktreeRemovalResult, String> {
     state.worktrees.execute_removal(plan_id, |_, _, _| {}).await
 }
+
+/// Forgets Git's records of worktrees whose folders are gone (#523).
+#[tauri::command]
+#[specta::specta]
+pub async fn forget_missing_worktrees(
+    scan_id: String,
+    state: State<'_, DesktopState>,
+) -> Result<crate::models::WorktreeForgetResult, String> {
+    state.worktrees.forget_missing(&scan_id).await
+}

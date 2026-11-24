@@ -76,6 +76,7 @@ export type {
   AutomaticCleanStatus,
   AutomaticCleanWait,
   WorktreeAgent,
+  WorktreeForgetResult,
   WorktreeInventory,
   WorktreeItem,
   WorktreeRemovalFailure,

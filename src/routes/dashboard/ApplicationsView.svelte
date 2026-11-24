@@ -12,6 +12,7 @@
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
+  import RemovalOutcomeCard from '../../lib/components/RemovalOutcomeCard.svelte';
   import InlineNotice from '../../lib/components/InlineNotice.svelte';
   import AppLeftoverReview from '../../lib/components/AppLeftoverReview.svelte';
   import RemovalPlanCard from '../../lib/components/RemovalPlanCard.svelte';
@@ -359,22 +360,7 @@
   {/if}
 
   {#if removalResult}
-    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'status-panel-warning' : 'status-panel-success'}`}>
-      <div class="flex items-center justify-between gap-3 text-meta">
-        <span class={`font-medium flex items-center gap-2 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
-          {#if removalResult.failed_count + removalResult.skipped_count > 0}
-            <AlertCircle size={15} />
-          {:else}
-            <CheckCircle2 size={15} />
-          {/if}
-          Permanently removed {removalResult.removed_count} reviewed item{removalResult.removed_count === 1 ? '' : 's'}
-          {#if removalResult.failed_count + removalResult.skipped_count > 0}
-            · {removalResult.failed_count + removalResult.skipped_count} not fully removed
-          {/if}
-        </span>
-        <span class="tabular-nums text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
-      </div>
-    </Card>
+    <RemovalOutcomeCard result={removalResult} singular="reviewed item" plural="reviewed items" />
   {/if}
 
   <div class="grid grid-cols-1 md:grid-cols-[minmax(220px,1fr)_minmax(0,1.1fr)] gap-4 items-start">

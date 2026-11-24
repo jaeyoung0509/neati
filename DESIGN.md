@@ -479,6 +479,11 @@ inventory is still valid.
   consequence note and expiry recovery; the card owns the countdown, the
   expiring/expired tones, focus on the recovery action, and the busy and
   disabled states of Cancel and the destructive confirm.
+- **RemovalOutcomeCard**: the result of that review in the same three views
+  (#528). A run that removed nothing leads with "Nothing was removed" and its
+  reasons in the open; otherwise the kept reasons fold under "Why … kept".
+  Identical reasons are counted once, and the size never claims a free-space
+  delta.
 - **AnimatedValue**: brief reveal for headline readings only; no row-list replay,
   no interpolated totals, no motion while hidden or under reduced motion/transparency.
 - **SelectionToolbar**: reserved space in the content column; count, measured

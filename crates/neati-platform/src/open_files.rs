@@ -66,6 +66,18 @@ pub fn observe_open_files_with_cancellation(
     }
 }
 
+/// Time one lsof walk of a single unit may take before it proves nothing.
+///
+/// `lsof +D` reads every entry of the tree, so the time follows the file
+/// count, not the byte count. A 72 GiB Cargo `target` of 141,000 files took
+/// 5.1 s on its first walk and 2.2 s once the metadata was cached (#528); the
+/// earlier 3 s budget turned exactly the largest idle build outputs into
+/// `Unknown`, which refuses their removal. A timeout still proves nothing.
+const SINGLE_UNIT_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
+
+/// Base time of one batched lsof walk, before the per-unit allowance.
+const BATCH_BASE_SECONDS: u64 = 10;
+
 /// Directories observed by one lsof invocation. Measured on a development Mac,
 /// 88 units in one call took 0.49 s against 7.3 s one at a time (#493).
 const BATCH_UNITS: usize = 48;
@@ -134,8 +146,9 @@ fn observe_batch_command(
     for unit in units {
         command.arg("+D").arg(unit);
     }
-    // One extra second per sixteen units on top of the single-unit budget.
-    let budget = std::time::Duration::from_secs(3 + (units.len() as u64).div_ceil(16));
+    // One extra second per sixteen units on top of the batch base.
+    let budget =
+        std::time::Duration::from_secs(BATCH_BASE_SECONDS + (units.len() as u64).div_ceil(16));
     let output =
         crate::subprocess::run_with_timeout_cancellable(command, budget, is_cancelled).ok()?;
     assign_batch(units, output.status.code(), &output.stdout, &output.stderr)
@@ -194,11 +207,8 @@ fn observe_command(
     command: std::process::Command,
     is_cancelled: &dyn Fn() -> bool,
 ) -> OpenFileState {
-    match crate::subprocess::run_with_timeout_cancellable(
-        command,
-        std::time::Duration::from_secs(3),
-        is_cancelled,
-    ) {
+    match crate::subprocess::run_with_timeout_cancellable(command, SINGLE_UNIT_BUDGET, is_cancelled)
+    {
         Ok(output) => classify(output.status.code(), &output.stdout, &output.stderr),
         Err(_) => OpenFileState::Unknown,
     }
@@ -254,6 +264,16 @@ mod tests {
                 < std::time::Duration::from_secs(1)
         );
     }
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn a_slow_walk_of_a_large_idle_folder_still_proves_it_idle() {
+        // #528: a cold `lsof +D` of a 141,000-file build output took 5.1 s
+        // and the old 3 s budget turned it into Unknown, refusing removal.
+        let mut command = std::process::Command::new("/bin/sh");
+        command.args(["-c", "sleep 4; exit 1"]);
+        assert_eq!(observe_command(command, &|| false), OpenFileState::Idle);
+    }
+
     fn units(paths: &[&str]) -> Vec<std::path::PathBuf> {
         paths.iter().map(std::path::PathBuf::from).collect()
     }

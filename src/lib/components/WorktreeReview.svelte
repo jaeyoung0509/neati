@@ -56,6 +56,14 @@
     />
   {/if}
 
+  {#if store.forgotten !== null && store.forgotten > 0}
+    <InlineNotice
+      variant="success"
+      title={`Git forgot ${store.forgotten} gone ${store.forgotten === 1 ? 'worktree' : 'worktrees'}`}
+      message="Only Git's own records changed. Their branches are still there."
+    />
+  {/if}
+
   {#if store.phase === 'scanning' && store.startedAt}
     <Card class="p-4 text-meta text-muted-foreground">
       <span aria-live="polite">Checking the repositories in your project folders…</span>
@@ -110,6 +118,18 @@
           </article>
         {/each}
       </div>
+
+      {#if store.missing.length > 0}
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-meta">
+          <p class="text-muted-foreground">
+            {store.missing.length} {store.missing.length === 1 ? 'worktree record points' : 'worktree records point'} to a folder that is gone.
+            Git can forget them; nothing on disk changes and branches stay.
+          </p>
+          <Button variant="outline" size="sm" disabled={busy} onclick={() => void store.forgetMissing()}>
+            Forget {store.missing.length} gone
+          </Button>
+        </div>
+      {/if}
 
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-caption text-muted-foreground">

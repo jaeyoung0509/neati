@@ -354,7 +354,9 @@ Settings          anchored at the bottom; Cleanup · Agents · App groups
 ```
 
 - A More view opened from the menu or a deep link shows as the active tab.
-- Home always opens on Overview, the one main path.
+- Home always opens on Overview, the one main path: the cleanup summary and
+  action, the three readings, and Keep Awake. Containers, Models, Ports, AI
+  activity and Battery live in their sections, not repeated on Home (#523).
 
 - A section opens on the view it last showed, or its first available view.
   The app opens on Clean → Caches when cleanup is supported.

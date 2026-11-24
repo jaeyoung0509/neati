@@ -18,6 +18,7 @@ import type {
   LargeFileScanResult,
   RemovalPlanPreview,
   RemovalResult,
+  WorktreeForgetResult,
   WorktreeInventory,
   WorktreeRemovalPreview,
   WorktreeRemovalResult,
@@ -81,6 +82,8 @@ export interface StorageManagementApi {
   prepareWorktreeRemoval(scanId: string, selectedItemIds: string[]): Promise<WorktreeRemovalPreview>;
   /** Removes exactly that plan's worktrees through Git. */
   executeWorktreeRemoval(planId: string): Promise<WorktreeRemovalResult>;
+  /** Forgets Git's records of worktrees whose folders are gone (#523). */
+  forgetMissingWorktrees(scanId: string): Promise<WorktreeForgetResult>;
 }
 
 const nativeStorageApi: StorageManagementApi = {
@@ -166,6 +169,10 @@ const nativeStorageApi: StorageManagementApi = {
 
   async executeWorktreeRemoval(planId) {
     return await unwrap(commands.executeWorktreeRemoval(planId));
+  },
+
+  async forgetMissingWorktrees(scanId) {
+    return await unwrap(commands.forgetMissingWorktrees(scanId));
   },
 };
 
@@ -566,6 +573,7 @@ const mockStorageApi: StorageManagementApi = {
   scanWorktrees: () => worktreesMock.scan(),
   prepareWorktreeRemoval: (scanId, selectedItemIds) => worktreesMock.prepare(scanId, selectedItemIds),
   executeWorktreeRemoval: (planId) => worktreesMock.execute(planId),
+  forgetMissingWorktrees: (scanId) => worktreesMock.forgetMissing(scanId),
 
   async startLargeFileScan(request, onEvent) {
     const scanId = `mock-large-scan-${Date.now()}`;

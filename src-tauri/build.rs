@@ -99,6 +99,7 @@ fn main() {
         "get_automatic_clean_status",
         "prepare_worktree_removal",
         "execute_worktree_removal",
+        "forget_missing_worktrees",
         "get_installed_apps",
         "get_app_leftovers",
         "inspect_app_uninstall",

@@ -132,6 +132,15 @@ pub struct WorktreeRemovalResult {
     pub reclaimed_bytes: u64,
 }
 
+/// What forgetting gone worktrees did (#523).
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, specta::Type)]
+pub struct WorktreeForgetResult {
+    /// Repositories whose records Git pruned.
+    pub repositories: u32,
+    /// Worktree records Git forgot.
+    pub forgotten: u32,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

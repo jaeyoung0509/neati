@@ -6,16 +6,10 @@
   import { memoryStore } from '../../lib/stores/memory.svelte';
   import { systemMetricsStore } from '../../lib/stores/systemMetrics.svelte';
   import { awakeStore } from '../../lib/stores/awake.svelte';
-  import { dockerStore } from '../../lib/stores/docker.svelte';
-  import { localModelsStore } from '../../lib/stores/models.svelte';
-  import { developmentPortsStore } from '../../lib/stores/developmentPorts.svelte';
-  import { usageStore } from '../../lib/stores/usage.svelte';
-  import { agentActivityStore } from '../../lib/stores/agentActivity.svelte';
   import { platformCapabilitiesStore } from '../../lib/stores/platformCapabilities.svelte';
   import { formatBytes, formatCountdown, formatTimeAgo } from '../../lib/utils/format';
   import { cleanupSummaryState, scanCompletionNotice } from '../../lib/utils/cleanupSummary';
   import {
-    batteryChargeStateLabel,
     memoryPressureLabel,
   } from '../../lib/utils/systemReadings';
   import PageHeader from '../../lib/components/PageHeader.svelte';
@@ -27,18 +21,13 @@
   import MetricTile from '../../lib/components/metrics/MetricTile.svelte';
   import MetricSparkline from '../../lib/components/metrics/MetricSparkline.svelte';
   import MemoryPanel from '../../lib/components/performance/MemoryPanel.svelte';
-  import ResourceRow from '../../lib/components/metrics/ResourceRow.svelte';
   import RippleScene from '../../lib/components/RippleScene.svelte';
   import AnimatedValue from '../../lib/components/AnimatedValue.svelte';
   import {
-    ChartNoAxesCombined,
-    Boxes,
-    Container,
     Gauge,
     HardDrive,
     Moon,
     RefreshCw,
-    Server,
   } from '@lucide/svelte';
 
   interface Props {
@@ -73,7 +62,6 @@
   let scan = $derived(scanStore.lastScan);
   let memory = $derived(memoryStore.memory);
   let cpu = $derived(systemMetricsStore.cpu);
-  let battery = $derived(systemMetricsStore.battery);
   let awake = $derived(awakeStore.state);
 
   let cleanupAvailable = $derived(platformCapabilitiesStore.isAvailable('cleanup'));
@@ -81,10 +69,6 @@
   let cpuAvailable = $derived(platformCapabilitiesStore.isInspectable('cpu_metrics'));
   let batteryCapability = $derived(platformCapabilitiesStore.feature('battery_metrics'));
   let awakeAvailable = $derived(platformCapabilitiesStore.isAvailable('keep_awake'));
-  let dockerAvailable = $derived(platformCapabilitiesStore.isAvailable('docker'));
-  let modelsAvailable = $derived(platformCapabilitiesStore.isAvailable('local_models'));
-  let portsAvailable = $derived(platformCapabilitiesStore.isAvailable('development_ports'));
-  let aiAvailable = $derived(platformCapabilitiesStore.isAvailable('ai_integrations'));
 
   let quickCleanableBytes = $derived(
     cleanupAvailable && scan ? scanStore.quickCleanableBytes(settings) : 0
@@ -148,20 +132,7 @@
   let memoryFreshness = $derived(
     memory?.timestamp != null ? formatTimeAgo(memory.timestamp) : null
   );
-  let batteryFreshness = $derived(
-    battery?.sampled_at != null ? formatTimeAgo(Math.floor(battery.sampled_at / 1000)) : null
-  );
 
-  let activeAgentCount = $derived(
-    (agentActivityStore.snapshot?.unassigned_sessions.length ?? 0) +
-      (agentActivityStore.snapshot?.projects.reduce((sum, project) => sum + project.sessions.length, 0) ?? 0)
-  );
-  let providerCount = $derived(
-    usageStore.snapshot?.providers.filter((provider) => provider.connected).length ?? 0
-  );
-  let runningContainers = $derived(
-    dockerStore.status?.containers.filter((container) => container.is_running).length ?? 0
-  );
 
   /**
    * Overview composes the existing stores. It never mounts a full route to
@@ -182,13 +153,6 @@
     }
     if (memoryAvailable) void memoryStore.refresh();
     if (awakeAvailable) void awakeStore.refresh();
-    if (dockerAvailable) void dockerStore.refresh();
-    if (modelsAvailable) void localModelsStore.refresh();
-    if (portsAvailable) void developmentPortsStore.refresh();
-    if (aiAvailable) {
-      void usageStore.refreshIfStale();
-      void agentActivityStore.refresh();
-    }
 
     const startMetrics = () => {
       if (polling) return;
@@ -400,13 +364,6 @@
     </section>
   {/if}
 
-  {#if battery?.presence === 'present'}
-    <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1 text-meta text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onclick={() => onNavigateTab?.('battery')}>
-      <span>Battery · {batteryChargeStateLabel(battery.charge_state)}</span>
-      <span class="tabular-nums">{battery.percent != null ? `${Math.round(battery.percent)}%` : '—'} · {batteryFreshness ?? 'No recent reading'}</span>
-    </button>
-  {/if}
-
   <!-- Keep Awake, kept compact: state plus one action. -->
   <section class="rounded-xl border border-border bg-card p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3" aria-label="Keep Awake">
     <div class="flex items-center gap-2.5 min-w-0">
@@ -450,74 +407,7 @@
     </div>
   </section>
 
-  <!-- Active tools and services. -->
-  <section class="space-y-2" aria-label="Active tools and services">
-    <h2 class="text-sm font-semibold tracking-tight text-foreground">Tools and services</h2>
-    <div class="rounded-xl border border-border divide-y divide-border overflow-hidden">
-      <ResourceRow
-        label="Containers"
-        value={dockerAvailable ? (dockerStore.status?.is_running ? `${runningContainers} running` : 'Stopped') : 'Unavailable'}
-        tone={dockerAvailable && dockerStore.status?.is_running ? 'success' : 'muted'}
-        detail={dockerAvailable
-          ? dockerStore.status?.error_message ?? (dockerStore.status ? `${dockerStore.status.containers.length} containers · ${dockerStore.status.images.length} images` : null)
-          : platformCapabilitiesStore.feature('docker')?.reason ?? null}
-        onclick={() => onNavigateTab?.('docker')}
-        actionLabel="Open Containers"
-      >
-        {#snippet icon()}<Container size={16} class="text-muted-foreground" aria-hidden="true" />{/snippet}
-      </ResourceRow>
-
-      <ResourceRow
-        label="Models"
-        value={modelsAvailable ? `${localModelsStore.models.length} installed` : 'Unavailable'}
-        tone={modelsAvailable ? 'default' : 'muted'}
-        detail={modelsAvailable
-          ? localModelsStore.isUnavailable
-            ? localModelsStore.incompleteReasons[0] ?? 'Inventory incomplete.'
-            : `${formatBytes(localModelsStore.totalBytes)} on disk`
-          : platformCapabilitiesStore.feature('local_models')?.reason ?? null}
-        onclick={() => onNavigateTab?.('models')}
-        actionLabel="Open Models"
-      >
-        {#snippet icon()}<Boxes size={16} class="text-muted-foreground" aria-hidden="true" />{/snippet}
-      </ResourceRow>
-
-      <ResourceRow
-        label="Ports"
-        value={portsAvailable ? `${developmentPortsStore.listeners.length} listening` : 'Unavailable'}
-        tone={portsAvailable && developmentPortsStore.listeners.length > 0 ? 'success' : 'muted'}
-        detail={portsAvailable
-          ? developmentPortsStore.listeners.length > 0
-            ? developmentPortsStore.listeners
-                .slice(0, 3)
-                .map((listener) => `:${listener.port}`)
-                .join(' · ')
-            : 'Nothing is listening on a development port.'
-          : platformCapabilitiesStore.feature('development_ports')?.reason ?? null}
-        onclick={() => onNavigateTab?.('development_servers')}
-        actionLabel="Open Ports"
-      >
-        {#snippet icon()}<Server size={16} class="text-muted-foreground" aria-hidden="true" />{/snippet}
-      </ResourceRow>
-
-      <ResourceRow
-        label="AI Activity"
-        value={aiAvailable ? `${activeAgentCount} active` : 'Unavailable'}
-        tone={activeAgentCount > 0 ? 'success' : 'muted'}
-        detail={aiAvailable
-          ? `${providerCount} connected ${providerCount === 1 ? 'account' : 'accounts'} · observed sessions only`
-          : platformCapabilitiesStore.feature('ai_integrations')?.reason ?? null}
-        onclick={() => onNavigateTab?.('projects')}
-        actionLabel="Open AI Activity"
-      >
-        {#snippet icon()}
-          <ChartNoAxesCombined size={16} class="text-muted-foreground" aria-hidden="true" />
-        {/snippet}
-      </ResourceRow>
-    </div>
-  </section>
-
-  {#if !cleanupAvailable && !memoryAvailable && !awakeAvailable && !dockerAvailable && !modelsAvailable && !portsAvailable && !aiAvailable}
+  {#if !cleanupAvailable && !memoryAvailable && !awakeAvailable}
     <EmptyState
       title="No platform adapters are available"
       description="This platform has no implementing adapter for the inspected features, so Overview reports nothing instead of an empty success."

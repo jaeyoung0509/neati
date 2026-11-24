@@ -10,7 +10,7 @@ export type WorktreePhase = 'idle' | 'scanning' | 'ready' | 'confirming' | 'remo
 
 type WorktreeApi = Pick<
   StorageManagementApi,
-  'scanWorktrees' | 'prepareWorktreeRemoval' | 'executeWorktreeRemoval'
+  'scanWorktrees' | 'prepareWorktreeRemoval' | 'executeWorktreeRemoval' | 'forgetMissingWorktrees'
 >;
 
 function message(cause: unknown): string {
@@ -40,6 +40,30 @@ export class WorktreeStore {
 
   get finished(): WorktreeItem[] {
     return this.items.filter((item) => item.state === 'finished');
+  }
+
+  /** Registered with Git, but their folders are gone. */
+  get missing(): WorktreeItem[] {
+    return this.items.filter((item) => item.state === 'missing');
+  }
+
+  /** How many records the last forget removed, for the notice. */
+  forgotten = $state<number | null>(null);
+
+  /** Asks Git to forget the gone worktrees' records, then checks again. */
+  async forgetMissing(): Promise<void> {
+    if (!this.inventory || this.missing.length === 0 || this.phase !== 'ready') return;
+    this.error = null;
+    this.phase = 'removing';
+    try {
+      const result = await this.api.forgetMissingWorktrees(this.inventory.scan_id);
+      this.forgotten = result.forgotten;
+      this.phase = 'ready';
+      await this.scan();
+    } catch (cause) {
+      this.error = message(cause);
+      this.phase = 'ready';
+    }
   }
 
   get selectedItems(): WorktreeItem[] {

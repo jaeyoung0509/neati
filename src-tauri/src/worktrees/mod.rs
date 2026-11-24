@@ -548,3 +548,32 @@ pub fn scan(
         rules: observation.rules,
     }
 }
+
+/// Forgets the records of linked worktrees whose folders are gone (#523).
+///
+/// Runs fixed-argument `git worktree prune`, which only removes Git's own
+/// administrative records for missing, unlocked worktrees; nothing on disk
+/// outside the repository's git directory changes. Returns how many records
+/// Git forgot.
+pub fn forget_missing(environment: &PlatformEnvironment, repository: &Path) -> Result<u32, String> {
+    let missing = |listed: &[ListedWorktree]| {
+        listed
+            .iter()
+            .skip(1)
+            .filter(|entry| !entry.bare && !entry.locked)
+            .filter(|entry| entry.prunable || !entry.path.is_dir())
+            .count()
+    };
+    let before = missing(&list_worktrees(environment, repository)?);
+    if before == 0 {
+        return Ok(0);
+    }
+    run_git(
+        environment,
+        repository,
+        &[os("worktree"), os("prune")],
+        LIST_TIMEOUT,
+    )?;
+    let after = missing(&list_worktrees(environment, repository)?);
+    Ok(u32::try_from(before.saturating_sub(after)).unwrap_or(u32::MAX))
+}

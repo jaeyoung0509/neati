@@ -143,7 +143,7 @@ const READ_ONLY_PERMISSIONS: [&str; 61] = [
 /// permission that a rename retires is caught by
 /// [`mutation_guards_name_permissions_the_build_generates`], so the list cannot
 /// rot into an empty set of comparisons.
-const MUTATING_PERMISSIONS: [&str; 46] = [
+const MUTATING_PERMISSIONS: [&str; 47] = [
     "allow-restore-developer-workspaces",
     "allow-add-suggested-developer-workspace",
     "allow-connect-openrouter-oauth",
@@ -166,6 +166,7 @@ const MUTATING_PERMISSIONS: [&str; 46] = [
     "allow-prepare-developer-artifact-cleanup",
     "allow-prepare-worktree-removal",
     "allow-execute-worktree-removal",
+    "allow-forget-missing-worktrees",
     "allow-prepare-large-file-removal",
     "allow-preview-ai-recommendation",
     "allow-prune-docker-target",

@@ -315,6 +315,12 @@
           "markdownDescription": "Enables the export_session_bundle command without any pre-configured scope."
         },
         {
+          "description": "Enables the forget_missing_worktrees command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-forget-missing-worktrees",
+          "markdownDescription": "Enables the forget_missing_worktrees command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_agent_integrations command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-agent-integrations",
@@ -955,6 +961,12 @@
           "type": "string",
           "const": "deny-export-session-bundle",
           "markdownDescription": "Denies the export_session_bundle command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the forget_missing_worktrees command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-forget-missing-worktrees",
+          "markdownDescription": "Denies the forget_missing_worktrees command without any pre-configured scope."
         },
         {
           "description": "Denies the get_agent_integrations command without any pre-configured scope.",

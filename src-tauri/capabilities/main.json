@@ -103,6 +103,7 @@
     "allow-get-automatic-clean-status",
     "allow-prepare-worktree-removal",
     "allow-execute-worktree-removal",
+    "allow-forget-missing-worktrees",
     "allow-get-installed-apps",
     "allow-get-app-leftovers",
     "allow-inspect-app-uninstall",

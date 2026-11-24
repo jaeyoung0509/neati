@@ -352,3 +352,37 @@ fn agent_folders_are_named() {
         None
     );
 }
+
+#[test]
+fn forgetting_gone_worktrees_prunes_only_their_records() {
+    let fixture = fixture();
+    let gone = fixture.worktree("app-gone", "gone");
+    let kept = fixture.worktree("app-kept", "kept");
+    let locked = fixture.worktree("app-locked", "locked");
+    git(
+        &fixture.repository,
+        &["worktree", "lock", locked.to_str().unwrap()],
+    );
+    fs::remove_dir_all(&gone).unwrap();
+    fs::remove_dir_all(&locked).unwrap();
+
+    let forgotten = forget_missing(&fixture.environment, &fixture.repository).unwrap();
+    assert_eq!(forgotten, 1);
+    let listed = list_worktrees(&fixture.environment, &fixture.repository).unwrap();
+    let paths: Vec<&PathBuf> = listed.iter().skip(1).map(|entry| &entry.path).collect();
+    assert!(paths.contains(&&kept));
+    // A locked worktree may live on a drive that is not mounted: Git keeps it.
+    assert!(paths.contains(&&locked));
+    assert!(!paths.contains(&&gone));
+    assert!(kept.join("target/debug/app").is_file());
+    // Its branch stays.
+    git(
+        &fixture.repository,
+        &["rev-parse", "--verify", "-q", "gone"],
+    );
+    // Nothing left to forget is a no-op.
+    assert_eq!(
+        forget_missing(&fixture.environment, &fixture.repository).unwrap(),
+        0
+    );
+}

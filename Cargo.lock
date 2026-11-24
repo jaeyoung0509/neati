@@ -2365,7 +2365,7 @@ dependencies = [
 
 [[package]]
 name = "neati-core"
-version = "0.3.143"
+version = "0.3.144"
 dependencies = [
  "crc32fast",
  "serde",
@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "neati-desktop"
-version = "0.3.143"
+version = "0.3.144"
 dependencies = [
  "base64 0.23.1",
  "flate2",
@@ -2417,7 +2417,7 @@ dependencies = [
 
 [[package]]
 name = "neati-platform"
-version = "0.3.143"
+version = "0.3.144"
 dependencies = [
  "libc",
  "neati-core",

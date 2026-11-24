@@ -29,9 +29,11 @@
     primary:
       'neati-action text-action-foreground',
     secondary:
-      'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+      'bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground',
+    // A labelled button needs no 3:1 boundary of its own (its text carries
+    // it), so the outline stays a quiet hairline on a raised card surface.
     outline:
-      'border border-border-strong bg-transparent hover:bg-accent hover:text-accent-foreground',
+      'border border-border bg-card text-foreground shadow-sm hover:bg-accent hover:border-primary/30 hover:text-accent-foreground',
     destructive:
       'bg-destructive text-destructive-foreground hover:bg-destructive/90',
     ghost:

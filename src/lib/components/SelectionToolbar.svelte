@@ -103,7 +103,7 @@
       {/if}
       selected
       {#if selectedBytes > 0}
-        · <span class="font-mono font-semibold text-foreground"><ByteValue bytes={selectedBytes} /></span>
+        · <span class="tabular-nums font-semibold text-foreground"><ByteValue bytes={selectedBytes} /></span>
       {:else if selectedCount > manualCount}
         · <span>Reclaim size not estimated</span>
       {/if}

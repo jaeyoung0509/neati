@@ -121,10 +121,13 @@ not established by a controlled comparison. See
 for the supported native hosting relationship.
 
 - Native desktop developer utility, not a marketing dashboard.
-- Calm, technical, trustworthy. Ink blue carries reading text; pastel
-  periwinkle identifies primary actions, with cobalt for selected navigation.
-  One obvious primary action per task. Generic resource readings use cobalt;
-  green is reserved for a completed success or cleanup eligibility.
+- Calm, technical, trustworthy. Ink blue carries reading text. The mark's own
+  blue (`#376CDA`, deepened for contrast) identifies the one primary action of
+  a task, checked switches and checkboxes, and selected navigation (owner
+  direction #521, November 24, 2026). Icon tiles and selected surfaces are a
+  pale tint of that blue. Generic resource readings use cobalt; green is
+  reserved for a completed success or cleanup eligibility and never marks a
+  control's on state.
 - The user-approved neati B identity (September 28, 2026, #334) is a flowing,
   rounded lowercase `n`, white on a restrained blue tile. Its lifted tail adds
   warmth without a face, mascot, cleaning prop, or status badge. Use the same
@@ -158,26 +161,27 @@ targets ≥ 4.5:1 and meaningful controls, boundaries, and focus target ≥ 3:1.
 | `--background` | `230 35% 97%` | `222 24% 8%` | Cool window / page |
 | `--card` | `230 40% 99%` | `222 20% 13%` | Solid working surface |
 | `--secondary` | `230 35% 94%` | `222 20% 12%` | Sidebar and grouped surface |
-| `--accent` | `228 75% 93%` | `219 42% 24%` | Selected / quiet blue surface |
+| `--accent` | `223 82% 94%` | `219 42% 24%` | Selected / quiet blue surface, icon tiles |
 | `--border` | `230 24% 87%` | `220 18% 25%` | Decorative hairline separator |
 | `--border-strong` | `225 13% 49%` | `220 20% 49%` | Essential boundary (inputs, interactive chrome) |
 | `--foreground` | `225 24% 17%` | `230 35% 95%` | Ink-blue primary text |
 | `--muted-foreground` | `222 10% 39%` | `220 14% 74%` | Supporting text |
-| `--primary` | `215 76% 39%` | `218 82% 76%` | Readable blue text accent |
-| `--action` | `218 92% 90%` | `220 74% 81%` | Primary button gradient start |
-| `--action-end` | `198 80% 89%` | `198 62% 78%` | Primary button gradient end |
+| `--primary` | `221 64% 42%` | `220 86% 76%` | Readable blue text accent, selected navigation |
+| `--action` | `221 66% 48%` | `221 86% 72%` | Primary button: the mark's blue, deepened |
+| `--action-end` | `214 72% 45%` | `210 82% 70%` | Primary button gradient end (short azure lift) |
+| `--control` | `221 66% 48%` | `221 86% 72%` | Checked switch track, checked checkbox, native `accent-control` inputs |
+| `--control-foreground` | `0 0% 100%` | `225 52% 12%` | Checkmark and on-state switch thumb |
 | `--meter-start` | `222 78% 55%` | `225 90% 76%` | Royal blue gauge start |
 | `--meter-middle` | `209 87% 44%` | `204 90% 69%` | Azure gauge middle |
 | `--meter-end` | `193 74% 33%` | `187 62% 60%` | Cyan gauge end |
 | `--meter-track` | `218 24% 90%` | `220 18% 23%` | Gauge track |
-| `--action-foreground` | `225 48% 24%` | `225 48% 15%` | Text on pastel buttons |
+| `--action-foreground` | `0 0% 100%` | `225 52% 12%` | Text on the primary button |
 | `--primary-foreground` | `0 0% 100%` | `224 48% 13%` | Text on saturated cobalt surfaces |
 | `--ring` | `220 82% 36%` | `217 88% 68%` | Focus outline |
 | `--success` | `162 71% 24%` | `157 58% 68%` | Safe candidates, protected items, healthy readings |
-| `--success-foreground` | `0 0% 100%` | `159 43% 9%` | Checked control marks on the success fill |
 | `--warning` | `33 100% 27%` | `38 76% 63%` | Rebuild caches, cautionary states, elevated pressure |
 | `--destructive` | `3 71% 41%` | `4 75% 70%` | Destructive actions, kills, hard errors |
-| `--ai` | `215 76% 39%` | `217 85% 72%` | AI metadata accent, shared blue family |
+| `--ai` | `221 64% 42%` | `217 85% 72%` | AI metadata accent, shared blue family |
 
 Measured contrast is enforced from the executable tokens in
 `src/test/designSystem.test.ts`. Normal text targets ≥ 4.5:1 and meaningful
@@ -194,9 +198,9 @@ Reduced transparency removes atmospheric backgrounds and the ripples. Narrow
 content areas hide the artwork before it can crowd text or actions. Cards and
 data tables retain solid surfaces in both themes.
 
-The cobalt mapping deliberately uses a pale blue selected surface and pastel
-periwinkle action in light mode. Dark mode retains a light action surface and
-the same hue family. This keeps action text legible and selected state distinct
+The brand mapping uses a pale blue selected surface and the mark's saturated
+blue for the primary action and checked controls in light mode. Dark mode uses
+a light tint of the same hue for both, with dark text. This keeps action text legible and selected state distinct
 from both the page and the action. Brand colour is never the only carrier of
 meaning: every selected, safe, or cautionary state also carries text, an icon,
 or a shape. Success remains green because it names an observed outcome, not the
@@ -213,10 +217,12 @@ offset rings, rather than assuming every control sits on the page background.
 
 ### Typography scale
 
-- System UI font with Korean fallbacks for labels, navigation, and prose;
-  monospace only for paths, ports, byte counts, percentages, and identifiers.
-- Tabular numerals (`font-mono tabular-nums`) wherever a value can change in
-  place.
+- System UI font with Korean fallbacks for labels, navigation, prose and
+  numbers; monospace only for paths, ports, commands and identifiers (#521).
+- Numbers (bytes, percentages, counts, prices) use the system font with
+  tabular numerals (`tabular-nums`), so a value that changes in place does
+  not shift; key metrics add `font-semibold tracking-tight`. Timestamps and
+  status words are prose, not monospace.
 - Page headings: `text-title` (22 px). Key metrics: `text-metric` (28 px) or
   `text-metric-lg` (32 px) for a single headline metric per page.
 - Body and controls: `text-body` (13 px) / `text-sm` (14 px).
@@ -480,9 +486,14 @@ inventory is still valid.
   tab uses the pale blue `--accent` surface rather than a dark pill.
 - **Switch / Checkbox**: switches are for persistent on/off state only,
   checkboxes for selection. The enabled switch track and the selected checkbox
-  use `--success` with its paired `--success-foreground` mark. An unchecked
-  switch uses a contrasting muted thumb and an essential border; both themes
-  retain the shared visible focus ring.
+  use `--control` with its paired `--control-foreground` mark (#521). An
+  unchecked switch is a grey track with a light thumb, as on macOS; position,
+  not colour alone, carries the state, and both themes retain the shared
+  visible focus ring.
+- **Button**: `primary` is the brand action (one per task); `outline` is a
+  hairline on a raised card surface, because its label already carries the
+  boundary; `secondary` and `ghost` tint to `--accent` on hover.
+- **Badge**: a rounded pill in the caption step.
 - **EmptyState**: separate states for empty search results, no inventory,
   missing platform capability, and failed loading.
   Cleanup distinguishes a verified empty scan from an unread/partial result,

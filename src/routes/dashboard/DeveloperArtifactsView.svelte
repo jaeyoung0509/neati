@@ -635,7 +635,7 @@
               }}
               disabled={isScanning}
               aria-label={`Scan ${workspace.name}`}
-              class="accent-success"
+              class="accent-control"
             />
             <div class="min-w-0 flex-1">
               <div class="truncate text-meta font-medium">{workspace.name}</div>
@@ -734,7 +734,7 @@
         <span class={`font-medium ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
           Permanently removed {removalResult.removed_count} artifact{removalResult.removed_count === 1 ? '' : 's'}
         </span>
-        <span class="font-mono text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)} removed · free-space change not measured</span>
+        <span class="tabular-nums text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)} removed · free-space change not measured</span>
       </div>
       {#if relatedScopesNeedRefresh}<p class="mt-2 text-meta text-muted-foreground">Scan again to refresh related parent and child output scopes.</p>{/if}
       {#if removalResult.items.some(item => !item.success)}
@@ -838,7 +838,7 @@
             onchange={() => toggleItem(item)}
             disabled={!canManuallyClean(item) || isScanning || isExecuting}
             aria-label={`Select ${item.project_name} ${kindLabel(item)}${item.status === 'measurement_incomplete' ? ' with partial measurement warning' : ''}`}
-            class="mt-1 accent-primary"
+            class="mt-1 accent-control"
           />
           <div class="min-w-0 flex-1 space-y-1">
             <div class="flex flex-wrap items-center gap-2">

@@ -35,7 +35,7 @@
     <p class="text-muted-foreground">No cleanups yet. Completed cleanups are listed here as totals.</p>
   {:else}
     <p class="text-muted-foreground">
-      <span class="font-mono tabular-nums text-foreground">{formatBytes(totals.removedBytes)}</span>
+      <span class="tabular-nums text-foreground">{formatBytes(totals.removedBytes)}</span>
       removed across {totals.runs} {totals.runs === 1 ? 'cleanup' : 'cleanups'}. Removed data is not a measured change in free disk space.
     </p>
     <ul class="divide-y divide-border rounded-xl border border-border">
@@ -48,7 +48,7 @@
               {entry.item_count} {entry.item_count === 1 ? 'item' : 'items'}{#if issues}{' · '}<span class="text-warning">{issues}</span>{/if}
             </div>
           </div>
-          <span class="shrink-0 font-mono tabular-nums text-foreground">{formatBytes(entry.removed_bytes)}</span>
+          <span class="shrink-0 tabular-nums text-foreground">{formatBytes(entry.removed_bytes)}</span>
         </li>
       {/each}
     </ul>

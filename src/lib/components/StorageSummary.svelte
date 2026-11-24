@@ -32,7 +32,7 @@
       <p class="text-meta font-medium text-muted-foreground">{scan ? presentation.estimateLabel : 'Available to clean'}</p>
       {#if scanStore.freshness === 'partial'}<Badge variant="outline">Partial scan</Badge>{/if}
     </div>
-    <p class="mt-1 text-metric-lg font-mono font-semibold tracking-tight tabular-nums text-foreground">
+    <p class="mt-1 text-metric-lg font-semibold tracking-tight tabular-nums text-foreground">
       <AnimatedValue value={scan && presentation.hasMeasuredResults ? formatBytes(availability.ready) : '—'} />
     </p>
     {#if !scan || !presentation.hasMeasuredResults || (!isCurrent && scanStore.discovery.status === 'exhausted')}
@@ -46,7 +46,7 @@
   </div>
   <div class="summary-context text-meta text-muted-foreground">
     <p>Found in scanned locations</p>
-    <p class="mt-1 text-sm font-medium font-mono tabular-nums text-foreground">
+    <p class="mt-1 text-sm font-medium tabular-nums text-foreground">
       {#if !scan || !presentation.hasMeasuredResults}—
       {:else if observed.isAmbiguous}{formatBytes(observed.lower)}–{formatBytes(observed.upper)}
       {:else}{formatBytes(observed.upper)}{/if}

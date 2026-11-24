@@ -77,7 +77,7 @@
                     <p class="break-words text-sm font-medium">{item.name}</p>
                     <p class="mt-1 text-caption text-muted-foreground">{labels[item.classification]} · cleanup unavailable</p>
                   </div>
-                  <span class="shrink-0 whitespace-nowrap text-meta font-mono tabular-nums">
+                  <span class="shrink-0 whitespace-nowrap text-meta tabular-nums">
                     {item.quality === 'unavailable' ? 'Unknown size' : `${item.quality === 'partial' ? 'At least ' : ''}${formatBytes(item.allocated_size)}`}
                   </span>
                 </div>

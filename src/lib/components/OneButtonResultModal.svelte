@@ -58,7 +58,7 @@
 
   <div class="space-y-3 py-3">
     <div class="rounded-xl bg-secondary p-3 text-center">
-      <div class="text-metric font-semibold font-mono tabular-nums text-foreground">{formatBytes(outcome.reclaimed_bytes)}</div>
+      <div class="text-metric font-semibold tabular-nums text-foreground">{formatBytes(outcome.reclaimed_bytes)}</div>
       <div class="mt-0.5 text-meta text-muted-foreground">Removed from storage</div>
     </div>
     {#if outcome.failed.length > 0}

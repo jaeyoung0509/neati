@@ -313,7 +313,7 @@
                   type="checkbox"
                   checked={selectedRoots.includes(root.id)}
                   onchange={() => toggleRoot(root.id)}
-                  class="accent-success"
+                  class="accent-control"
                 />
                 <span>{root.label}</span>
               </label>
@@ -406,7 +406,7 @@
             · {removalResult.failed_count + removalResult.skipped_count} not fully removed
           {/if}
         </span>
-        <span class="font-mono text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
+        <span class="tabular-nums text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
       </div>
     </Card>
   {/if}
@@ -499,7 +499,7 @@
                 onchange={() => toggleItem(item.id)}
                 disabled={isScanning || isExecuting}
                 aria-label={`Select ${item.name}`}
-                class="accent-success shrink-0"
+                class="accent-control shrink-0"
               />
               <div class="h-9 w-9 rounded-lg bg-secondary/60 border border-border/60 flex items-center justify-center shrink-0">
                 <FileSearch size={16} class="text-muted-foreground" />
@@ -519,9 +519,9 @@
                 </div>
               </div>
               <div class="text-right shrink-0">
-                <div class="text-meta font-semibold font-mono">{formatBytes(item.allocated_size)}</div>
+                <div class="text-meta font-semibold tabular-nums">{formatBytes(item.allocated_size)}</div>
                 {#if item.logical_size !== item.allocated_size}
-                  <div class="text-micro text-muted-foreground font-mono">{formatBytes(item.logical_size)} logical</div>
+                  <div class="text-micro text-muted-foreground tabular-nums">{formatBytes(item.logical_size)} logical</div>
                 {/if}
               </div>
               <Button

@@ -661,7 +661,7 @@
         {#each scan.categories as cat (cat.category)}
           <div class="flex items-center justify-between gap-2 px-3 py-2 text-meta">
             <span class="truncate text-foreground font-medium">{cat.display_name}</span>
-            <span class="font-mono tabular-nums text-muted-foreground whitespace-nowrap">{formatBytes(cat.total_bytes)}</span>
+            <span class="tabular-nums text-muted-foreground whitespace-nowrap">{formatBytes(cat.total_bytes)}</span>
           </div>
         {/each}
       </section>

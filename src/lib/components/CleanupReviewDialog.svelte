@@ -54,10 +54,10 @@
   <div class="min-h-0 overflow-y-auto scroll-stable px-5 py-4">
   <dl class="space-y-2 text-body">
     {#if plan.targets.some(target => target.mode === 'permanent_delete')}
-      <div class="flex flex-wrap justify-between gap-2"><dt>Delete permanently</dt><dd class="font-mono tabular-nums">{summary.deletedBytes > 0 ? formatBytes(summary.deletedBytes) + ' estimated' : 'Not estimated'}</dd></div>
+      <div class="flex flex-wrap justify-between gap-2"><dt>Delete permanently</dt><dd class="tabular-nums">{summary.deletedBytes > 0 ? formatBytes(summary.deletedBytes) + ' estimated' : 'Not estimated'}</dd></div>
     {/if}
     {#if plan.targets.some(target => target.mode === 'trash')}
-      <div class="flex flex-wrap justify-between gap-2"><dt>Move to {platformContextStore.trashLabel}</dt><dd class="font-mono tabular-nums">{summary.trashBytes > 0 ? formatBytes(summary.trashBytes) + ' estimated' : 'Not estimated'}</dd></div>
+      <div class="flex flex-wrap justify-between gap-2"><dt>Move to {platformContextStore.trashLabel}</dt><dd class="tabular-nums">{summary.trashBytes > 0 ? formatBytes(summary.trashBytes) + ' estimated' : 'Not estimated'}</dd></div>
     {/if}
   </dl>
   {#if summary.unestimated > 0}
@@ -74,7 +74,7 @@
       <li class="py-3 text-body">
         <div class="flex flex-wrap justify-between gap-2">
           <span class="min-w-0 break-words font-medium">{group.label}</span>
-          <span class="font-mono tabular-nums">{group.bytes > 0 ? formatBytes(group.bytes) : 'Not estimated'}{group.bytes > 0 && group.unestimated > 0 ? ' + unestimated' : ''}</span>
+          <span class="tabular-nums">{group.bytes > 0 ? formatBytes(group.bytes) : 'Not estimated'}{group.bytes > 0 && group.unestimated > 0 ? ' + unestimated' : ''}</span>
         </div>
         <p class="mt-1 text-meta text-muted-foreground">{group.mode === 'trash' ? `Move to ${platformContextStore.trashLabel}` : group.mode === 'permanent_delete' ? 'Delete permanently' : actionSummary}</p>
         {#if group.consequence}<p class="mt-1 text-meta text-muted-foreground">{group.consequence}</p>{/if}
@@ -83,7 +83,7 @@
           <ul class="mt-2 space-y-3 rounded-lg bg-secondary p-3">
             {#each group.targets as target (target.item_id)}
               <li class="min-w-0 text-meta">
-                <div class="flex flex-wrap justify-between gap-2"><span class="break-words">{target.name}</span><span class="font-mono tabular-nums">{target.expected_bytes > 0 ? formatBytes(target.expected_bytes) : 'Not estimated'}</span></div>
+                <div class="flex flex-wrap justify-between gap-2"><span class="break-words">{target.name}</span><span class="tabular-nums">{target.expected_bytes > 0 ? formatBytes(target.expected_bytes) : 'Not estimated'}</span></div>
                 <code class="mt-1 block text-muted-foreground [overflow-wrap:anywhere]">{target.path}</code>
               </li>
             {/each}

@@ -56,7 +56,7 @@
       <p class="text-meta text-muted-foreground">Found so far</p>
       <p class="mt-1 font-mono text-body"><AnimatedValue value={String(scanStore.foundItemCount)} active={!scanStore.isCancelling} /> {scanStore.foundItemCount === 1 ? 'item' : 'items'}</p>
     </div>
-    <p class="text-meta font-mono tabular-nums text-muted-foreground self-end">{elapsedLabel}</p>
+    <p class="text-meta tabular-nums text-muted-foreground self-end">{elapsedLabel}</p>
   </div>
   {#if scanStore.currentRoot && isFilesystemRoot(scanStore.currentRoot.path)}
     <details class="relative mt-4 text-caption text-muted-foreground">

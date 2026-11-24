@@ -78,7 +78,7 @@
           <article class="flex items-start gap-3 px-4 py-3" data-worktree-state={item.state}>
             <input
               type="checkbox"
-              class="mt-1 accent-primary"
+              class="mt-1 accent-control"
               checked={store.selectedIds.includes(item.id)}
               disabled={!removable || busy}
               onchange={() => store.toggle(item.id)}

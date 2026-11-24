@@ -55,7 +55,7 @@
     <span class="text-meta font-medium text-muted-foreground">{label}</span>
     <span class="flex items-center gap-1.5">
       {#if freshness}
-        <span class="text-caption font-mono text-muted-foreground whitespace-nowrap">{freshness}</span>
+        <span class="text-caption text-muted-foreground whitespace-nowrap">{freshness}</span>
       {/if}
       {#if onclick}
         <ChevronRight size={14} class="text-muted-foreground" aria-hidden="true" />

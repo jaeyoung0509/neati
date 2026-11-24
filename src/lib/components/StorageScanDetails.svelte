@@ -28,7 +28,7 @@
         <p class="mt-1">Includes items that must be kept.</p>
         <dl class="mt-2 space-y-1" aria-label="Retained bytes by reason">
           {#each retained as group (group.kind)}
-            <div class="flex flex-wrap justify-between gap-x-3"><dt>{group.label}</dt><dd class="font-mono tabular-nums text-foreground">{formatBytes(group.bytes)}</dd></div>
+            <div class="flex flex-wrap justify-between gap-x-3"><dt>{group.label}</dt><dd class="tabular-nums text-foreground">{formatBytes(group.bytes)}</dd></div>
           {/each}
         </dl>
       </div>

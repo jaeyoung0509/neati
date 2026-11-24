@@ -10,7 +10,7 @@
   let {
     checked = false,
     disabled = false,
-    color = 'peer-checked:bg-success',
+    color = 'peer-checked:bg-control peer-checked:border-control',
     ariaLabel,
     onchange,
   }: Props = $props();
@@ -34,10 +34,10 @@
     class="sr-only peer"
   />
   <div
-    class="w-9 h-5 border border-border-strong bg-secondary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background rounded-full transition-colors duration-fast ease-out {color} relative"
+    class="w-9 h-5 border border-transparent bg-muted-foreground/40 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background rounded-full transition-colors duration-fast ease-out {color} relative"
   >
     <div
-      class="absolute top-[1px] left-[1px] rounded-full h-4 w-4 transition-transform duration-fast ease-standard {checked ? 'translate-x-4 bg-success-foreground' : 'translate-x-0 bg-muted-foreground'}"
+      class="absolute top-[1px] left-[1px] rounded-full h-4 w-4 shadow-sm transition-transform duration-fast ease-standard {checked ? 'translate-x-4 bg-control-foreground' : 'translate-x-0 bg-card'}"
     ></div>
   </div>
 </label>

@@ -135,7 +135,7 @@
 
   <div class="py-4 space-y-4">
     <div class="rounded-xl bg-secondary p-3 text-center">
-      <div class="text-metric font-semibold font-mono tabular-nums text-foreground">
+      <div class="text-metric font-semibold tabular-nums text-foreground">
         {formatBytes(movedOnly ? movedToTrashBytes : result.total_reclaimed_bytes)}
       </div>
       <div class="mt-0.5 text-meta text-muted-foreground">
@@ -158,7 +158,7 @@
 
     {#if !movedOnly && movedToTrashBytes > 0}
       <div class="rounded-xl bg-secondary p-3 text-center">
-        <div class="text-title font-semibold font-mono tabular-nums text-foreground">
+        <div class="text-title font-semibold tabular-nums text-foreground">
           {formatBytes(movedToTrashBytes)}
         </div>
         <div class="mt-0.5 text-meta text-muted-foreground">
@@ -219,7 +219,7 @@
             <div class="p-2.5 text-meta">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-medium text-foreground">{item.name}</span>
-                <span class="shrink-0 text-right font-mono tabular-nums text-meta text-warning">{#if cleanItemAmounts(item).removed > 0}<span class="block">{formatBytes(cleanItemAmounts(item).removed)} removed</span>{/if}
+                <span class="shrink-0 text-right tabular-nums text-meta text-warning">{#if cleanItemAmounts(item).removed > 0}<span class="block">{formatBytes(cleanItemAmounts(item).removed)} removed</span>{/if}
                   {#if cleanItemAmounts(item).moved > 0}<span class="block">{formatBytes(cleanItemAmounts(item).moved)} moved</span>{/if}
                   {#if cleanItemAmounts(item).removed === 0 && cleanItemAmounts(item).moved === 0}No measured removal{/if}</span>
               </div>
@@ -241,7 +241,7 @@
             <div class="px-2.5 py-2 text-meta">
               <div class="flex items-center justify-between gap-2">
                 <span class="min-w-0 break-words text-foreground">{item.name}</span>
-                <span class="shrink-0 text-right font-mono tabular-nums text-muted-foreground">
+                <span class="shrink-0 text-right tabular-nums text-muted-foreground">
                   {#if cleanItemAmounts(item).removed > 0}<span class="block">{formatBytes(cleanItemAmounts(item).removed)} removed</span>{/if}
                   {#if cleanItemAmounts(item).moved > 0}<span class="block">{formatBytes(cleanItemAmounts(item).moved)} moved</span>{/if}
                   {#if cleanItemAmounts(item).removed === 0 && cleanItemAmounts(item).moved === 0}No measured removal{/if}

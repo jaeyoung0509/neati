@@ -129,7 +129,7 @@
           step="5"
           value={settings.agent_notifications?.inactivity_threshold_minutes ?? 15}
           oninput={(e) => handleThresholdChange(Number((e.target as HTMLInputElement).value))}
-          class="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+          class="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-control"
         />
       </div>
     {/if}

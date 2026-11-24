@@ -9,4 +9,4 @@
   let { bytes, class: className = '' }: Props = $props();
 </script>
 
-<span data-byte-value class="inline-block whitespace-nowrap font-mono tabular-nums {className}">{formatBytes(bytes)}</span>
+<span data-byte-value class="inline-block whitespace-nowrap tabular-nums {className}">{formatBytes(bytes)}</span>

@@ -62,7 +62,7 @@
       <div class="flex flex-wrap items-center justify-between gap-2 text-meta font-medium text-muted-foreground">
         <span>{batteryPresenceLabel(battery.presence)}</span>
         {#if sampledAgo}
-          <span class="font-mono text-caption">Updated {sampledAgo}</span>
+          <span class="text-caption">Updated {sampledAgo}</span>
         {/if}
       </div>
 
@@ -70,7 +70,7 @@
         <BatteryIndicator percent={percent} chargeState={battery.charge_state} />
         <div class="min-w-0 space-y-0.5">
           {#if percent != null}
-            <div class="text-metric font-mono font-semibold tabular-nums text-foreground">
+            <div class="text-metric font-semibold tabular-nums text-foreground">
               <AnimatedValue value={String(Math.round(percent))} class="min-w-[2ch]" /><span class="text-body font-normal text-muted-foreground">%</span>
             </div>
           {:else}
@@ -92,7 +92,7 @@
         </div>
         <div class="flex items-center gap-1.5">
           <dt>Last reading</dt>
-          <dd class="font-mono text-foreground">{sampledAgo ?? 'Not reported'}</dd>
+          <dd class="text-foreground">{sampledAgo ?? 'Not reported'}</dd>
         </div>
       </dl>
     </Card>

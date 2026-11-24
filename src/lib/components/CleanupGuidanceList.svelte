@@ -43,7 +43,7 @@
       <ul class="divide-y divide-border">
       {#each group.rows as row (row.itemId)}
         <li class="p-3 space-y-1">
-          <div class="flex flex-wrap justify-between gap-2"><span class="font-medium text-foreground break-words">{row.name}</span><span class="font-mono tabular-nums">{formatBytes(row.observedBytes)} observed</span></div>
+          <div class="flex flex-wrap justify-between gap-2"><span class="font-medium text-foreground break-words">{row.name}</span><span class="tabular-nums">{formatBytes(row.observedBytes)} observed</span></div>
           <p>{row.owner} · {row.label}</p>
           <p class="break-words [overflow-wrap:anywhere]">{row.detail}</p>
           {#if row.action === 'unavailable'}

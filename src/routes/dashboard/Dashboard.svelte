@@ -355,7 +355,7 @@
               <span
                 class="{sidebarCollapsed
                   ? 'absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary'
-                  : 'ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-mono font-medium tracking-tight text-primary'}"
+                  : 'ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-medium tabular-nums text-primary'}"
                 title="Reclaimable storage available"
               >
                 {#if sidebarCollapsed}

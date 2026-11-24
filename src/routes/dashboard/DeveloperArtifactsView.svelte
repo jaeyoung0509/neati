@@ -18,6 +18,7 @@
   } from '../../lib/models/types';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
+  import RemovalOutcomeCard from '../../lib/components/RemovalOutcomeCard.svelte';
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import LoadingIndicator from '../../lib/components/LoadingIndicator.svelte';
   import RemovalPlanCard from '../../lib/components/RemovalPlanCard.svelte';
@@ -729,21 +730,9 @@
   {/if}
 
   {#if removalResult}
-    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'status-panel-warning' : 'status-panel-success'}`}>
-      <div class="flex items-center justify-between gap-3 text-meta">
-        <span class={`font-medium ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
-          Permanently removed {removalResult.removed_count} artifact{removalResult.removed_count === 1 ? '' : 's'}
-        </span>
-        <span class="tabular-nums text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)} removed · free-space change not measured</span>
-      </div>
+    <RemovalOutcomeCard result={removalResult} singular="artifact" plural="artifacts" sizeNote="free-space change not measured">
       {#if relatedScopesNeedRefresh}<p class="mt-2 text-meta text-muted-foreground">Scan again to refresh related parent and child output scopes.</p>{/if}
-      {#if removalResult.items.some(item => !item.success)}
-        <details class="mt-2 text-meta text-muted-foreground">
-          <summary class="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Kept artifacts and recovery details</summary>
-          <ul class="mt-1 space-y-1">{#each removalResult.items.filter(item => !item.success) as item (item.item_id)}<li class="break-words">{item.message}</li>{/each}</ul>
-        </details>
-      {/if}
-    </Card>
+    </RemovalOutcomeCard>
   {/if}
 
   {#if plan}

@@ -159,6 +159,11 @@ fn the_self_check_command_answers_from_the_injected_environment() {
 fn a_failed_catalog_refuses_the_scan_instead_of_reporting_an_empty_one() {
     use neati_lib::signatures::SignatureRegistry;
 
+    // Building the state logs the failure; it belongs in a scratch log, not
+    // the person's real one (#528).
+    let logs = tempfile::tempdir().expect("scratch log folder");
+    neati_lib::diagnostics::redirect_log_directory(logs.path().to_path_buf());
+
     let failure = "Signature catalog could not be loaded: stated catalog defect";
     let state = desktop_state_with_catalog(
         Arc::new(stated_windows_machine()),

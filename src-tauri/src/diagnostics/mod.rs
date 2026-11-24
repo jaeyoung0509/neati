@@ -5,7 +5,7 @@ use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::SystemTime;
 
 pub mod doctor;
@@ -58,7 +58,35 @@ pub fn log_dir(environment: &PlatformEnvironment) -> PathBuf {
 /// environment; `--doctor` and the environment-aware entry points take the
 /// environment explicitly.
 pub fn log_file_path() -> PathBuf {
-    log_dir(&PlatformEnvironment::native()).join("neati.log")
+    sink_dir().join("neati.log")
+}
+
+/// A directory this process writes its log to instead of the real one.
+static LOG_DIRECTORY_OVERRIDE: OnceLock<PathBuf> = OnceLock::new();
+
+/// Sends this process's log to `dir` instead of the person's log folder.
+///
+/// For integration tests, which link the library without `cfg(test)`: a test
+/// run must never append fixture failures to the real log a person reads when
+/// something goes wrong (#528). The first call wins.
+#[doc(hidden)]
+pub fn redirect_log_directory(dir: PathBuf) {
+    let _ = LOG_DIRECTORY_OVERRIDE.set(dir);
+}
+
+/// The directory the global log sink writes to. Unit tests write to a
+/// per-process temporary folder, never to the person's log folder (#528).
+fn sink_dir() -> PathBuf {
+    if let Some(dir) = LOG_DIRECTORY_OVERRIDE.get() {
+        return dir.clone();
+    }
+    #[cfg(test)]
+    let dir = PlatformEnvironment::native()
+        .temp_dir()
+        .join(format!("neati-test-log-{}", std::process::id()));
+    #[cfg(not(test))]
+    let dir = log_dir(&PlatformEnvironment::native());
+    dir
 }
 
 /// Redacts known credential shapes and masks absolute paths from log messages.
@@ -82,7 +110,7 @@ fn restrict_permissions(_path: &Path, _mode: u32) -> std::io::Result<()> {
 pub fn log_error(category: &str, message: &str) {
     // The global log sink follows the running environment; resolving it once
     // keeps the directory and the file from disagreeing.
-    let dir = log_dir(&PlatformEnvironment::native());
+    let dir = sink_dir();
     write_log_line(&dir, category, message, restrict_permissions);
 }
 
@@ -585,6 +613,18 @@ mod tests {
     use neati_platform::path_algebra::PathFlavor;
     use neati_platform::paths::SimulatedPaths;
     use std::sync::Arc;
+
+    #[test]
+    fn a_test_run_never_writes_into_the_persons_log_folder() {
+        // #528: fixture failures from `cargo test` filled the real log a
+        // person reads to find out why a cleanup kept something.
+        let real = log_dir(&PlatformEnvironment::native());
+        log_error("test", "fixture line from the log redirection test");
+        let written = log_file_path();
+        assert!(!written.starts_with(&real), "{}", written.display());
+        let contents = fs::read_to_string(&written).expect("the redirected log was written");
+        assert!(contents.contains("fixture line from the log redirection test"));
+    }
 
     /// Builds the `"key": "value"` JSON pair at runtime, so the fixture source
     /// carries no complete credential assignment for the safety scanner.

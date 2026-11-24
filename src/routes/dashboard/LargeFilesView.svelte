@@ -11,6 +11,7 @@
   import LoadingActionContent from '../../lib/components/LoadingActionContent.svelte';
   import Button from '../../lib/components/Button.svelte';
   import Card from '../../lib/components/Card.svelte';
+  import RemovalOutcomeCard from '../../lib/components/RemovalOutcomeCard.svelte';
   import LoadingState from '../../lib/components/LoadingState.svelte';
   import RemovalPlanCard from '../../lib/components/RemovalPlanCard.svelte';
   import { formatBytes, formatTimeAgo } from '../../lib/utils/format';
@@ -398,17 +399,7 @@
   {/if}
 
   {#if removalResult}
-    <Card class={`p-4 ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'status-panel-warning' : 'status-panel-success'}`}>
-      <div class="flex items-center justify-between gap-3 text-meta">
-        <span class={`font-medium ${removalResult.failed_count + removalResult.skipped_count > 0 ? 'text-warning' : 'text-success'}`}>
-          Permanently removed {removalResult.removed_count} item{removalResult.removed_count === 1 ? '' : 's'}
-          {#if removalResult.failed_count + removalResult.skipped_count > 0}
-            · {removalResult.failed_count + removalResult.skipped_count} not fully removed
-          {/if}
-        </span>
-        <span class="tabular-nums text-muted-foreground">{removalResult.size_is_lower_bound ? '≥ ' : ''}{formatBytes(removalResult.removed_allocated_size)}</span>
-      </div>
-    </Card>
+    <RemovalOutcomeCard result={removalResult} singular="item" plural="items" />
   {/if}
 
   {#if scanResult?.truncated}
